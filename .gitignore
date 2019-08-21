@@ -1,5 +1,7 @@
 *.pyc
 
+.project
+.pydevproject
 *.opensdf
 *.sdf
 *.user
@@ -16,6 +18,8 @@
 *_wrap.cpp
 *.htm
 
+.vscode/
+.idea/
 .vs/
 __pycache__/
 output/
