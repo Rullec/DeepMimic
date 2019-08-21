@@ -2,6 +2,8 @@ logs/
 
 *.pyc
 
+.project
+.pydevproject
 *.opensdf
 *.sdf
 *.user
@@ -18,6 +20,8 @@ logs/
 *_wrap.cpp
 *.htm
 
+.vscode/
+.idea/
 .vs/
 __pycache__/
 output/
