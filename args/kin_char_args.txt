@@ -5,8 +5,8 @@
 # --motion_file data/motions/humanoid3d_walk_xudong_081203.txt
 
 # 测试: 新的
---character_file data/characters/humanoid3d_xudong_081301.txt
---motion_file data/motions/humanoid3d_walk_xudong_081306.txt
+--character_file data/characters/humanoid3d_082104.txt
+--motion_file data/motions/walk_motion_082104.txt
 
 # 成功的
 # --character_file data/characters/humanoid3d.txt
