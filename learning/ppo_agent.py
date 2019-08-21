@@ -21,7 +21,7 @@ class PPOAgent(PGAgent):
     BATCH_SIZE_KEY = "BatchSize"
     RATIO_CLIP_KEY = "RatioClip"
     NORM_ADV_CLIP_KEY = "NormAdvClip"
-    TD_LAMBDA_KEY = "TDLambda"
+    TD_LAMBDA_KEY = "TDLambda"  # 肯定用了GAE
     TAR_CLIP_FRAC = "TarClipFrac"
     ACTOR_STEPSIZE_DECAY = "ActorStepsizeDecay"
 
@@ -76,17 +76,18 @@ class PPOAgent(PGAgent):
         a_size = self.get_action_size()
 
         # setup input tensors
-        self.s_tf = tf.placeholder(tf.float32, shape=[None, s_size], name="s")
-        self.a_tf = tf.placeholder(tf.float32, shape=[None, a_size], name="a")
-        self.tar_val_tf = tf.placeholder(tf.float32, shape=[None], name="tar_val")
-        self.adv_tf = tf.placeholder(tf.float32, shape=[None], name="adv")  # 我怀疑是advantage function,但我没有证据
-        self.g_tf = tf.placeholder(tf.float32, shape=([None, g_size] if self.has_goal() else None), name="g")
-        self.old_logp_tf = tf.placeholder(tf.float32, shape=[None], name="old_logp")
-        self.exp_mask_tf = tf.placeholder(tf.float32, shape=[None], name="exp_mask")
+        self.s_tf = tf.placeholder(tf.float32, shape=[None, s_size], name="s")  # 输入state
+        self.a_tf = tf.placeholder(tf.float32, shape=[None, a_size], name="a")  # 输入action
+        self.tar_val_tf = tf.placeholder(tf.float32, shape=[None], name="tar_val")  # 输入:target value，从MC方法来的，外部计算输入，用于监督训练critic net
+        self.adv_tf = tf.placeholder(tf.float32, shape=[None], name="adv")  # advantage function
+        self.g_tf = tf.placeholder(tf.float32, shape=([None, g_size] if self.has_goal() else None), name="g")   # goal
+        self.old_logp_tf = tf.placeholder(tf.float32, shape=[None], name="old_logp")    # old logp，用来做重要性采样
+        self.exp_mask_tf = tf.placeholder(tf.float32, shape=[None], name="exp_mask")    # 这个mask是干啥的?
 
         with tf.variable_scope('main'):
             with tf.variable_scope('actor'):
                 # 建立actor网络
+                # 输出是action所服从的高斯分布的均值。
                 self.a_mean_tf = self._build_net_actor(actor_net_name, actor_init_output_scale)
             with tf.variable_scope('critic'):
                 # 建立critic网络
@@ -98,11 +99,13 @@ class PPOAgent(PGAgent):
         if (self.critic_tf != None):
             Logger.print('Built critic net: ' + critic_net_name)
         
+        # 本网络输出的action所服从的高斯分布的标准差在这里: 是一个噪音乘以全１向量(只是为了扩展维度)
         self.norm_a_std_tf = self.exp_params_curr.noise * tf.ones(a_size)
+
         norm_a_noise_tf = self.norm_a_std_tf * tf.random_normal(shape=tf.shape(self.a_mean_tf))
         norm_a_noise_tf *= tf.expand_dims(self.exp_mask_tf, axis=-1)
-        self.sample_a_tf = self.a_mean_tf + norm_a_noise_tf * self.a_norm.std_tf
-        self.sample_a_logp_tf = TFUtil.calc_logp_gaussian(x_tf=norm_a_noise_tf, mean_tf=None, std_tf=self.norm_a_std_tf)
+        self.sample_a_tf = self.a_mean_tf + norm_a_noise_tf * self.a_norm.std_tf    # action采样输出, 是mean ->无穷的值 + 噪音
+        self.sample_a_logp_tf = TFUtil.calc_logp_gaussian(x_tf=norm_a_noise_tf, mean_tf=None, std_tf=self.norm_a_std_tf)    # 他对应的当前概率是这个
 
         return
 
@@ -110,21 +113,31 @@ class PPOAgent(PGAgent):
         actor_weight_decay = 0 if (self.ACTOR_WEIGHT_DECAY_KEY not in json_data) else json_data[self.ACTOR_WEIGHT_DECAY_KEY]
         critic_weight_decay = 0 if (self.CRITIC_WEIGHT_DECAY_KEY not in json_data) else json_data[self.CRITIC_WEIGHT_DECAY_KEY]
         
+        # 这个val norm是干什么的?
         norm_val_diff = self.val_norm.normalize_tf(self.tar_val_tf) - self.val_norm.normalize_tf(self.critic_tf)
-        self.critic_loss_tf = 0.5 * tf.reduce_mean(tf.square(norm_val_diff))
+        self.critic_loss_tf = 0.5 * tf.reduce_mean(tf.square(norm_val_diff))    # critic loss1 = MSE
 
-        if (critic_weight_decay != 0):
+        if (critic_weight_decay != 0):  # ciritc loss2 = critic网络参数尽可能接近0(绝对值小)
             self.critic_loss_tf += critic_weight_decay * self._weight_decay_loss('main/critic')
         
-        norm_tar_a_tf = self.a_norm.normalize_tf(self.a_tf)
-        self._norm_a_mean_tf = self.a_norm.normalize_tf(self.a_mean_tf)
+        # action的范围究竟是不是角度限制?
+        norm_tar_a_tf = self.a_norm.normalize_tf(self.a_tf) # 外部输入的action变化到分布上
+        self._norm_a_mean_tf = self.a_norm.normalize_tf(self.a_mean_tf) # 把网络声称，也变化到这个分布上。
 
+        # 计算重要性采样分子的:当前policy下的占位符输入action 的概率。
         self.logp_tf = TFUtil.calc_logp_gaussian(norm_tar_a_tf, self._norm_a_mean_tf, self.norm_a_std_tf)
-        ratio_tf = tf.exp(self.logp_tf - self.old_logp_tf)
-        actor_loss0 = self.adv_tf * ratio_tf
-        actor_loss1 = self.adv_tf * tf.clip_by_value(ratio_tf, 1.0 - self.ratio_clip, 1 + self.ratio_clip)
+        ratio_tf = tf.exp(self.logp_tf - self.old_logp_tf)  # ratio的实现
+        self.ratio_tf = ratio_tf
+        actor_loss0 = self.adv_tf * ratio_tf    # 第一个loss: 优势函数 * ratio
+        actor_loss1 = self.adv_tf * tf.clip_by_value(ratio_tf, 1.0 - self.ratio_clip, 1 + self.ratio_clip)  # 第二个loss: 裁剪 * advantage
+        # 所以说，我强烈怀疑是输入的advantage有问题，这就去排查一下。
+
+        # 这里定义了loss
         self.actor_loss_tf = -tf.reduce_mean(tf.minimum(actor_loss0, actor_loss1))
 
+        # action有上下界
+        print("action bound min = " % self.a_bound_min)
+        print("action bound max = " % self.a_bound_max)
         norm_a_bound_min = self.a_norm.normalize(self.a_bound_min)
         norm_a_bound_max = self.a_norm.normalize(self.a_bound_max)
         a_bound_loss = TFUtil.calc_bound_loss(self._norm_a_mean_tf, norm_a_bound_min, norm_a_bound_max)
@@ -168,6 +181,9 @@ class PPOAgent(PGAgent):
         :param g:
         :return:
         '''
+        # print("decide action")
+        assert np.isfinite(s).all() == True
+
         with self.sess.as_default(), self.graph.as_default():
             self._exp_action = self._enable_stoch_policy() and MathUtil.flip_coin(self.exp_params_curr.rate)
             a, logp = self._eval_actor(s, g, self._exp_action)
@@ -257,14 +273,25 @@ class PPOAgent(PGAgent):
 
                 critic_s = self.replay_buffer.get('states', critic_batch)
                 critic_g = self.replay_buffer.get('goals', critic_batch) if self.has_goal() else None
+
+                # update critic
                 curr_critic_loss = self._update_critic(critic_s, critic_g, critic_batch_vals)
 
                 actor_s = self.replay_buffer.get("states", actor_batch[:,0])
-                actor_g = self.replay_buffer.get("goals", actor_batch[:,0]) if self.has_goal() else None
+                actor_g = self.replay_buffer.get("goals", actor_batch[:,0]) if self.has_goal() else None    # 必须得有goal,不然怎么mimic?
                 actor_a = self.replay_buffer.get("actions", actor_batch[:,0])
                 actor_logp = self.replay_buffer.get("logps", actor_batch[:,0])
+
+                # update actor
+                # assert actor_g is not None
+                # print("advantage = %s" % str(adv))
+                # assert np.isfinite(adv).all() == True
+                # raise(ValueError)
                 curr_actor_loss, curr_actor_clip_frac = self._update_actor(actor_s, actor_g, actor_a, actor_logp, actor_batch_adv)
-                
+                # print("[train log] sub epoch %d loss = %.3f" % (b, curr_actor_loss))
+                assert np.isfinite(curr_actor_loss).all() == True
+
+                # actor loss是Nan
                 critic_loss += curr_critic_loss
                 actor_loss += np.abs(curr_actor_loss)
                 actor_clip_frac += curr_actor_clip_frac
@@ -300,10 +327,12 @@ class PPOAgent(PGAgent):
         return 1
 
     def _valid_train_step(self):
+        # 只有当批量达到batch size的时候才行
         samples = self.replay_buffer.get_current_size()
         exp_samples = self.replay_buffer.count_filtered(self.EXP_ACTION_FLAG)
         global_sample_count = int(MPIUtil.reduce_sum(samples))
         global_exp_min = int(MPIUtil.reduce_min(exp_samples))
+        # print("[valid train step] current %d samples > batchsize = %d" % (global_sample_count, self.batch_size))
         return (global_sample_count > self.batch_size) and (global_exp_min > 0)
 
     def _compute_batch_vals(self, start_idx, end_idx):
@@ -351,10 +380,19 @@ class PPOAgent(PGAgent):
         }
 
         loss, grads = self.sess.run([self.critic_loss_tf, self.critic_grad_tf], feed)
-        self.critic_solver.update(grads)
+        self.critic_solver.update(grads)# 这个是更新critic...
         return loss
     
     def _update_actor(self, s, g, a, logp, adv):
+        # 保证更新actor的所有值就不能有Nan
+        # 如果他们有问题，那一定是仿真环境出了问题
+        assert np.isfinite(s).all() == True
+        
+        assert np.isfinite(a).all() == True
+        assert np.isfinite(logp).all() == True
+        assert np.isfinite(adv).all() == True
+        # assert np.isfinite(g).all() == True # 这个目标有问题
+
         feed = {
             self.s_tf: s,
             self.g_tf: g,
@@ -362,9 +400,31 @@ class PPOAgent(PGAgent):
             self.adv_tf: adv,
             self.old_logp_tf: logp
         }
+        '''        norm_x = (x - self.mean_tf) / self.std_tf
+        norm_x = tf.clip_by_value(norm_x, -self.clip, self.clip)
+        '''
+        # 获取loss, 梯度, clip_frac?
+        # a_mean, norm_a_mean, a_norm_mean, a_norm_std, a_norm_clip = self.sess.run([self.a_mean_tf, self._norm_a_mean_tf,
+        #     self.a_norm.mean_tf, self.a_norm.std_tf, self.a_norm.clip], feed_dict=feed)
+        a_mean, norm_a_mean = self.sess.run([self.a_mean_tf, self._norm_a_mean_tf,
+            ], feed_dict=feed)
+        # print("a_mean = %s" % str(a_mean))
+        # print("a_norm_mean = %s" % str(self.sess.run(self.a_norm.mean_tf)))
+        # print("a_norm_std = %s" % str(self.sess.run(self.a_norm.std_tf)))
+        # print("a_norm_clip = %s" % str(self.a_norm.clip))
 
-        loss, grads, clip_frac = self.sess.run([self.actor_loss_tf, self.actor_grad_tf,
-                                                        self.clip_frac_tf], feed)
+        # print("old p = %s" % str(logp))
+        # print("norm a mean = %s" % str(norm_a_mean))
+
+        assert np.isfinite(norm_a_mean).all() == True
+
+        loss, grads, clip_frac, ratio_all, log_p_new = self.sess.run([self.actor_loss_tf, self.actor_grad_tf, self.clip_frac_tf, 
+                     self.ratio_tf, self.logp_tf ], feed)
+        # print("ratio = %s " % str(ratio_all))
+        # print("logp = %s " % str(log_p_new))
+        assert np.isfinite(ratio_all).all() == True
+        assert np.isfinite(log_p_new).all() == True
+
         self.actor_solver.update(grads)
 
         return loss, clip_frac

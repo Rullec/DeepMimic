@@ -124,9 +124,11 @@ class DeepMimicEnv(Env):
         return np.array(self._core.BuildGoalScale(agent_id))
     
     def build_action_offset(self, agent_id):
+        # 获取action norm的mean
         return np.array(self._core.BuildActionOffset(agent_id))
 
     def build_action_scale(self, agent_id):
+        # 获取action norm的scale
         return np.array(self._core.BuildActionScale(agent_id))
 
     def build_action_bound_min(self, agent_id):

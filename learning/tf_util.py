@@ -50,6 +50,9 @@ def flat_grad(loss, var_list):
 
 
 def calc_logp_gaussian(x_tf, mean_tf, std_tf):
+    # 这个函数一共有3个输入，x_tf作为要计算p的横坐标值
+    # mean_tf，也就是高斯分布的均值，
+    # std_tf，是高斯分布的标准差
     dim = tf.to_float(tf.shape(x_tf)[-1])
 
     if mean_tf is None:

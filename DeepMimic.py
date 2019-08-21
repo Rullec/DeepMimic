@@ -65,31 +65,29 @@ def update_intermediate_buffer():
     return
 
 def update_world(world, time_elapsed):
+    '''
+        主循环调用这个update函数
+    '''
+    # 一次update_world在实践中被分成很多个子步
+    # 这可能是为了提高帧率或者实现一些别的功能?
     num_substeps = world.env.get_num_update_substeps()
     timestep = time_elapsed / num_substeps
     num_substeps = 1 if (time_elapsed == 0) else num_substeps
 
     for i in range(num_substeps):
-        # update - 执行一个substep, 比较关键
         world.update(timestep)
-
-        # check_valid - 判断valid episode
-        #   valid: 继续走
-        #   invalid: world.reset 停止工作
+        
         valid_episode = world.env.check_valid_episode()
 
-        if valid_episode:
-
-            # check_end - 判断end
-            #   is_end: end_episode + reset
-            #   not_end: continue substeps
+        if valid_episode:   # 速度没有爆炸
             end_episode = world.env.is_episode_end()
             if (end_episode):
+                # print("episode done")
                 world.end_episode()
                 world.reset()
                 break
-        else:
-
+        else:   # 速度爆炸了
+            # 一旦出现无效episode，直接就world.reset了。
             world.reset()
             break
     return
@@ -129,6 +127,7 @@ def reload():
     global world
     global args
 
+    # 在这里build了world, 必然绘制
     world = build_world(args, enable_draw=True)
     print("build world succ")
     return
@@ -312,10 +311,13 @@ def build_world(args, enable_draw, playback_speed=1):
     :param playback_speed: 播放速度默认是1
     :return:
     '''
+
     arg_parser = build_arg_parser(args)     # 参数解析器，之前已经看过，就是一个dict(value - list )而已
-    env = DeepMimicEnv(args, enable_draw)   # 调用了c++中的cDeepmimicCore，完成了对给定arg file的解析，以及对简单几何体(圆柱 球)和gl环境的初始化，没有任何与agent有关的事情
-    world = RLWorld(env, arg_parser)        # 创建了RL world,我推测这就是agent存在的地方
+    env = DeepMimicEnv(args, enable_draw)   # 先创建env
+    world = RLWorld(env, arg_parser)        # 然后在创建world, (创建完world再创建agent)
     world.env.set_playback_speed(playback_speed)
+    # 为什么环境总是要被先创建?因为agent是依赖world中的env才能给出维度信息的，才能act的。world是舞台
+    # 先有环境再有人
     return world
 
 def draw_main_loop():
@@ -328,7 +330,6 @@ def main():
 
     # Command line arguments
     args = sys.argv[1:]
-
     init_draw()
     reload()
     setup_draw()
@@ -337,4 +338,5 @@ def main():
     return
 
 if __name__ == '__main__':
+    # 如果调用Deepmimic.py的话，就会进行绘制...
     main()

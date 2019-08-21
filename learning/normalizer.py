@@ -17,11 +17,13 @@ class Normalizer(object):
             return
 
     def __init__(self, size, groups_ids=None, eps=0.02, clip=np.inf):
+        # 以action normalizer为例，输入一个state，网络自然输出一个action, 这个action是一组实数
+        # 
         self.eps = eps
-        self.clip = clip
-        self.mean = np.zeros(size)
-        self.mean_sq = np.zeros(size)
-        self.std = np.ones(size)
+        self.clip = clip    # 切割
+        self.mean = np.zeros(size)  # mean 
+        self.mean_sq = np.zeros(size)   # mean sq?
+        self.std = np.ones(size)    # std?
         self.count = 0
         self.groups = self._build_groups(groups_ids)
 
@@ -31,7 +33,7 @@ class Normalizer(object):
         return
 
     def record(self, x):
-        size = self.get_size()
+        size = self.get_size()  # record就是normalizer的record,他记录每一次的数据x的和...还有平方的和, 保存平方的和目的是为了计算std
         is_array = isinstance(x, np.ndarray)
         if not is_array:
             assert(size == 1)
@@ -47,7 +49,7 @@ class Normalizer(object):
         return
 
     def update(self):
-        new_count = MPIUtil.reduce_sum(self.new_count)
+        new_count = MPIUtil.reduce_sum(self.new_count)  
         new_sum = MPIUtil.reduce_sum(self.new_sum)
         new_sum_sq = MPIUtil.reduce_sum(self.new_sum_sq)
 
@@ -64,7 +66,7 @@ class Normalizer(object):
             self.mean = w_old * self.mean + w_new * new_mean
             self.mean_sq = w_old * self.mean_sq + w_new * new_mean_sq
             self.count = new_total
-            self.std = self.calc_std(self.mean, self.mean_sq)
+            self.std = self.calc_std(self.mean, self.mean_sq)   # 每次update的时候就是重新计算mean和std(假定高斯分布)
 
             self.new_count = 0
             self.new_sum.fill(0)
@@ -89,7 +91,7 @@ class Normalizer(object):
         
         self.mean = mean
         self.std = std
-        self.mean_sq = self.calc_mean_sq(self.mean, self.std)
+        self.mean_sq = self.calc_mean_sq(self.mean, self.std)   # 设置mean和std, 支持手动设置， 也支持计算出来。
         return
 
     def normalize(self, x):
