@@ -3,6 +3,7 @@
 #include <vector>
 #include "util/MathUtil.h"
 
+// 这似乎是一个矩阵栈(Matrix Stack)
 class cMatrixStack
 {
 public:
@@ -13,9 +14,9 @@ public:
 
 	virtual void Clear();
 	virtual const tMatrix& GetMatrix() const;
-	virtual void Push();
+	virtual void Push();	// 入栈
 	virtual void Push(const tMatrix& mat);
-	virtual void Pop();
+	virtual void Pop();		// 出栈
 
 	virtual size_t GetCapacity() const;
 	virtual size_t GetSize() const;

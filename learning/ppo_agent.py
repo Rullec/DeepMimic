@@ -50,13 +50,27 @@ class PPOAgent(PGAgent):
         return
 
     def _build_nets(self, json_data):
+        '''
+            这里是ppo agent的build_net过程
+
+            对于一个agent的action，必然是从一个net中来的，即:
+                N(s) = a
+            这个网络需要为当前的agent建立。当前的强化学习普遍使用actor-critic来加速训练。
+                这并不只存在于PPO中;所谓actor-critic就是训练两个网络，其中critic的表现更加好一点，多迭代几次；
+                这个critic训练的一般是value function，而actor训练的就是action。
+                然后例如critic用TD训练，而actor用PPO/PG训练。
+            这个函数就是建立了actor-critic网络，并且在他们的输出上加了高斯噪声等一系列的东西。
+                
+        '''
         assert self.ACTOR_NET_KEY in json_data
         assert self.CRITIC_NET_KEY in json_data
 
+        # actor 网络名字
         actor_net_name = json_data[self.ACTOR_NET_KEY]
         critic_net_name = json_data[self.CRITIC_NET_KEY]
         actor_init_output_scale = 1 if (self.ACTOR_INIT_OUTPUT_SCALE_KEY not in json_data) else json_data[self.ACTOR_INIT_OUTPUT_SCALE_KEY]
 
+        # state多大? goal多大? action多大? 这些量后来都用来设置placeholder
         s_size = self.get_state_size()
         g_size = self.get_goal_size()
         a_size = self.get_action_size()
@@ -65,17 +79,19 @@ class PPOAgent(PGAgent):
         self.s_tf = tf.placeholder(tf.float32, shape=[None, s_size], name="s")
         self.a_tf = tf.placeholder(tf.float32, shape=[None, a_size], name="a")
         self.tar_val_tf = tf.placeholder(tf.float32, shape=[None], name="tar_val")
-        self.adv_tf = tf.placeholder(tf.float32, shape=[None], name="adv")
+        self.adv_tf = tf.placeholder(tf.float32, shape=[None], name="adv")  # 我怀疑是advantage function,但我没有证据
         self.g_tf = tf.placeholder(tf.float32, shape=([None, g_size] if self.has_goal() else None), name="g")
         self.old_logp_tf = tf.placeholder(tf.float32, shape=[None], name="old_logp")
         self.exp_mask_tf = tf.placeholder(tf.float32, shape=[None], name="exp_mask")
 
         with tf.variable_scope('main'):
             with tf.variable_scope('actor'):
+                # 建立actor网络
                 self.a_mean_tf = self._build_net_actor(actor_net_name, actor_init_output_scale)
             with tf.variable_scope('critic'):
+                # 建立critic网络
                 self.critic_tf = self._build_net_critic(critic_net_name)
-                
+               
         if (self.a_mean_tf != None):
             Logger.print('Built actor net: ' + actor_net_name)
 
@@ -145,6 +161,13 @@ class PPOAgent(PGAgent):
         return
 
     def _decide_action(self, s, g):
+        '''
+
+            这个函数会做网络前馈, 得到action
+        :param s:
+        :param g:
+        :return:
+        '''
         with self.sess.as_default(), self.graph.as_default():
             self._exp_action = self._enable_stoch_policy() and MathUtil.flip_coin(self.exp_params_curr.rate)
             a, logp = self._eval_actor(s, g, self._exp_action)
@@ -164,14 +187,24 @@ class PPOAgent(PGAgent):
         return a, logp
 
     def _train_step(self):
+        '''
+            for each substep in update_agents, after decide and apply the selected action
+
+            there will be several again train steps (several iters)
+                to update network weight
+
+        :return:
+        '''
         adv_eps = 1e-5
 
+        # get the buffer info, st to ed
         start_idx = self.replay_buffer.buffer_tail
         end_idx = self.replay_buffer.buffer_head
         assert(start_idx == 0)
         assert(self.replay_buffer.get_current_size() <= self.replay_buffer.buffer_size) # must avoid overflow
         assert(start_idx < end_idx)
 
+        # buffer idx array
         idx = np.array(list(range(start_idx, end_idx)))        
         end_mask = self.replay_buffer.is_path_end(idx)
         end_mask = np.logical_not(end_mask) 
@@ -202,11 +235,13 @@ class PPOAgent(PGAgent):
         actor_clip_frac = 0
 
         for e in range(self.epochs):
+            # 对于每个epoch，先把idx shuffle
             np.random.shuffle(valid_idx)
             np.random.shuffle(exp_idx)
 
             for b in range(mini_batches):
-                batch_idx_beg = b * self._local_mini_batch_size
+                # 又有minibatch
+                batch_idx_beg = b * self._local_mini_batch_size             # 逐个步进的取batch(shuffle后顺序拿)
                 batch_idx_end = batch_idx_beg + self._local_mini_batch_size
 
                 critic_batch = np.array(range(batch_idx_beg, batch_idx_end), dtype=np.int32)

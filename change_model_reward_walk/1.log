@@ -1,0 +1,18 @@
+Renderer: llvmpipe (LLVM 6.0, 256 bits)
+OpenGL version supported 3.3 (Core Profile) Mesa 18.0.0-rc5
+Compiling shader: data/shaders/Mesh_VS.glsl
+Compiling shader: data/shaders/VertColor_PS.glsl
+Compiling shader: data/shaders/FullScreenQuad_VS.glsl
+Compiling shader: data/shaders/DownSample_PS.glsl
+Compiling shader: data/shaders/Mesh_VS.glsl
+Compiling shader: data/shaders/DownSample_PS.glsl
+
+Agent Registry
+Num Agents: 1
+Agent 0: ct_pd
+
+Compiling shader: data/shaders/Mesh_VS.glsl
+Compiling shader: data/shaders/Depth_PS.glsl
+Compiling shader: data/shaders/Mesh_VS.glsl
+Compiling shader: data/shaders/Lighting_Lambert_PS.glsl
+Loaded scene: Imitate

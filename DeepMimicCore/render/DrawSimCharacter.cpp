@@ -128,13 +128,16 @@ void cDrawSimCharacter::DrawInfoValLog(const cCircularBuffer<double>& val_log, c
 
 void cDrawSimCharacter::DrawSimBody(const cSimCharacter& character, const tVector& fill_tint, const tVector& line_col)
 {
+	// 这就是绘制body的类
 	const tVector gContactCol = tVector(0.5, 0.75, 0.5, 1);
 
 	cDrawUtil::SetLineWidth(1);
 	for (int i = 0; i < character.GetNumBodyParts(); ++i)
 	{
+		// 拿到每一部分的parts
 		if (character.IsValidBodyPart(i))
 		{
+			// 有效
 			tVector col;
 			const auto& curr_part = character.GetBodyPart(i);
 

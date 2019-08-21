@@ -8,11 +8,11 @@ class RLWorld(object):
     def __init__(self, env, arg_parser):
         TFUtil.disable_gpu()
 
-        self.env = env
+        self.env = env              # simulation环境是进到RLworld里来的。
         self.arg_parser = arg_parser
         self._enable_training = True
         self.train_agents = []
-        self.parse_args(arg_parser)
+        self.parse_args(arg_parser) # 解析参数，主要解释num_agent, agent的个数。
 
         self.build_agents()
         
@@ -41,6 +41,7 @@ class RLWorld(object):
     def parse_args(self, arg_parser):
         self.train_agents = self.arg_parser.parse_bools('train_agents')
         num_agents = self.env.get_num_agents()
+        # agent 个数和 worker个数不一样，一个agent代表训练一个策略;而多个worker只是用来增加采样数的
         assert(len(self.train_agents) == num_agents or len(self.train_agents) == 0)
 
         return
@@ -50,23 +51,89 @@ class RLWorld(object):
         return
 
     def build_agents(self):
+        '''
+            初始化RLworld的时候，调用这个类, 完成对制定个数num_agent个agent的构建
+
+        :return:
+        '''
         num_agents = self.env.get_num_agents()
         self.agents = []
 
         Logger.print('')
         Logger.print('Num Agents: {:d}'.format(num_agents))
 
+        # 在RL world中，拿到agent文件、模型文件、输出路径
+        # agent包括:
+        '''
+            {
+                "AgentType": "PPO",
+            
+                "ActorNet": "fc_2layers_1024units",
+                "ActorStepsize": 0.0000025,
+                "ActorMomentum": 0.9,
+                "ActorWeightDecay": 0.0005,
+                "ActorInitOutputScale": 0.01,
+            
+                "CriticNet": "fc_2layers_1024units",
+                "CriticStepsize": 0.01,
+                "CriticMomentum": 0.9,
+                "CriticWeightDecay": 0,
+            
+                "UpdatePeriod": 1,
+                "ItersPerUpdate": 1,
+                "Discount": 0.95,
+                "BatchSize": 4096,
+                "MiniBatchSize": 256,
+                "Epochs": 1,
+                "ReplayBufferSize": 500000,
+                "InitSamples": 1,
+                "NormalizerSamples": 1000000,
+            
+                "RatioClip": 0.2,
+                "NormAdvClip": 4,
+                "TDLambda": 0.95,
+                
+                "OutputIters": 10,
+                "IntOutputIters": 400,
+                "TestEpisodes": 32,
+            
+                "ExpAnnealSamples": 64000000,
+                
+                "ExpParamsBeg":
+                {
+                    "Rate": 1,
+                    "InitActionRate": 1,
+                    "Noise": 0.05,
+                    "NoiseInternal": 0,
+                    "Temp": 0.1
+                },
+            
+                "ExpParamsEnd":
+                {
+                    "Rate": 0.2,
+                    "InitActionRate": 0.01,
+                    "Noise": 0.05,
+                    "NoiseInternal": 0,
+                    "Temp": 0.001
+                }
+            }
+        '''
         agent_files = self.arg_parser.parse_strings('agent_files')
         assert(len(agent_files) == num_agents or len(agent_files) == 0)
 
+        # model就是DRL网络结构和参数文件(ckpt)
         model_files = self.arg_parser.parse_strings('model_files')
         assert(len(model_files) == num_agents or len(model_files) == 0)
 
+        # model的输出path
         output_path = self.arg_parser.parse_string('output_path')
         int_output_path = self.arg_parser.parse_string('int_output_path')
 
+        # agent只有一个, worker可以有很多个。多个worker只是用来充分利用资源扩大采样而已。
         for i in range(num_agents):
             curr_file = agent_files[i]
+
+            # build agent 就在这行，对agent建立actor critic网络
             curr_agent = self._build_agent(i, curr_file)
 
             if curr_agent is not None:
@@ -97,7 +164,7 @@ class RLWorld(object):
         return
 
     def end_episode(self):
-        self._end_episode_agents();
+        self._end_episode_agents()
         return
 
     def _update_env(self, timestep):

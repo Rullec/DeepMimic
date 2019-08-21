@@ -878,6 +878,7 @@ void cDrawUtil::Finish()
 
 void cDrawUtil::BuildMeshes()
 {
+	// build完以后，这些mesh都有值了
 	cMeshUtil::BuildPointMesh(gPointMesh);
 	cMeshUtil::BuildLineMesh(gLineMesh);
 	cMeshUtil::BuildQuadMesh(gQuadMesh);

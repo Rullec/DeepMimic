@@ -293,9 +293,6 @@
     <ClCompile Include="DeepMimicCore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DeepMimicCore_wrap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="sim\CtrlBuilder.cpp">
       <Filter>Source Files\sim</Filter>
     </ClCompile>

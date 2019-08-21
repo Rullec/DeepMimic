@@ -180,9 +180,11 @@ double cKinCharacter::GetPhase() const
 
 void cKinCharacter::Pose(double time)
 {
+	// 计算姿势 设置姿势　
 	CalcPose(time, mPose);
 	SetPose(mPose);
 
+	// 计算速度　设置速度
 	CalcVel(time, mVel);
 	SetVel(mVel);
 }
@@ -332,6 +334,7 @@ void cKinCharacter::CalcPose(double time, Eigen::VectorXd& out_pose) const
 	tVector root_pos = cKinTree::GetRootPos(mJointMat, out_pose);
 	tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, out_pose);
 
+	// 在这里不知道怎么弄的就改变了root pos和 root rot
 	root_delta_rot = mOriginRot * root_delta_rot;
 	root_rot = root_delta_rot * root_rot;
 	root_pos += root_delta;

@@ -7,14 +7,20 @@ from util.logger import Logger
 from learning.tf_normalizer import TFNormalizer
 
 class TFAgent(RLAgent):
+    '''
+        TFAgent 又是RLAgent的子类
+
+    '''
     RESOURCE_SCOPE = 'resource'
     SOLVER_SCOPE = 'solvers'
 
     def __init__(self, world, id, json_data):
         self.tf_scope = 'agent'
-        self.graph = tf.Graph()
+        # TFAgent是RLAgent的子类
+        self.graph = tf.Graph()         # 定义了graph，然后在后面可供调用?
         self.sess = tf.Session(graph=self.graph)
 
+        # json_data: agent file 中读进来的json，不是骨架结构
         super().__init__(world, id, json_data)
         self._build_graph(json_data)
         self._init_normalizers()

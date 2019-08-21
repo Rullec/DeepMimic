@@ -19,7 +19,7 @@ public:
 	virtual std::string GetName() const;
 
 protected:
-	cImpPDController mPDCtrl;
+	cImpPDController mPDCtrl;	// 他才是关键的执行器，所有的ApplyAction都是要向这个里面放东西而已。
 
 	tVector mGravity;
 

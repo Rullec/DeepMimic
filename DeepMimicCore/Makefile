@@ -2,19 +2,30 @@ BIN=Main
 OBJ_DIR = objs
 MKDIR = mkdir -p
 
-EIGEN_DIR = ../../libraries/eigen
-BULLET_INC_DIR = ../../libraries/bullet3/src
+# EIGEN_DIR = ../../libraries/eigen
+# BULLET_INC_DIR = ../../libraries/bullet3/src
+EIGEN_DIR = ../../eigen-3.3.7
+BULLET_INC_DIR = ../../bullet3/src
 
-PYTHON_INC = /usr/include/python3.6m
-PYTHON_LIB = /usr/lib/ -lpython3.6m
+# PYTHON_INC = /usr/include/python3.6m
+# PYTHON_LIB = /usr/lib/ -lpython3.6m
+PYTHON_INC = ../../anaconda3/envs/spinningup/include/python3.6m
+PYTHON_LIB = ../../anaconda3/envs/spinningup/lib -lpython3.6m
+export LD_LIBRARY_PATH=../../anaconda3/envs/spinningup/lib:/home/fengxudong/Projects/anaconda3/lib:$LD_LIBRARY_PATH
 
 INC = -I./ \
 	-I$(EIGEN_DIR) \
 	-I$(BULLET_INC_DIR)
 
+
+# normal
 LIBS = -lGLEW -lGL -lGLU -lglut -lBulletDynamics -lBulletCollision -lLinearMath -lm -lstdc++
 
+# after
+LIBS = -lGLEW -lGL -lGLU -lglut /home/fengxudong/Projects/bullet3/build_cmake/src/BulletDynamics/libBulletDynamics.so /home/fengxudong/Projects/bullet3/build_cmake/src/BulletCollision/libBulletCollision.so /home/fengxudong/Projects/bullet3/build_cmake/src/LinearMath/libLinearMath.so -lm -lstdc++
+
 CC = clang++
+# CC = g++
 CFLAGS = -std=c++11 -O3 -Wall -fPIC 
 
 SRC_DIRS = util/ \

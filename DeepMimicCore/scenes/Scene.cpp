@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include <iostream>
 
 cScene::cScene()
 {
@@ -103,7 +104,9 @@ unsigned long cScene::GetRandSeed() const
 
 bool cScene::IsEpisodeEnd() const
 {
-	return mTimer.IsEnd();
+	// std::cout << "bool cScene::IsEpisodeEnd() const " << mTimer.GetTime() <<" " << mTimer.GetMaxTime();
+	bool is_end = mTimer.IsEnd();
+	return is_end;
 }
 
 bool cScene::CheckValidEpisode() const
@@ -133,5 +136,6 @@ void cScene::ResetTimers()
 
 void cScene::UpdateTimers(double timestep)
 {
+	// std::cout <<"void cScene::UpdateTimers(double timestep)" << std::endl;
 	mTimer.Update(timestep);
 }

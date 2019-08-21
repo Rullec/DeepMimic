@@ -38,6 +38,7 @@ const tPerturb& cPerturbManager::GetPerturb(int i) const
 
 void cPerturbManager::UpdatePerturbs(double time_step)
 {
+	// 更新扰动是?我也不太清楚
 	int num_perturbs = GetNumPerturbs();
 	int idx = 0;
 	for (int i = 0; i < num_perturbs; ++i)

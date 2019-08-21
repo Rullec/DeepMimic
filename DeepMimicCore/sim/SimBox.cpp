@@ -7,7 +7,7 @@ cSimBox::tParams::tParams()
 	mFriction = 0.9;
 	mPos = tVector(0, 0, 0, 0);
 	mSize = tVector(1, 1, 1, 0);
-	mAxis = tVector(0, 0, 1, 1);
+	mAxis = tVector(1, 0, 0, 1);
 	mVel.setZero();
 	mTheta = 0;
 }

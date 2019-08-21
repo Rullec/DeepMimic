@@ -5,6 +5,8 @@
 #include "sim/AgentRegistry.h"
 #include "util/Annealer.h"
 
+// 这个类又是干什么的...
+// 看起来非常复杂的样子
 class cRLSceneSimChar : virtual public cRLScene, virtual public cSceneSimChar
 {
 public:

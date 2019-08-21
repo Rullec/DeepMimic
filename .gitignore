@@ -3,6 +3,7 @@
 *.opensdf
 *.sdf
 *.user
+*.o
 *.exe
 *.VC.opendb
 *.psess

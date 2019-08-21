@@ -15,6 +15,11 @@ import util.mpi_util as MPIUtil
 import util.math_util as MathUtil
 
 class RLAgent(ABC):
+    '''
+        RLAgent 是ABC的子类,(abstract base class)抽象基类
+        python原生不支持抽象基类，但是如果你想这么用的话，就要继承ABC模块
+        然后在成员函数上加修饰器(decorator) @abstractmethod
+    '''
     class Mode(Enum):
         TRAIN = 0
         TEST = 1
@@ -40,6 +45,20 @@ class RLAgent(ABC):
     
     
     def __init__(self, world, id, json_data):
+        '''
+            Agent中有: 
+                world的引用
+                迭代次数
+                路径
+                更新周期
+                每次更新迭代次数
+                折扣(计算return)
+                minibatch
+                replay_buffer大小
+                初始采样数
+                输出迭代次数
+                
+        '''
         self.world = world
         self.id = id
         self.logger = Logger()
@@ -69,7 +88,15 @@ class RLAgent(ABC):
         self._int_output_dir = ""
         self.output_iters = 100
         self.int_output_iters = 100
-        
+        '''
+            train return    训练的return?
+            test episode    测试用几个episode?
+            test return     测试的return?
+            avg test return　平均的测试return?
+            exp_anneal_samples 指数退火采样数?
+            exp_params_beg  参数请求?
+
+        '''
         self.train_return = 0.0
         self.test_episodes = int(0)
         self.test_episode_count = int(0)
@@ -81,6 +108,9 @@ class RLAgent(ABC):
         self.exp_params_end = ExpParams()
         self.exp_params_curr = ExpParams()
 
+        '''
+            传进来的json_data现在要开始load
+        '''
         self._load_params(json_data)
         self._build_replay_buffer(self.replay_buffer_size)
         self._build_normalizers()
@@ -121,11 +151,17 @@ class RLAgent(ABC):
         return
 
     def update(self, timestep):
+        '''
+            this function just... update agent
+        :param timestep:
+        :return:
+        '''
         if self.need_new_action():
             self._update_new_action()
 
         if (self._mode == self.Mode.TRAIN and self.enable_training):
             self._update_counter += timestep
+
 
             while self._update_counter >= self.update_period:
                 self._train()
@@ -326,11 +362,17 @@ class RLAgent(ABC):
         return
 
     def _update_new_action(self):
+        '''
+            when the agent need a new action, this function will be called.
+
+        :return:
+        '''
         s = self._record_state()
         g = self._record_goal()
 
-        if not (self._is_first_step()):
+        if not (self._is_first_step()):# 只要不是第一步就要把reward记录下来(第一步没有reward)
             r = self._record_reward()
+            print(r)
             self.path.rewards.append(r)
         
         a, logp = self._decide_action(s=s, g=g)
@@ -515,27 +557,57 @@ class RLAgent(ABC):
         return
 
     def _train(self):
+        '''
+            why the "train" function belongs to the agent class?
+
+            I guess the train function will update the weight / reward function in network.
+
+        :return:
+        '''
+
+        # get sample count from replay buffer
+        # what is replay buffer? what is samples num?
+        # take a look in the paper. no result
         samples = self.replay_buffer.total_count
+
+        # use MPI, WHY? Will this function need to communicate between process?
+        # between different agents?
         self._total_sample_count = int(MPIUtil.reduce_sum(samples))
         end_training = False
-        
-        if (self.replay_buffer_initialized):  
+
+
+        if (self.replay_buffer_initialized):
+
+            # if replay buffer is prepared well:
             if (self._valid_train_step()):
+                # if it is a valid train step, then?
+                # what is "valid" or not?
                 prev_iter = self.iter
+
+                # each "train in update" has many iterations
                 iters = self._get_iters_per_update()
+
+                # it seems that all evaluations are under MPI
                 avg_train_return = MPIUtil.reduce_avg(self.train_return)
-            
+
+                # for these so many iters (per update?)
                 for i in range(iters):
                     curr_iter = self.iter
+
+                    # wall time = curtime - agent constructor time
                     wall_time = time.time() - self.start_time
                     wall_time /= 60 * 60 # store time in hours
 
                     has_goal = self.has_goal()
+
+                    # this class will compute mean of state and goal, I don't know why.
+                    # does it refer to the return or reward mean of state and goal?
                     s_mean = np.mean(self.s_norm.mean)
                     s_std = np.mean(self.s_norm.std)
                     g_mean = np.mean(self.g_norm.mean) if has_goal else 0
                     g_std = np.mean(self.g_norm.std) if has_goal else 0
 
+                    # add these variables to the tabular is necessary
                     self.logger.log_tabular("Iteration", self.iter)
                     self.logger.log_tabular("Wall_Time", wall_time)
                     self.logger.log_tabular("Samples", self._total_sample_count)
@@ -548,6 +620,8 @@ class RLAgent(ABC):
                     self._log_exp_params()
 
                     self._update_iter(self.iter + 1)
+
+                    # there is a train_step!
                     self._train_step()
 
                     Logger.print("Agent " + str(self.id))
@@ -561,7 +635,8 @@ class RLAgent(ABC):
                     end_training = self.enable_testing()
 
         else:
-
+            # if the replay buffer hasn't been initialized
+            # then we should initialize it.
             Logger.print("Agent " + str(self.id))
             Logger.print("Samples: " + str(self._total_sample_count))
             Logger.print("") 
@@ -572,6 +647,7 @@ class RLAgent(ABC):
         
         if self._need_normalizer_update:
             self._update_normalizers()
+            #  what normalize and why normalize
             self._need_normalizer_update = self.normalizer_samples > self._total_sample_count
 
         if end_training:

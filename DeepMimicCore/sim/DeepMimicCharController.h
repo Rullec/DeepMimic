@@ -3,6 +3,9 @@
 #include "sim/CharController.h"
 #include "util/CircularBuffer.h"
 
+/*
+	core中竟然有一个controller...那python中的agent在玩什么呢?
+ */
 class cDeepMimicCharController : public cCharController
 {
 public:

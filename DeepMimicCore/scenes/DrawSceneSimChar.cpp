@@ -9,6 +9,8 @@
 #include "render/DrawObj.h"
 #include "render/DrawWorld.h"
 #include "render/DrawPerturb.h"
+#include <iostream>
+using namespace std;
 
 const tVector gCamFocus0 = tVector(0, 0.75, 0, 0);
 
@@ -50,6 +52,7 @@ void cDrawSceneSimChar::Clear()
 
 void cDrawSceneSimChar::Update(double time_elapsed)
 {
+	// std::cout <<"void cDrawSceneSimChar::Update(double time_elapsed) called"  << std::endl;
 	cDrawScene::Update(time_elapsed);
 
 	UpdateScene(time_elapsed);

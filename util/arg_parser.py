@@ -1,6 +1,10 @@
 import re as RE
 
 class ArgParser(object):
+    '''
+    这是他们自己写的一个参数解析器
+
+    '''
     global_parser = None
 
     def __init__(self):
@@ -18,24 +22,24 @@ class ArgParser(object):
 
         for str in arg_strs:
             if not (self._is_comment(str)):
-                is_key = self._is_key(str)
+                is_key = self._is_key(str)  # 第一个是--开头的key
                 if (is_key):
-                    if (curr_key != ''):
+                    if (curr_key != ''):    # 把老的key存到类内对象_table中
                         if (curr_key not in self._table):
                             self._table[curr_key] = vals
 
                     vals = []
-                    curr_key = str[2::]
+                    curr_key = str[2::]     # 得到当前的key
                 else:
                     vals.append(str)
 
-        if (curr_key != ''):
+        if (curr_key != ''):                # 收尾, 把最后一个key存起来
             if (curr_key not in self._table):
                 self._table[curr_key] = vals
 
             vals = []
 
-        return succ
+        return succ                         # 返回成功
 
     def load_file(self, filename):
         succ = False
