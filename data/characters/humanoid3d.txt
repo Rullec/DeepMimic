@@ -310,7 +310,7 @@
 			"Name": "root",
 			"Shape": "sphere",
 			"Mass": 6.0,
-			"ColGroup": 1,
+			"ColGroup": 0,
 			"EnableFallContact": 1,
 			"AttachX": 0,
 			"AttachY": 0.07,

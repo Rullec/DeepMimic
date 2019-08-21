@@ -15,12 +15,15 @@ def run():
     global world
 
     done = False
+    # print("*******************begin main loop")
     while not (done):
         # st = time.time()
+        # 无限循环进行update_world
         update_world(world, update_timestep)
+        # break
         # ed = time.time()
         # print("[log] Optimizer - main - run - update world done, timestep = %.3f, cost time = %.3f" % (update_timestep, ed - st))
-
+    # print("*******************end main loop")
     return
 
 def shutdown():
@@ -37,12 +40,14 @@ def main():
     # Command line arguments
     args = sys.argv[1:]
 
-    world = build_world(args, enable_draw=False)
-    print("[log] Deepmimic_Optimizer.py - main - build world done")
+    # print(args)
 
-    print("[log] Deepmimic_Optimizer.py - main - run begin")
+    # print("[log] Deepmimic_Optimizer.py : begin build world")
+    # world = build_world(args, enable_draw=False)
+    world = build_world(args, enable_draw=False)
+    # print("[log] Deepmimic_Optimizer.py : build world done")
+
     run()
-    print("[log] Deepmimic_Optimizer.py - main - run done")
 
     shutdown()
 

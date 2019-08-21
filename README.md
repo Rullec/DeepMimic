@@ -55,6 +55,7 @@ The wrapper is built using `DeepMimicCore.sln`.
 generate `DeepMimicCore.py` in `DeepMimicCore/`.
 
 
+
 ### Linux
 1. Modify the `Makefile` in `DeepMimicCore/` by specifying the following,
 	- `EIGEN_DIR`: Eigen include directory

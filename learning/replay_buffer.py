@@ -6,6 +6,7 @@ from env.env import Env
 import util.math_util as MathUtil
 
 class ReplayBuffer(object):
+    # replay buffer中是如何存储goal的?
     TERMINATE_KEY = 'terminate'
     PATH_START_KEY = 'path_start'
     PATH_END_KEY = 'path_end'
@@ -119,6 +120,9 @@ class ReplayBuffer(object):
                 start_idx = idx[0]
             else:
                 Logger.print('Invalid path data value detected')
+                # print(path)
+                assert 0 == 1
+
         
         return start_idx
 

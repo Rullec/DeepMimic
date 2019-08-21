@@ -5,6 +5,7 @@ from abc import abstractmethod
 from learning.rl_agent import RLAgent
 from util.logger import Logger
 from learning.tf_normalizer import TFNormalizer
+import datetime
 
 class TFAgent(RLAgent):
     '''
@@ -48,7 +49,9 @@ class TFAgent(RLAgent):
 
     def _get_output_path(self):
         assert(self.output_dir != '')
-        file_path = self.output_dir + '/agent' + str(self.id) + '_model.ckpt'
+        file_path = self.output_dir + '/agent' + str(self.id) + "_model_" +\
+         str(datetime.datetime.now())[:19].replace(" ", "_").replace("-","_").replace(":","_") + \
+         ".ckpt"
         return file_path
 
     def _get_int_output_path(self):
@@ -90,6 +93,7 @@ class TFAgent(RLAgent):
         pass
 
     def _tf_vars(self, scope=''):
+        # 获得某个scope中的所有变量
         with self.sess.as_default(), self.graph.as_default():
             res = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.tf_scope + '/' + scope)
             assert len(res) > 0
@@ -106,7 +110,10 @@ class TFAgent(RLAgent):
                 self.g_norm.set_mean_std(-self.world.env.build_goal_offset(self.id), 
                                          1 / self.world.env.build_goal_scale(self.id))
 
+                # 初始化action normalizer
                 self.a_norm = TFNormalizer(self.sess, 'a_norm', self.get_action_size())
+
+                # 设置mean和std
                 self.a_norm.set_mean_std(-self.world.env.build_action_offset(self.id), 
                                          1 / self.world.env.build_action_scale(self.id))
         return
@@ -142,7 +149,7 @@ class TFAgent(RLAgent):
     def _weight_decay_loss(self, scope):
         vars = self._tf_vars(scope)
         vars_no_bias = [v for v in vars if 'bias' not in v.name]
-        loss = tf.add_n([tf.nn.l2_loss(v) for v in vars_no_bias])
+        loss = tf.add_n([tf.nn.l2_loss(v) for v in vars_no_bias])# 对于这些变量，全部做成Loss，也就是让weight越小越好。
         return loss
 
     def _train(self):

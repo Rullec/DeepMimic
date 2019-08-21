@@ -1,6 +1,7 @@
 import numpy as np
 from env.env import Env
 
+# 这个类是干什么用的? 似乎是检测trajectory有效性的?
 class Path(object):
     def __init__(self):
         self.clear()
@@ -22,10 +23,13 @@ class Path(object):
         return valid
 
     def check_vals(self):
-        for vals in [self.states, self.goals, self.actions, self.logps,
-                  self.rewards]:
-            for v in vals:
+        for i_out, vals in enumerate([self.states, self.goals, self.actions, self.logps,
+                  self.rewards]):
+            for i_in, v in enumerate(vals):
                 if not np.isfinite(v).all():
+                    print("i_out:" + str(i_out))
+                    print("i_in: %d / %d" % (i_in, len(vals)) )
+                    assert 0 == 1
                     return False
         return True
 

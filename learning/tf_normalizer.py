@@ -4,7 +4,7 @@ import tensorflow as tf
 from learning.normalizer import Normalizer
 
 class TFNormalizer(Normalizer):
-
+    # 正则化器(normalizer)
     def __init__(self, sess, scope, size, groups_ids=None, eps=0.02, clip=np.inf):
         self.sess = sess
         self.scope = scope
@@ -33,11 +33,15 @@ class TFNormalizer(Normalizer):
         return
 
     def normalize_tf(self, x):
+        # 对输入进行正则化，便与训练。
+        # 如果输入一个x, 输出是一个normlize的话，就是减去均值 / 标准差，变成了0-1之间的数字
+        # 与此同时，还有按照给定的clip进行切割。
         norm_x = (x - self.mean_tf) / self.std_tf
         norm_x = tf.clip_by_value(norm_x, -self.clip, self.clip)
         return norm_x
 
     def unnormalize_tf(self, norm_x):
+        # 这个unmormalize大概是: 外面输入一个服从标准高斯分布的数，我把他变化到N(mean, std)里面去
         x = norm_x * self.std_tf + self.mean_tf
         return x
     
@@ -58,6 +62,8 @@ class TFNormalizer(Normalizer):
         return
 
     def _update_resource_tf(self):
+        # 按照给定的mean和std给出更新这个normalizer
+        # 里面有mean 和1std
         feed = {
             self.count_ph: np.array([self.count], dtype=np.int32),
             self.mean_ph: self.mean,

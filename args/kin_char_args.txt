@@ -1,15 +1,17 @@
 --scene kin_char
 
-#--character_file ../data/characters/humanoid3d.txt
-#--motion_file ../data/motions/humanoid3d_walk.txt
+# 老的:成功的
+# --character_file data/characters/humanoid3d_xudong_081019.txt
+# --motion_file data/motions/humanoid3d_walk_xudong_081203.txt
+
+# 测试: 新的
+--character_file data/characters/humanoid3d_xudong_081301.txt
+--motion_file data/motions/humanoid3d_walk_xudong_081306.txt
+
+# 成功的
+# --character_file data/characters/humanoid3d.txt
+# --motion_file data/motions/humanoid3d_spinkick.txt
+
+
 # --motion_file data/motions/humanoid3d_run.txt
 # --motion_file data/motions/humanoid3d_backflip.txt
-
-#--character_file ../data_0805/character/character1_export_080504.json
-# --motion_file ../data/motions/humanoid3d_backflip.txt
-#--motion_file ../data_0805/motion/walk_motion_080505.txt
-
-#--motion_file ../data_0805/motion/walk_motion_080503_test.txt
-
---character_file ./data_0821/character/humanoid3d_082104.json
---motion_file ./data_0821/motion/walk_motion_082104.txt

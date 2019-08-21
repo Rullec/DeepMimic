@@ -156,14 +156,19 @@ class RLAgent(ABC):
         :param timestep:
         :return:
         '''
+        # 每一个agent手里面都有world的拷贝, 从world判断是否需要新的action
         if self.need_new_action():
             self._update_new_action()
 
+        # print(self._mode)
         if (self._mode == self.Mode.TRAIN and self.enable_training):
             self._update_counter += timestep
 
 
+            # 超参数update_period: 
+            # 每隔一段时间就进行一次训练，其余时间啥也不干
             while self._update_counter >= self.update_period:
+                # print("******************train********************")
                 self._train()
                 self._update_exp_params()
                 self.world.env.set_sample_count(self._total_sample_count)
@@ -177,7 +182,8 @@ class RLAgent(ABC):
 
             if (self._mode == self.Mode.TRAIN or self._mode == self.Mode.TRAIN_END):
                 if (self.enable_training and self.path.pathlength() > 0):
-                    self._store_path(self.path)
+
+                    self._store_path(self.path)# rl agent里面有一个path的存储，每次在episode结束的时候都会存储起来
             elif (self._mode == self.Mode.TEST):
                 self._update_test_return(self.path)
             else:
@@ -187,6 +193,7 @@ class RLAgent(ABC):
         return
 
     def has_goal(self):
+        # 检查是否有goal
         return self.get_goal_size() > 0
 
     def predict_val(self):
@@ -256,6 +263,7 @@ class RLAgent(ABC):
         return self.world.env.need_new_action(self.id)
 
     def _build_normalizers(self):
+        # normalizer是干什么的?
         self.s_norm = Normalizer(self.get_state_size(), self.world.env.build_state_norm_groups(self.id))
         self.s_norm.set_mean_std(-self.world.env.build_state_offset(self.id), 
                                  1 / self.world.env.build_state_scale(self.id))
@@ -340,6 +348,10 @@ class RLAgent(ABC):
         return r
 
     def _apply_action(self, a):
+        # print("action = " + str(a))
+        # a = np.ones_like(a) * 2
+        # if np.random.randn() > 0.99: 
+        #     print("a is 2 * ones_like!")
         self.world.env.set_action(self.id, a)
         return
 
@@ -356,6 +368,8 @@ class RLAgent(ABC):
 
         self.path.rewards.append(r)
         self.path.states.append(s)
+        assert np.isfinite(s).all() == True # 在end of path的时候，state突然崩了。
+        # 其实我还有点好奇: state为什么是275呢?
         self.path.goals.append(g)
         self.path.terminate = self.world.env.check_terminate(self.id)
 
@@ -367,21 +381,42 @@ class RLAgent(ABC):
 
         :return:
         '''
+        # 获取新的action
         s = self._record_state()
-        g = self._record_goal()
-
-        if not (self._is_first_step()):# 只要不是第一步就要把reward记录下来(第一步没有reward)
-            r = self._record_reward()
-            print(r)
-            self.path.rewards.append(r)
         
+        g = self._record_goal()
+        # print("goal is %s" % str(g))
+        # exit()
+
+        if not (self._is_first_step()):
+            r = self._record_reward()
+            # print("reward : " + str(r))
+            self.path.rewards.append(r)
+        try:
+            assert np.isfinite(s).all() == True
+        except:
+            print("some state is Nan!, s = %s" % str(s))
+
         a, logp = self._decide_action(s=s, g=g)
         assert len(np.shape(a)) == 1
         assert len(np.shape(logp)) <= 1
 
         flags = self._record_flags()
+        # 应用action
+        # reward并不马上给出，而是在下次apply action的时候得到
+        try:
+            assert np.isfinite(a).all() == True
+        except:
+            print("some action is Nan!, a = %s" % str(a))
         self._apply_action(a)
-
+        # print(s)
+        # print(np.isfinite(s).all())
+        # print("state shape : " + str(s.shape))  # (275,)
+        # print("goal : " + str(g))   # (0, )这个不对啊
+        # print("action shape : %s, action is all zero" % str(a.shape)) # (80, )
+        # print("logp : " + str(logp))# 实数: 114.27289?怎么会这么大?
+        # path里面有所有信息: state goal actions logps flags，每次就是存进去。
+        # 所以现在的问题就是，为什么这些state action goal a logp会是nan?
         self.path.states.append(s)
         self.path.goals.append(g)
         self.path.actions.append(a)
@@ -528,7 +563,7 @@ class RLAgent(ABC):
         return
     
     def _store_path(self, path):
-        path_id = self.replay_buffer.store(path)
+        path_id = self.replay_buffer.store(path)# episode结束以后，放进replay buffer
         valid_path = path_id != MathUtil.INVALID_IDX
 
         if valid_path:
@@ -626,6 +661,7 @@ class RLAgent(ABC):
 
                     Logger.print("Agent " + str(self.id))
                     self.logger.print_tabular()
+                    # print("打印表格啦!")
                     Logger.print("") 
 
                     if (self._enable_output() and curr_iter % self.int_output_iters == 0):

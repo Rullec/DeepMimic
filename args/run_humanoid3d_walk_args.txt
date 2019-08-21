@@ -22,4 +22,5 @@
 
 #--output_path output
 #--int_output_path output/intermediate
---model_files data/policies/humanoid3d/humanoid3d_walk.ckpt
+# --model_files data/policies/humanoid3d/humanoid3d_walk.ckpt
+--model_files output/agent0_model.ckpt

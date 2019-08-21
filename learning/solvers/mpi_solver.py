@@ -31,6 +31,7 @@ class MPISolver(Solver):
         return self.optimizer._learning_rate_tensor.eval()
 
     def update(self, grads=None, grad_scale=1.0):
+        # 是否存在梯度裁剪?
         if grads is not None:
             self._flat_grad = MathUtil.flatten(grads)
         else:
@@ -45,8 +46,9 @@ class MPISolver(Solver):
             flat_grad *= grad_scale
 
         MPI.COMM_WORLD.Allreduce(flat_grad, self._global_flat_grad, op=MPI.SUM)
-        self._global_flat_grad /= MPIUtil.get_num_procs()
-
+        self._global_flat_grad /= MPIUtil.get_num_procs()   # 梯度除以进程数
+        # 这里的actor梯度发生了爆炸，critic则没有。我需要看actor loss是怎么定义的吧。
+        # print("flat grad abs max = %.3f" % np.max(np.abs(self._global_flat_grad)))  # 这里的梯度果然发生了爆炸
         self._load_flat_grad(self._global_flat_grad)
         self.sess.run([self._update], self._grad_feed)
         self.iter += 1

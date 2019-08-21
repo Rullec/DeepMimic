@@ -157,19 +157,23 @@ class PGAgent(TFAgent):
         '''
             被agent调用，用来建立actor_net(和critic_net相对应)
         '''
-        norm_s_tf = self.s_norm.normalize_tf(self.s_tf)
+        norm_s_tf = self.s_norm.normalize_tf(self.s_tf) # 进入一个state的Normalizer里面, state正则化，并且在里面维护一个mean 和std
         input_tfs = [norm_s_tf] # 网络的一部分输入是norm_s_tf
         if (self.has_goal()):
             norm_g_tf = self.g_norm.normalize_tf(self.g_tf)
             input_tfs += [norm_g_tf]    # 另一部分输入是norm_g_tf
         
         # 上面有２个Fc了，现在又接了一个
-        h = NetBuilder.build_net(net_name, input_tfs)
+        h = NetBuilder.build_net(net_name, input_tfs) # 输出的是relu, 0-1
+
+        # 然后接action输出层，没有activation
+        # 把kernel的范围放到scale里面，有啥用呢?
+        # 反正这个输出，就是正无穷到负无穷了。
         norm_a_tf = tf.layers.dense(inputs=h, units=self.get_action_size(), activation=None,
                                 kernel_initializer=tf.random_uniform_initializer(minval=-init_output_scale, maxval=init_output_scale))
         
-        # 不知道这又是什么
-        a_tf = self.a_norm.unnormalize_tf(norm_a_tf)
+        # a_tf: 这个输出还是正无穷到负无穷。
+        a_tf = self.a_norm.unnormalize_tf(norm_a_tf)    # 把输出乘以方差，加上均值, 服从N(mean, std)
         return a_tf
     
     def _build_net_critic(self, net_name):

@@ -1,0 +1,183 @@
+{
+	"UpdateRate": 30,
+	"EnablePhaseInput": true,
+	"RecordWorldRootPos": false,
+	"RecordWorldRootRot": true,
+
+	"RightJoints": [3, 4, 5, 6, 7, 8],
+	"LeftJoints": [9, 10, 11, 12, 13, 14],
+
+	"PDControllers": 
+	[
+		{
+			"ID": 0,
+			"Name": "root",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 1,
+			"Name": "rhipjoint",
+			"Kp": 350,
+			"Kd": 35,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 2,
+			"Name": "rfemur",
+			"Kp": 300,
+			"Kd": 30,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 3,
+			"Name": "rtibia",
+			"Kp": 270,
+			"Kd": 27,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 4,
+			"Name": "rfoot",
+			"Kp": 240,
+			"Kd": 24,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 5,
+			"Name": "lowerback",
+			"Kp": 330,
+			"Kd": 33,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+
+		{
+			"ID": 6,
+			"Name": "upperback",
+			"Kp": 330,
+			"Kd": 33,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+
+		{
+			"ID": 7,
+			"Name": "thorax",
+			"Kp": 350,
+			"Kd": 35,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 8,
+			"Name": "rclavicle",
+			"Kp": 250,
+			"Kd": 25,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 9,
+			"Name": "rhumerus",
+			"Kp": 380,
+			"Kd": 38,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 10,
+			"Name": "rradius",
+			"Kp": 250,
+			"Kd": 25,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 11,
+			"Name": "rwrist",
+			"Kp": 210,
+			"Kd": 21,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 12,
+			"Name": "lowerneck",
+			"Kp": 210,
+			"Kd": 21,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 13,
+			"Name": "lclavicle",
+			"Kp": 250,
+			"Kd": 25,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 14,
+			"Name": "lhumerus",
+			"Kp": 280,
+			"Kd": 28,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 15,
+			"Name": "lradius",
+			"Kp": 250,
+			"Kd": 25,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 16,
+			"Name": "lwrist",
+			"Kp": 210,
+			"Kd": 21,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 17,
+			"Name": "lhipjoint",
+			"Kp": 350,
+			"Kd": 35,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 18,
+			"Name": "lfemur",
+			"Kp": 300,
+			"Kd": 30,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 19,
+			"Name": "ltibia",
+			"Kp": 270,
+			"Kd": 27,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 20,
+			"Name": "lfoot",
+			"Kp": 240,
+			"Kd": 24,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		}
+	]
+}
