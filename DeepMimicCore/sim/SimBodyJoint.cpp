@@ -72,7 +72,7 @@ tVector cSimBodyJoint::CalcAxisWorld() const
 
 tVector cSimBodyJoint::GetAxisRel() const
 {
-	return tVector(0, 0, 1, 0);
+	return tVector(1, 0, 0, 0);
 }
 
 bool cSimBodyJoint::HasParent() const
@@ -146,6 +146,7 @@ void cSimBodyJoint::AddTau(const Eigen::VectorXd& tau)
 		mTotalTau[0] += tau[0];
 		mTotalTau[1] += tau[1];
 		mTotalTau[2] += tau[2];
+		// std::cout <<"total tau in joint = " << mTotalTau.transpose() << ", norm = " << mTotalTau.norm() << std::endl;
 		break;
 	default:
 		assert(false); // unsupported joint type
@@ -304,6 +305,12 @@ void cSimBodyJoint::ClampTotalTorque(tVector& out_torque) const
 	{
 		out_torque *= torque_lim / mag;
 	}
+
+	// 添加报警功能，如果满负荷就要报警
+	if(abs(mag - torque_lim) < 1)
+	{
+		std::cout <<"[torque lim] joint "<< mParams.mID <<" torque lim = " << torque_lim <<", cur torque = " << mag << std::endl;
+	}
 }
 
 void cSimBodyJoint::ClampTotalForce(tVector& out_force) const
@@ -324,7 +331,7 @@ const tVector& cSimBodyJoint::GetLimLow() const
 const tVector& cSimBodyJoint::GetLimHigh() const
 {
 	return mParams.mLimHigh;
-}
+} 
 
 bool cSimBodyJoint::HasJointLim() const
 {
@@ -684,10 +691,13 @@ void cSimBodyJoint::ApplyTauSpherical()
 {
 	tVector torque = GetTotalTorque();
 	ClampTotalTorque(torque);
+	// std::cout <<"[before clamp] torque norm = " << torque.norm()<<std::endl;
 	SetTotalTorque(torque);
+	// std::cout <<"[after clamp] torque norm = " << torque.norm()<<std::endl;
 
 	double world_scale = mWorld->GetScale();
 	torque = cMathUtil::QuatRotVec(mParams.mChildRot, torque);
+	// std::cout <<", joint " << mParams.mID <<" apply torque = "  << torque.norm();
 	btScalar bt_data[] = { static_cast<btScalar>(world_scale * world_scale * torque[0]),
 							static_cast<btScalar>(world_scale * world_scale * torque[1]),
 							static_cast<btScalar>(world_scale * world_scale * torque[2]) };

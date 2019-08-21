@@ -70,6 +70,10 @@ void cMatrixStack::MultMatrix(const tMatrix& mat)
 
 void cMatrixStack::Translate(const tVector& trans)
 {
+	/*
+		1. 这个类会维持一个栈顶元素矩阵mCurrMat，随pop push而变化
+		2. translate方法在这个地方就是对这个矩阵做一个移动
+	 */
 	mCurrMat.block(0, 3, 3, 1) += mCurrMat.block(0, 0, 3, 3) * trans.segment(0, 3);
 }
 

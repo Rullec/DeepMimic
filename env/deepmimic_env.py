@@ -6,13 +6,25 @@ from env.action_space import ActionSpace
 class DeepMimicEnv(Env):
     def __init__(self, args, enable_draw):
         super().__init__(args, enable_draw)
-
+        
+        # 这里: 调用cpp中DeepmimicCore.h的cDeepmimicCore类构造函数
+        # cDeepMimicCore(bool enable_draw);
         self._core = DeepMimicCore.cDeepMimicCore(enable_draw)
 
         rand_seed = np.random.randint(np.iinfo(np.int32).max)
+
+        # call void cDeepMimicCore::SeedRand(int seed)
         self._core.SeedRand(rand_seed)
 
+        # call void cDeepMimicCore::ParseArgs(
+        # const std::vector<std::string> & args)
+        # 在这个里面解析了arg_file参数 (--arg_file args/run_human_run_args.txt)
+        # 建立了一个彻底的、完备的key -value_list map
         self._core.ParseArgs(args)
+
+        # call void cDeppMimicCore::Init();
+        # 但是这个init里面好像没有任何...和Rl agent有关的事情
+        # 只是初始化了opengl还有一些固定格式的球+网格
         self._core.Init()
         return
 

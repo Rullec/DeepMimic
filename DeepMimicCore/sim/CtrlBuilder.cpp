@@ -3,6 +3,8 @@
 #include "sim/CtController.h"
 #include "sim/CtPDController.h"
 #include "sim/CtVelController.h"
+#include <iostream>
+using namespace std;
 
 const std::string gCharCtrlName[cCtrlBuilder::eCharCtrlMax] =
 {
@@ -54,6 +56,7 @@ bool cCtrlBuilder::BuildController(const tCtrlParams& params, std::shared_ptr<cC
 {
 	bool succ = true;
 
+	std::cout <<"build controller: type " << params.mCharCtrl<<std::endl;
 	switch (params.mCharCtrl)
 	{
 	case eCharCtrlNone:

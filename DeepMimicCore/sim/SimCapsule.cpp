@@ -9,7 +9,7 @@ cSimCapsule::tParams::tParams()
 	mVel.setZero();
 	mHeight = 1;
 	mRadius = 1;
-	mAxis = tVector(0, 0, 1, 1);
+	mAxis = tVector(1, 0, 0, 1);
 	mTheta = 0;
 }
 

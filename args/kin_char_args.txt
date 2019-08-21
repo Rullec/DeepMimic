@@ -1,4 +1,15 @@
 --scene kin_char
 
---character_file data/characters/humanoid3d.txt
---motion_file data/motions/humanoid3d_spinkick.txt
+#--character_file ../data/characters/humanoid3d.txt
+#--motion_file ../data/motions/humanoid3d_walk.txt
+# --motion_file data/motions/humanoid3d_run.txt
+# --motion_file data/motions/humanoid3d_backflip.txt
+
+#--character_file ../data_0805/character/character1_export_080504.json
+# --motion_file ../data/motions/humanoid3d_backflip.txt
+#--motion_file ../data_0805/motion/walk_motion_080505.txt
+
+#--motion_file ../data_0805/motion/walk_motion_080503_test.txt
+
+--character_file ./data_0821/character/humanoid3d_082104.json
+--motion_file ./data_0821/motion/walk_motion_082104.txt

@@ -4,57 +4,60 @@ from enum import Enum
 from learning.normalizer import Normalizer
 
 class Env(ABC):
-    class Terminate(Enum):
+    '''
+        deepmimic中的环境类，就是从这里继承下去的
+    '''
+    class Terminate(Enum):   # 终止态三种case: 枚举
         Null = 0
         Fail = 1
         Succ = 2
 
     def __init__(self, args, enable_draw):
-        self.enable_draw = enable_draw
+        self.enable_draw = enable_draw  # 是否启用绘制?
         return
 
     @abstractmethod
-    def update(self, timestep):
+    def update(self, timestep): # 更新update函数
         pass
 
     @abstractmethod
-    def reset(self):
+    def reset(self):            # reset，重置
         pass
 
     @abstractmethod
-    def get_time(self):
+    def get_time(self):         # 获取当前时间，get time(应该就是积累的时间步长)
         pass
 
     @abstractmethod
-    def get_name(self):
+    def get_name(self):         # 获取名字
         pass
 
     # rendering and UI interface
-    def draw(self):
+    def draw(self):             # 绘制和Ui的接口
         pass
 
-    def keyboard(self, key, x, y):
+    def keyboard(self, key, x, y):  # 键盘信号接受，在ENV类中
         pass
 
-    def mouse_click(self, button, state, x, y):
+    def mouse_click(self, button, state, x, y): # 鼠标点击
         pass
 
-    def mouse_move(self, x, y):
+    def mouse_move(self, x, y): # 鼠标移动
         pass
 
-    def reshape(self, w, h):
+    def reshape(self, w, h):    # 变形，这些都是窗口操作
         pass
 
-    def shutdown(self):
+    def shutdown(self):         # 关闭窗口
         pass
 
     def is_done(self):
         return False
 
-    def set_playback_speed(self, speed):
+    def set_playback_speed(self, speed):    # 设置playback速度?什么意思?
         pass
 
-    def set_updates_per_sec(self, updates_per_sec):
+    def set_updates_per_sec(self, updates_per_sec): # 设置帧率?
         pass
 
     @abstractmethod
@@ -62,40 +65,66 @@ class Env(ABC):
         pass
 
     @abstractmethod
-    def get_win_height(self):
+    def get_win_height(self):           # 获取窗口信息
         pass
 
-    def get_num_update_substeps(self):
+    def get_num_update_substeps(self):  # 这个什么意思? num update substeps, substeps是什么意思?
         return 1
 
 
     # rl interface
     @abstractmethod
-    def is_rl_scene(self):
+    def is_rl_scene(self):  # rl 环境接口，看来他也没有完全的把环境和算法且分开
         return False
 
     @abstractmethod
-    def get_num_agents(self):
+    def get_num_agents(self):   # agent数量s
         return 0
 
     @abstractmethod
     def need_new_action(self, agent_id):
+        '''
+            给定一个agent 编号，判断是否需要新的action
+        :param agent_id:
+        :return:
+        '''
         return False
 
     @abstractmethod
     def record_state(self, agent_id):
+        '''
+            记录状态
+        :param agent_id:
+        :return:
+        '''
         pass
 
     @abstractmethod
     def record_goal(self, agent_id):
+        '''
+            记录目标o: 这里的目标是什么意思?
+        :param agent_id:
+        :return:
+        '''
         pass
 
     @abstractmethod
     def set_action(self, agent_id):
+        '''
+            设置行动(action),也就是给agent动作指令
+        :param agent_id:
+        :return:
+        '''
         pass
     
     @abstractmethod
     def get_action_space(self, agent_id):
+        '''
+            设置行为空间,专门针对某个agent得到action space?是否指的是活动空间大小。
+                多agent在env层面上就实现了。
+        :param agent_id:
+        :return:
+        '''
         pass
     
     @abstractmethod

@@ -12,6 +12,8 @@ cRBDModel::~cRBDModel()
 
 void cRBDModel::Init(const Eigen::MatrixXd& joint_mat, const Eigen::MatrixXd& body_defs, const tVector& gravity)
 {
+	// 他的初始化是怎么做的呢?
+	// joint_mat就是joint_matrix，(joint_num, para_num)用来记录参数的一个矩阵
 	assert(joint_mat.rows() == body_defs.rows());
 	mGravity = gravity;
 	mJointMat = joint_mat;
@@ -21,10 +23,10 @@ void cRBDModel::Init(const Eigen::MatrixXd& joint_mat, const Eigen::MatrixXd& bo
 	int num_joints = GetNumJoints();
 	const int svs = cSpAlg::gSpVecSize;
 
-	mPose = Eigen::VectorXd::Zero(num_dofs);
-	mVel = Eigen::VectorXd::Zero(num_dofs);
+	mPose = Eigen::VectorXd::Zero(num_dofs);	// 四元数, 统统四元数(记得归一化)
+	mVel = Eigen::VectorXd::Zero(num_dofs);		// 变化速度(四元数可以插值)
 
-	tMatrix trans_mat;
+	tMatrix trans_mat;	// 4*4的矩阵，成为tMatrix, 从名字上看trans_mat是一个"转换矩阵", transform matrix
 	InitJointSubspaceArr();
 	mChildParentMatArr = Eigen::MatrixXd::Zero(num_joints * trans_mat.rows(), trans_mat.cols());
 	mSpWorldJointTransArr = Eigen::MatrixXd::Zero(num_joints * cSpAlg::gSVTransRows, cSpAlg::gSVTransCols);
@@ -182,6 +184,10 @@ void cRBDModel::SetVel(const Eigen::VectorXd& vel)
 
 void cRBDModel::InitJointSubspaceArr()
 {
+	/*
+		初始化铰链子空间性质?
+		铰链有什么子空间，有什么性质?
+	 */
 	int num_dofs = GetNumDof();
 	int num_joints = GetNumJoints();
 	mJointSubspaceArr = Eigen::MatrixXd(cSpAlg::gSpVecSize, num_dofs);

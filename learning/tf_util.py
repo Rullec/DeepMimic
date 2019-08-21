@@ -5,7 +5,7 @@ import os
 xavier_initializer = tf.contrib.layers.xavier_initializer()
 
 def disable_gpu():
-    os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '-1'# 环境变量CUDA变成-1, gpu无法使用了。
     return
 
 def var_shape(x):

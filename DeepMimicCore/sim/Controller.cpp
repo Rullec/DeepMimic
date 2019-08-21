@@ -36,6 +36,7 @@ void cController::Clear()
 void cController::Update(double time_step)
 {
 	// *whistle whistle*....nothing to see here
+	// 啥也没有就得了呗
 }
 
 bool cController::IsValid() const

@@ -1,4 +1,8 @@
+'''
+     --arg_file args/run_humanoid3d_spinkick_args.txt
+'''
 import numpy as np
+import os
 import sys
 import random
 
@@ -40,6 +44,7 @@ def build_arg_parser(args):
 
     arg_file = arg_parser.parse_string('arg_file', '')
     if (arg_file != ''):
+        arg_file = os.path.realpath(os.path.join(os.getcwd(), arg_file))
         succ = arg_parser.load_file(arg_file)
         assert succ, Logger.print('Failed to load args from: ' + arg_file)
 
@@ -65,16 +70,26 @@ def update_world(world, time_elapsed):
     num_substeps = 1 if (time_elapsed == 0) else num_substeps
 
     for i in range(num_substeps):
+        # update - 执行一个substep, 比较关键
         world.update(timestep)
 
+        # check_valid - 判断valid episode
+        #   valid: 继续走
+        #   invalid: world.reset 停止工作
         valid_episode = world.env.check_valid_episode()
+
         if valid_episode:
+
+            # check_end - 判断end
+            #   is_end: end_episode + reset
+            #   not_end: continue substeps
             end_episode = world.env.is_episode_end()
             if (end_episode):
                 world.end_episode()
                 world.reset()
                 break
         else:
+
             world.reset()
             break
     return
@@ -115,6 +130,7 @@ def reload():
     global args
 
     world = build_world(args, enable_draw=True)
+    print("build world succ")
     return
 
 def reset():
@@ -289,9 +305,16 @@ def setup_draw():
     return
 
 def build_world(args, enable_draw, playback_speed=1):
-    arg_parser = build_arg_parser(args)
-    env = DeepMimicEnv(args, enable_draw)
-    world = RLWorld(env, arg_parser)
+    '''
+        建造世界，这是第一个被调用的函数
+    :param args:    --arg_file args/train_humanoid3d_run_args.txt --num_workers 1
+    :param enable_draw: 在train下是一个false，别的不知道
+    :param playback_speed: 播放速度默认是1
+    :return:
+    '''
+    arg_parser = build_arg_parser(args)     # 参数解析器，之前已经看过，就是一个dict(value - list )而已
+    env = DeepMimicEnv(args, enable_draw)   # 调用了c++中的cDeepmimicCore，完成了对给定arg file的解析，以及对简单几何体(圆柱 球)和gl环境的初始化，没有任何与agent有关的事情
+    world = RLWorld(env, arg_parser)        # 创建了RL world,我推测这就是agent存在的地方
     world.env.set_playback_speed(playback_speed)
     return world
 

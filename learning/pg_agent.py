@@ -154,20 +154,30 @@ class PGAgent(TFAgent):
         return
 
     def _build_net_actor(self, net_name, init_output_scale):
+        '''
+            被agent调用，用来建立actor_net(和critic_net相对应)
+        '''
         norm_s_tf = self.s_norm.normalize_tf(self.s_tf)
-        input_tfs = [norm_s_tf]
+        input_tfs = [norm_s_tf] # 网络的一部分输入是norm_s_tf
         if (self.has_goal()):
             norm_g_tf = self.g_norm.normalize_tf(self.g_tf)
-            input_tfs += [norm_g_tf]
+            input_tfs += [norm_g_tf]    # 另一部分输入是norm_g_tf
         
+        # 上面有２个Fc了，现在又接了一个
         h = NetBuilder.build_net(net_name, input_tfs)
         norm_a_tf = tf.layers.dense(inputs=h, units=self.get_action_size(), activation=None,
                                 kernel_initializer=tf.random_uniform_initializer(minval=-init_output_scale, maxval=init_output_scale))
         
+        # 不知道这又是什么
         a_tf = self.a_norm.unnormalize_tf(norm_a_tf)
         return a_tf
     
     def _build_net_critic(self, net_name):
+        '''
+            建立agent的critic_net (和actor_net相对应)
+
+            和actor_net一个路子
+        '''
         norm_s_tf = self.s_norm.normalize_tf(self.s_tf)
         input_tfs = [norm_s_tf]
         if (self.has_goal()):
@@ -193,6 +203,14 @@ class PGAgent(TFAgent):
         return
 
     def _decide_action(self, s, g):
+        '''
+            the action is decided by current state and goal of the agent
+            (state, action) -> goal, under the forward propogation of network
+
+        :param s: agent state
+        :param g: agent goal
+        :return:
+        '''
         with self.sess.as_default(), self.graph.as_default():
             self._exp_action = False
             a = self._eval_actor(s, g)[0]

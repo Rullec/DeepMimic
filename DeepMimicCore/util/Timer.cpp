@@ -1,5 +1,7 @@
 #include "Timer.h"
 #include "MathUtil.h"
+#include <iostream>
+using namespace std;
 
 cTimer::tParams::tParams()
 {
@@ -54,6 +56,7 @@ void cTimer::Init(const tParams& params)
 
 void cTimer::Reset()
 {
+
 	mTime = 0;
 	double max_time = 0;
 	switch (mParams.mType)
@@ -70,7 +73,10 @@ void cTimer::Reset()
 		break;
 	}
 	SetMaxTime(max_time);
+	// std::cout <<"Reset cTime, max = " << max_time << std::endl;
+	// abort();
 }
+
 
 void cTimer::Update(double timestep)
 {

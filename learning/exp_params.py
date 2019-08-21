@@ -3,6 +3,12 @@ import numpy as np
 import util.math_util as MathUtil
 
 class ExpParams(object):
+    '''
+        什么叫ExpParams？指数参数?期望参数?
+        这个类里面有５个成员:
+        rate_key, init_action_rate_key, noise_key, noise_internal_key, temp_key
+        这些都是什么?
+    '''
     RATE_KEY = 'Rate'
     INIT_ACTION_RATE_KEY = 'InitActionRate'
     NOISE_KEY = 'Noise'
