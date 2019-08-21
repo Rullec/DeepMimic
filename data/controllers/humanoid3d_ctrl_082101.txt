@@ -21,7 +21,7 @@
 			"ID": 1,
 			"Name": "rhipjoint",
 			"Kp": 0,
-			"Kd": 0，
+			"Kd": 0,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
