@@ -8,6 +8,7 @@ logs/
 *.sdf
 *.user
 *.o
+*.so
 *.exe
 *.VC.opendb
 *.psess
@@ -25,6 +26,7 @@ logs/
 .vs/
 __pycache__/
 output/
+output_0824/
 x64/
 Debug/
 Release/external/

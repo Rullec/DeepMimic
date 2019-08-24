@@ -49,9 +49,10 @@ class TFAgent(RLAgent):
 
     def _get_output_path(self):
         assert(self.output_dir != '')
+        self.train_return
         file_path = self.output_dir + '/agent' + str(self.id) + "_model_" +\
          str(datetime.datetime.now())[:19].replace(" ", "_").replace("-","_").replace(":","_") + \
-         ".ckpt"
+            str("_%.2f" % self.avg_train_return) + ".ckpt"
         return file_path
 
     def _get_int_output_path(self):
