@@ -6,6 +6,7 @@ from learning.rl_agent import RLAgent
 from util.logger import Logger
 from learning.tf_normalizer import TFNormalizer
 import datetime
+import pickle
 
 class TFAgent(RLAgent):
     '''
@@ -32,12 +33,30 @@ class TFAgent(RLAgent):
         return
 
     def save_model(self, out_path):
+        # save model 
         with self.sess.as_default(), self.graph.as_default():
             try:
                 save_path = self.saver.save(self.sess, out_path, write_meta_graph=False, write_state=False)
-                Logger.print('Model saved to: ' + save_path)
             except:
                 Logger.print("Failed to save model to: " + save_path)
+
+        # save weight
+        weight_lst = self._tf_vars("main/actor/")
+        weight_dict = {}
+        name_lst = []
+        size = 0
+        for i in weight_lst:
+            name_lst.append(i.name)
+            weight_dict[i.name] = self.sess.run(i)
+            print((i.name, weight_dict[i.name].shape))
+            size += weight_dict[i.name].size
+        # print("sum size = %d" % size)
+        weight_save_path = save_path + ".weight"
+        with open(weight_save_path, "wb") as f:
+            pickle.dump(weight_dict, f)
+        
+        Logger.print('Model saved to: ' + save_path)
+        Logger.print('Model weight saved to : ' + weight_save_path)
         return
 
     def load_model(self, in_path):

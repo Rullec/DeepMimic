@@ -1,0 +1,8 @@
+setup.py
+coreutils/display_conf.py
+coreutils/display_weight.py
+coreutils/utils.py
+coreutils.egg-info/PKG-INFO
+coreutils.egg-info/SOURCES.txt
+coreutils.egg-info/dependency_links.txt
+coreutils.egg-info/top_level.txt
