@@ -624,6 +624,7 @@ class RLAgent(ABC):
 
                 # it seems that all evaluations are under MPI
                 avg_train_return = MPIUtil.reduce_avg(self.train_return)
+                self.avg_train_return = avg_train_return
 
                 # for these so many iters (per update?)
                 for i in range(iters):

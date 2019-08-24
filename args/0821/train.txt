@@ -15,12 +15,12 @@
 --terrain_file data/terrain/plane.txt
 
 --char_types general
---character_files data/characters/humanoid3d_082104.txt
+--character_files data/characters/humanoid3d_082105.txt
 --enable_char_soft_contact true
 --fall_contact_bodies 0 1 2 3 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
 
 --char_ctrls ct_pd
---char_ctrl_files data/controllers/humanoid3d_ctrl_082101.txt
+--char_ctrl_files data/controllers/humanoid3d_ctrl_082102.txt
 --motion_file data/motions/walk_motion_082104.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
@@ -30,4 +30,4 @@
 
 --output_path output
 # --int_output_path output/intermediate
-# --model_files output/agent0_model_2019_08_19_16_20_41.ckpt
+--model_files output/agent0_model_2019_08_24_04_40_17551.46.ckpt
