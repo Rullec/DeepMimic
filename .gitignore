@@ -1,5 +1,6 @@
 logs/
 *models*/
+data0824/controllers/
 
 *.pyc
 
