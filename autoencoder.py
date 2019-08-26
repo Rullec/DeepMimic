@@ -4,17 +4,23 @@ import numpy as np
 import json
 from operator import itemgetter
 import matplotlib.pyplot as plt
+import argparse
 
 weight_name_info = ['agent/main/actor/0/dense/kernel:0', 'agent/main/actor/0/dense/bias:0', 'agent/main/actor/1/dense/kernel:0',
  'agent/main/actor/1/dense/bias:0', 'agent/main/actor/dense/kernel:0', 'agent/main/actor/dense/bias:0']
 weight_shape_info = [(275, 1024), (1024,), (1024, 512), (512,), (512, 58), (58,)]
+project_dir = os.getcwd()
+default_info_file_path = os.path.join(project_dir, "data0824/models/info.json")
+
 
 def select_key_pts(i, conf_lst,  k = 5):
     '''
         给出所有configuraion info的列表
         返回第i个的k=5近邻的id
+        conf_lst = []
     '''
-    conf_mat = np.transpose(np.array(conf_lst))   # 现在conf_mat是一个70 * 18的矩阵
+    conf_mat = np.array(conf_lst)   # 要求conf_mat.shape = (links_num, skeleton_num)
+    # print("conf_mat shape = %s" % str(conf_mat.shape))
     
     target_vec = np.reshape(np.tile(conf_mat[i], conf_mat.shape[0]), conf_mat.shape)# 将conf_mat[i]，也就是第i个conf重复70次，也形成一个70*18的矩阵
     
@@ -29,7 +35,42 @@ def select_key_pts(i, conf_lst,  k = 5):
     dist_res = sorted_norm2[1, 1:k+1]
     return id_res.astype(int).tolist(), dist_res.tolist()
 
-def sample(theta_mat, conf_lst,  K, batch_size = 8):
+def load_single_skeleton(filename):
+    body_value = None
+    with open(filename) as f:
+        body_value = json.load(f)["BodyDefs"]
+    assert body_value is not None
+    link_name_lst = ["root", "rhipjoint", "rfemur", "rtibia", "rfoot", "lowerback", "upperback", "thorax",
+                    "rclavicle", "rhumerus", "rradius", "rwrist", "lowerneck", "lclavicle", "lhumerus", 
+                    "lradius", "lwrist", "lhipjoint", "lfemur", "ltibia", "lfoot"]
+    conf = np.zeros(len(link_name_lst))
+    for i in body_value:
+        id = i["ID"]
+        name = i["Name"]
+        assert name == link_name_lst[id]
+        length = i["Param1"]
+        conf[id] = length
+        
+    return conf
+
+def read_train_data_info(filepath):
+    # print("info path = %s" % filepath)
+    weight_lst = []
+    skeleton_lst = []
+    with open(filepath, "r") as f:
+        value = json.load(f)
+        for i in value:
+            weight_lst.append(i["weight"])
+            skeleton_lst.append(i["skeleton"])
+    # print(weight_lst)
+    # print(skeleton_lst)
+    return weight_lst, skeleton_lst
+
+def sample(theta_mat, conf_lst, K, batch_size = 8):
+    '''
+        theta_mat.shape == (sample_num, sample_dim) = (25个样本，每个样本1000维度)
+        conf_lst = [1st conf, 2nd conf, ..., nth conf]
+    '''
     theta_num = theta_mat.shape[1]
 
     # 采样batchsize个数据
@@ -45,6 +86,8 @@ def sample(theta_mat, conf_lst,  K, batch_size = 8):
 
         train_data = theta_mat[pt_id_lst]
         target_data = theta_mat[i]
+
+        # 计算conf之间的权重: 是距离的反比，然后归一化(变成和为1)
         weight_data = np.array([1.0/i for i in pt_dist_list])
         weight_data /= sum(weight_data)
         # print("weights: %s" % str(weights))
@@ -52,6 +95,7 @@ def sample(theta_mat, conf_lst,  K, batch_size = 8):
         target_data = np.reshape(target_data, (-1, 1, theta_num))
         weight_data = np.reshape(weight_data, (-1, 1, K))
 
+        # 把当前data合并到total里面
         merge = lambda total, item: item if total is None else np.vstack([total, item])
         train_data_total = merge(train_data_total, train_data)
         target_data_total = merge(target_data_total, target_data)
@@ -62,11 +106,9 @@ def sample(theta_mat, conf_lst,  K, batch_size = 8):
     assert weight_data_total.shape == (batch_size, 1, K)
     return train_data_total, target_data_total, weight_data_total, center_pt_id
 
-
-def read_batch_weight(model_path_lst, weight_name_lst, weight_shape_lst):
+def read_batch_weight(weight_path_lst, weight_name_lst, weight_shape_lst):
     weight_mat = None
-    for model_path in model_path_lst:
-        weight_path = model_path + ".weight"
+    for weight_path in weight_path_lst:
         if os.path.exists(weight_path) == False:
             raise(FileNotFoundError)
         with open(weight_path, "rb") as f:
@@ -84,12 +126,33 @@ def read_batch_weight(model_path_lst, weight_name_lst, weight_shape_lst):
                 weight_mat = weight_vec
             else:
                 weight_mat = np.vstack([weight_mat, weight_vec])
-    print(weight_mat.shape)
+    # print(weight_mat.shape)
     return weight_mat
 
+def single_theta_vec2dict(theta_vec, weight_name_lst, weight_shape_lst):
+    assert len(weight_name_lst) == len(weight_shape_lst)
+    get_num = lambda tup: tup[0] if len(tup) == 1 else tup[0] * tup[1]
+
+    # 获取shape中各个tuple所代表的参数个数
+    theta_num_lst = [get_num(i) if len(i)<=2  else AssertionError for i in weight_shape_lst]
+    theta_num = np.sum(theta_num_lst)
+
+    assert theta_vec.shape == (1, 1, theta_num)
+    theta_vec = np.reshape(theta_vec, (theta_num, ))    # 变形，准备数据
+
+    # 从theta_vec中顺序取出元素，
+    theta_dict = {}
+    cur_ptr = 0
+    for i in range(len(weight_name_lst)):
+        name = weight_name_lst[i]
+        theta_dict[name] = np.reshape(theta_vec[cur_ptr: cur_ptr+theta_num_lst[i]], weight_shape_lst[i])
+        cur_ptr += theta_num_lst[i]
+    assert cur_ptr == theta_num
+    
+    return theta_dict
 
 class autoencoder:
-    def __init__(self, theta_num = 410, lr = 1e-3, lr_decay=0.95, lr_decay_epoches=10, lr_min=1e-6):
+    def __init__(self, theta_num = 1000, lr = 1e-3, lr_decay=0.95, lr_decay_epoches=10, lr_min=1e-6):
         
         self.para_init(theta_num, lr, lr_decay, lr_decay_epoches, lr_min)
 
@@ -136,7 +199,14 @@ class autoencoder:
             print("save hyperparameter to %s succ" % hpara_path)
 
     def _build_encoder(self, inputs):
-        l1 = tf.layers.dense(inputs = inputs, units = 512, activation = tf.nn.relu, reuse = tf.AUTO_REUSE,  name = "l1_enc")
+        # k = tf.constant([1, 1, 1], dtype = tf.float32)
+        # k = tf.reshape(k, [int(k.shape[0], 1, 1)], name = "kernel")
+        # input_conv1d_1 = tf.reshape(inputs, [-1, int(inputs.shape[0]), 1], name = "inputs_pre_conv1d_1")
+        # tf.nn.conv1d(input_conv1d_1, k, 'VALID')
+        pooling_input = tf.reshape(inputs, [1, -1, 1])
+        pooling_input2 = tf.layers.max_pooling1d(inputs = pooling_input, pool_size = 5, strides = 3, padding = "valid", name = "pooling_1_enc")
+        pooling_input2 = tf.layers.max_pooling1d(inputs = pooling_input2, pool_size = 5, strides = 3, padding = "valid", name = "pooling_2_enc")
+        l1 = tf.layers.dense(inputs = pooling_input2, units = 512, activation = tf.nn.relu, reuse = tf.AUTO_REUSE,  name = "l1_enc")
         l2 = tf.layers.dense(inputs = l1, units = 256, activation = tf.nn.relu, reuse = tf.AUTO_REUSE, name = "l2_enc")
         l3 = tf.layers.dense(inputs = l2, units = 128, activation = tf.nn.relu, reuse = tf.AUTO_REUSE,  name = "l3_enc")
         encoder_output = tf.layers.dense(inputs = l3, units = 32, activation = tf.nn.relu, reuse = tf.AUTO_REUSE, name = "output_encoder")
@@ -285,15 +355,15 @@ class autoencoder:
         assert forward_result.shape == (weight.shape[0], 1, self.theta_num)
         return forward_result
         
-    def train_one_epoch(self, m_lst, l_lst, theta_mat, K, batch_size):
+    def train_one_epoch(self, conf_lst, theta_mat, K, batch_size):
         self.iter = 0 
         self.epoch += 1
-        data_num = len(m_lst)
+        data_num = len(conf_lst)
         loss_lst = []
         # 遍历一次数据集
         for _ in range(0, data_num + batch_size, batch_size):
             # 获取数据
-            train_data, target_data, weight_data = sample(theta_mat, m_lst, l_lst, K, batch_size)
+            train_data, target_data, weight_data, pt_id = sample(theta_mat, conf_lst, K, batch_size)
             # 进行训练
             loss = self.train_one_step(train_data, target_data, weight_data)
             loss_lst.append(loss)
@@ -313,7 +383,7 @@ class autoencoder:
         if self.epoch % self.lr_decay_epoches == 0 and self.iter !=0:
             self.lr = max(self.lr * self.lr_decay, self.lr_min)
 
-def train():
+def train_mimic():
     epochs = 5000
     K = 5
     batch_size = 8
@@ -329,22 +399,19 @@ def train():
     if os.path.exists(log_path) == False:
         os.makedirs(log_path)
     
-    model_path_lst, conf_path_lst = read_batch_info()
-    theta_mat = read_batch_weight(model_path_lst, weight_name_info, weight_shape_info)
+    # 从参数中读取数据信息文件(info.json，用来描述每个controller和对应skeleton的情况)
+    parser = argparse.ArgumentParser("autoencoder arg parser")
+    parser.add_argument("--data_info_path", type = str, default=default_info_file_path, help="read a info.json file for the skeleton-configuration pairs")
+    arg = parser.parse_args()
+    
+    # 读取所有controller weight
+    weight_paths, skeleton_paths = read_train_data_info(arg.data_info_path)
+    theta_mat = read_batch_weight(weight_paths, weight_name_info, weight_shape_info)
 
-    m_lst = []
-    l_lst = []
-    for i in range(len(conf_path_lst)):
-        conf_path = conf_path_lst[i]
-        if os.path.exists(conf_path) == True:
-            conf = None
-            with open(conf_path, "r") as f:
-                conf = json.load(f)
-                m_lst.append(conf["m"])
-                l_lst.append(conf["l"])
-            assert i == conf["conf_id"]
-        else:
-            raise(FileNotFoundError)
+    # 读取所有skeleton
+    skeleton_lst = []
+    for i in skeleton_paths:
+        skeleton_lst.append(load_single_skeleton(i))
 
     # create and train autoencoder
     theta_num = theta_mat.shape[1]
@@ -353,75 +420,36 @@ def train():
     # load model
     # net.load("/home/xudong/Projects/controller-space/data/autoencoder_model/epoch1470-loss0.002821", load_conf= True)
     for i in range(epochs):
-        net.train_one_epoch(m_lst, l_lst, theta_mat, K, batch_size)
+        net.train_one_epoch(skeleton_lst, theta_mat, K, batch_size)
 
-def single_theta_vec2dict(theta_vec, weight_name_lst, weight_shape_lst):
-    assert len(weight_name_lst) == len(weight_shape_lst)
-    get_num = lambda tup: tup[0] if len(tup) == 1 else tup[0] * tup[1]
-
-    # 获取shape中各个tuple所代表的参数个数
-    theta_num_lst = [get_num(i) if len(i)<=2  else AssertionError for i in weight_shape_lst]
-    theta_num = np.sum(theta_num_lst)
-    # for i in weight_shape_lst:
-    #     assert 1<= len(i) <=2
-    #     theta_num_lst.append()
-    # theta
-    assert theta_vec.shape == (1, 1, theta_num)
-    theta_vec = np.reshape(theta_vec, (theta_num, ))    # 变形，准备数据
-
-    # 从theta_vec中顺序取出元素，
-    theta_dict = {}
-    cur_ptr = 0
-    for i in range(len(weight_name_lst)):
-        name = weight_name_lst[i]
-        theta_dict[name] = np.reshape(theta_vec[cur_ptr: cur_ptr+theta_num_lst[i]], weight_shape_lst[i])
-        cur_ptr += theta_num_lst[i]
-    assert cur_ptr == theta_num
+def test_mimic():
+    parser = argparse.ArgumentParser("autoencoder arg parser")
+    parser.add_argument("--data_info_path", type = str, default=default_info_file_path, help="read a info.json file for the skeleton-configuration pairs")
+    arg = parser.parse_args()
     
-    return theta_dict
+    weight_paths, skeleton_paths = read_train_data_info(arg.data_info_path)
+    weight_mat = read_batch_weight(weight_paths, weight_name_info, weight_shape_info)
 
-def test():
-    # 获取数据
-    model_path_lst, conf_path_lst = read_train_data_info()
-    theta_mat = read_batch_weight(model_path_lst, weight_name_info, weight_shape_info)
+    # read skeleton
+    skeleton_lst = []
+    for i in skeleton_paths:
+        skeleton_lst.append(load_single_skeleton(i))
 
+    # begin to train
+    # initialize the autoencoder
+    para_num = sum([i[0] * i[1] if 2 == len(i) else i[0] for i in weight_shape_info])
+    # net = autoencoder(theta_num = para_num)
 
-    # m_lst = []
-    # l_lst = []
-    # for i in range(len(conf_path_lst)):
-    #     conf_path = conf_path_lst[i]
-    #     if os.path.exists(conf_path) == True:
-    #         conf = None
-    #         with open(conf_path, "r") as f:
-    #             conf = json.load(f)
-    #             m_lst.append(conf["m"])
-    #             l_lst.append(conf["l"])
-    #         assert i == conf["conf_id"]
-    #     else:
-    #         raise(FileNotFoundError)
-    
-    # 初始化autoencoder, 采样一个点，然后获取theta_vec(即此时autoencoder估计出来的向量)
-    net = autoencoder()
-    net.load("/home/xudong/Projects/controller-space/data/autoencoder_model/epoch4170-loss0.001414")
-    interpolate_theta, target_theta, weight_ph_data, interpolate_id_lst  = sample(theta_mat, m_lst, l_lst, 5, batch_size = 1)
-    theta_vec = net.forward(weight_ph_data, interpolate_theta)
-
-    # 将这个theta_vec转化为字典
-    controller_theta_dict = single_theta_vec2dict(theta_vec, weight_name_info, weight_shape_info)
-
-    # 令ppo agent读入
-    for i in range(len(interpolate_id_lst)):
-        id = interpolate_id_lst[i]
-        agent = PPOAgent(env_name="NewPendulum-v0", m = m_lst[id], l = l_lst[id])
-        agent.load_from_weight(controller_theta_dict)
-        while True:
-            agent.test(mode = "single_train")
-    # print(interpolate_id_lst)
+    # sample 
+    train_data_total, target_data_total, weight_data_total, center_pt_id = sample(weight_mat, skeleton_lst, 5, 8)
+    # print(weight_data_total)
 
 if __name__ == "__main__":
     # 测试lr参数 = 0.01, 0.001, 0.0001
     # lr_decay = 0.95, 0.7, 0.5
     # batch_size = 64, 32, 16, 8
     # K = 3, 5, 7, 10
-    # train()
-    test()
+    train_mimic()
+    # test_mimic()
+    # net = autoencoder()
+    # test()
