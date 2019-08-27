@@ -48,7 +48,7 @@ class TFAgent(RLAgent):
         for i in weight_lst:
             name_lst.append(i.name)
             weight_dict[i.name] = self.sess.run(i)
-            print((i.name, weight_dict[i.name].shape))
+            # print((i.name, weight_dict[i.name].shape))
             size += weight_dict[i.name].size
         # print("sum size = %d" % size)
         weight_save_path = save_path + ".weight"

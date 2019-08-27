@@ -104,6 +104,7 @@ class PPOAgent(PGAgent):
 
         norm_a_noise_tf = self.norm_a_std_tf * tf.random_normal(shape=tf.shape(self.a_mean_tf))
         norm_a_noise_tf *= tf.expand_dims(self.exp_mask_tf, axis=-1)
+        self.norm_a_noise_tf = norm_a_noise_tf
         self.sample_a_tf = self.a_mean_tf + norm_a_noise_tf * self.a_norm.std_tf    # action采样输出, 是mean ->无穷的值 + 噪音
         self.sample_a_logp_tf = TFUtil.calc_logp_gaussian(x_tf=norm_a_noise_tf, mean_tf=None, std_tf=self.norm_a_std_tf)    # 他对应的当前概率是这个
 
@@ -200,6 +201,13 @@ class PPOAgent(PGAgent):
         }
 
         a, logp = self.sess.run([self.sample_a_tf, self.sample_a_logp_tf], feed_dict=feed)
+
+        if np.random.rand() < 1e-3:
+            v1, v2, v3, v4 = self.sess.run([self.norm_a_std_tf, self.norm_a_noise_tf, self.a_mean_tf, self.a_norm.std_tf], feed)
+            print("[var] self.norm_a_std_tf = %s" % str(v1.transpose()))
+            print("[var] self.norm_a_noise_tf = %s" % str(v2.transpose()))
+            print("[var] self.a_mean_tf = %s" % str(v3.transpose()))
+            print("[var] self.a_norm_std_tf = %s" % str(v4.transpose()))
         return a, logp
 
     def _train_step(self):
@@ -418,8 +426,19 @@ class PPOAgent(PGAgent):
 
         assert np.isfinite(norm_a_mean).all() == True
 
+        '''
+        self.norm_a_std_tf = self.exp_params_curr.noise * tf.ones(a_size)
+
+        norm_a_noise_tf = self.norm_a_std_tf * tf.random_normal(shape=tf.shape(self.a_mean_tf))
+        norm_a_noise_tf *= tf.expand_dims(self.exp_mask_tf, axis=-1)
+        self.norm_a_noise_tf = norm_a_noise_tf
+        self.sample_a_tf = self.a_mean_tf + norm_a_noise_tf * self.a_norm.std_tf    # action采样输出, 是mean ->无穷的值 + 噪音
+        self.sample_a_logp_tf = TFUtil.calc_logp_gaussian(x_tf=norm_a_noise_tf, mean_tf=None, std_tf=self.norm_a_std_tf)    # 他对应的当前概率是这个
+
+        '''
         loss, grads, clip_frac, ratio_all, log_p_new = self.sess.run([self.actor_loss_tf, self.actor_grad_tf, self.clip_frac_tf, 
-                     self.ratio_tf, self.logp_tf ], feed)
+                     self.ratio_tf, self.logp_tf], feed)
+
         # print("ratio = %s " % str(ratio_all))
         # print("logp = %s " % str(log_p_new))
         assert np.isfinite(ratio_all).all() == True
