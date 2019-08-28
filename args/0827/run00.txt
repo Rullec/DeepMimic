@@ -20,5 +20,5 @@
 --agent_files data/raw/agents/ct_agent_humanoid_ppo_xudong.txt
 --train_agents false
 
---output_path output/0827/
+--output_path output/0828/
 --model_files data/0824/tf_model/data_00.ckpt

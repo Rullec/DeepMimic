@@ -7,6 +7,7 @@ data0824/controllers/
 .project
 .pydevproject
 *.opensdf
+*.cxx
 *.sdf
 *.user
 *.o
