@@ -15,18 +15,18 @@
 --terrain_file data/terrain/plane.txt
 
 --char_types general
---character_files data/0827/characters/skeleton_082701_0.json
+--character_files data/0828/characters/skeleton_082801_0.json
 --enable_char_soft_contact true
 --fall_contact_bodies 0 1 2 3 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
 
 --char_ctrls ct_pd
---char_ctrl_files data/0827/controllers/humanoid3d_ctrl_082701.txt
---motion_file data/0827/motions/motion_082701_0.txt
+--char_ctrl_files data/0827/controllers/humanoid3d_ctrl_082702.txt
+--motion_file data/0828/motions/motion_082801_0.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
 
 --agent_files data/raw/agents/ct_agent_humanoid_ppo_xudong.txt
 --train_agents true
 
---output_path output/0827/
+--output_path output/0828/
 --model_files data/0824/tf_model/data_00.ckpt

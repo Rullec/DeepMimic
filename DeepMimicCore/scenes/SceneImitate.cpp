@@ -8,12 +8,14 @@ using namespace std;
 
 double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKinCharacter& kin_char) const
 {
+	// 五项权重: pose, vel, end_effector, root, com
 	double pose_w = 0.5;
 	double vel_w = 0.05;
 	double end_eff_w = 0.15;
 	double root_w = 0.2;
 	double com_w = 0.1;
 
+	// normalize
 	double total_w = pose_w + vel_w + end_eff_w + root_w + com_w;
 	pose_w /= total_w;
 	vel_w /= total_w;
@@ -171,6 +173,7 @@ void cSceneImitate::Init()
 
 double cSceneImitate::CalcReward(int agent_id) const
 {
+	// 计算reward在这里
 	const cSimCharacter* sim_char = GetAgentChar(agent_id);
 	bool fallen = HasFallen(*sim_char);
 
