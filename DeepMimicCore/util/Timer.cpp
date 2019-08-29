@@ -62,9 +62,11 @@ void cTimer::Reset()
 	switch (mParams.mType)
 	{
 	case eTypeUniform:
+		// uniform: 设置最大时间为两者之间: min - max之间。如果max和min相同，则这就是最大时间
 		max_time = cMathUtil::RandDouble(mParams.mTimeMin, mParams.mTimeMax);
 		break;
 	case eTypeExp:
+	// 否则，最大时间被设置为 min + 一个指数性质的随机数和正经max的最小值(也是在min max之间，只是更加偏重min...)
 		max_time = mParams.mTimeMin + cMathUtil::RandDoubleExp(1 / mParams.mTimeExp);
 		max_time = std::min(max_time, mParams.mTimeMax);
 		break;

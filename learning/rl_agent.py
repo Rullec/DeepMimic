@@ -568,7 +568,7 @@ class RLAgent(ABC):
 
         if valid_path:
             self.train_return = path.calc_return()
-
+            print("calculate train_return = %.2f" % self.train_return)
             if self._need_normalizer_update:
                 self._record_normalizers(path)
 

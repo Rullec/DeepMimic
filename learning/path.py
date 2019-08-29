@@ -47,4 +47,5 @@ class Path(object):
         return len(self.rewards)
 
     def calc_return(self):
+        print("cal_return in path: num = %d, sum = %.2f" % (len(self.rewards), sum(self.rewards)))
         return sum(self.rewards)
