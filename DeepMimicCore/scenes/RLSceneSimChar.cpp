@@ -174,7 +174,7 @@ bool cRLSceneSimChar::CheckValidEpisode() const
 	for (int i = 0; i < GetNumChars(); ++i)
 	{
 		// 对于每个character
-		double max_vel_threshold = 200.0;
+		double max_vel_threshold = 100.0;
 		const auto& sim_char = GetCharacter(i);
 		bool exp = sim_char->HasVelExploded(max_vel_threshold);// 速度爆炸的
 		if (exp)

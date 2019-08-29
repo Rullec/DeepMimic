@@ -1,10 +1,12 @@
 import os
 import json
 import csv
+import sys
 from verify_skeleton import verify
 
-skeleton_path = "/home/xudong/Projects/DeepMimic/data/0824/characters/skeleton_082401_0.json"
-pd_path = "/home/xudong/Projects/DeepMimic/data/raw/controllers/humanoid3d_ctrl_082102.txt"
+project_dir = "/home/darknight/Projects/DeepMimic"
+skeleton_path = "data/0828/characters/skeleton_082801_1.json"
+pd_path = "data/0828/controllers/humanoid3d_ctrl_082901.txt"
 
 reduce = lambda f : round(f, 4)
 def parse_pd(file):
@@ -96,19 +98,26 @@ def write_csv(info_dict, path = "data.csv"):
             write_tabular_line(cont, f)
     print("write csv to %s" % path)
         
-# 验证有效性
-verify(skeleton_path)
+if __name__ == "__main__":
 
-# 解析skeleton，获取要写入的信息
-ske_info = parse_skeleton(skeleton_path)
+    skeleton_path = os.path.join(project_dir, skeleton_path)
+    pd_path = os.path.join(project_dir, pd_path)
+    print("skeleton path = %s" % skeleton_path)
+    print("pd path = %s" % pd_path)
+    
+    # 验证有效性
+    verify(skeleton_path)
 
-# 解析pd文件
-pd_info = parse_pd(pd_path)
+    # 解析skeleton，获取要写入的信息
+    ske_info = parse_skeleton(skeleton_path)
 
-# 合并信息
-for item in ske_info:
-    ske_info[item]["Kp"] = pd_info[item]["Kp"]
-    ske_info[item]["Kd"] = pd_info[item]["Kd"]
+    # 解析pd文件
+    pd_info = parse_pd(pd_path)
 
-# 写入信息
-write_csv(ske_info)
+    # 合并信息
+    for item in ske_info:
+        ske_info[item]["Kp"] = pd_info[item]["Kp"]
+        ske_info[item]["Kd"] = pd_info[item]["Kd"]
+
+    # 写入信息
+    write_csv(ske_info)
