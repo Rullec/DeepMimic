@@ -22,6 +22,8 @@ void cAnnealer::Init(const tParams& params)
 
 double cAnnealer::Eval(double t)
 {
+	// 输入一个t, 在0-1之间切割.
+	// 然后返回一个映射值。
 	double val = 0;
 	t = cMathUtil::Clamp(t, 0.0, 1.0);
 

@@ -21,4 +21,4 @@
 --train_agents false
 
 --output_path output/0827/
---model_files data/0824/controllers/data_00.ckpt
+--model_files data/0824/models/data_00.ckpt

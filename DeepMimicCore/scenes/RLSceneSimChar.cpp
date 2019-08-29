@@ -174,7 +174,7 @@ bool cRLSceneSimChar::CheckValidEpisode() const
 	for (int i = 0; i < GetNumChars(); ++i)
 	{
 		// 对于每个character
-		double max_vel_threshold = 200.0;
+		double max_vel_threshold = 100.0;
 		const auto& sim_char = GetCharacter(i);
 		bool exp = sim_char->HasVelExploded(max_vel_threshold);// 速度爆炸的
 		if (exp)
@@ -315,6 +315,9 @@ void cRLSceneSimChar::UpdateTimerParams()
 {
 	if (mAnnealSamples > 0)
 	{
+		// 随着采样数的增长，逐渐的增大时间限制。
+		// 最开始t是0, 然后t会逐渐增大到1。
+		// 用得到的这个t去做shift mean，逐渐的逼近mean的方法。
 		double t = static_cast<double>(mSampleCount) / mAnnealSamples;
 		double lerp = mTimerAnnealer.Eval(t);
 		cTimer::tParams blend_params = mTimerParams.Blend(mTimerParamsEnd, lerp);

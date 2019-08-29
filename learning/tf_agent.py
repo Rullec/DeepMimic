@@ -155,6 +155,7 @@ class TFAgent(RLAgent):
 
     def _build_saver(self):
         vars = self._get_saver_vars()
+        [print(i) for i in vars]
         self.saver = tf.train.Saver(vars, max_to_keep=0)
         return
 
@@ -164,6 +165,13 @@ class TFAgent(RLAgent):
             vars = [v for v in vars if '/' + self.SOLVER_SCOPE + '/' not in v.name]
             #vars = [v for v in vars if '/target/' not in v.name]
             assert len(vars) > 0
+
+            # total_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+            # print("print vars begin")
+            # for i in total_vars:
+            #     print(i.name)
+            # print("print vars end")
+            # exit()
         return vars
     
     def _weight_decay_loss(self, scope):
