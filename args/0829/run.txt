@@ -12,7 +12,7 @@
 --fall_contact_bodies 0 1 2 3 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
 
 --char_ctrls ct_pd
---char_ctrl_files data/0827/controllers/humanoid3d_ctrl_082702.txt
+--char_ctrl_files data/0828/controllers/humanoid3d_ctrl_082901.txt
 --motion_file data/0828/motions/motion_082801_1.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
@@ -22,4 +22,4 @@
 
 --output_path output/0828/
 # --model_files data/0824/tf_model/data_00.ckpt
---model_files output/0828/agent0_model_2019_08_29_09_23_33_570.76.ckpt
+--model_files output/agent0_model_2019_08_29_09_27_17_571.79.ckpt
