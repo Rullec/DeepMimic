@@ -2,10 +2,10 @@ import os
 import json
 import csv
 import sys
-from verify_skeleton import verify
+from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
-project_dir = "/home/darknight/Projects/DeepMimic"
-skeleton_path = "data/0828/characters/skeleton_082801_1.json"
+project_dir = "/home/xudong/Projects/DeepMimic"
+skeleton_path = "data/0904/characters/skeleton_0904.json"
 pd_path = "data/0828/controllers/humanoid3d_ctrl_082901.txt"
 
 reduce = lambda f : round(f, 4)
@@ -40,8 +40,8 @@ def parse_skeleton(file):
         Param0, Param1, Param2 = i["Param0"],i["Param1"],i["Param2"]
         Volume = Param0 * Param1 * Param2
         Length = Param1
-        info["Volume"] = Volume * 1e6
-        info["Length"] = Length
+        info["Volume"] = Volume * 1e6 # cm3
+        info["Length"] = Length # m
 
         # add
         info_dict[Name] = info
@@ -105,9 +105,12 @@ if __name__ == "__main__":
     print("skeleton path = %s" % skeleton_path)
     print("pd path = %s" % pd_path)
     
-    # 验证有效性
-    verify(skeleton_path)
+    # 验证drawshape = bodydefs
+    verify_drawshapes_and_bodydefs(skeleton_path)
 
+    # 验证bodydefs和skeleton是左右对称的
+    verify_symmetric(skeleton_path)
+    
     # 解析skeleton，获取要写入的信息
     ske_info = parse_skeleton(skeleton_path)
 

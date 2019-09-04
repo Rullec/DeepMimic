@@ -365,7 +365,7 @@ class RLAgent(ABC):
         s = self._record_state()
         g = self._record_goal()
         r = self._record_reward()
-
+        print("[rl agent] end path, r = {}".format(r))
         self.path.rewards.append(r)
         self.path.states.append(s)
         assert np.isfinite(s).all() == True # 在end of path的时候，state突然崩了。

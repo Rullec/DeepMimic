@@ -8,7 +8,8 @@ using namespace std;
 
 double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKinCharacter& kin_char) const
 {
-	// 五项权重: pose, vel, end_effector, root, com
+	// reward共计5项，pose, vel, end_effector, root, com
+	// 五项权重: 
 	double pose_w = 0.5;
 	double vel_w = 0.05;
 	double end_eff_w = 0.15;
@@ -23,6 +24,7 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	root_w /= total_w;
 	com_w /= total_w;
 
+	// 又有一个scale
 	const double pose_scale = 2;
 	const double vel_scale = 0.1;
 	const double end_eff_scale = 40;
@@ -34,6 +36,7 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	const auto& body_defs = sim_char.GetBodyDefs();
 	double reward = 0;
 
+	// sim_char和kin_char的区别是什么?
 	const Eigen::VectorXd& pose0 = sim_char.GetPose();
 	const Eigen::VectorXd& vel0 = sim_char.GetVel();
 	const Eigen::VectorXd& pose1 = kin_char.GetPose();
@@ -43,7 +46,7 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 
 	tVector com0_world = sim_char.CalcCOM();
 	tVector com_vel0_world = sim_char.CalcCOMVel();
-	tVector com1_world;
+	tVector com1_world;		// 这里计算的, 大概是本来的com和vel是什么
 	tVector com_vel1_world;
 	cRBDUtil::CalcCoM(joint_mat, body_defs, pose1, vel1, com1_world, com_vel1_world);
 
@@ -69,12 +72,14 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	assert(num_joints == mJointWeights.size());
 
 	double root_rot_w = mJointWeights[root_id];
+	// 计算root朝向错误
 	pose_err += root_rot_w * cKinTree::CalcRootRotErr(joint_mat, pose0, pose1);
 	vel_err += root_rot_w * cKinTree::CalcRootAngVelErr(joint_mat, vel0, vel1);
 
 	for (int j = root_id + 1; j < num_joints; ++j)
 	{
 		double w = mJointWeights[j];
+		// 计算每一个joint的位置、朝向error，根据mJointWeights里的权重求和
 		double curr_pose_err = cKinTree::CalcPoseErr(joint_mat, j, pose0, pose1);
 		double curr_vel_err = cKinTree::CalcVelErr(joint_mat, j, vel0, vel1);
 		pose_err += w * curr_pose_err;
@@ -107,6 +112,8 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 		end_eff_err /= num_end_effs;
 	}
 
+	// sim char，应该是simulation的角色(实际)
+	// kin char，应该是从motion中读进来的角色(理想)
 	double root_ground_h0 = mGround->SampleHeight(sim_char.GetRootPos());
 	double root_ground_h1 = kin_char.GetOriginPos()[1];
 	root_pos0[1] -= root_ground_h0;
@@ -119,18 +126,26 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	double root_vel_err = (root_vel1 - root_vel0).squaredNorm();
 	double root_ang_vel_err = (root_ang_vel1 - root_ang_vel0).squaredNorm();
 
+	// root位置误差, 旋转误差(0.1), 速度误差(1e-2)，角速度误差(1e-3)，合称为root_err
 	root_err = root_pos_err
 			+ 0.1 * root_rot_err
 			+ 0.01 * root_vel_err
 			+ 0.001 * root_ang_vel_err;
 	com_err = 0.1 * (com_vel1_world - com_vel0_world).squaredNorm();
 
-	double pose_reward = exp(-err_scale * pose_scale * pose_err);
-	double vel_reward = exp(-err_scale * vel_scale * vel_err);
-	double end_eff_reward = exp(-err_scale * end_eff_scale * end_eff_err);
-	double root_reward = exp(-err_scale * root_scale * root_err);
-	double com_reward = exp(-err_scale * com_scale * com_err);
+	double pose_reward = exp(-err_scale * pose_scale * pose_err);	// 各个joint的朝向 (实际 - 理想)^2
+	double vel_reward = exp(-err_scale * vel_scale * vel_err);		// joints的速度(实际 - 理想)^2
+	double end_eff_reward = exp(-err_scale * end_eff_scale * end_eff_err);	// end_effector位置误差^2
+	double root_reward = exp(-err_scale * root_scale * root_err);	// root joint的(位置误差+0.1线速度误差+0.01朝向误差+0.001角速度)^2
+	double com_reward = exp(-err_scale * com_scale * com_err);		// 0.1 * (质心速度误差)^2
 
+	/*
+		double pose_w = 0.5;
+		double vel_w = 0.05;
+		double end_eff_w = 0.15;
+		double root_w = 0.2;
+		double com_w = 0.1;
+	*/
 	reward = pose_w * pose_reward + vel_w * vel_reward + end_eff_w * end_eff_reward
 		+ root_w * root_reward + com_w * com_reward;
 
