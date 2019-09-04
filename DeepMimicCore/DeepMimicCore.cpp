@@ -476,7 +476,9 @@ double cDeepMimicCore::CalcReward(int agent_id) const
 	const auto& rl_scene = GetRLScene();
 	if (rl_scene != nullptr)
 	{
-		return rl_scene->CalcReward(agent_id);
+		double r = rl_scene->CalcReward(agent_id);
+		std::cout <<"[get reward] reward = " << r << std::endl;
+		return r;
 	}
 	return 0;
 }
