@@ -260,6 +260,7 @@ void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::V
 		{
 			int param_offset = mChar->GetParamOffset(j);	// 对于这个joint而言，他从哪里开始?
 			int param_size = mChar->GetParamSize(j);		// 这个joint占据几个自由度?
+			std::cout <<"[get scale and offset] joint " << j <<", param_offset = " << param_offset <<", size = " << param_size << std::endl;
 
 			if (param_size > 0)
 			{
@@ -274,12 +275,12 @@ void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::V
 				param_offset += ctrl_offset;	// 增加ctrl offset的
 				out_offset.segment(param_offset, param_size) = curr_offset;
 				out_scale.segment(param_offset, param_size) = curr_scale;
-				if (param_offset == 0)
-				{
-					std::cout <<"[get scale and offset] joint "<< j <<" set 0th position = " << out_offset[0] << std::endl;
-					std::cout <<"[get scale and offset] its cur_scale = " << curr_scale.transpose() << std::endl;
-					std::cout <<"[get scale and offset] its cur_offset = " << curr_offset.transpose() << std::endl;
-				}
+				// if (param_offset == 0)
+				// {
+				// 	std::cout <<"[get scale and offset] joint "<< j <<" set 0th position = " << out_offset[0] << std::endl;
+				// 	std::cout <<"[get scale and offset] its cur_scale = " << curr_scale.transpose() << std::endl;
+				// 	std::cout <<"[get scale and offset] its cur_offset = " << curr_offset.transpose() << std::endl;
+				// }
 			}
 		}
 	}
