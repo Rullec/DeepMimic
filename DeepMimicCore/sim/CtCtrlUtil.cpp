@@ -399,7 +399,11 @@ void cCtCtrlUtil::BuildOffsetScalePDRevolute(const Eigen::MatrixXd& joint_mat, i
 
 		out_offset[i] = curr_offset;
 		out_scale[i] = curr_scale;
+		std::cout << "[joint offset and scale compute] joint revolute " << joint_id << \
+		"val_high, val_low = (" << val_high << ", " << val_low<<"), curr_offset = " << curr_offset <<", curr_scale = " << curr_scale << std::endl;
 	}
+	std::cout <<"[joint offset and scale compute] joint revolute " << joint_id <<" offset = "\
+	 << out_offset.transpose() <<", scale = " << out_scale.transpose() << std::endl;
 }
 
 void cCtCtrlUtil::BuildOffsetScalePDPrismatic(const Eigen::MatrixXd& joint_mat, int joint_id, Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale)
@@ -464,12 +468,13 @@ void cCtCtrlUtil::BuildOffsetScalePDFixed(const Eigen::MatrixXd& joint_mat, int 
 	int joint_dim = cKinTree::GetParamSize(joint_mat, joint_id);
 	out_offset = Eigen::VectorXd::Zero(joint_dim);
 	out_scale = Eigen::VectorXd::Ones(joint_dim);
+	std::cout <<"[joint offset and scale compute] joint fixed " << joint_id <<" offset = " << out_offset.transpose() <<", scale = " << out_scale.transpose() << std::endl;
 }
 
 void cCtCtrlUtil::BuildOffsetScalePDSpherical(const Eigen::MatrixXd& joint_mat, int joint_id, Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale)
 {
 	// 对于球类铰链，我们有:
-	std::cout <<"void cCtCtrlUtil::BuildOffsetScalePDSpherical 这个可能才是真的" << std::endl;
+	// std::cout <<"void cCtCtrlUtil::BuildOffsetScalePDSpherical 这个可能才是真的" << std::endl;
 	cKinTree::eJointType joint_type = cKinTree::GetJointType(joint_mat, joint_id);
 	assert(joint_type == cKinTree::eJointTypeSpherical);
 
@@ -496,13 +501,15 @@ void cCtCtrlUtil::BuildOffsetScalePDSpherical(const Eigen::MatrixXd& joint_mat, 
 	{
 		std::cout <<"[error] joint " << joint_id <<" val_high = " << val_high <<" val_low" <<  val_low<<std::endl;
 	}
-	std::cout <<"[error] joint " << joint_id <<", scale = " << curr_scale << ", val_high = " << val_high <<", val_low" <<  val_low<<std::endl;
+	
 	curr_scale *= 0.5;
-
+	
 	out_offset(0) = curr_offset;
 	out_scale(0) = curr_scale;
 	out_offset(3) = -0.2;
 #else
 	out_offset(0) = -0.2;
 #endif
-}
+	
+	std::cout <<"[joint offset and scale compute] joint spherical " << joint_id << "val_high, val_low = (" << val_high << ", " << val_low<<")"<< ",  offset = " << out_offset.transpose() <<", scale = " << out_scale.transpose() << std::endl;
+}	

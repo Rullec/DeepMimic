@@ -2,6 +2,7 @@ import sys
 import subprocess
 from util.arg_parser import ArgParser
 from util.logger import Logger
+from multiprocessing import cpu_count
 
 '''
 这个函数就是最终训练agent的函数
@@ -17,7 +18,9 @@ def main():
     arg_parser = ArgParser()
     arg_parser.load_args(args)
 
-    num_workers = arg_parser.parse_int('num_workers', 12)    # mpiexec中并行几个进程?
+    default_num = cpu_count()
+    print("default workers num = %d" % default_num)
+    num_workers = arg_parser.parse_int('num_workers', default_num)    # mpiexec中并行几个进程?
     assert(num_workers > 0)
     
     Logger.print('Running with {:d} workers'.format(num_workers))
