@@ -149,6 +149,17 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	reward = pose_w * pose_reward + vel_w * vel_reward + end_eff_w * end_eff_reward
 		+ root_w * root_reward + com_w * com_reward;
 
+	char log[200] = {};
+	// std::cout <<"pose_w = " << pose_w << std::endl;
+	sprintf(log, "[SceneImitate] CalcReward = %lf, pose_rew = %lf[%lf], vel_rew = %lf[%lf], end_eff_rew = %lf[%lf], root_rew = %lf[%lf], com_rew = %lf[%lf]", 
+		reward,
+		pose_reward, pose_w,
+		vel_reward, vel_w,
+		end_eff_reward, end_eff_w,
+		root_reward, root_w,
+		com_reward, com_w);
+	std::cout << std::string(log) << std::endl;
+	// std::cout <<"" << reward << std::endl;
 	return reward;
 }
 
