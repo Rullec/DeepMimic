@@ -6,7 +6,7 @@ from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
 project_dir = "/home/xudong/Projects/DeepMimic"
 skeleton_path = "data/0904/characters/skeleton_0904.json"
-pd_path = "data/0828/controllers/humanoid3d_ctrl_082901.txt"
+pd_path = "data/0904/controllers/humanoid3d_ctrl_0904.txt"
 
 reduce = lambda f : round(f, 4)
 def parse_pd(file):

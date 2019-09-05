@@ -50,6 +50,7 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	tVector com_vel1_world;
 	cRBDUtil::CalcCoM(joint_mat, body_defs, pose1, vel1, com1_world, com_vel1_world);
 
+	
 	int root_id = sim_char.GetRootID();
 	tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
 	tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
@@ -76,12 +77,15 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	pose_err += root_rot_w * cKinTree::CalcRootRotErr(joint_mat, pose0, pose1);
 	vel_err += root_rot_w * cKinTree::CalcRootAngVelErr(joint_mat, vel0, vel1);
 
+	std::vector<double> joint_angle_err, joint_vel_err;
 	for (int j = root_id + 1; j < num_joints; ++j)
 	{
 		double w = mJointWeights[j];
 		// 计算每一个joint的位置、朝向error，根据mJointWeights里的权重求和
 		double curr_pose_err = cKinTree::CalcPoseErr(joint_mat, j, pose0, pose1);
 		double curr_vel_err = cKinTree::CalcVelErr(joint_mat, j, vel0, vel1);
+		joint_angle_err.push_back(curr_pose_err);
+		joint_vel_err.push_back(curr_vel_err);
 		pose_err += w * curr_pose_err;
 		vel_err += w * curr_vel_err;
 
@@ -150,7 +154,18 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 		+ root_w * root_reward + com_w * com_reward;
 
 	char log[200] = {};
+
 	// std::cout <<"pose_w = " << pose_w << std::endl;
+	
+	for(int i=root_id + 1; i< num_joints; i++)
+	{
+		auto &joint = sim_char.GetJoint(i);
+		std::string joint_type_lst[] = {"eJointTypeRevolute", "eJointTypePlanar", "eJointTypePrismatic",
+		"eJointTypeFixed", "eJointTypeSpherical", "eJointTypeNone", "eJointTypeMax"};
+		
+		std::cout <<"joint " << i << " " << joint_type_lst[joint.GetType()] 
+			<< " pos diff = " << joint_angle_err[i-root_id-1] <<", vel diff = " << joint_vel_err[i-root_id-1] << std::endl;
+	}
 	sprintf(log, "[SceneImitate] CalcReward = %lf, pose_rew = %lf[%lf], vel_rew = %lf[%lf], end_eff_rew = %lf[%lf], root_rew = %lf[%lf], com_rew = %lf[%lf]", 
 		reward,
 		pose_reward, pose_w,
