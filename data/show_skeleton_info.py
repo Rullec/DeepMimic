@@ -4,10 +4,11 @@ import csv
 import sys
 from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
-project_dir = "/home/xudong/Projects/DeepMimic"
-skeleton_path = "data/0904/characters/skeleton_0904.json"
-pd_path = "data/0904/controllers/humanoid3d_ctrl_0904.txt"
-
+project_dir = "/home/darknight/Projects/DeepMimic"
+skeleton_path = "data/0906/characters/skeleton_0907.json"
+pd_path = "data/0906/controllers/humanoid3d_ctrl_0906.txt"
+#skeleton_path = "data/raw/characters/humanoid3d.txt"
+#pd_path = "data/raw/controllers/humanoid3d_ctrl.txt"
 reduce = lambda f : round(f, 4)
 def parse_pd(file):
     f_pd = open(file, "r")
@@ -49,9 +50,12 @@ def parse_skeleton(file):
     skeleton_joints = value["Skeleton"]["Joints"]
     for i in skeleton_joints:
         name = i["Name"]
-        torquelim = reduce(i["TorqueLim"])
         diff_weight = reduce(i["DiffWeight"])
         type_ = i["Type"]
+        if type_ == "fixed":
+            torquelim = 0
+        else:
+            torquelim = reduce(i["TorqueLim"])
 
         # add
         info_dict[name]["TorqueLim"] = torquelim
@@ -106,10 +110,10 @@ if __name__ == "__main__":
     print("pd path = %s" % pd_path)
     
     # 验证drawshape = bodydefs
-    verify_drawshapes_and_bodydefs(skeleton_path)
+    # verify_drawshapes_and_bodydefs(skeleton_path)
 
     # 验证bodydefs和skeleton是左右对称的
-    verify_symmetric(skeleton_path)
+    # verify_symmetric(skeleton_path)
     
     # 解析skeleton，获取要写入的信息
     ske_info = parse_skeleton(skeleton_path)
