@@ -1,5 +1,6 @@
 #include "CharController.h"
 #include "SimCharacter.h"
+#include <iostream>
 
 const int cCharController::gNormGroupSingle = 0;
 const int cCharController::gNormGroupNone = -1;
@@ -23,6 +24,7 @@ void cCharController::PostUpdate(double time_step)
 
 bool cCharController::NeedNewAction() const
 {
+	std::cout << "bool cCharController::NeedNewAction() const = false" << std::endl;
 	return false;
 }
 

@@ -187,7 +187,9 @@ bool cDeepMimicCore::NeedNewAction(int agent_id) const
 	const auto& rl_scene = GetRLScene();
 	if (rl_scene != nullptr)
 	{
-		return rl_scene->NeedNewAction(agent_id);
+		bool need = rl_scene->NeedNewAction(agent_id);
+		// if(need) std::cout <<"[DeepMimicCore] need new action = " << need << std::endl;
+		return need;
 	}
 	return false;
 }
@@ -235,6 +237,7 @@ void cDeepMimicCore::SetAction(int agent_id, const std::vector<double>& action)
 		Eigen::VectorXd in_action;
 		ConvertVector(action, in_action);
 		rl_scene->SetAction(agent_id, in_action);
+		// std::cout <<"set action !" << std::endl;
 	}
 }
 
@@ -477,7 +480,7 @@ double cDeepMimicCore::CalcReward(int agent_id) const
 	if (rl_scene != nullptr)
 	{
 		double r = rl_scene->CalcReward(agent_id);
-		std::cout <<"[get reward] reward = " << r << std::endl;
+		// std::cout <<"[get reward] reward = " << r << std::endl;
 		return r;
 	}
 	return 0;
@@ -583,10 +586,10 @@ void cDeepMimicCore::SetupScene()
 		cSceneBuilder::BuildScene(scene_name, mScene);
 	}
 
-	// 如果mScene创建成功了，那么就创建mRLScene?
-	// 这怎么直接下来了。。。
+	
 	if (mScene != nullptr)
 	{
+		// there is a dynamic_cast: it means that if the scene type is kin_char(display motion),  this ptr "mRLScene" would be NULL.
 		mRLScene = std::dynamic_pointer_cast<cRLScene>(mScene);
 		mScene->ParseArgs(mArgParser);
 		mScene->Init();
