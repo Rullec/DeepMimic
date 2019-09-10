@@ -4,10 +4,53 @@
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
 #include <iostream>
+#include <filesystem>
 using namespace std;
+
+void cSceneImitate::DiffLogOutput(const cSimCharacter& sim_char, const cKinCharacter& kin_char) const
+{
+	using namespace Eigen;
+	if (mAngleDiffDir.size() == 0 || mAngleDiffDir[mAngleDiffDir.size() - 1] != '/')
+	{
+		std::cout << "the dir = " << mAngleDiffDir << ", invalid" << std::endl;
+	}
+	
+	const Eigen::VectorXd& pose0 = sim_char.GetPose(), vel0 = sim_char.GetVel(), pose1 = kin_char.GetPose(), vel1 = kin_char.GetVel();
+	const auto& joint_mat = sim_char.GetJointMat();
+	const auto& body_defs = sim_char.GetBodyDefs();
+	const int num_joints = sim_char.GetNumJoints();
+	ofstream fout;
+	for (int i = 0; i < num_joints; i++)
+	{
+		const int offset = cKinTree::GetParamOffset(joint_mat, i);
+		const int size = cKinTree::GetParamSize(joint_mat, i);
+		VectorXd cur_pose = pose0.segment(offset, size);
+		VectorXd motion_pose = pose1.segment(offset, size);
+		VectorXd cur_vel = vel0.segment(offset, size);
+		VectorXd motion_vel = vel1.segment(offset, size);
+		string filename = this->mAngleDiffDir + std::to_string(i) + ".txt";
+		fout.open(filename, std::ios_base::app);
+		if (fout.fail() == true)
+		{
+			std::cout << "[angle diff log] open " << filename << " failed" << std::endl;
+			abort();
+		}
+
+		// record it
+		fout << "time " << this->GetTime() << ", joint " << i << ", cur pose = " << cur_pose.transpose() << ", motion pose = " << motion_pose.transpose() << std::endl;
+		fout << "time " << this->GetTime() << ", joint " << i << ", cur vel = " << cur_vel.transpose() << ", motion vel = " << motion_vel.transpose() << std::endl;
+		//std::cout << "joint " << i << " cur_pose = " << cur_pose.transpose() << ", motion pose = " << motion_pose.transpose() << std::endl;
+
+		fout.close();
+	}
+	
+}
 
 double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKinCharacter& kin_char) const
 {
+	// print
+	if (mEnableAngleDiffLog == true)	DiffLogOutput(sim_char, kin_char);
+
 	// reward共计5项，pose, vel, end_effector, root, com
 	// 五项权重: 
 	double pose_w = 0.5;
@@ -153,7 +196,7 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	reward = pose_w * pose_reward + vel_w * vel_reward + end_eff_w * end_eff_reward
 		+ root_w * root_reward + com_w * com_reward;
 
-	char log[200] = {};
+	//char log[200] = {};
 
 	// std::cout <<"pose_w = " << pose_w << std::endl;
 	
@@ -184,6 +227,8 @@ cSceneImitate::cSceneImitate()
 	mSyncCharRootPos = true;
 	mSyncCharRootRot = false;
 	mMotionFile = "";
+	mAngleDiffDir = "";
+	mEnableAngleDiffLog = false;
 	mEnableRootRotFail = false;
 	mHoldEndFrame = 0;
 }
@@ -201,6 +246,9 @@ void cSceneImitate::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 	parser->ParseBool("sync_char_root_rot", mSyncCharRootRot);
 	parser->ParseBool("enable_root_rot_fail", mEnableRootRotFail);
 	parser->ParseDouble("hold_end_frame", mHoldEndFrame);
+	parser->ParseBool("enable_angle_diff_log", mEnableAngleDiffLog);
+	parser->ParseString("angle_diff_dir", mAngleDiffDir);
+
 }
 
 void cSceneImitate::Init()

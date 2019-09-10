@@ -16,6 +16,8 @@
 --motion_file data/0906/motions/walk_motion_090603_sampled.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
+--enable_angle_diff_log true
+--angle_diff_dir logs/controller_logs/angle_diff/
 
 --agent_files data/0906/agents/agent_512_0906.txt
 --train_agents false
