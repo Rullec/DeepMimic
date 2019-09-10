@@ -26,6 +26,7 @@ public:
 protected:
 
 	std::string mMotionFile;
+	std::string mAngleDiffDir;
 	std::shared_ptr<cKinCharacter> mKinChar;
 
 	Eigen::VectorXd mJointWeights;
@@ -33,6 +34,7 @@ protected:
 	bool mSyncCharRootPos;
 	bool mSyncCharRootRot;
 	bool mEnableRootRotFail;
+	bool mEnableAngleDiffLog;
 	double mHoldEndFrame;
 
 	virtual bool BuildCharacters();
@@ -64,4 +66,5 @@ protected:
 	
 	virtual double CalcRandKinResetTime();
 	virtual double CalcRewardImitate(const cSimCharacter& sim_char, const cKinCharacter& ref_char) const;
+	virtual void DiffLogOutput(const cSimCharacter& sim_char, const cKinCharacter& ref_char) const;
 };
