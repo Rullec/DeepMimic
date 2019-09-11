@@ -642,7 +642,7 @@ void cSceneSimChar::UpdateCharacters(double time_step)
 			for (int id = 0; id < joints_num; id++)
 			{
 				const cSimBodyJoint & joint = curr_char->GetJoint(id);
-				tVector & torque = joint.GetTotalTorque();
+				const tVector & torque = joint.GetTotalTorque();
 				fout << "joint " << id << ", torque = " << torque.transpose() << std::endl;
 			}
 		}
