@@ -1248,6 +1248,7 @@ void cSimCharacter::UpdateJoints()
 		if (joint.IsValid())
 		{
 			joint.ApplyTau();
+
 		}
 	}
 }

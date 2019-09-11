@@ -4,7 +4,6 @@
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
 #include <iostream>
-#include <filesystem>
 using namespace std;
 
 void cSceneImitate::DiffLogOutput(const cSimCharacter& sim_char, const cKinCharacter& kin_char) const
