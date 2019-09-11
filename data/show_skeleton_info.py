@@ -4,9 +4,9 @@ import csv
 import sys
 from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
-project_dir = "/home/darknight/Projects/DeepMimic"
-skeleton_path = "data/0906/characters/skeleton_0907.json"
-pd_path = "data/0906/controllers/humanoid3d_ctrl_0906.txt"
+project_dir = "/home/xudong/Projects/DeepMimic"
+skeleton_path = "data/0910/characters/skeleton_0907_1.json"
+pd_path = "data/0910/controllers/humanoid3d_ctrl_0907.txt"
 #skeleton_path = "data/raw/characters/humanoid3d.txt"
 #pd_path = "data/raw/controllers/humanoid3d_ctrl.txt"
 reduce = lambda f : round(f, 4)

@@ -7,7 +7,6 @@ import learning.nets.fc_2layers_256_256 as fc_2layers_256_256
 
 def build_net(net_name, input_tfs, reuse=False):
     net = None
-
     if (net_name == fc_2layers_1024units.NAME):
         net = fc_2layers_1024units.build_net(input_tfs, reuse)
     elif(net_name == fc_2layers_256_128.NAME):

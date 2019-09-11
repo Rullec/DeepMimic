@@ -134,8 +134,21 @@ class TFAgent(RLAgent):
                 self.a_norm = TFNormalizer(self.sess, 'a_norm', self.get_action_size())
 
                 # 设置mean和std
-                self.a_norm.set_mean_std(-self.world.env.build_action_offset(self.id), 
-                                         1 / self.world.env.build_action_scale(self.id))
+                # print("[tf_agent] a norm offset = %s" % str())
+                # print("[tf_agent] a norm scale = %s" % str())
+                mean = self.world.env.build_action_offset(self.id)
+                std = self.world.env.build_action_scale(self.id) # 有一些fix joint, action scale是0, std就是Inf，需要去掉
+                print("get mean from env = %s" % str(mean))
+                print("get std from env = %s" % str(std))
+                std = 1 / (std * 3 * 10) 
+                # 对于一个torque = -500 - 500, 可以说他满足N(0, 500/3) [3 sigma原则]； 
+                # 而在这里1 / std = 500, 我就要将最后的std设置为 500 /3，这样就整好了吧。
+                # 但是这样的话，vel 总是爆炸; 这就说明torque lim太大了，需要缩小。
+                # 为什么这样做是对的?
+                std[np.isinf(std)] = 1
+                print("set offset = %s" % str(mean))
+                print("set scale(1/std) = %s" % str(std))
+                self.a_norm.set_mean_std(mean, std)
         return
 
     def _load_normalizers(self):
@@ -155,7 +168,7 @@ class TFAgent(RLAgent):
 
     def _build_saver(self):
         vars = self._get_saver_vars()
-        [print(i) for i in vars]
+        # [print(i) for i in vars]
         self.saver = tf.train.Saver(vars, max_to_keep=0)
         return
 

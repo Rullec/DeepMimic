@@ -43,6 +43,7 @@ class TFNormalizer(Normalizer):
     def unnormalize_tf(self, norm_x):
         # 这个unmormalize大概是: 外面输入一个服从标准高斯分布的数，我把他变化到N(mean, std)里面去
         x = norm_x * self.std_tf + self.mean_tf
+        # print("[tf normalized ] unnormalized: std = %s, mean = %s" % (self.std, self.mean))
         return x
     
     def _build_resource_tf(self):

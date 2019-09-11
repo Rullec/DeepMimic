@@ -352,6 +352,10 @@ class RLAgent(ABC):
         # a = np.ones_like(a) * 2
         # if np.random.randn() > 0.99: 
         #     print("a is 2 * ones_like!")
+        # action_scale = np.minimum(abs(self.a_bound_max), abs(self.a_bound_min))
+        # a*= action_scale
+        # if np.random.rand() < 1e-3:
+        # print("set action = %s" % str(a))
         self.world.env.set_action(self.id, a)
         return
 
@@ -365,8 +369,9 @@ class RLAgent(ABC):
         s = self._record_state()
         g = self._record_goal()
         r = self._record_reward()
-        print("[rl agent] end path, r = {}".format(r))
+        
         self.path.rewards.append(r)
+        print("[rl agent] end path, total r = {}".format(sum(self.path.rewards)))
         self.path.states.append(s)
         assert np.isfinite(s).all() == True # 在end of path的时候，state突然崩了。
         # 其实我还有点好奇: state为什么是275呢?
@@ -568,7 +573,7 @@ class RLAgent(ABC):
 
         if valid_path:
             self.train_return = path.calc_return()
-            print("calculate train_return = %.2f" % self.train_return)
+            # print("calculate train_return = %.2f" % self.train_return)
             if self._need_normalizer_update:
                 self._record_normalizers(path)
 

@@ -1,0 +1,33 @@
+
+--scene imitate
+
+--time_lim_min 5
+--time_lim_max 5
+--time_lim_exp 1
+--time_end_lim_min 20
+--time_end_lim_max 20
+--time_end_lim_exp 50
+--anneal_samples 32000000
+
+--num_update_substeps 10
+--num_sim_substeps 2
+--world_scale 4
+
+--terrain_file data/terrain/plane.txt
+
+--char_types general
+--character_files data/0906/characters/skeleton_0907.json
+--enable_char_soft_contact true
+--fall_contact_bodies 0 1 2 3 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
+
+--char_ctrls ct
+--char_ctrl_files data/0906/controllers/humanoid3d_ctrl_0906.txt
+--motion_file data/0906/motions/walk_motion_090603_sampled.txt
+--sync_char_root_pos true
+--sync_char_root_rot false
+
+--agent_files data/0906/agents/agent_512_0906.txt
+--train_agents true
+
+--output_path output/0907/
+#--model_files output/0906/agent0_model_2019_09_07_11_35_54_571.04.ckpt

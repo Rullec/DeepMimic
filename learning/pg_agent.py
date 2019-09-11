@@ -164,7 +164,7 @@ class PGAgent(TFAgent):
             input_tfs += [norm_g_tf]    # 另一部分输入是norm_g_tf
         
         # 上面有２个Fc了，现在又接了一个
-        h = NetBuilder.build_net(net_name, input_tfs) # 输出的是relu, 0-1
+        h = NetBuilder.build_net(net_name, input_tfs, False)
 
         # 然后接action输出层，没有activation
         # 把kernel的范围放到scale里面，有啥用呢?
@@ -172,7 +172,7 @@ class PGAgent(TFAgent):
         norm_a_tf = tf.layers.dense(inputs=h, units=self.get_action_size(), activation=None,
                                 kernel_initializer=tf.random_uniform_initializer(minval=-init_output_scale, maxval=init_output_scale))
         
-        # a_tf: 这个输出还是正无穷到负无穷。
+        # a_tf: 上面网络的输出会被乘上std，变成(-std, std)
         a_tf = self.a_norm.unnormalize_tf(norm_a_tf)    # 把输出乘以方差，加上均值, 服从N(mean, std)
         return a_tf
     
@@ -188,9 +188,9 @@ class PGAgent(TFAgent):
             norm_g_tf = self.g_norm.normalize_tf(self.g_tf)
             input_tfs += [norm_g_tf]
         
-        h = NetBuilder.build_net(net_name, input_tfs)
+        h = NetBuilder.build_net(net_name, input_tfs, False)
         norm_val_tf = tf.layers.dense(inputs=h, units=1, activation=None,
-                                kernel_initializer=TFUtil.xavier_initializer);
+                                kernel_initializer=TFUtil.xavier_initializer)
 
         norm_val_tf = tf.reshape(norm_val_tf, [-1])
         val_tf = self.val_norm.unnormalize_tf(norm_val_tf)

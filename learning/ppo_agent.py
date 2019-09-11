@@ -121,8 +121,10 @@ class PPOAgent(PGAgent):
         if (critic_weight_decay != 0):  # ciritc loss2 = critic网络参数尽可能接近0(绝对值小)
             self.critic_loss_tf += critic_weight_decay * self._weight_decay_loss('main/critic')
         
-        # action的范围究竟是不是角度限制?
-        norm_tar_a_tf = self.a_norm.normalize_tf(self.a_tf) # 外部输入的action变化到分布上
+        # action的scale是2/角度范围: 这是tf_agent在初始化a_norm的时候设置好了的
+        norm_tar_a_tf = self.a_norm.normalize_tf(self.a_tf)
+            # 假设输入的a满足N(mean, std)这个分布，经过这个操作以后，就变成了N(0, 1)
+            # (self.a_tf - mean) / std, 所以std不可以是0，不然就会有Nan
         self._norm_a_mean_tf = self.a_norm.normalize_tf(self.a_mean_tf) # 把网络声称，也变化到这个分布上。
 
         # 计算重要性采样分子的:当前policy下的占位符输入action 的概率。
@@ -131,14 +133,13 @@ class PPOAgent(PGAgent):
         self.ratio_tf = ratio_tf
         actor_loss0 = self.adv_tf * ratio_tf    # 第一个loss: 优势函数 * ratio
         actor_loss1 = self.adv_tf * tf.clip_by_value(ratio_tf, 1.0 - self.ratio_clip, 1 + self.ratio_clip)  # 第二个loss: 裁剪 * advantage
-        # 所以说，我强烈怀疑是输入的advantage有问题，这就去排查一下。
 
         # 这里定义了loss
         self.actor_loss_tf = -tf.reduce_mean(tf.minimum(actor_loss0, actor_loss1))
 
         # action有上下界
-        print("action bound min = " % self.a_bound_min)
-        print("action bound max = " % self.a_bound_max)
+        # print("action bound min = %s" % str(self.a_bound_min))
+        # print("action bound max = %s" % str(self.a_bound_max))
         norm_a_bound_min = self.a_norm.normalize(self.a_bound_min)
         norm_a_bound_max = self.a_norm.normalize(self.a_bound_max)
         a_bound_loss = TFUtil.calc_bound_loss(self._norm_a_mean_tf, norm_a_bound_min, norm_a_bound_max)
@@ -202,12 +203,12 @@ class PPOAgent(PGAgent):
 
         a, logp = self.sess.run([self.sample_a_tf, self.sample_a_logp_tf], feed_dict=feed)
 
-        if np.random.rand() < 1e-3:
-            v1, v2, v3, v4 = self.sess.run([self.norm_a_std_tf, self.norm_a_noise_tf, self.a_mean_tf, self.a_norm.std_tf], feed)
-            print("[var] self.norm_a_std_tf = %s" % str(v1.transpose()))
-            print("[var] self.norm_a_noise_tf = %s" % str(v2.transpose()))
-            print("[var] self.a_mean_tf = %s" % str(v3.transpose()))
-            print("[var] self.a_norm_std_tf = %s" % str(v4.transpose()))
+        # if np.random.rand() < 1e-3:
+        #     v1, v2, v3, v4 = self.sess.run([self.norm_a_std_tf, self.norm_a_noise_tf, self.a_mean_tf, self.a_norm.std_tf], feed)
+        #     print("[var] self.norm_a_std_tf = %s" % str(v1.transpose()))
+        #     print("[var] self.norm_a_noise_tf = %s" % str(v2.transpose()))
+        #     print("[var] self.a_mean_tf = %s" % str(v3.transpose()))
+        #     print("[var] self.a_norm_std_tf = %s" % str(v4.transpose()))
         return a, logp
 
     def _train_step(self):
@@ -414,8 +415,7 @@ class PPOAgent(PGAgent):
         # 获取loss, 梯度, clip_frac?
         # a_mean, norm_a_mean, a_norm_mean, a_norm_std, a_norm_clip = self.sess.run([self.a_mean_tf, self._norm_a_mean_tf,
         #     self.a_norm.mean_tf, self.a_norm.std_tf, self.a_norm.clip], feed_dict=feed)
-        a_mean, norm_a_mean = self.sess.run([self.a_mean_tf, self._norm_a_mean_tf,
-            ], feed_dict=feed)
+        a_mean, norm_a_mean = self.sess.run([self.a_mean_tf, self._norm_a_mean_tf], feed_dict=feed)
         # print("a_mean = %s" % str(a_mean))
         # print("a_norm_mean = %s" % str(self.sess.run(self.a_norm.mean_tf)))
         # print("a_norm_std = %s" % str(self.sess.run(self.a_norm.std_tf)))
