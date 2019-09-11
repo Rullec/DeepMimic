@@ -18,6 +18,8 @@
 --sync_char_root_rot false
 --enable_angle_diff_log true
 --angle_diff_dir logs/controller_logs/angle_diff/
+--enable_torque_record true
+--torque_record_file logs/controller_logs/joint_torque.record
 
 --agent_files data/0906/agents/agent_512_0906.txt
 --train_agents false

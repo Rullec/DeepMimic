@@ -9,6 +9,7 @@
 
 #include "util/FileUtil.h"
 #include <iostream>
+#include <fstream>
 using namespace std;
 
 const int gDefaultCharID = 0;
@@ -57,6 +58,8 @@ cSceneSimChar::cSceneSimChar()
 {
 	mEnableContactFall = true;
 	mEnableRandCharPlacement = true;
+	mEnableTorqueRecord = false;
+	mTorqueRecordFile = "";
 
 	mWorldParams.mNumSubsteps = 1;
 	mWorldParams.mScale = 1;
@@ -76,7 +79,10 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 
 	parser->ParseBool("enable_char_contact_fall", mEnableContactFall);	// 打开角色接触掉落, 这东西默认是开启的。
 	parser->ParseBool("enable_rand_char_placement", mEnableRandCharPlacement);
+	parser->ParseBool("enable_torque_record", mEnableTorqueRecord);
+	parser->ParseString("torque_record_file", mTorqueRecordFile);
 	
+
 	succ &= ParseCharTypes(parser, mCharTypes);
 	succ &= ParseCharParams(parser, mCharParams);
 	succ &= ParseCharCtrlParams(parser, mCtrlParams);
@@ -462,7 +468,7 @@ bool cSceneSimChar::ParseCharCtrlParams(const std::shared_ptr<cArgParser>& parse
 
 void cSceneSimChar::BuildWorld()
 {
-	std::cout <<"void cSceneSimChar::BuildWorld() 建造bullet世界" <<  std::endl;
+	//std::cout <<"void cSceneSimChar::BuildWorld() 建造bullet世界" <<  std::endl;
 	mWorld = std::shared_ptr<cWorld>(new cWorld());
 	mWorld->Init(mWorldParams);
 }
@@ -620,6 +626,26 @@ void cSceneSimChar::UpdateCharacters(double time_step)
 		// 角色更新
 		const auto& curr_char = GetCharacter(i);
 		curr_char->Update(time_step);
+
+		// print torque info
+		if (true == mEnableTorqueRecord && mTorqueRecordFile.size() > 0)
+		{
+			std::ofstream fout;
+			fout.open(mTorqueRecordFile.c_str(), std::ios::app);
+			if (true == fout.fail())
+			{
+				std::cout << "open torque record file " << mTorqueRecordFile << "failed! abort..." << std::endl;
+				abort();
+			}
+
+			int joints_num = curr_char->GetNumJoints();
+			for (int id = 0; id < joints_num; id++)
+			{
+				const cSimBodyJoint & joint = curr_char->GetJoint(id);
+				tVector & torque = joint.GetTotalTorque();
+				fout << "joint " << id << ", torque = " << torque.transpose() << std::endl;
+			}
+		}
 	}
 }
 

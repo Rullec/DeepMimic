@@ -102,6 +102,8 @@ protected:
 	std::vector<cCtrlBuilder::tCtrlParams> mCtrlParams;
 	bool mEnableContactFall;
 	bool mEnableRandCharPlacement;
+	bool mEnableTorqueRecord;
+	std::string mTorqueRecordFile;
 	std::vector<int> mFallContactBodies;	// 这是一个int列表，功能暂时不明。
 
 	std::shared_ptr<cWorld> mWorld;
