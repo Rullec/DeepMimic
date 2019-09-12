@@ -48,6 +48,7 @@ void cSceneImitate::DiffLogOutput(const cSimCharacter& sim_char, const cKinChara
 double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKinCharacter& kin_char) const
 {
 	// print
+	// std::cout << "compute reward, angle diff = " << mEnableAngleDiffLog <<", dir = " << mAngleDiffDir <<std::endl;
 	if (mEnableAngleDiffLog == true)	DiffLogOutput(sim_char, kin_char);
 
 	// reward共计5项，pose, vel, end_effector, root, com
