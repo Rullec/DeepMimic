@@ -20,6 +20,7 @@ class TFAgent(RLAgent):
         self.tf_scope = 'agent'
         # TFAgent是RLAgent的子类
         self.graph = tf.Graph()         # 定义了graph，然后在后面可供调用?
+        print("create new sess in tf agent")
         self.sess = tf.Session(graph=self.graph)
 
         # json_data: agent file 中读进来的json，不是骨架结构
@@ -140,7 +141,7 @@ class TFAgent(RLAgent):
                 std = self.world.env.build_action_scale(self.id) # 有一些fix joint, action scale是0, std就是Inf，需要去掉
                 print("get mean from env = %s" % str(mean))
                 print("get std from env = %s" % str(std))
-                std = 1 / (std * 3 * 10) 
+                std = 1 / (std * 3)
                 # 对于一个torque = -500 - 500, 可以说他满足N(0, 500/3) [3 sigma原则]； 
                 # 而在这里1 / std = 500, 我就要将最后的std设置为 500 /3，这样就整好了吧。
                 # 但是这样的话，vel 总是爆炸; 这就说明torque lim太大了，需要缩小。

@@ -5,7 +5,7 @@ import sys
 from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
 project_dir = "/home/xudong/Projects/DeepMimic"
-skeleton_path = "data/0910/characters/skeleton_0907_1.json"
+skeleton_path = "data/0910/characters/skeleton_0911.json"
 pd_path = "data/0910/controllers/humanoid3d_ctrl_0907.txt"
 #skeleton_path = "data/raw/characters/humanoid3d.txt"
 #pd_path = "data/raw/controllers/humanoid3d_ctrl.txt"

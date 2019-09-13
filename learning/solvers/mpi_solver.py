@@ -24,7 +24,6 @@ class MPISolver(Solver):
         grad_dim = self._calc_grad_dim()
         self._flat_grad = np.zeros(grad_dim, dtype=np.float32)
         self._global_flat_grad = np.zeros(grad_dim, dtype=np.float32)
-        
         return
 
     def get_stepsize(self):

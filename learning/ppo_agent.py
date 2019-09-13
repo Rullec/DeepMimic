@@ -27,6 +27,9 @@ class PPOAgent(PGAgent):
 
     def __init__(self, world, id, json_data): 
         super().__init__(world, id, json_data)
+
+        if (id == 0):
+            self.log_saver = tf.summary.FileWriter("logs/controller_logs/board/", self.sess.graph)
         return
 
     def _load_params(self, json_data):

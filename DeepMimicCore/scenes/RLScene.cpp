@@ -40,9 +40,10 @@ bool cRLScene::IsEpisodeEnd() const
 	// episode是否结束?
 	// std::cout <<"[end] bool cRLScene::IsEpisodeEnd() const" << std::endl;
 	bool is_end = cScene::IsEpisodeEnd();
+	
 	if(is_end == true)
 	{
-		std::cout <<"[end] Timer said terminated, episode done" << std::endl;
+		std::cout <<"[end] Timer said terminated, episode done " << mTimer.GetMaxTime() << std::endl;
 	}
 	eTerminate termin = eTerminateNull;
 	for (int i = 0; i < GetNumAgents(); ++i)

@@ -6,7 +6,7 @@ from env.env import Env
 import util.math_util as MathUtil
 
 class ReplayBuffer(object):
-    # replay buffer中是如何存储goal的?
+
     TERMINATE_KEY = 'terminate'
     PATH_START_KEY = 'path_start'
     PATH_END_KEY = 'path_end'
@@ -18,7 +18,7 @@ class ReplayBuffer(object):
         self.total_count = 0
         self.buffer_head = 0
         self.buffer_tail = MathUtil.INVALID_IDX
-        self.num_paths = 0
+        self.num_paths = 0  # path数目是0
         self._sample_buffers = dict()
         self.buffers = None
 
@@ -26,18 +26,18 @@ class ReplayBuffer(object):
         return
 
     def sample(self, n):
-        curr_size = self.get_current_size()
+        curr_size = self.get_current_size() # 采样: 获取当前size
         assert curr_size > 0
 
         idx = np.empty(n, dtype=int)
         # makes sure that the end states are not sampled
-        for i in range(n):
+        for i in range(n):  # 对于一个长度为n的序列
             while True:
-                curr_idx = np.random.randint(0, curr_size, size=1)[0]
+                curr_idx = np.random.randint(0, curr_size, size=1)[0]   # 随便挑一个数
                 curr_idx += self.buffer_tail
                 curr_idx = np.mod(curr_idx, self.buffer_size)
 
-                if not self.is_path_end(curr_idx):
+                if not self.is_path_end(curr_idx):  # 只要这个idx不是一个path的结尾，就Ok
                     break
             idx[i] = curr_idx
 
@@ -152,6 +152,7 @@ class ReplayBuffer(object):
         return terminate
 
     def is_path_end(self, idx):
+        # 看看这个idx是不是某个path的终止
         is_end = self.buffers[self.PATH_END_KEY][idx] == idx
         return is_end
 
@@ -173,6 +174,7 @@ class ReplayBuffer(object):
         return (flags & key) == key
 
     def _add_sample_buffers(self, idx):
+        # 增加一个sample buffer, 什么意思?
         flags = self.buffers['flags']
         for key in self._sample_buffers:
             curr_buffer = self._sample_buffers[key]
@@ -187,11 +189,15 @@ class ReplayBuffer(object):
         return
 
     def _init_buffers(self, path):
-        self.buffers = dict()
+        # 初始化buffer?还需要初始化?
+        self.buffers = dict()   # 创建一个字典
+        # 这个buffer里面存储start key和end key，是长为buffer_size的数组
+        # 后续应该是输入一个idx，就可以检索这个state是否是一个end of path了。
+        # 所以这个buffer应该是一个字典: 里面的start key一项存储一个数组; end key存储一个数组，等等。
         self.buffers[self.PATH_START_KEY] = MathUtil.INVALID_IDX * np.ones(self.buffer_size, dtype=int);
         self.buffers[self.PATH_END_KEY] = MathUtil.INVALID_IDX * np.ones(self.buffer_size, dtype=int);
 
-        for key in dir(path):
+        for key in dir(path):# dir 获得path模块的属性列表
             val = getattr(path, key)
             if not key.startswith('__') and not inspect.ismethod(val):
                 if key == self.TERMINATE_KEY:
