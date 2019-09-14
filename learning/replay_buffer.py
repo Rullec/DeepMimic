@@ -60,8 +60,9 @@ class ReplayBuffer(object):
         return self.buffers[key]
 
     def get_idx_filtered(self, key):
+        # 传入一个key，例如EXP_ACTION_FLAG
         assert key in self._sample_buffers
-        curr_buffer = self._sample_buffers[key]
+        curr_buffer = self._sample_buffers[key]# 来了一个列表
         idx = curr_buffer.slot_to_idx[:curr_buffer.count]
         return idx
     
@@ -283,7 +284,9 @@ class ReplayBuffer(object):
         return
 
 class SampleBuffer(object):
+    # 一个sample buffer，是干什么的?
     def __init__(self, size):
+        # 初始化两个"empty"的array, slot to idx & idx to slot
         self.idx_to_slot = np.empty(shape=[size], dtype=int)
         self.slot_to_idx = np.empty(shape=[size], dtype=int)
         self.count = 0
@@ -297,14 +300,18 @@ class SampleBuffer(object):
         return
 
     def is_valid(self, idx):
+        # idx to slot
         return self.idx_to_slot[idx] != MathUtil.INVALID_IDX
 
     def get_size(self):
         return self.idx_to_slot.shape[0]
 
     def add(self, idx):
+        # idx是一个list
         for i in idx:
             if not self.is_valid(i):
+                # 如果idx中的某个元素i, 是valid的;
+                # 就在slot后面增加一个，内容是
                 new_slot = self.count
                 assert new_slot >= 0
 
@@ -328,6 +335,7 @@ class SampleBuffer(object):
         return
 
     def sample(self, n):
+        # 返回n个idx
         if self.count > 0:
             slots = np.random.randint(0, self.count, size=n)
             idx = self.slot_to_idx[slots]

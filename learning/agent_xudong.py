@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from enum import Enum 
 import numpy as np
 import tensorflow as tf
 
@@ -9,6 +10,11 @@ import tensorflow as tf
 class Agent_xudong(ABC):
     # keys name
     AGENTTYPE_KEYS = "AgentType"
+
+    class Mode(Enum):
+        TRAIN = 0
+        TEST = 1
+        TRAIN_END = 2
 
     def __init__(self, world, id):
         self.world = world

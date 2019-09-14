@@ -1,6 +1,7 @@
 import numpy as np
 import copy as copy
 import tensorflow as tf
+import pickle
 
 from util.logger import Logger
 import util.mpi_util as MPIUtil
@@ -9,7 +10,8 @@ import learning.rl_util as RLUtil
 from env.env import Env
 from learning.solvers.mpi_solver import MPISolver
 import learning.nets.net_builder as NetBuilder
-from learning.replay_buffer import ReplayBuffer
+# from learning.replay_buffer import ReplayBuffer
+from learning.replay_buffer_xudong import ReplayBuffer_xudong
 from learning.agent_xudong import Agent_xudong
 
 '''
@@ -31,9 +33,11 @@ class PPOAgent_xudong(Agent_xudong):
     CRITIC_WEIGHT_DECAY = "CriticWeightDecay"
 
     # hypers
+    NAME = "PPO"
     DISCOUNT = "Discount"
+    EPOCHS_KEY = "Epochs"
     BATCHSIZE = "BatchSize"
-    MINI_BATCHSIZE = "MiniBatchSize"
+    MINI_BATCH_SIZE = "MiniBatchSize"
     REPLAYBUFFER_SIZE = "ReplayBufferSize"
     RATIO_CLIP = "RatioClip"
     TD_LAMBDA = "TDLambda"
@@ -68,8 +72,9 @@ class PPOAgent_xudong(Agent_xudong):
         
         # read hyper paras from config
         self.discount = para_get(self.DISCOUNT, 0.95, json_data)
+        self.epochs = para_get(self.EPOCHS_KEY, 1, json_data)
         self.batch_size = para_get(self.BATCHSIZE, 1024, json_data)
-        self.minibatch_size = para_get(self.MINI_BATCHSIZE, 32, json_data)
+        self.mini_batch_size = para_get(self.MINI_BATCH_SIZE, 32, json_data)
         self.replay_buffer_size = para_get(self.REPLAYBUFFER_SIZE, 1024000, json_data)
         self.ratio_clip = para_get(self.RATIO_CLIP, 0.2, json_data)
         self.td_lambda = para_get(self.TD_LAMBDA, 0.95, json_data)
@@ -180,7 +185,7 @@ class PPOAgent_xudong(Agent_xudong):
     def _build_replay_buffer(self, buffer_size):
         num_procs = MPIUtil.get_num_procs()
         buffer_size = int(buffer_size / num_procs)
-        self.replay_buffer = ReplayBuffer(buffer_size=buffer_size)
+        self.replay_buffer = ReplayBuffer_xudong(buffer_size=buffer_size)
         self.replay_buffer_initialized = False
         return
     
@@ -239,6 +244,28 @@ class PPOAgent_xudong(Agent_xudong):
                 curr_idx = idx1 + start_idx + 1
         return new_vals
 
+    def _update_critic(self, state, target_vals):
+        feed = {
+            self.state_ph: state,
+            self.target_value_ph: target_vals
+        }
+
+        loss, grads = self.sess.run([self.critic_loss_tf, self.critic_grad_tf], feed)
+        self.critic_solver.update(grads)
+        return loss
+
+    def _update_actor(self, state, action, old_prob, adv):
+
+        feed = {
+            self.state_ph : state,
+            self.adv_value_ph : adv,
+            self.given_action_ph : action,
+            self.given_action_prob_tf : old_prob,
+        }
+        loss, grads = self.sess.run([self.actor_loss_tf, self.actor_grad_tf], feed)
+        self.actor_solver.update(grads)
+        return loss
+
     def _train_step(self):
         ''' for each substep '''
         adv_eps = 1e-5
@@ -258,3 +285,139 @@ class PPOAgent_xudong(Agent_xudong):
         # compute returns for each state (using GAE)
         vals = self._compute_batch_vals(start_idx, end_idx)
         new_vals = self._compute_batch_new_vals(start_idx, end_idx, vals)
+
+        # --------暂时停止exp_idx的使用-------------
+        # # idx是一个buffer长度的array, end_mask是一个0 1 序列
+        # # 结果会选中那些true的，丢掉那些false的; 
+        # # 所以valid_idx是那些不是end path的state id
+        # valid_idx = idx[end_mask]
+        # # exp_idx是replay buffer中, exp_action_flag对应的buffer的idx
+        # exp_idx = self.replay_buffer.get_idx_filtered(self.EXP_ACTION_FLAG).copy()
+        # num_valid_idx = valid_idx.shape[0]  # 有效idx有多少个？
+        # num_exp_idx = exp_idx.shape[0]      # exp idx有多少个?
+        # # 吧exp_idx和一个[0-exp_idx]作为2列，拼成一个matrix
+        # exp_idx = np.column_stack([exp_idx, np.array(list(range(0, num_exp_idx)), dtype=np.int32)])
+        
+        valid_idx = idx[end_mask]
+        num_valid_idx = valid_idx.shape[0]
+        # 本地采样数
+        local_sample_count = valid_idx.size
+        global_sample_count = int(MPIUtil.reduce_sum(local_sample_count))   # 所有进程的采样数相加;得到总采样数 
+        mini_batches = int(np.ceil(global_sample_count / self.mini_batch_size)) # 然后得到mini batch 个数
+        # 从中我们就知道，采样一定需要共享。一起进行训练。
+        
+        # 优势函数的计算: 只把所有exp_idx的拿出来进行训练，这是为什么?
+        adv = new_vals[valid_idx] - vals[valid_idx] # adv = 
+        new_vals = np.clip(new_vals, self.val_min, self.val_max)    # 以前的new_vals也都更新了; 存在一个max
+
+        # adv mean, adv std: 优势函数的mean & std
+        # adv 也转化到了方差=1和mean=0的分布。
+        # 暂时去掉advantage的正则化
+        adv_mean = np.mean(adv)
+        adv_std = np.std(adv)
+        # adv = (adv - adv_mean) / (adv_std + adv_eps)
+        # adv = np.clip(adv, -self.norm_adv_clip, self.norm_adv_clip)
+
+        critic_loss = 0
+        actor_loss = 0
+        # 每次采样完开始训练的时候, 是不是一起训练?
+        for e in range(self.epochs):
+            print("[ppo agent train step] epoch %d" % e)
+            np.random.shuffle(valid_idx)    # shuffle 很重要
+
+            for b in range(mini_batches):
+                # 获取当前mini batch的idx
+                batch_idx_begin = b * self.mini_batch_size
+                batch_idx_end = batch_idx_begin + self.mini_batch_size
+
+                critic_batch = np.array(range(batch_idx_begin, batch_idx_end), dtype=np.int32)
+                actor_batch = critic_batch.copy()
+                critic_batch = np.mod(critic_batch, num_valid_idx)
+                actor_batch = critic_batch.copy()
+
+                critic_batch = valid_idx[critic_batch]
+                actor_batch = valid_idx[actor_batch]
+                critic_batch_vals = new_vals[critic_batch]
+                actor_batch_adv = adv[actor_batch]  # adv = gae_val - val
+
+                # update critic network
+                critic_s = self.replay_buffer.get_all("states", critic_batch)
+                curr_critic_loss = self._update_critic(critic_s, critic_batch_vals)
+
+                # update actor network
+                actor_s = self.replay_buffer.get("states", actor_batch[:,0])  # 必须得有goal,不然怎么mimic?
+                actor_a = self.replay_buffer.get("actions", actor_batch[:,0])
+                actor_logp = self.replay_buffer.get("logps", actor_batch[:,0])
+
+                curr_actor_loss, curr_actor_clip_frac = self._update_actor(actor_s, actor_a, actor_logp, actor_batch_adv)
+                # print("[train log] sub epoch %d loss = %.3f" % (b, curr_actor_loss))
+                assert np.isfinite(curr_actor_loss).all() == True
+
+                critic_loss += curr_critic_loss
+                actor_loss += np.abs(curr_actor_loss)
+
+        total_batches = mini_batches * self.epochs
+        critic_loss /= total_batches
+        actor_loss /= total_batches
+        actor_clip_frac /= total_batches
+
+        critic_loss = MPIUtil.reduce_avg(critic_loss)
+        actor_loss = MPIUtil.reduce_avg(actor_loss)
+        actor_clip_frac = MPIUtil.reduce_avg(actor_clip_frac)
+
+        critic_stepsize = self.critic_solver.get_stepsize()
+        actor_stepsize = self.update_actor_stepsize(actor_clip_frac)
+
+        self.logger.log_tabular('Critic_Loss', critic_loss)
+        self.logger.log_tabular('Critic_Stepsize', critic_stepsize)
+        self.logger.log_tabular('Actor_Loss', actor_loss) 
+        self.logger.log_tabular('Actor_Stepsize', actor_stepsize)
+        self.logger.log_tabular('Clip_Frac', actor_clip_frac)
+        self.logger.log_tabular('Adv_Mean', adv_mean)
+        self.logger.log_tabular('Adv_Std', adv_std)
+
+        self.replay_buffer.clear()
+
+        return
+
+    # def _valid_train_step(self):
+    #     # 只有当批量达到batch size的时候才行
+    #     samples = self.replay_buffer.get_current_size()
+    #     exp_samples = self.replay_buffer.count_filtered(self.EXP_ACTION_FLAG)
+    #     global_sample_count = int(MPIUtil.reduce_sum(samples))
+    #     global_exp_min = int(MPIUtil.reduce_min(exp_samples))
+    #     # print("[valid train step] current %d samples > batchsize = %d" % (global_sample_count, self.batch_size))
+    #     return (global_sample_count > self.batch_size) and (global_exp_min > 0)
+
+    def save_model(self, out_path):
+        # save model 
+        with self.sess.as_default(), self.graph.as_default():
+            try:
+                save_path = self.saver.save(self.sess, out_path, write_meta_graph=False, write_state=False)
+            except:
+                Logger.print("Failed to save model to: " + save_path)
+
+        # save weight
+        weight_lst = self.tf_vars("actor/")
+        weight_dict = {}
+        name_lst = []
+        size = 0
+        for i in weight_lst:
+            name_lst.append(i.name)
+            weight_dict[i.name] = self.sess.run(i)
+            # print((i.name, weight_dict[i.name].shape))
+            size += weight_dict[i.name].size
+        # print("sum size = %d" % size)
+        weight_save_path = save_path + ".weight"
+        with open(weight_save_path, "wb") as f:
+            pickle.dump(weight_dict, f)
+        
+        Logger.print('[ppo_agent_xudong] Model saved to: ' + save_path)
+        Logger.print('[ppo_agent_xudong] Model weight saved to : ' + weight_save_path)
+        return
+
+    def load_model(self, in_path):
+        with self.sess.as_default(), self.graph.as_default():
+            self.saver.restore(self.sess, in_path)
+            Logger.print('[ppo_agent_xudong] Model loaded from: ' + in_path)
+        return

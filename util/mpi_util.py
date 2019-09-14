@@ -18,7 +18,7 @@ def bcast(x):
     return
 
 def reduce_sum(x):
-    return reduce_all(x, MPI.SUM)
+    return reduce_all(x, MPI.SUM)   # 每一个进程的x都加和，然后返回
 
 def reduce_prod(x):
     return reduce_all(x, MPI.PROD)
@@ -35,9 +35,11 @@ def reduce_max(x):
     return reduce_all(x, MPI.MAX)
 
 def reduce_all(x, op):
+    # 传入一个x, 需要时np.ndarray
+    # 传入一个op, 例如MPI.SUM
     is_array = isinstance(x, np.ndarray)
-    x_buf = x if is_array else np.array([x])
-    buffer = np.zeros_like(x_buf)
+    x_buf = x if is_array else np.array([x])    # x_buf就是np.ndarray的array形式
+    buffer = np.zeros_like(x_buf)               # 同形状0 buffer
     MPI.COMM_WORLD.Allreduce(x_buf, buffer, op=op)
     buffer = buffer if is_array else buffer[0]
     return buffer
