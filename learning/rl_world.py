@@ -1,4 +1,4 @@
-import numpy as npi
+import numpy as np
 import learning.agent_builder as AgentBuilder
 import learning.tf_util as TFUtil
 from learning.rl_agent import RLAgent
@@ -51,6 +51,11 @@ class RLWorld(object):
         return
 
     def build_agents(self):
+        '''
+            初始化RLworld的时候，调用这个类, 完成对制定个数num_agent个agent的构建
+
+        :return:
+        '''
         num_agents = self.env.get_num_agents()
         self.agents = []
 

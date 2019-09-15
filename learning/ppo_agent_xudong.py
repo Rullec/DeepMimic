@@ -8,11 +8,13 @@ import util.mpi_util as MPIUtil
 import util.math_util as MathUtil
 import learning.rl_util as RLUtil
 from env.env import Env
+from learning.path import *
 from learning.solvers.mpi_solver import MPISolver
 import learning.nets.net_builder as NetBuilder
+
 # from learning.replay_buffer import ReplayBuffer
 from learning.replay_buffer_xudong import ReplayBuffer_xudong
-from learning.agent_xudong import Agent_xudong
+from learning.rl_agent_xudong import Agent_xudong
 
 '''
     PPOAgent_xudong, inherited from agent_xudong
@@ -20,6 +22,8 @@ from learning.agent_xudong import Agent_xudong
 para_get = lambda key_name, default, json: default if (key_name not in json) else json[key_name]      
 
 class PPOAgent_xudong(Agent_xudong):
+    NAME = "PPO"
+    
     # actor
     ACTOR_NET = "ActorNet"
     ACTOR_STEP_SIZE = "ActorStepsize"
@@ -33,7 +37,6 @@ class PPOAgent_xudong(Agent_xudong):
     CRITIC_WEIGHT_DECAY = "CriticWeightDecay"
 
     # hypers
-    NAME = "PPO"
     DISCOUNT = "Discount"
     EPOCHS_KEY = "Epochs"
     BATCHSIZE = "BatchSize"
@@ -44,7 +47,7 @@ class PPOAgent_xudong(Agent_xudong):
     TEST_EPISODES = "TestEpisodes"
 
     def __init__(self, world, id, json_data):
-        super.__init__(world, id)
+        super().__init__(world, id)
         # load hyper params
         self.load_params(json_data)
 
@@ -68,7 +71,7 @@ class PPOAgent_xudong(Agent_xudong):
 
         
     def load_params(self, json_data):
-        super.load_params(json_data)
+        super().load_params(json_data)
         
         # read hyper paras from config
         self.discount = para_get(self.DISCOUNT, 0.95, json_data)
@@ -139,7 +142,7 @@ class PPOAgent_xudong(Agent_xudong):
     def action_exceed_loss(self, action):
         min_part = tf.maximum(action - self.action_lower_bound, 0)
         max_part = tf.maximum(action - self.action_upper_bound, 0)
-        loss = tf.reduce_sum(tf.square(min_part, axis = -1) + tf.square(max_part, axis = -1))
+        loss = tf.reduce_sum(tf.square(min_part) + tf.square(max_part))
         return loss
 
     def _build_losses(self, json_data):
@@ -167,7 +170,7 @@ class PPOAgent_xudong(Agent_xudong):
         # build critic sovler
         critic_vars = self.tf_vars("critic")
         critic_opt = tf.train.MomentumOptimizer(learning_rate = critic_stepsize, momentum = critic_momentum)
-        self.critic_grad_tf = tf.gradients(self.critic_loss_tf, critic_opt)
+        self.critic_grad_tf = tf.gradients(self.critic_loss_tf, critic_vars)
         self.critic_solver = MPISolver(self.sess, critic_opt, critic_vars)
 
         # build actor sovler
@@ -183,6 +186,7 @@ class PPOAgent_xudong(Agent_xudong):
         return 
 
     def _build_replay_buffer(self, buffer_size):
+        self.path = Path()
         num_procs = MPIUtil.get_num_procs()
         buffer_size = int(buffer_size / num_procs)
         self.replay_buffer = ReplayBuffer_xudong(buffer_size=buffer_size)
@@ -379,7 +383,22 @@ class PPOAgent_xudong(Agent_xudong):
         self.replay_buffer.clear()
 
         return
+    def end_episode(self):
+        '''
+            store path(state-action-reward) to the replay buffer
+        '''
+        if(self.path.pathlength() > 0):
+            self._end_path()    # 把最后的s-r-g都放path里面
 
+            if (self._mode is self.Mode.TRAIN or self._mode is self.Mode.TRAIN_END):
+                if (self.path.pathlength() > 0):
+                    # train model : save path into the replay buffer
+                    self._store_path(self.path)
+            elif (self._mode == self.Mode.TEST):
+                
+                self._update_test_return(self.path)
+            self._update_mode()
+        return 
     # def _valid_train_step(self):
     #     # 只有当批量达到batch size的时候才行
     #     samples = self.replay_buffer.get_current_size()
@@ -421,3 +440,36 @@ class PPOAgent_xudong(Agent_xudong):
             self.saver.restore(self.sess, in_path)
             Logger.print('[ppo_agent_xudong] Model loaded from: ' + in_path)
         return
+
+    def _end_path(self):
+        s = self._record_state()
+        g = self._record_goal()
+        r = self._record_reward()
+        
+        self.path.rewards.append(r)
+        print("[ppo_agent_xudong] end path, total r = {}".format(sum(self.path.rewards)))
+        self.path.states.append(s)
+        assert np.isfinite(s).all() == True # 在end of path的时候，state突然崩了。
+        # 其实我还有点好奇: state为什么是275呢?
+        self.path.goals.append(g)
+        self.path.terminate = self.world.env.check_terminate(self.id)
+
+        return
+    def _store_path(self, path):
+        path_id = self.replay_buffer.store(path)
+        valid_path = path_id != MathUtil.INVALID_IDX
+
+
+
+    def _record_state(self):
+        # 返回当前状态
+        s = self.world.env.record_state(self.id)
+        return s
+
+    def _record_goal(self):
+        g = self.world.env.record_goal(self.id)
+        return g
+
+    def _record_reward(self):
+        r = self.world.env.calc_reward(self.id)
+        return r

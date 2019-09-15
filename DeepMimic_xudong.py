@@ -8,7 +8,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
 from env.deepmimic_env import DeepMimicEnv
-from learning.rl_world import RLWorld
+from learning.rl_world_xudong import RLWorld_xudong
 from util.arg_parser import ArgParser
 from util.logger import Logger
 import util.mpi_util as MPIUtil
@@ -62,9 +62,6 @@ def update_intermediate_buffer():
     return
 
 def update_world(world, time_elapsed):
-    '''
-        主循环调用这个update函数
-    '''
     # 一次update_world在实践中被分成很多个子步
     num_substeps = world.env.get_num_update_substeps()
     timestep = time_elapsed / num_substeps
@@ -78,12 +75,11 @@ def update_world(world, time_elapsed):
         if valid_episode:   # 速度没有爆炸
             end_episode = world.env.is_episode_end()
             if (end_episode):
-                # print("episode done")
-                world.end_episode()
+                world.end_episode() # 这里应该是放入replay buffer了?还是说随时更新随时放入
                 world.reset()
                 break
-        else:   # 速度爆炸了
-            # 一旦出现无效episode，直接就world.reset了。
+        else:
+            # 速度爆炸(>100), 则invalid episode, 忽略这段采样
             world.reset()
             break
     return
@@ -125,7 +121,7 @@ def reload():
 
     # 在这里build了world, 必然绘制
     world = build_world(args, enable_draw=True)
-    print("build world succ")
+    print("[DeepMimic_xudong] build world succ")
     return
 
 def reset():
@@ -180,7 +176,7 @@ def animate(callback_val):
         num_steps = get_num_timesteps()
         curr_time = get_curr_time()
         time_elapsed = curr_time - prev_time
-        prev_time = curr_time;
+        prev_time = curr_time
 
         timestep = -update_timestep if (playback_speed < 0) else update_timestep
         for i in range(num_steps):
@@ -190,7 +186,7 @@ def animate(callback_val):
         update_count = num_steps / (0.001 * time_elapsed)
         if (np.isfinite(update_count)):
             updates_per_sec = counter_decay * updates_per_sec + (1 - counter_decay) * update_count;
-            world.env.set_updates_per_sec(updates_per_sec);
+            world.env.set_updates_per_sec(updates_per_sec)
             
         timer_step = calc_display_anim_time(num_steps)
         update_dur = get_curr_time() - curr_time
@@ -243,21 +239,21 @@ def keyboard(key, x, y):
     if (key == b'\x1b'): # escape
         shutdown()
     elif (key == b' '):
-        toggle_animate();
+        toggle_animate()
     elif (key == b'>'):
-        step_anim(update_timestep);
+        step_anim(update_timestep)
     elif (key == b'<'):
-        step_anim(-update_timestep);
+        step_anim(-update_timestep)
     elif (key == b','):
-        change_playback_speed(-playback_delta);
+        change_playback_speed(-playback_delta)
     elif (key == b'.'):
-        change_playback_speed(playback_delta);
+        change_playback_speed(playback_delta)
     elif (key == b'/'):
-        change_playback_speed(-playback_speed + 1);
+        change_playback_speed(-playback_speed + 1)
     elif (key == b'l'):
-        reload();
+        reload()
     elif (key == b'r'):
-        reset();
+        reset()
     elif (key == b't'):
         toggle_training()
 
@@ -300,17 +296,10 @@ def setup_draw():
     return
 
 def build_world(args, enable_draw, playback_speed=1):
-    '''
-        建造世界，这是第一个被调用的函数
-    :param args:    --arg_file args/train_humanoid3d_run_args.txt --num_workers 1
-    :param enable_draw: 在train下是一个false，别的不知道
-    :param playback_speed: 播放速度默认是1
-    :return:
-    '''
 
     arg_parser = build_arg_parser(args)     # 参数解析器，之前已经看过，就是一个dict(value - list )而已
     env = DeepMimicEnv(args, enable_draw)   # 先创建仿真env
-    world = RLWorld(env, arg_parser)        # 然后在根据env,　创建world, (创建完world再创建agent)
+    world = RLWorld_xudong(env, arg_parser) # 然后build 包含训练逻辑的RLworld
     world.env.set_playback_speed(playback_speed)
     
     return world
@@ -333,5 +322,4 @@ def main():
     return
 
 if __name__ == '__main__':
-    # 如果调用Deepmimic.py的话，就会进行绘制...
     main()

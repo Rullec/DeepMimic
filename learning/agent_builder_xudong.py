@@ -1,5 +1,5 @@
-import numpy as np
 import json
+import numpy as np
 from learning.ppo_agent_xudong import PPOAgent_xudong
 
 AGENT_TYPE_KEY = "AgentType"
@@ -14,7 +14,6 @@ def build_agent(world, id, file):
         
         if (agent_type == PPOAgent_xudong.NAME):
             agent = PPOAgent_xudong(world, id, json_data)
-            print("[agent builder]")
         else:
             assert False, 'Unsupported agent type: ' + agent_type
 
