@@ -202,12 +202,12 @@ class PPOAgent(PGAgent):
 
         a, logp = self.sess.run([self.sample_a_tf, self.sample_a_logp_tf], feed_dict=feed)
 
-        if np.random.rand() < 1e-3:
-            v1, v2, v3, v4 = self.sess.run([self.norm_a_std_tf, self.norm_a_noise_tf, self.a_mean_tf, self.a_norm.std_tf], feed)
-            print("[var] self.norm_a_std_tf = %s" % str(v1.transpose()))
-            print("[var] self.norm_a_noise_tf = %s" % str(v2.transpose()))
-            print("[var] self.a_mean_tf = %s" % str(v3.transpose()))
-            print("[var] self.a_norm_std_tf = %s" % str(v4.transpose()))
+        # if np.random.rand() < 1e-3:
+        #     v1, v2, v3, v4 = self.sess.run([self.norm_a_std_tf, self.norm_a_noise_tf, self.a_mean_tf, self.a_norm.std_tf], feed)
+        #     print("[var] self.norm_a_std_tf = %s" % str(v1.transpose()))
+        #     print("[var] self.norm_a_noise_tf = %s" % str(v2.transpose()))
+        #     print("[var] self.a_mean_tf = %s" % str(v3.transpose()))
+        #     print("[var] self.a_norm_std_tf = %s" % str(v4.transpose()))
         return a, logp
 
     def _train_step(self):
