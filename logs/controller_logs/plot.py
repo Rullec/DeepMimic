@@ -13,9 +13,19 @@ import subprocess
 def read_log_file(filename):
     try:
         cmd = "cat %s | grep -i train_return | awk '{print $4}' | grep -v =" % filename
-        output = subprocess.getoutput(cmd).split()
-        output = [float(i) for i in output]
-        return output
+        ret = subprocess.getoutput(cmd).split()
+        ret = [float(i) for i in ret]
+
+        cmd = "cat %s | grep -i timer | awk '{print $7}' | grep -v [a-z]" % filename
+        time_series = subprocess.getoutput(cmd).split()
+        gap_divide = int(len(time_series) / len(ret))
+        times = []
+        for i, cont in enumerate(time_series):
+            if i % gap_divide ==0:
+                print(cont)
+                times.append(float(cont))
+
+        return ret, times
         # with open(filename) as f:
         #     cont = f.readlines()
         #     if len(cont) == 1:
@@ -36,7 +46,9 @@ if __name__ =="__main__":
     
     # check file valid
     for filename in args:
-        cont = read_log_file(filename)
+        cont, times = read_log_file(filename)
         plt.plot(cont)
-    plt.legend(args)
+        plt.plot(times)
+        plt.legend([filename + " reward", filename + " timer"])
+    # plt.legend(args)
     plt.show()

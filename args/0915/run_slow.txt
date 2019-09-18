@@ -13,17 +13,14 @@
 
 --char_ctrls ct_pd
 --char_ctrl_files data/0906/controllers/humanoid3d_ctrl_0907.txt
---motion_file data/0910/motions/walk_motion_091202.txt
+--motion_file data/0915/motions/walk_motion_091507.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
-
 --enable_angle_diff_log true
 --angle_diff_dir logs/controller_logs/angle_diff_log/
---enable_torque_record true
---torque_record_file logs/controller_logs/torque.record.0913.run
 
 --agent_files data/0910/agents/agent_512_0911.txt
 --train_agents false
 
---output_path output/0913/
---model_files data/0910/models/0913_walk_model_512_256.ckpt
+--output_path output/0915_slow
+--model_files output/0915_slow/agent0_model_2019_09_16_18_33_28_585.91.ckpt
