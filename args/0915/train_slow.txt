@@ -1,5 +1,13 @@
 --scene imitate
 
+--time_lim_min 1
+--time_lim_max 1
+--time_lim_exp 1
+--time_end_lim_min 20
+--time_end_lim_max 20
+--time_end_lim_exp 5
+--anneal_samples 32000000
+
 --num_update_substeps 10
 --num_sim_substeps 2
 --world_scale 4
@@ -8,22 +16,17 @@
 
 --char_types general
 --character_files data/0910/characters/skeleton_0907_1.json
---enable_char_soft_contact false
+--enable_char_soft_contact true
 --fall_contact_bodies 0 1 2 3 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
 
 --char_ctrls ct_pd
 --char_ctrl_files data/0906/controllers/humanoid3d_ctrl_0907.txt
---motion_file data/0910/motions/walk_motion_091202.txt
+--motion_file data/0915/motions/walk_motion_091507.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
 
---enable_angle_diff_log true
---angle_diff_dir logs/controller_logs/angle_diff_log/
---enable_torque_record true
---torque_record_file logs/controller_logs/torque.record.0913.run
-
 --agent_files data/0910/agents/agent_512_0911.txt
---train_agents false
+--train_agents true
 
---output_path output/0913/
+--output_path output/0915_slow/
 --model_files data/0910/models/0913_walk_model_512_256.ckpt
