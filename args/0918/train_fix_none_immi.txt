@@ -1,5 +1,14 @@
 --scene imitate
 
+--time_lim_min 0.5
+--time_lim_max 0.5
+--time_lim_exp 0.2
+
+--time_end_lim_min 20
+--time_end_lim_max 20
+--time_end_lim_exp 1
+--anneal_samples 8000000
+
 --num_update_substeps 10
 --num_sim_substeps 2
 --world_scale 4
@@ -7,21 +16,18 @@
 --terrain_file data/terrain/plane.txt
 
 --char_types general
---character_files data/0917/characters/091702_fix_none.json
---enable_char_soft_contact false
+--character_files data/0917/characters/091702_fix_none_adjust_weight.json
+--enable_char_soft_contact true
 --fall_contact_bodies 0 1 2 3 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
 
 --char_ctrls ct_pd
 --char_ctrl_files data/0917/controllers/humanoid3d_ctrl_fix_none.txt
---motion_file data/0917/motions/walk_motion_091708_fix_none.txt
-# --motion_file data/0917/motions/walk_motion_091708_fix_none_new.txt
+--motion_file data/0917/motions/walk_motion_091708_fix_none_new.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
---enable_angle_diff_log true
---angle_diff_dir logs/controller_logs/angle_diff_log/
 
 --agent_files data/0910/agents/agent_512_0911.txt
---train_agents false
+--train_agents true
 
 --output_path output/0917_fix_none
---model_files output/0917_fix_none/agent0_model_2019_09_19_15_15_07_585.71.ckpt
+--model_files output/0918_stand/agent0_model_2019_09_19_15_31_44_584.95.ckpt
