@@ -1,0 +1,4 @@
+--scene kin_char
+
+--character_file data/0917/characters/091702_fix_none_adjust_weight.json
+--motion_file data/0917/motions/walk_motion_091708_fix_none_new.txt
