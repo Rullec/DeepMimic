@@ -25,6 +25,7 @@
 --motion_file data/0920/motions/walk_motion_092001.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
+--reward_file data/0920/rewards/reward_weight.json
 
 --agent_files data/0910/agents/agent_512_0911.txt
 --train_agents true

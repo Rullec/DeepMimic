@@ -137,8 +137,8 @@ class PPOAgent(PGAgent):
         self.actor_loss_tf = -tf.reduce_mean(tf.minimum(actor_loss0, actor_loss1))
 
         # action有上下界
-        print("action bound min = " % self.a_bound_min)
-        print("action bound max = " % self.a_bound_max)
+        # print("action bound min = " % self.a_bound_min)
+        # print("action bound max = " % self.a_bound_max)
         norm_a_bound_min = self.a_norm.normalize(self.a_bound_min)
         norm_a_bound_max = self.a_norm.normalize(self.a_bound_max)
         a_bound_loss = TFUtil.calc_bound_loss(self._norm_a_mean_tf, norm_a_bound_min, norm_a_bound_max)

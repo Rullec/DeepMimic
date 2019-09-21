@@ -403,9 +403,9 @@ std::vector<double> cDeepMimicCore::BuildActionScale(int agent_id) const
 		std::vector<double> out_scale;
 		ConvertVector(scale, out_scale);
 
-		std::cout <<"[scale] get scale from rl_scene:";
-		for(auto i : out_scale)
-			std::cout << i <<" ";
+		// std::cout <<"[scale] get scale from rl_scene:";
+		// for(auto i : out_scale)
+		// 	std::cout << i <<" ";
 		
 		return out_scale;
 	}
