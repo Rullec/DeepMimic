@@ -75,6 +75,7 @@ def update_world(world, time_elapsed):
         if valid_episode:   # 速度没有爆炸
             end_episode = world.env.is_episode_end()
             if (end_episode):
+                print("[DeepMimic_xudong] end_episode = {}".format(end_episode))
                 world.end_episode() # 这里应该是放入replay buffer了?还是说随时更新随时放入
                 world.reset()
                 break

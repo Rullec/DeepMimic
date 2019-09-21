@@ -190,5 +190,6 @@ class TFAgent(RLAgent):
 
     def _train(self):
         with self.sess.as_default(), self.graph.as_default():
+            print("[tf_agent] _train called")
             super()._train()
         return

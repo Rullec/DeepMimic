@@ -6,39 +6,369 @@ from env.env import Env
 import util.math_util as MathUtil
 
 class ReplayBuffer_xudong(object):
+
     TERMINATE_KEY = 'terminate'
     PATH_START_KEY = 'path_start'
     PATH_END_KEY = 'path_end'
 
     def __init__(self, buffer_size):
         assert buffer_size > 0
+
         self.buffer_size = buffer_size
         self.total_count = 0
         self.buffer_head = 0
         self.buffer_tail = MathUtil.INVALID_IDX
-        self.num_paths = 0
+        self.num_paths = 0  # path数目是0
+        self._sample_buffers = dict()
         self.buffers = None
 
         self.clear()
+        return
+
+    def sample(self, n):
+        curr_size = self.get_current_size() # 采样: 获取当前size
+        assert curr_size > 0
+
+        idx = np.empty(n, dtype=int)
+        # makes sure that the end states are not sampled
+        for i in range(n):  # 对于一个长度为n的序列
+            while True:
+                curr_idx = np.random.randint(0, curr_size, size=1)[0]   # 随便挑一个数
+                curr_idx += self.buffer_tail
+                curr_idx = np.mod(curr_idx, self.buffer_size)
+
+                if not self.is_path_end(curr_idx):  # 只要这个idx不是一个path的结尾，就Ok
+                    break
+            idx[i] = curr_idx
+
+        return idx
+
+    def sample_filtered(self, n, key):
+        assert key in self._sample_buffers
+        curr_buffer = self._sample_buffers[key]
+        idx = curr_buffer.sample(n)
+        return idx
+
+    def count_filtered(self, key):
+        curr_buffer = self._sample_buffers[key]
+        return curr_buffer.count
+
+    def get(self, key, idx):
+        return self.buffers[key][idx]
+
+    def get_all(self, key):
+        return self.buffers[key]
+
+    def get_idx_filtered(self, key):
+        # 传入一个key EXP_ACTION_FLAG
+        assert key in self._sample_buffers
+        curr_buffer = self._sample_buffers[key]# 来了一个列表
+        idx = curr_buffer.slot_to_idx[:curr_buffer.count]
+        return idx
+    
+    def get_path_start(self, idx):
+        return self.buffers[self.PATH_START_KEY][idx]
+
+    def get_path_end(self, idx):
+        return self.buffers[self.PATH_END_KEY][idx]
+
+    def get_pathlen(self, idx):
+        is_array = isinstance(idx, np.ndarray) or isinstance(idx, list)
+        if not is_array:
+            idx = [idx]
+
+        n = len(idx)
+        start_idx = self.get_path_start(idx)
+        end_idx = self.get_path_end(idx)
+        pathlen = np.empty(n, dtype=int)
+
+        for i in range(n):
+            curr_start = start_idx[i]
+            curr_end = end_idx[i]
+            if curr_start < curr_end:
+                curr_len = curr_end - curr_start
+            else:
+                curr_len = self.buffer_size - curr_start + curr_end
+            pathlen[i] = curr_len
+
+        if not is_array:
+            pathlen = pathlen[0]
+
+        return pathlen
+
+    def is_valid_path(self, idx):
+        start_idx = self.get_path_start(idx)
+        valid = start_idx != MathUtil.INVALID_IDX
+        return valid
+
+    def store(self, path):
+        start_idx = MathUtil.INVALID_IDX
+        n = path.pathlength()
+        
+        if (n > 0):
+            assert path.is_valid()
+
+            if path.check_vals():
+                if self.buffers is None:    # 如果以前没有buffer，要创建
+                    self._init_buffers(path)
+
+                # 否则不用创建， 直接添加
+                idx = self._request_idx(n + 1)
+                self._store_path(path, idx)
+                self._add_sample_buffers(idx)
+
+                self.num_paths += 1
+                self.total_count += n + 1
+                start_idx = idx[0]
+            else:
+                Logger.print('Invalid path data value detected')
+                # print(path)
+                assert 0 == 1
+
+        
+        return start_idx
 
     def clear(self):
         self.buffer_head = 0
         self.buffer_tail = MathUtil.INVALID_IDX
         self.num_paths = 0
-        
+
+        for key in self._sample_buffers:
+            self._sample_buffers[key].clear()
+        return
+
+    def get_next_idx(self, idx):
+        next_idx = np.mod(idx + 1, self.buffer_size)
+        return next_idx
+
+    def is_terminal_state(self, idx):
+        terminate_flags = self.buffers[self.TERMINATE_KEY][idx]
+        terminate = terminate_flags != Env.Terminate.Null.value
+        is_end = self.is_path_end(idx)
+        terminal_state = np.logical_and(terminate, is_end)
+        return terminal_state
+
+    def check_terminal_flag(self, idx, flag):
+        terminate_flags = self.buffers[self.TERMINATE_KEY][idx]
+        terminate = terminate_flags == flag.value
+        return terminate
+
+    def is_path_end(self, idx):
+        # 看看这个idx是不是某个path的终止
+        is_end = self.buffers[self.PATH_END_KEY][idx] == idx
+        return is_end
+
+    def add_filter_key(self, key):
+        assert self.get_current_size() == 0
+        if key not in self._sample_buffers:
+            self._sample_buffers[key] = SampleBuffer(self.buffer_size)
+        return
+
+    def get_current_size(self):
+        if self.buffer_tail == MathUtil.INVALID_IDX:
+            return 0
+        elif self.buffer_tail < self.buffer_head:
+            return self.buffer_head - self.buffer_tail
+        else:
+            return self.buffer_size - self.buffer_tail + self.buffer_head
+
+    def _check_flags(self, key, flags):
+        return (flags & key) == key
+
+    def _add_sample_buffers(self, idx): # idx是一系列序号
+        # 这个flag是干啥的?为什么需要一个flag buffer?
+        flags = self.buffers['flags']   # 这个flags是一系列的1
+        for key in self._sample_buffers:   # for i in dict(), 这会把所有sample_buffers中的键值进行训练
+            curr_buffer = self._sample_buffers[key] # 拿到这个内容, 准备往这个里面添加
+
+            # 如果这个的flags和key是相同的; 那么久可以加到这个buffer当中去
+            # 似乎是为了保持一个一致性
+            filter_idx = [i for i in idx if (self._check_flags(key, flags[i]) and not self.is_path_end(i))]
+            # 确认从self._sample_buffers中拿出来的flags和sample_buffers中的key保持一致; 而且这个
+            curr_buffer.add(filter_idx)
+        return
+
+    def _free_sample_buffers(self, idx):
+        for key in self._sample_buffers:
+            curr_buffer = self._sample_buffers[key]
+            curr_buffer.free(idx)    
+        return
+
+    def _init_buffers(self, path):
+        # 初始化buffer?还需要初始化?
+        self.buffers = dict()   # 创建一个字典
+        # 这个buffer里面存储start key和end key，是长为buffer_size的数组
+        # 后续应该是输入一个idx，就可以检索这个state是否是一个end of path了。
+        # 所以这个buffer应该是一个字典: 里面的start key一项存储一个数组; end key存储一个数组，等等。
+        self.buffers[self.PATH_START_KEY] = MathUtil.INVALID_IDX * np.ones(self.buffer_size, dtype=int)
+        self.buffers[self.PATH_END_KEY] = MathUtil.INVALID_IDX * np.ones(self.buffer_size, dtype=int)
+
+        for key in dir(path):# dir 获得path模块的属性列表
+            val = getattr(path, key)
+            if not key.startswith('__') and not inspect.ismethod(val):
+                if key == self.TERMINATE_KEY:
+                    self.buffers[self.TERMINATE_KEY] = np.zeros(shape=[self.buffer_size], dtype=int)
+                else:
+                    val_type = type(val[0])
+                    is_array = val_type == np.ndarray
+                    if is_array:
+                        shape = [self.buffer_size, val[0].shape[0]]
+                        dtype = val[0].dtype
+                    else:
+                        shape = [self.buffer_size]
+                        dtype = val_type
+                    
+                    self.buffers[key] = np.zeros(shape, dtype=dtype)
+        return
+
+    def _request_idx(self, n):
+        assert n + 1 < self.buffer_size # bad things can happen if path is too long
+
+        remainder = n
+        idx = []
+
+        start_idx = self.buffer_head
+        while remainder > 0:
+            end_idx = np.minimum(start_idx + remainder, self.buffer_size)
+            remainder -= (end_idx - start_idx)
+
+            free_idx = list(range(start_idx, end_idx))
+            self._free_idx(free_idx)
+            idx += free_idx
+            start_idx = 0
+
+        self.buffer_head = (self.buffer_head + n) % self.buffer_size
+        return idx
+
+    def _free_idx(self, idx):
+        assert(idx[0] <= idx[-1])
+        n = len(idx)
+        if self.buffer_tail != MathUtil.INVALID_IDX:
+            update_tail = idx[0] <= idx[-1] and idx[0] <= self.buffer_tail and idx[-1] >= self.buffer_tail
+            update_tail |= idx[0] > idx[-1] and (idx[0] <= self.buffer_tail or idx[-1] >= self.buffer_tail)
+            
+            if update_tail:
+                i = 0
+                while i < n:
+                    curr_idx = idx[i]
+                    if self.is_valid_path(curr_idx):
+                        start_idx = self.get_path_start(curr_idx)
+                        end_idx = self.get_path_end(curr_idx)
+                        pathlen = self.get_pathlen(curr_idx)
+
+                        if start_idx < end_idx:
+                            self.buffers[self.PATH_START_KEY][start_idx:end_idx + 1] = MathUtil.INVALID_IDX
+                            self._free_sample_buffers(list(range(start_idx, end_idx + 1)))
+                        else:
+                            self.buffers[self.PATH_START_KEY][start_idx:self.buffer_size] = MathUtil.INVALID_IDX
+                            self.buffers[self.PATH_START_KEY][0:end_idx + 1] = MathUtil.INVALID_IDX
+                            self._free_sample_buffers(list(range(start_idx, self.buffer_size)))
+                            self._free_sample_buffers(list(range(0, end_idx + 1)))
+                        
+                        self.num_paths -= 1
+                        i += pathlen + 1
+                        self.buffer_tail = (end_idx + 1) % self.buffer_size
+                    else:
+                        i += 1
+        else:
+            self.buffer_tail = idx[0]
+        return
+
+    def _store_path(self, path, idx):
+        n = path.pathlength()
+        for key, data in self.buffers.items():
+            if key != self.PATH_START_KEY and key != self.PATH_END_KEY and key != self.TERMINATE_KEY:
+                val = getattr(path, key)
+                val_len = len(val)
+                assert val_len == n or val_len == n + 1
+                data[idx[:val_len]] = val
+
+        self.buffers[self.TERMINATE_KEY][idx] = path.terminate.value
+        self.buffers[self.PATH_START_KEY][idx] = idx[0]
+        self.buffers[self.PATH_END_KEY][idx] = idx[-1]
+        return
+
+class SampleBuffer(object):
+    # 一个sample buffer，是干什么的?
+    def __init__(self, size):
+        # 初始化两个"empty"的array, slot to idx & idx to slot
+        self.idx_to_slot = np.empty(shape=[size], dtype=int)
+        self.slot_to_idx = np.empty(shape=[size], dtype=int)
+        self.count = 0
+        self.clear()
+        return
+    
+    def clear(self):
+        self.idx_to_slot.fill(MathUtil.INVALID_IDX)
+        self.slot_to_idx.fill(MathUtil.INVALID_IDX)
+        self.count = 0
+        return
+
+    def is_valid(self, idx):
+        # idx to slot
+        return self.idx_to_slot[idx] != MathUtil.INVALID_IDX
+
+    def get_size(self):
+        return self.idx_to_slot.shape[0]
+
+    def add(self, idx):
+        # idx是一个list
+        for i in idx:
+            if not self.is_valid(i):
+                # 如果idx中的某个元素i, 是valid的;
+                # 就在slot后面增加一个，内容是
+                new_slot = self.count
+                assert new_slot >= 0
+
+                self.idx_to_slot[i] = new_slot
+                self.slot_to_idx[new_slot] = i
+                self.count += 1
+        return
+
+    def free(self, idx):
+        for i in idx:
+            if self.is_valid(i):
+                slot = self.idx_to_slot[i]
+                last_slot = self.count - 1
+                last_idx = self.slot_to_idx[last_slot]
+
+                self.idx_to_slot[last_idx] = slot
+                self.slot_to_idx[slot] = last_idx
+                self.idx_to_slot[i] = MathUtil.INVALID_IDX
+                self.slot_to_idx[last_slot] = MathUtil.INVALID_IDX
+                self.count -= 1
         return
 
     def sample(self, n):
-        return None
+        # 返回n个idx
+        if self.count > 0:
+            slots = np.random.randint(0, self.count, size=n)
+            idx = self.slot_to_idx[slots]
+        else:
+            idx = np.empty(shape=[0], dtype=int)
+        return idx
 
-    def get(self, key, idx):
-        return None
+    def check_consistency(self):
+        valid = True
+        if self.count < 0:
+            valid = False
 
-    def get_all(self, key, idx):
-        return None
+        if valid:
+            for i in range(self.get_size()):
+                if self.is_valid(i):
+                    s = self.idx_to_slot[i]
+                    if self.slot_to_idx[s] != i:
+                        valid = False
+                        break
 
-    def get_path_end(self, idx):
-        return None
-    
-    def get_current_size(self):
-        return None
+                s2i = self.slot_to_idx[i] 
+                if s2i != MathUtil.INVALID_IDX:
+                    i2s = self.idx_to_slot[s2i]
+                    if i2s != i:
+                        valid = False
+                        break
+
+        count0 = np.sum(self.idx_to_slot == MathUtil.INVALID_IDX)
+        count1 = np.sum(self.slot_to_idx == MathUtil.INVALID_IDX)
+        valid &= count0 == count1
+        return valid

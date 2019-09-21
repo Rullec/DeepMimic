@@ -67,9 +67,14 @@ class RLWorld_xudong(object):
         pass
 
     def update(self, timestep):
-        pass
+        self._update_agents(timestep)   # update agents
+        self._update_env(timestep)      # update envs
+        return 
 
     def reset(self):
+        # 重置世界
+        self._reset_agents()
+        self._reset_env()
         pass
 
     def end_episode(self):

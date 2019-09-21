@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import tensorflow as tf
 from enum import Enum
+import time
 
 '''
     class Agent_xudong is a abstract base class, which offer some very basic interfaces for agents in Reinforcement learning.
@@ -24,11 +25,20 @@ class Agent_xudong(ABC):
         self.action_lower_bound = self.world.env.build_action_bound_min(self.id)
         self.action_upper_bound = self.world.env.build_action_bound_max(self.id)
         self._mode = self.Mode.TRAIN
+        self._total_sample_count = 0    # 总采样数
+        self.start_time = time.time()
+        self.train_return = 0
+        self.test_return = 0
+        self.iter = 0
+        self.output_dir = ""
         
         # the tf.sess created
         self.graph = tf.Graph()
         self.sess = tf.Session(graph = self.graph)
         
+        # cur time
+        
+
         print("[agent_xudong] initialized, id {}".format(id))
 
     @abstractmethod
@@ -37,6 +47,14 @@ class Agent_xudong(ABC):
 
     @abstractmethod
     def load_params(self, json_data):
+        pass
+
+    @abstractmethod
+    def reset(self):
+        pass
+
+    @abstractmethod
+    def update(self, timestep):
         pass
 
     def get_action_space(self):
@@ -96,3 +114,10 @@ class Agent_xudong(ABC):
         val_min = r_min / ( 1.0 - discount)
         val_max = r_max / ( 1.0 - discount)
         return val_min, val_max
+
+    def _apply_action(self, a):
+        a = a.reshape([1, self.action_size])
+        assert a.shape == (1, self.action_size)
+        a = a.reshape(self.action_size)
+        self.world.env.set_action(self.id, a)
+        return

@@ -176,7 +176,7 @@ class ReplayBuffer(object):
 
     def _add_sample_buffers(self, idx):
         # 增加一个sample buffer, 什么意思?
-        flags = self.buffers['flags']
+        flags = self.buffers['flags']   # get flags buffer
         for key in self._sample_buffers:
             curr_buffer = self._sample_buffers[key]
             filter_idx = [i for i in idx if (self._check_flags(key, flags[i]) and not self.is_path_end(i))]
@@ -276,6 +276,11 @@ class ReplayBuffer(object):
                 val = getattr(path, key)
                 val_len = len(val)
                 assert val_len == n or val_len == n + 1
+                # print("key = {}".format(key))
+                # print("data shape = {}".format(data.shape))
+                # print("idx = {}".format(idx))
+                # print("val_len = {}".format(val_len))
+                # print("va = {}".format(val))
                 data[idx[:val_len]] = val
 
         self.buffers[self.TERMINATE_KEY][idx] = path.terminate.value

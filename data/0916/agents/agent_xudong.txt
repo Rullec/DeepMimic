@@ -1,0 +1,23 @@
+{
+	"AgentType": "PPO",
+
+	"ActorNet": "fc_2layers_512_256",
+	"ActorStepsize": 0.000001,
+	"ActorMomentum": 0.9,
+	"ActorWeightDecay": 0.0005,
+
+	"CriticNet": "fc_2layers_512_256",
+	"CriticStepsize": 0.01,
+	"CriticMomentum": 0.9,
+	"CriticWeightDecay": 0,
+
+	"Discount": 0.95,
+	"BatchSize": 4096,
+	"MiniBatchSize": 256,
+	"ReplayBufferSize": 500000,
+
+	"RatioClip": 0.2,
+	"TDLambda": 0.95,
+	
+	"TestEpisodes": 32,
+}

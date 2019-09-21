@@ -69,7 +69,6 @@ class RLAgent(ABC):
         
         self._enable_training = True
         self.path = Path()
-        self.iter = int(0)
         self.start_time = time.time()
         self._update_counter = 0
 
@@ -83,7 +82,8 @@ class RLAgent(ABC):
         self._local_mini_batch_size = self.mini_batch_size # batch size for each work for multiprocessing
         self._need_normalizer_update = True
         self._total_sample_count = 0
-
+        self.iter = 0
+        
         self._output_dir = ""
         self._int_output_dir = ""
         self.output_iters = 100
@@ -597,31 +597,22 @@ class RLAgent(ABC):
         return
 
     def _train(self):
-        '''
-            why the "train" function belongs to the agent class?
 
-            I guess the train function will update the weight / reward function in network.
-
-        :return:
-        '''
-
-        # get sample count from replay buffer
-        # what is replay buffer? what is samples num?
-        # take a look in the paper. no result
+        # total sample count 
         samples = self.replay_buffer.total_count
 
-        # use MPI, WHY? Will this function need to communicate between process?
-        # between different agents?
         self._total_sample_count = int(MPIUtil.reduce_sum(samples))
         end_training = False
 
 
+        print("[rl_agent] train_called 1")
         if (self.replay_buffer_initialized):
-
+            print("[rl_agent] train_called 2")
             # if replay buffer is prepared well:
-            if (self._valid_train_step()):
+            if (self._valid_train_step()):  # 有足量的sample可供训练
                 # if it is a valid train step, then?
                 # what is "valid" or not?
+                print("[rl_agent] train_called 3")
                 prev_iter = self.iter
 
                 # each "train in update" has many iterations
@@ -636,6 +627,7 @@ class RLAgent(ABC):
                     curr_iter = self.iter
 
                     # wall time = curtime - agent constructor time
+                    # 已经运行了多长时间?
                     wall_time = time.time() - self.start_time
                     wall_time /= 60 * 60 # store time in hours
 
@@ -673,12 +665,14 @@ class RLAgent(ABC):
                     if (self._enable_output() and curr_iter % self.int_output_iters == 0):
                         self.logger.dump_tabular()
 
+                # floor divide
                 if (prev_iter // self.int_output_iters != self.iter // self.int_output_iters):
                     end_training = self.enable_testing()
 
         else:
             # if the replay buffer hasn't been initialized
             # then we should initialize it.
+            print("[rl_agent] train_called 4")
             Logger.print("Agent " + str(self.id))
             Logger.print("Samples: " + str(self._total_sample_count))
             Logger.print("") 
