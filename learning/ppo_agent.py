@@ -205,7 +205,12 @@ class PPOAgent(PGAgent):
         }
 
         a, logp = self.sess.run([self.sample_a_tf, self.sample_a_logp_tf], feed_dict=feed)
-
+        noise, std = self.sess.run([self.norm_a_noise_tf, self.norm_a_std_tf], feed)
+        print("action mean = {}".format(0))
+        print("action std = {}".format(std))
+        print("action = {}".format(a))
+        print("action prob_log = {}".format(logp))
+        exit()
         # if np.random.rand() < 1e-3:
         #     v1, v2, v3, v4 = self.sess.run([self.norm_a_std_tf, self.norm_a_noise_tf, self.a_mean_tf, self.a_norm.std_tf], feed)
         #     print("[var] self.norm_a_std_tf = %s" % str(v1.transpose()))

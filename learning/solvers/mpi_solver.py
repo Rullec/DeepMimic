@@ -16,6 +16,7 @@ class MPISolver(Solver):
         self.sess = sess
         self.optimizer = optimizer
         self._build_grad_feed(vars)
+        # zip: 把两个可迭代对象，逐个元素打包成元组返回
         self._update = optimizer.apply_gradients(zip(self._grad_tf_list, self.vars))
         self._set_flat_vars = TFUtil.SetFromFlat(sess, self.vars)
         self._get_flat_vars = TFUtil.GetFlat(sess, self.vars)
@@ -30,7 +31,6 @@ class MPISolver(Solver):
         return self.optimizer._learning_rate_tensor.eval()
 
     def update(self, grads=None, grad_scale=1.0):
-        # 是否存在梯度裁剪?
         if grads is not None:
             self._flat_grad = MathUtil.flatten(grads)
         else:
@@ -47,7 +47,8 @@ class MPISolver(Solver):
         MPI.COMM_WORLD.Allreduce(flat_grad, self._global_flat_grad, op=MPI.SUM)
         self._global_flat_grad /= MPIUtil.get_num_procs()   # 梯度除以进程数
         # 这里的actor梯度发生了爆炸，critic则没有。我需要看actor loss是怎么定义的吧。
-        # print("flat grad abs max = %.3f" % np.max(np.abs(self._global_flat_grad)))  # 这里的梯度果然发生了爆炸
+        print("flat grad abs max = %.3f" % np.max(np.abs(self._global_flat_grad)))  # 这里的梯度果然发生了爆炸
+        self._global_flat_grad = np.clip(self._global_flat_grad, -2, 2)#梯度裁剪
         self._load_flat_grad(self._global_flat_grad)
         self.sess.run([self._update], self._grad_feed)
         self.iter += 1
@@ -96,6 +97,7 @@ class MPISolver(Solver):
         return grad_dim
 
     def _load_flat_grad(self, flat_grad):
+        # flat_grad copied to self.grad_buffers
         start = 0
         for g in self._grad_buffers:
             size = g.size

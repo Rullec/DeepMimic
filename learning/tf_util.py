@@ -54,7 +54,9 @@ def calc_logp_gaussian(x_tf, mean_tf, std_tf):
     # mean_tf，也就是高斯分布的均值，
     # std_tf，是高斯分布的标准差
     dim = tf.to_float(tf.shape(x_tf)[-1])
-
+    # print(tf.shape(x_tf))
+    # print(tf.to_float(tf.shape(x_tf))[-1])
+    # print("***********************************")
     if mean_tf is None:
         diff_tf = x_tf
     else:
@@ -63,6 +65,22 @@ def calc_logp_gaussian(x_tf, mean_tf, std_tf):
     logp_tf = -0.5 * tf.reduce_sum(tf.square(diff_tf / std_tf), axis=-1)
     logp_tf += -0.5 * dim * np.log(2 * np.pi) - tf.reduce_sum(tf.log(std_tf), axis=-1)
     
+    return logp_tf
+
+def calc_logp_gaussian_xudong(x_tf, mean_tf, std_tf):
+    dim = tf.to_float(tf.shape(x_tf)[-1])
+    
+    if mean_tf is None:
+        diff_tf = x_tf
+    else:
+        diff_tf = x_tf - mean_tf
+
+    p1 = -0.5 * dim * np.log(2 * np.pi)
+    p2 = -0.5 * tf.reduce_sum(tf.log(std_tf), axis = -1)
+    p3 = -0.5 * tf.reduce_sum(tf.square(diff_tf) / std_tf, axis = -1)
+    logp_tf = p1 + p2 + p3
+    # logp_tf = -0.5 * tf.reduce_sum(tf.square(diff_tf) / std_tf, axis=-1)
+    # logp_tf += -0.5 * dim * np.log(2 * np.pi) - tf.reduce_sum(tf.log(std_tf), axis=-1)    
     return logp_tf
 
 def calc_bound_loss(x_tf, bound_min, bound_max):

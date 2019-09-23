@@ -139,10 +139,10 @@ class PPOAgent_xudong(Agent_xudong):
             dist = tf.contrib.distributions.Normal(loc = self.action_mean_tf, scale = self.action_std_tf)
             self.sample_action_tf = dist.sample()
             
-            self.sample_action_prob_log_tf = TFUtil.calc_logp_gaussian(x_tf = self.sample_action_tf,
+            self.sample_action_prob_log_tf = TFUtil.calc_logp_gaussian_xudong(x_tf = self.sample_action_tf,
                 mean_tf = self.action_mean_tf, std_tf = self.action_std_tf)
 
-            self.given_action_prob_log_tf = TFUtil.calc_logp_gaussian(x_tf = self.given_action_ph,
+            self.given_action_prob_log_tf = TFUtil.calc_logp_gaussian_xudong(x_tf = self.given_action_ph,
                 mean_tf = self.action_mean_tf, std_tf = self.action_std_tf)
             print("[ppo agent] actor net created")
 
@@ -192,7 +192,7 @@ class PPOAgent_xudong(Agent_xudong):
         critic_momentum = para_get(self.CRITIC_MOMENTUM, 0.9, json_data)
 
         # build critic sovler
-        critic_vars = self.tf_vars("critic")
+        critic_vars = self.tf_vars("critic/")
         critic_opt = tf.train.MomentumOptimizer(learning_rate = critic_stepsize, momentum = critic_momentum)
         self.critic_grad_tf = tf.gradients(self.critic_loss_tf, critic_vars)
         self.critic_solver = MPISolver(self.sess, critic_opt, critic_vars)
@@ -202,7 +202,7 @@ class PPOAgent_xudong(Agent_xudong):
         self._actor_stepsize_ph = tf.get_variable(dtype=tf.float32, name='actor_stepsize_ph', shape=[])
         self._actor_stepsize_update_op = self._actor_stepsize_tf.assign(self._actor_stepsize_ph)
 
-        actor_vars = self.tf_vars('actor')
+        actor_vars = self.tf_vars('actor/')
         actor_opt = tf.train.MomentumOptimizer(learning_rate=self._actor_stepsize_tf, momentum=actor_momentum)
         self.actor_grad_tf = tf.gradients(self.actor_loss_tf, actor_vars)
         self.actor_solver = MPISolver(self.sess, actor_opt, actor_vars)
@@ -229,11 +229,6 @@ class PPOAgent_xudong(Agent_xudong):
             mean, std = self.sess.run([self.action_mean_tf, self.action_std_tf], feed_dict = fdict)
             action, prob_log = self.sess.run([self.sample_action_tf,  self.sample_action_prob_log_tf],
                         feed_dict=fdict)
-
-        # print("action mean = {}".format(mean))
-        # print("action std = {}".format(std))
-        # print("action = {}".format(action))
-        # print("action prob_log = {}".format(prob_log))
 
         action = action.reshape(-1, self.action_size)
         prob_log = prob_log.reshape(-1, 1)
@@ -289,6 +284,11 @@ class PPOAgent_xudong(Agent_xudong):
         return new_vals
 
     def _update_critic(self, state, target_vals):
+        state = state.reshape([-1, self.state_size])
+        target_vals = target_vals.reshape([-1, 1])
+        # print(state.shape)      #bug: shape = (500000, 275)
+        # print(target_vals.shape)
+        
         feed = {
             self.state_ph: state,
             self.target_value_ph: target_vals
@@ -299,6 +299,15 @@ class PPOAgent_xudong(Agent_xudong):
         return loss
 
     def _update_actor(self, state, action, old_prob_log, adv):
+        state = state.reshape([-1, self.state_size])
+        action = action.reshape([-1, self.action_size])
+        old_prob_log = old_prob_log.reshape([-1, 1])
+        adv = adv.reshape([-1, 1])
+        assert np.isfinite(state).all() == True
+        assert np.isfinite(action).all() == True
+        assert np.isfinite(old_prob_log).all() == True
+        assert np.isfinite(adv).all() == True
+        
 
         feed = {
             self.state_ph : state,
@@ -307,6 +316,21 @@ class PPOAgent_xudong(Agent_xudong):
             self.old_prob_log_ph : old_prob_log,
         }
         loss, grads = self.sess.run([self.actor_loss_tf, self.actor_grad_tf], feed)
+        loss1, loss2, loss3, loss4 = self.sess.run([self.actor_loss_1_tf, self.actor_loss_2_tf, self.actor_loss_3_tf,
+        self.actor_loss_4_tf], feed)
+        ratio, adv_value, given_action_prob_log = self.sess.run([self.ratio_tf, self.adv_value_ph, self.given_action_prob_log_tf], feed)
+        if np.isfinite(ratio).all() != True:
+            print("ratio = {}".format(ratio))
+            print("old prob = {}".format(old_prob_log))
+            print("new prob = {}".format(given_action_prob_log))
+            raise(ValueError)
+        assert np.isfinite(adv_value).all() == True
+        
+        assert np.isfinite(loss1).all() == True
+        assert np.isfinite(loss2).all() == True
+        assert np.isfinite(loss3).all() == True
+        assert np.isfinite(loss4).all() == True
+        assert np.isfinite(loss).all() == True
         self.actor_solver.update(grads)
         return loss
 
@@ -381,10 +405,10 @@ class PPOAgent_xudong(Agent_xudong):
                 critic_batch = valid_idx[critic_batch]
                 actor_batch = exp_idx[actor_batch]
                 critic_batch_vals = new_vals[critic_batch]
-                actor_batch_adv = adv[actor_batch]  # adv = gae_val - val
+                actor_batch_adv = adv[actor_batch[:,1]]  # adv = gae_val - val
 
                 # update critic network
-                critic_s = self.replay_buffer.get_all("states")
+                critic_s = self.replay_buffer.get("states", critic_batch)
                 curr_critic_loss = self._update_critic(critic_s, critic_batch_vals)
 
                 # update actor network
@@ -409,8 +433,9 @@ class PPOAgent_xudong(Agent_xudong):
         critic_loss = MPIUtil.reduce_avg(critic_loss)
         actor_loss = MPIUtil.reduce_avg(actor_loss)
 
-        critic_stepsize = self.critic_solver.get_stepsize()
-        actor_stepsize = self.actor_solver.get_stepsize()
+        with self.sess.as_default(), self.graph.as_default():
+            critic_stepsize = self.critic_solver.get_stepsize()
+            actor_stepsize = self.actor_solver.get_stepsize()
         # 如果clip的频率过大的话，就要对步长进行调整
         # clip频率大了说明他一步走的略大，所以应该调整。
         # 这个策略可以暂时放弃
@@ -681,8 +706,8 @@ class PPOAgent_xudong(Agent_xudong):
         samples = self.replay_buffer.get_current_size()
         global_sample_count = int(MPIUtil.reduce_sum(samples))
         valid =(global_sample_count > self.batch_size)
-        if valid == False:
-            print("invalid train step, now global sample = {} < batch size {}".format(global_sample_count, self.batch_size)) 
+        # if valid == False:
+        #     print("invalid train step, now global sample = {} < batch size {}".format(global_sample_count, self.batch_size)) 
         return valid
 
     def _update_iter(self, iter):
