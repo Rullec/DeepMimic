@@ -16,8 +16,11 @@
 --motion_file data/0910/motions/walk_motion_091202.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
+
 --enable_angle_diff_log true
 --angle_diff_dir logs/controller_logs/angle_diff_log/
+--enable_torque_record true
+--torque_record_file logs/controller_logs/torque.record.0913.run
 
 --agent_files data/0910/agents/agent_512_0911.txt
 --train_agents false

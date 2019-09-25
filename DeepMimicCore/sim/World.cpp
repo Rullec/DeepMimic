@@ -142,7 +142,7 @@ void cWorld::AddCharacter(cSimCharacter& sim_char)
 	sim_char.SetLinearDamping(mDefaultLinearDamping);
 	sim_char.SetAngularDamping(mDefaultAngularDamping);
 	mSimWorld->addMultiBody(sim_char.GetMultiBody().get());
-
+	
 	const auto& constraints = sim_char.GetConstraints();
 	for (int c = 0; c < static_cast<int>(constraints.size()); ++c)
 	{

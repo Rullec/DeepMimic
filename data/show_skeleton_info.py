@@ -5,8 +5,8 @@ import sys
 from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
 project_dir = "/home/darknight/Projects/DeepMimic"
-skeleton_path = "data/0910/characters/skeleton_0911.json"
-pd_path = "data/0910/controllers/humanoid3d_ctrl_0907.txt"
+skeleton_path = "data/0917/characters/091702_fix_none_adjust_weight.json"
+pd_path = "data/0917/controllers/humanoid3d_ctrl_fix_none.txt"
 #skeleton_path = "data/raw/characters/humanoid3d.txt"
 #pd_path = "data/raw/controllers/humanoid3d_ctrl.txt"
 reduce = lambda f : round(f, 4)
@@ -84,7 +84,6 @@ def write_csv(info_dict, path = "data.csv"):
     
     with open(path, "a") as f:
         write_tabular_line(title_lst, f)
-        write_tabular_line(title_lst, f)
 
     # write content
     for cur_id in range(len(info_dict)):
@@ -110,10 +109,10 @@ if __name__ == "__main__":
     print("pd path = %s" % pd_path)
     
     # 验证drawshape = bodydefs
-    # verify_drawshapes_and_bodydefs(skeleton_path)
+    verify_drawshapes_and_bodydefs(skeleton_path)
 
     # 验证bodydefs和skeleton是左右对称的
-    # verify_symmetric(skeleton_path)
+    verify_symmetric(skeleton_path)
     
     # 解析skeleton，获取要写入的信息
     ske_info = parse_skeleton(skeleton_path)

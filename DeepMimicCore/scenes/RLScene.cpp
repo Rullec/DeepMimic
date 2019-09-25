@@ -42,7 +42,8 @@ bool cRLScene::IsEpisodeEnd() const
 	bool is_end = cScene::IsEpisodeEnd();
 	if(is_end == true)
 	{
-		std::cout <<"[end] Timer said terminated, episode done " << mTimer.GetMaxTime() << std::endl;
+		cTimer::tParams a = mTimer.GetParams();
+		std::cout <<"[end] Timer said terminated, episode done, timer = " << mTimer.GetMaxTime() << ", exp = " << a.mTimeExp << std::endl;
 	}
 	eTerminate termin = eTerminateNull;
 	for (int i = 0; i < GetNumAgents(); ++i)
