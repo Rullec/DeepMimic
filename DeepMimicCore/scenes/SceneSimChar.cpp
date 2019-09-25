@@ -149,7 +149,6 @@ void cSceneSimChar::Clear()
 
 void cSceneSimChar::Update(double time_elapsed)
 {
-	// std::cout <<"void cSceneSimChar::Update(double time_elapsed)" << std::endl;
 
 	cScene::Update(time_elapsed);
 
