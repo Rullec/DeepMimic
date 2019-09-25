@@ -43,6 +43,7 @@ public:
 	virtual tContactHandle RegisterContact(int contact_flags, int filter_flags);
 	virtual void UpdateContact(const cContactManager::tContactHandle& handle);
 	virtual int GetNumEntries() const;
+	virtual int GetNumTotalContactPts() const;
 	virtual bool IsInContact(const tContactHandle& handle) const;
 	virtual const tEigenArr<tContactPt>& GetContactPts(const tContactHandle& handle) const;
 	virtual const tEigenArr<tContactPt>& GetContactPts(int handle_id) const;

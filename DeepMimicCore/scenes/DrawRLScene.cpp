@@ -34,6 +34,11 @@ void cDrawRLScene::RecordGoal(int agent_id, Eigen::VectorXd& out_goal) const
 	GetRLScene()->RecordGoal(agent_id, out_goal);
 }
 
+void cDrawRLScene::RecordContactInfo(int agent_id, Eigen::VectorXd& out_goal) const
+{
+	GetRLScene()->RecordContactInfo(agent_id, out_goal);
+}
+
 void cDrawRLScene::SetAction(int agent_id, const Eigen::VectorXd& action)
 {
 	GetRLScene()->SetAction(agent_id, action);
