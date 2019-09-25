@@ -5,6 +5,31 @@
 
 class cSceneImitate : virtual public cRLSceneSimChar
 {
+	struct RewardParams{
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+		// reward weight for 5 terms
+		double pose_w;
+		double vel_w;
+		double end_eff_w;
+		double root_w;
+		double com_w;
+
+		// scale params
+		double pose_scale;
+		double vel_scale;
+		double end_eff_scale;
+		double root_scale;
+		double com_scale;
+		double err_scale;
+
+		// root sub reward weight (under the jurisdiction of root_w)
+		double root_pos_w;
+		double root_rot_w;
+		double root_vel_w;
+		double root_angle_vel_w;
+
+		RewardParams();
+	};
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -26,13 +51,17 @@ public:
 protected:
 
 	std::string mMotionFile;
+	std::string mAngleDiffDir;
+	std::string mRewardFile;
 	std::shared_ptr<cKinCharacter> mKinChar;
 
+	struct RewardParams RewParams;
 	Eigen::VectorXd mJointWeights;
 	bool mEnableRandRotReset;
 	bool mSyncCharRootPos;
 	bool mSyncCharRootRot;
 	bool mEnableRootRotFail;
+	bool mEnableAngleDiffLog;
 	double mHoldEndFrame;
 
 	virtual bool BuildCharacters();
@@ -50,6 +79,8 @@ protected:
 	virtual bool EnableSyncChar() const;
 	virtual void InitCharacterPosFixed(const std::shared_ptr<cSimCharacter>& out_char);
 
+	virtual void InitRewardWeights();
+	virtual void SetRewardParams(Json::Value & root);
 	virtual void InitJointWeights();
 	virtual void ResolveCharGroundIntersect();
 	virtual void ResolveCharGroundIntersect(const std::shared_ptr<cSimCharacter>& out_char) const;
@@ -64,4 +95,5 @@ protected:
 	
 	virtual double CalcRandKinResetTime();
 	virtual double CalcRewardImitate(const cSimCharacter& sim_char, const cKinCharacter& ref_char) const;
+	virtual void DiffLogOutput(const cSimCharacter& sim_char, const cKinCharacter& ref_char) const;
 };

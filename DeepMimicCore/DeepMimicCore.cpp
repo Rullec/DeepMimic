@@ -187,7 +187,9 @@ bool cDeepMimicCore::NeedNewAction(int agent_id) const
 	const auto& rl_scene = GetRLScene();
 	if (rl_scene != nullptr)
 	{
-		return rl_scene->NeedNewAction(agent_id);
+		bool need = rl_scene->NeedNewAction(agent_id);
+		// if(need) std::cout <<"[DeepMimicCore] need new action = " << need << std::endl;
+		return need;
 	}
 	return false;
 }
@@ -226,6 +228,26 @@ std::vector<double> cDeepMimicCore::RecordGoal(int agent_id) const
 	return std::vector<double>(0);
 }
 
+std::vector<double> cDeepMimicCore::RecordContactInfo(int agent_id) const
+{
+	const auto & rl_scene = GetRLScene();
+	if (nullptr != rl_scene)
+	{
+		Eigen::VectorXd goal;
+		rl_scene->RecordGoal(agent_id, goal);
+		std::vector<double> out_goal;
+		ConvertVector(goal, out_goal);
+		return out_goal;
+	}
+	return std::vector<double>(0);
+}
+
+void cDeepMimicCore::RestoreContactInfo(int agent_id, const std::vector<double> & contact_info) const
+{
+	std::cout << "the func void cDeepMimicCore::RestoreContactInfo(int agent_id) const needs to be implemented" << std::endl;
+	return;
+}
+
 void cDeepMimicCore::SetAction(int agent_id, const std::vector<double>& action)
 {
 	// std::cout << "cDeepMimicCore::SetAction called" << std::endl;
@@ -235,6 +257,7 @@ void cDeepMimicCore::SetAction(int agent_id, const std::vector<double>& action)
 		Eigen::VectorXd in_action;
 		ConvertVector(action, in_action);
 		rl_scene->SetAction(agent_id, in_action);
+		// std::cout <<"set action !" << std::endl;
 	}
 }
 
@@ -400,9 +423,9 @@ std::vector<double> cDeepMimicCore::BuildActionScale(int agent_id) const
 		std::vector<double> out_scale;
 		ConvertVector(scale, out_scale);
 
-		std::cout <<"[scale] get scale from rl_scene:";
-		for(auto i : out_scale)
-			std::cout << i <<" ";
+		// std::cout <<"[scale] get scale from rl_scene:";
+		// for(auto i : out_scale)
+		// 	std::cout << i <<" ";
 		
 		return out_scale;
 	}
@@ -477,7 +500,7 @@ double cDeepMimicCore::CalcReward(int agent_id) const
 	if (rl_scene != nullptr)
 	{
 		double r = rl_scene->CalcReward(agent_id);
-		std::cout <<"[get reward] reward = " << r << std::endl;
+		// std::cout <<"[get reward] reward = " << r << std::endl;
 		return r;
 	}
 	return 0;
@@ -583,10 +606,10 @@ void cDeepMimicCore::SetupScene()
 		cSceneBuilder::BuildScene(scene_name, mScene);
 	}
 
-	// 如果mScene创建成功了，那么就创建mRLScene?
-	// 这怎么直接下来了。。。
+	
 	if (mScene != nullptr)
 	{
+		// there is a dynamic_cast: it means that if the scene type is kin_char(display motion),  this ptr "mRLScene" would be NULL.
 		mRLScene = std::dynamic_pointer_cast<cRLScene>(mScene);
 		mScene->ParseArgs(mArgParser);
 		mScene->Init();

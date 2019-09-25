@@ -69,6 +69,7 @@ void cDeepMimicCharController::PostUpdate(double timestep)
 	mNeedNewAction = CheckNeedNewAction(timestep);
 	if (mNeedNewAction)
 	{
+		// std::cout <<"void cDeepMimicCharController::CheckNeedNewAction = " << mNeedNewAction << std::endl;
 		NewActionUpdate();
 	}
 }
@@ -148,6 +149,7 @@ void cDeepMimicCharController::LogVal(double val)
 
 bool cDeepMimicCharController::NeedNewAction() const
 {
+	// std::cout <<"DeepMimicCharController::NeedNewAction = " << mNeedNewAction << std::endl;
 	return mNeedNewAction;
 }
 
@@ -249,6 +251,7 @@ bool cDeepMimicCharController::ParseParams(const Json::Value& json)
 
 void cDeepMimicCharController::ResetParams()
 {
+	// std::cout <<"cDeepMimicCharController reset params!" << std::endl;
 	mTime = 0;
 	mNeedNewAction = true;
 	mTau.setZero();

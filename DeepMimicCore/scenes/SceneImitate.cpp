@@ -6,15 +6,85 @@
 #include <iostream>
 using namespace std;
 
+cSceneImitate::RewardParams::RewardParams()
+{
+	pose_w = 0;
+	vel_w = 0;
+	end_eff_w = 0;
+	root_w = 0;
+	com_w = 0;
+
+	// scale params
+	pose_scale = 0;
+	vel_scale = 0;
+	end_eff_scale = 0;
+	root_scale = 0;
+	com_scale = 0;
+	err_scale = 0;
+
+	// root sub reward weight (under the jurisdiction of root_w)
+	root_pos_w = 0;
+	root_rot_w = 0;
+	root_vel_w = 0;
+	root_angle_vel_w = 0;
+}
+
+void cSceneImitate::DiffLogOutput(const cSimCharacter& sim_char, const cKinCharacter& kin_char) const
+{
+	using namespace Eigen;
+	if (mAngleDiffDir.size() == 0 || mAngleDiffDir[mAngleDiffDir.size() - 1] != '/')
+	{
+		std::cout << "the dir = " << mAngleDiffDir << ", invalid" << std::endl;
+	}
+	
+	const Eigen::VectorXd& pose0 = sim_char.GetPose(), vel0 = sim_char.GetVel(), pose1 = kin_char.GetPose(), vel1 = kin_char.GetVel();
+	const auto& joint_mat = sim_char.GetJointMat();
+	const auto& body_defs = sim_char.GetBodyDefs();
+	const int num_joints = sim_char.GetNumJoints();
+	ofstream fout;
+	for (int i = 0; i < num_joints; i++)
+	{
+		const int offset = cKinTree::GetParamOffset(joint_mat, i);
+		const int size = cKinTree::GetParamSize(joint_mat, i);
+		VectorXd cur_pose = pose0.segment(offset, size);
+		VectorXd motion_pose = pose1.segment(offset, size);
+		VectorXd cur_vel = vel0.segment(offset, size);
+		VectorXd motion_vel = vel1.segment(offset, size);
+		string filename = this->mAngleDiffDir + std::to_string(i) + ".txt";
+		fout.open(filename, std::ios_base::app);
+		if (fout.fail() == true)
+		{
+			std::cout << "[angle diff log] open " << filename << " failed" << std::endl;
+			abort();
+		}
+
+		// record it
+		fout << "time " << this->GetTime() << ", joint " << i << ", cur pose = " << cur_pose.transpose() << ", motion pose = " << motion_pose.transpose() << std::endl;
+		fout << "time " << this->GetTime() << ", joint " << i << ", cur vel = " << cur_vel.transpose() << ", motion vel = " << motion_vel.transpose() << std::endl;
+		//std::cout << "joint " << i << " cur_pose = " << cur_pose.transpose() << ", motion pose = " << motion_pose.transpose() << std::endl;
+
+		fout.close();
+	}
+	
+}
+
 double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKinCharacter& kin_char) const
 {
+	// print
+	// std::cout << "compute reward, angle diff = " << mEnableAngleDiffLog <<", dir = " << mAngleDiffDir <<std::endl;
+	if (mEnableAngleDiffLog == true)	DiffLogOutput(sim_char, kin_char);
+
 	// reward共计5项，pose, vel, end_effector, root, com
 	// 五项权重: 
-	double pose_w = 0.5;
-	double vel_w = 0.05;
-	double end_eff_w = 0.15;
-	double root_w = 0.2;
-	double com_w = 0.1;
+	double pose_w = RewParams.pose_w;
+	double vel_w = RewParams.vel_w;
+	double end_eff_w = RewParams.end_eff_w;
+	double root_w = RewParams.root_w;
+	double com_w = RewParams.com_w;
+	// char log[200] = {};
+	// sprintf(log, "pose_w=%f, vel_w=%f, end_eff_w=%f, root_w=%f, com_w=%f",
+	// 		pose_w, vel_w, end_eff_w, root_w, com_w);
+	// std::cout << log << std::endl;
 
 	// normalize
 	double total_w = pose_w + vel_w + end_eff_w + root_w + com_w;
@@ -25,12 +95,18 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	com_w /= total_w;
 
 	// 又有一个scale
-	const double pose_scale = 2;
-	const double vel_scale = 0.1;
-	const double end_eff_scale = 40;
-	const double root_scale = 5;
-	const double com_scale = 10;
-	const double err_scale = 1;
+	const double pose_scale = RewParams.pose_scale;
+	const double vel_scale = RewParams.vel_scale;
+	const double end_eff_scale = RewParams.end_eff_scale;
+	const double root_scale = RewParams.root_scale;
+	const double com_scale = RewParams.com_scale;
+	const double err_scale = RewParams.err_scale;	// an uniform adjustment
+	// memset(log, 0, 200*sizeof(char));
+	// sprintf(log, "pose_scale=%f, vel_scale=%f, end_eff_scale=%f, root_scale=%f, com_scale=%f, err_scale=%f",
+	// 		pose_scale, vel_scale, end_eff_scale, root_scale, com_scale,
+	// 		err_scale);
+	// std::cout << log << std::endl;
+	
 
 	const auto& joint_mat = sim_char.GetJointMat();
 	const auto& body_defs = sim_char.GetBodyDefs();
@@ -50,6 +126,7 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	tVector com_vel1_world;
 	cRBDUtil::CalcCoM(joint_mat, body_defs, pose1, vel1, com1_world, com_vel1_world);
 
+	
 	int root_id = sim_char.GetRootID();
 	tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
 	tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
@@ -76,12 +153,15 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	pose_err += root_rot_w * cKinTree::CalcRootRotErr(joint_mat, pose0, pose1);
 	vel_err += root_rot_w * cKinTree::CalcRootAngVelErr(joint_mat, vel0, vel1);
 
+	std::vector<double> joint_angle_err, joint_vel_err;
 	for (int j = root_id + 1; j < num_joints; ++j)
 	{
 		double w = mJointWeights[j];
 		// 计算每一个joint的位置、朝向error，根据mJointWeights里的权重求和
 		double curr_pose_err = cKinTree::CalcPoseErr(joint_mat, j, pose0, pose1);
 		double curr_vel_err = cKinTree::CalcVelErr(joint_mat, j, vel0, vel1);
+		joint_angle_err.push_back(curr_pose_err);
+		joint_vel_err.push_back(curr_vel_err);
 		pose_err += w * curr_pose_err;
 		vel_err += w * curr_vel_err;
 
@@ -127,11 +207,17 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	double root_ang_vel_err = (root_ang_vel1 - root_ang_vel0).squaredNorm();
 
 	// root位置误差, 旋转误差(0.1), 速度误差(1e-2)，角速度误差(1e-3)，合称为root_err
-	root_err = root_pos_err
-			+ 0.1 * root_rot_err
-			+ 0.01 * root_vel_err
-			+ 0.001 * root_ang_vel_err;
+	root_err = RewParams.root_pos_w * root_pos_err
+			+ RewParams.root_rot_w * root_rot_err
+			+ RewParams.root_vel_w * root_vel_err
+			+ RewParams.root_angle_vel_w * root_ang_vel_err;
 	com_err = 0.1 * (com_vel1_world - com_vel0_world).squaredNorm();
+
+	// memset(log, 0, 200*sizeof(char));
+	// sprintf(log, "root_pos_w=%f, root_rot_w=%f, root_vel_w=%f, root_angle_vel_w=%f",
+	// 		RewParams.root_pos_w, RewParams.root_rot_w , RewParams.root_vel_w,
+	// 		RewParams.root_angle_vel_w);
+	// std::cout << log << std::endl;
 
 	double pose_reward = exp(-err_scale * pose_scale * pose_err);	// 各个joint的朝向 (实际 - 理想)^2
 	double vel_reward = exp(-err_scale * vel_scale * vel_err);		// joints的速度(实际 - 理想)^2
@@ -158,6 +244,9 @@ cSceneImitate::cSceneImitate()
 	mSyncCharRootPos = true;
 	mSyncCharRootRot = false;
 	mMotionFile = "";
+	mAngleDiffDir = "";
+	mRewardFile = "";
+	mEnableAngleDiffLog = false;
 	mEnableRootRotFail = false;
 	mHoldEndFrame = 0;
 }
@@ -175,6 +264,14 @@ void cSceneImitate::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 	parser->ParseBool("sync_char_root_rot", mSyncCharRootRot);
 	parser->ParseBool("enable_root_rot_fail", mEnableRootRotFail);
 	parser->ParseDouble("hold_end_frame", mHoldEndFrame);
+
+	// print angle diff log
+	parser->ParseBool("enable_angle_diff_log", mEnableAngleDiffLog);
+	parser->ParseString("angle_diff_dir", mAngleDiffDir);
+
+	// read reward weight file
+	parser->ParseString("reward_file", mRewardFile);
+
 }
 
 void cSceneImitate::Init()
@@ -183,7 +280,7 @@ void cSceneImitate::Init()
 	BuildKinChar();
 
 	cRLSceneSimChar::Init();
-	InitJointWeights();
+	InitRewardWeights();
 }
 
 double cSceneImitate::CalcReward(int agent_id) const
@@ -413,6 +510,54 @@ bool cSceneImitate::EnableSyncChar() const
 void cSceneImitate::InitCharacterPosFixed(const std::shared_ptr<cSimCharacter>& out_char)
 {
 	// nothing to see here
+}
+
+void cSceneImitate::InitRewardWeights()
+{
+	// read weight from file
+	ifstream fin(mRewardFile);
+	if(!fin)
+	{
+		std::cout <<"[cSceneImitate] open reward file " << mRewardFile <<" failed" << std::endl;
+		abort();
+	}
+	Json::Reader reader;
+	Json::Value root;
+	bool succ = reader.parse(fin, root);
+	if (!succ)
+	{
+		std::cout <<"[cSceneImitate] Failed to parse json " << mRewardFile << std::endl;
+	}
+	SetRewardParams(root);
+
+	// read joint error weight in pose_err calculation from skeleton file("DiffWeight")
+	InitJointWeights();
+}
+
+void cSceneImitate::SetRewardParams(Json::Value & root)
+{
+	Json::Value reward_weight_terms=root["reward_weight_terms"],
+		scale_terms=root["scale_terms"], 
+		root_sub_terms=root["root_sub_terms"];
+
+	RewParams.pose_w = reward_weight_terms["pose_w"].asDouble();
+	RewParams.vel_w = reward_weight_terms["vel_w"].asDouble();
+	RewParams.end_eff_w = reward_weight_terms["end_eff_w"].asDouble();
+	RewParams.root_w = reward_weight_terms["root_w"].asDouble();
+	RewParams.com_w = reward_weight_terms["com_w"].asDouble();
+
+	RewParams.pose_scale = scale_terms["pose_scale"].asDouble();
+	RewParams.vel_scale = scale_terms["vel_scale"].asDouble();
+	RewParams.end_eff_scale = scale_terms["end_eff_scale"].asDouble();
+	RewParams.root_scale = scale_terms["root_scale"].asDouble();
+	RewParams.com_scale = scale_terms["com_scale"].asDouble();
+	RewParams.err_scale = scale_terms["err_scale"].asDouble();
+
+	RewParams.root_pos_w = root_sub_terms["root_pos_w"].asDouble();
+	RewParams.root_rot_w = root_sub_terms["root_rot_w"].asDouble();
+	RewParams.root_vel_w = root_sub_terms["root_vel_w"].asDouble();
+	RewParams.root_angle_vel_w = root_sub_terms["root_angle_vel_w"].asDouble();
+
 }
 
 void cSceneImitate::InitJointWeights()

@@ -70,6 +70,36 @@ void cRLSceneSimChar::RecordGoal(int agent_id, Eigen::VectorXd& out_goal) const
 	ctrl->RecordGoal(out_goal);
 }
 
+void cRLSceneSimChar::RecordContactInfo(int agent_id, Eigen::VectorXd& out_goal) const
+{
+	std::shared_ptr<cWorld> world = GetWorld();
+	if(nullptr != world)
+	{
+		// 1. contact_manager is supposed to manage all the contact infos.
+		const cContactManager & contact_manager = world->GetContactManager();
+		out_goal.resize(contact_manager.GetNumTotalContactPts() * 7);
+
+		// 2. for body i, its contact info is located in contact_managed[i]
+		for (int i = 0, cur_index = 0; i < contact_manager.GetNumEntries(); i++)
+		{
+			const tEigenArr<cContactManager::tContactPt> &p = contact_manager.GetContactPts(i);
+			for(auto &cur_pt : p)
+			{
+				// format: body_id(1) + pt_pos(3) + pt_force(3) = 7
+				out_goal[cur_index + 0] = i;
+				out_goal.block(cur_index + 1, 0, 3, 1) = cur_pt.mPos.block(0, 0, 3,1);
+				out_goal.block(cur_index + 3 + 1, 0, 3, 1) = cur_pt.mForce.block(0, 0, 3, 1);
+				cur_index += 7;
+			}
+		}
+	}
+	else
+	{
+		out_goal.resize(0);
+		printf("[warn] world ptr is null in cRLSceneSimChar::RecordContactInfo\n");
+	}
+}
+
 void cRLSceneSimChar::SetAction(int agent_id, const Eigen::VectorXd& action)
 {
 	// std::cout <<"void cRLSceneSimChar::SetAction" << std::endl;
