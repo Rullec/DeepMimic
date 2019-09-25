@@ -36,7 +36,8 @@ bool cSimCharacter::Init(const std::shared_ptr<cWorld>& world, const tParams& pa
 {
 	/*
 		角色的初始化是要手动调用的
-		这套代码中，所有的对象都不是在构造函数中完全构造出来的，都在另开了一个init函数弄出来。
+		这套代码中，所有的对象都不是在构造函数中完全构造出来的，都在另开了一个init函数弄出来;
+		而且这个chracter本质上是归属于world管的
 	 */
 	bool succ = true;
 	// 在sim char后面还有一个Character
@@ -1248,6 +1249,7 @@ void cSimCharacter::UpdateJoints()
 		if (joint.IsValid())
 		{
 			joint.ApplyTau();
+
 		}
 	}
 }

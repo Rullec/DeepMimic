@@ -10,6 +10,8 @@
 #include "render/DrawWorld.h"
 #include "render/DrawPerturb.h"
 #include <iostream>
+//#include "RLScene.h"
+
 using namespace std;
 
 const tVector gCamFocus0 = tVector(0, 0.75, 0, 0);
@@ -52,7 +54,15 @@ void cDrawSceneSimChar::Clear()
 
 void cDrawSceneSimChar::Update(double time_elapsed)
 {
-	// std::cout <<"void cDrawSceneSimChar::Update(double time_elapsed) called"  << std::endl;
+	//cRLScene * rl_scene = dynamic_cast<cRLScene *>(this->mScene.get());
+	//Eigen::VectorXd goal;
+	//for (int i = 0; i< rl_scene->GetNumAgents(); i++)
+	//{
+	//	rl_scene->RecordContactInfo(i, goal);
+	//	std::cout << goal.transpose() << std::endl;
+	//}
+	
+	
 	cDrawScene::Update(time_elapsed);
 
 	UpdateScene(time_elapsed);

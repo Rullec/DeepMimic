@@ -22,6 +22,7 @@ cContactManager::tContactEntry::tContactEntry()
 {
 	mFlags = gFlagAll;
 	mFilterFlags = gFlagAll;
+	mContactPts.clear();
 }
 
 bool cContactManager::tContactHandle::IsValid() const
@@ -61,7 +62,6 @@ void cContactManager::Clear()
 
 void cContactManager::Update()
 {
-	// std::cout << "void cContactManager::Update() 开始更新contact" << std::endl;
 	ClearContacts();
 	double world_scale = mWorld.GetScale();
 	double timestep = mWorld.GetTimeStep();
@@ -96,7 +96,7 @@ void cContactManager::Update()
 				{
 					double impulse = pt.getAppliedImpulse() / world_scale;
 					tVector normal = tVector(pt.m_normalWorldOnB[0], pt.m_normalWorldOnB[1], pt.m_normalWorldOnB[2], 0);
-					tVector force0 = (impulse / timestep) * normal;
+					tVector force0 = (impulse / timestep) * normal;	// A受的力?
 
 					if (h0.IsValid())
 					{
@@ -149,6 +149,17 @@ int cContactManager::GetNumEntries() const
 	return static_cast<int>(mContactEntries.size());
 }
 
+int cContactManager::GetNumTotalContactPts() const
+{
+	int num_total_pts = 0;
+	for(auto &i : mContactEntries)
+	{
+		
+		num_total_pts += i.mContactPts.size();
+	}
+	return num_total_pts;
+}
+
 bool cContactManager::IsInContact(const tContactHandle& handle) const
 {
 	if (handle.IsValid())
@@ -171,6 +182,7 @@ const tEigenArr<cContactManager::tContactPt>& cContactManager::GetContactPts(int
 
 int cContactManager::RegisterNewID()
 {
+	// 每次mContactEntries增加一个点
 	int id = gInvalidID;
 	id = static_cast<int>(mContactEntries.size());
 	mContactEntries.resize(id + 1);
@@ -189,8 +201,8 @@ void cContactManager::ClearContacts()
 
 bool cContactManager::IsValidContact(const tContactHandle& h0, const tContactHandle& h1) const
 {
-	bool valid_h0 = ((h0.mFilterFlags & h1.mFlags) != 0);
-	bool valid_h1 = ((h1.mFilterFlags & h0.mFlags) != 0);
+	bool valid_h0 = ((h0.mFilterFlags & h1.mFlags) != 0);	// 这两个flag是cWorld::eCharacterXX / cWorld::eEnvironmentXX之类的
+	bool valid_h1 = ((h1.mFilterFlags & h0.mFlags) != 0);	// 代表的是哪2类相撞。如果相撞类别不同，那h0和h1就是无效的。
 	bool valid_contact = valid_h0 && valid_h1;
-	return valid_contact;
+	return valid_contact;	// 才有效
 }

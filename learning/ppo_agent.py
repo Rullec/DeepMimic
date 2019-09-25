@@ -137,8 +137,8 @@ class PPOAgent(PGAgent):
         self.actor_loss_tf = -tf.reduce_mean(tf.minimum(actor_loss0, actor_loss1))
 
         # action有上下界
-        print("action bound min = " % self.a_bound_min)
-        print("action bound max = " % self.a_bound_max)
+        # print("action bound min = " % self.a_bound_min)
+        # print("action bound max = " % self.a_bound_max)
         norm_a_bound_min = self.a_norm.normalize(self.a_bound_min)
         norm_a_bound_max = self.a_norm.normalize(self.a_bound_max)
         a_bound_loss = TFUtil.calc_bound_loss(self._norm_a_mean_tf, norm_a_bound_min, norm_a_bound_max)
@@ -202,12 +202,12 @@ class PPOAgent(PGAgent):
 
         a, logp = self.sess.run([self.sample_a_tf, self.sample_a_logp_tf], feed_dict=feed)
 
-        if np.random.rand() < 1e-3:
-            v1, v2, v3, v4 = self.sess.run([self.norm_a_std_tf, self.norm_a_noise_tf, self.a_mean_tf, self.a_norm.std_tf], feed)
-            print("[var] self.norm_a_std_tf = %s" % str(v1.transpose()))
-            print("[var] self.norm_a_noise_tf = %s" % str(v2.transpose()))
-            print("[var] self.a_mean_tf = %s" % str(v3.transpose()))
-            print("[var] self.a_norm_std_tf = %s" % str(v4.transpose()))
+        # if np.random.rand() < 1e-3:
+        #     v1, v2, v3, v4 = self.sess.run([self.norm_a_std_tf, self.norm_a_noise_tf, self.a_mean_tf, self.a_norm.std_tf], feed)
+        #     print("[var] self.norm_a_std_tf = %s" % str(v1.transpose()))
+        #     print("[var] self.norm_a_noise_tf = %s" % str(v2.transpose()))
+        #     print("[var] self.a_mean_tf = %s" % str(v3.transpose()))
+        #     print("[var] self.a_norm_std_tf = %s" % str(v4.transpose()))
         return a, logp
 
     def _train_step(self):

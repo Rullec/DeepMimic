@@ -4,10 +4,11 @@ import csv
 import sys
 from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
-project_dir = "/home/xudong/Projects/DeepMimic"
-skeleton_path = "data/0904/characters/skeleton_0904.json"
-pd_path = "data/0828/controllers/humanoid3d_ctrl_082901.txt"
-
+project_dir = "/home/darknight/Projects/DeepMimic"
+skeleton_path = "data/0917/characters/091702_fix_none_adjust_weight.json"
+pd_path = "data/0917/controllers/humanoid3d_ctrl_fix_none.txt"
+#skeleton_path = "data/raw/characters/humanoid3d.txt"
+#pd_path = "data/raw/controllers/humanoid3d_ctrl.txt"
 reduce = lambda f : round(f, 4)
 def parse_pd(file):
     f_pd = open(file, "r")
@@ -49,9 +50,12 @@ def parse_skeleton(file):
     skeleton_joints = value["Skeleton"]["Joints"]
     for i in skeleton_joints:
         name = i["Name"]
-        torquelim = reduce(i["TorqueLim"])
         diff_weight = reduce(i["DiffWeight"])
         type_ = i["Type"]
+        if type_ == "fixed":
+            torquelim = 0
+        else:
+            torquelim = reduce(i["TorqueLim"])
 
         # add
         info_dict[name]["TorqueLim"] = torquelim
@@ -79,7 +83,6 @@ def write_csv(info_dict, path = "data.csv"):
     title_lst = list(info_dict["root"].keys())
     
     with open(path, "a") as f:
-        write_tabular_line(title_lst, f)
         write_tabular_line(title_lst, f)
 
     # write content
