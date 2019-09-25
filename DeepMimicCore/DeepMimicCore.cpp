@@ -228,6 +228,26 @@ std::vector<double> cDeepMimicCore::RecordGoal(int agent_id) const
 	return std::vector<double>(0);
 }
 
+std::vector<double> cDeepMimicCore::RecordContactInfo(int agent_id) const
+{
+	const auto & rl_scene = GetRLScene();
+	if (nullptr != rl_scene)
+	{
+		Eigen::VectorXd goal;
+		rl_scene->RecordGoal(agent_id, goal);
+		std::vector<double> out_goal;
+		ConvertVector(goal, out_goal);
+		return out_goal;
+	}
+	return std::vector<double>(0);
+}
+
+void cDeepMimicCore::RestoreContactInfo(int agent_id, const std::vector<double> & contact_info) const
+{
+	std::cout << "the func void cDeepMimicCore::RestoreContactInfo(int agent_id) const needs to be implemented" << std::endl;
+	return;
+}
+
 void cDeepMimicCore::SetAction(int agent_id, const std::vector<double>& action)
 {
 	// std::cout << "cDeepMimicCore::SetAction called" << std::endl;
@@ -403,9 +423,9 @@ std::vector<double> cDeepMimicCore::BuildActionScale(int agent_id) const
 		std::vector<double> out_scale;
 		ConvertVector(scale, out_scale);
 
-		std::cout <<"[scale] get scale from rl_scene:";
-		for(auto i : out_scale)
-			std::cout << i <<" ";
+		// std::cout <<"[scale] get scale from rl_scene:";
+		// for(auto i : out_scale)
+		// 	std::cout << i <<" ";
 		
 		return out_scale;
 	}

@@ -149,7 +149,6 @@ void cSceneSimChar::Clear()
 
 void cSceneSimChar::Update(double time_elapsed)
 {
-	// std::cout <<"void cSceneSimChar::Update(double time_elapsed)" << std::endl;
 
 	cScene::Update(time_elapsed);
 
@@ -634,7 +633,7 @@ void cSceneSimChar::UpdateCharacters(double time_step)
 			fout.open(mTorqueRecordFile.c_str(), std::ios::app);
 			if (true == fout.fail())
 			{
-				std::cout << "open torque record file " << mTorqueRecordFile << "failed! abort..." << std::endl;
+				std::cout << "[cSceneSimChar] open torque record file " << mTorqueRecordFile << " failed! abort..." << std::endl;
 				abort();
 			}
 

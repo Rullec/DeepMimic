@@ -74,19 +74,24 @@ def paint_dir(dir_path):
     num = len(files)
     plt.rcParams["figure.figsize"] = (20, 10)
 
-    plt.ion()
-    while True:
-        plt.clf()
-        for i in range(num):
-            angle, vel = read_one_joint(i, dir_path)
-            plt.subplot(5, 5, i + 1)
-            plt.plot(angle)
-            plt.plot(vel)
-            plt.title(id_name_map[i])
-            plt.legend(["angle", "vel"])
-        plt.tight_layout()
+    for i in range(num):
+        # angle, vel = read_one_joint(i, dir_path)
+        # plt.subplot(5, 5, i + 1)
+        # plt.plot(angle)
+        # plt.plot(vel)
+        # plt.title(id_name_map[i])
+        # plt.legend(["angle", "vel"])
+        # plt.tight_layout()
         # plt.show()
-        plt.pause(0.01)
+        # plt.pause(0.01)
+        angle, vel = read_one_joint(i, dir_path)
+        plt.subplot(5, 5, i + 1)
+        plt.plot(angle, label = "angle")
+        # plt.plot(vel)
+        plt.title(id_name_map[i])
+        # plt.legend(["angle", "vel"])
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == '__main__':
     args = sys.argv[1:]
