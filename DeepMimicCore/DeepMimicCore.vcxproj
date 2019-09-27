@@ -30,7 +30,7 @@
     <ProjectGuid>{43011113-B968-462C-B99A-539E3E98BC15}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>TerrainRL</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
     <ProjectName>DeepMimicCore</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -70,7 +70,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Swig|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -122,6 +122,7 @@
     <TargetName>_$(ProjectName)</TargetName>
     <TargetExt>.pyd</TargetExt>
     <IncludePath>$(ProjectDir);E:\VS2017Projects\include\bullet_src_for_include;E:\VS2017Projects\include;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\VS2017Projects\library_release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -230,17 +231,18 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir);E:\Anaconda3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\..\library\Bullet3\build3\lib\Release;$(PYTHON_LIB);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Anaconda3\libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;BulletDynamics.lib;BulletCollision.lib;LinearMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(ProjectDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
@@ -251,6 +253,7 @@
     <ClCompile Include="anim\KinTree.cpp" />
     <ClCompile Include="anim\Motion.cpp" />
     <ClCompile Include="anim\Shape.cpp" />
+    <ClCompile Include="DeepMimicCore_wrap.cpp" />
     <ClCompile Include="Main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Swig|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -451,13 +454,13 @@ echo PYTHON_LIB: %PYTHON_LIB%
 echo SWIG_DIR: %SWIG_DIR%
 echo on
 $(SWIG_DIR)\swig.exe -c++ -python -o $(ProjectName)_wrap.cpp  $(ProjectName).i</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release_Swig|Win32'">$(ProjectName)_wrap.cxx;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release_Swig|Win32'">$(ProjectName)_wrap.cpp;%(Outputs)</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release_Swig|x64'">echo PYTHON_INCLUDE: %PYTHON_INCLUDE%
 echo PYTHON_LIB: %PYTHON_LIB%
 echo SWIG_DIR: %SWIG_DIR%
 echo on
 $(SWIG_DIR)\swig.exe -c++ -python -o $(ProjectName)_wrap.cpp  $(ProjectName).i</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release_Swig|x64'">$(ProjectName)_wrap.cxx;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release_Swig|x64'">$(ProjectName)_wrap.cpp;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
