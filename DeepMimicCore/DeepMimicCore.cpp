@@ -234,7 +234,7 @@ std::vector<double> cDeepMimicCore::RecordContactInfo(int agent_id) const
 	if (nullptr != rl_scene)
 	{
 		Eigen::VectorXd goal;
-		rl_scene->RecordGoal(agent_id, goal);
+		rl_scene->RecordContactInfo(agent_id, goal);
 		std::vector<double> out_goal;
 		ConvertVector(goal, out_goal);
 		return out_goal;
