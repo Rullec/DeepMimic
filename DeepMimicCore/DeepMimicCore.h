@@ -48,6 +48,7 @@ public:
 	virtual int GetNumAgents() const;
 	virtual bool NeedNewAction(int agent_id) const;
 	virtual std::vector<double> RecordState(int agent_id) const;
+	virtual std::vector<double> RecordPose(int agent_id) const;
 	virtual std::vector<double> RecordGoal(int agent_id) const;
 	virtual std::vector<double> RecordContactInfo(int agent_id) const;
 	virtual void RestoreContactInfo(int agent_id, const std::vector<double> & contact_info) const;

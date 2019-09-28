@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 import os
-import time
+import time, datetime
 
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -339,6 +339,10 @@ class RLAgent(ABC):
         s = self.world.env.record_state(self.id)
         return s
 
+    def _record_pose(self):
+        p = self.world.env.record_pose(self.id)
+        return p
+
     def _record_goal(self):
         g = self.world.env.record_goal(self.id)
         return g
@@ -346,6 +350,7 @@ class RLAgent(ABC):
     def _record_reward(self):
         r = self.world.env.calc_reward(self.id)
         return r
+
 
     def _apply_action(self, a):
         # print("action = " + str(a))
@@ -363,16 +368,23 @@ class RLAgent(ABC):
 
     def _end_path(self):
         s = self._record_state()
+        p = self._record_pose()
         g = self._record_goal()
         r = self._record_reward()
+
+
         print("[rl agent] end path, r = {}".format(r))
         self.path.rewards.append(r)
         self.path.states.append(s)
+        self.path.poses.append(p)
+
         assert np.isfinite(s).all() == True # 在end of path的时候，state突然崩了。
         # 其实我还有点好奇: state为什么是275呢?
         self.path.goals.append(g)
         self.path.terminate = self.world.env.check_terminate(self.id)
 
+        cur_time_str = str(datetime.datetime.now()).replace(" ", "_").replace(":","-")
+        self.path.save("logs/paths/" + cur_time_str)
         return
 
     def _update_new_action(self):
@@ -383,7 +395,7 @@ class RLAgent(ABC):
         '''
         # 获取新的action
         s = self._record_state()
-        
+        p = self._record_pose()
         g = self._record_goal()
         # print("goal is %s" % str(g))
         # exit()
@@ -418,6 +430,7 @@ class RLAgent(ABC):
         # path里面有所有信息: state goal actions logps flags，每次就是存进去。
         # 所以现在的问题就是，为什么这些state action goal a logp会是nan?
         self.path.states.append(s)
+        self.path.poses.append(p)
         self.path.goals.append(g)
         self.path.actions.append(a)
         self.path.logps.append(logp)

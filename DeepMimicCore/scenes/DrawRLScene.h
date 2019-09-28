@@ -13,6 +13,7 @@ public:
 	virtual int GetNumAgents() const;
 	virtual bool NeedNewAction(int agent_id) const;
 	virtual void RecordState(int agent_id, Eigen::VectorXd& out_state) const;
+	virtual void RecordPose(int agent_id, Eigen::VectorXd& out_state) const; 
 	virtual void RecordGoal(int agent_id, Eigen::VectorXd& out_goal) const;
 	virtual void RecordContactInfo(int agent_id, Eigen::VectorXd& out_goal) const;
 	virtual void SetAction(int agent_id, const Eigen::VectorXd& action);

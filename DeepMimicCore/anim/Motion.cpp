@@ -485,12 +485,11 @@ void cMotion::CalcIndexPhase(double time, int& out_idx, double& out_phase) const
 	}
 
 	const Eigen::VectorXd& frame_times = mFrames.col(eFrameTime);
-	auto it = std::upper_bound(frame_times.data(), frame_times.data() + frame_times.size(), time);
-	out_idx = static_cast<int>(it - frame_times.data() - 1);
-
+	auto it = std::upper_bound(frame_times.data(), frame_times.data() + frame_times.size(), time);// 返回大于time的第一个元素的地址
+	out_idx = static_cast<int>(it - frame_times.data() - 1); // the first element is
 	double time0 = frame_times(out_idx);
 	double time1 = frame_times(out_idx + 1);
-	out_phase = (time - time0) / (time1 - time0);
+	out_phase = (time - time0) / (time1 - time0);	// 在这一帧走到什么阶段了（）
 }
 
 void cMotion::UpdateVel()
