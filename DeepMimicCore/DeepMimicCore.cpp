@@ -243,13 +243,26 @@ std::vector<double> cDeepMimicCore::RecordGoal(int agent_id) const
 
 std::vector<double> cDeepMimicCore::RecordContactInfo(int agent_id) const
 {
+	// align the size of out_goal to 6*7 = 42
+	const int contact_size = 42;
+	const int INVALID_ID = -1;
+	Eigen::VectorXd contact(contact_size);
+	contact.setConstant(INVALID_ID);
+
 	const auto & rl_scene = GetRLScene();
 	if (nullptr != rl_scene)
 	{
-		Eigen::VectorXd goal;
-		rl_scene->RecordContactInfo(agent_id, goal);
+		Eigen::VectorXd contact_tmp;
+		rl_scene->RecordContactInfo(agent_id, contact_tmp);
+		if(contact_tmp.size() > contact_size)
+		{
+			std::cout <<"[error] the size of contact info exceed " << contact_size << std::endl;
+			abort();
+		}
+		contact.block(0, 0, contact_tmp.size(), 1) = contact_tmp;
+
 		std::vector<double> out_goal;
-		ConvertVector(goal, out_goal);
+		ConvertVector(contact, out_goal);
 		return out_goal;
 	}
 	return std::vector<double>(0);

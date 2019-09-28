@@ -96,6 +96,9 @@ class DeepMimicEnv(Env):
     def record_goal(self, agent_id):
         return np.array(self._core.RecordGoal(agent_id))
 
+    def record_contact_info(self, agent_id):
+        return np.array(self._core.RecordContactInfo(agent_id))
+        
     def get_action_space(self, agent_id):
         return ActionSpace(self._core.GetActionSpace(agent_id))
     
