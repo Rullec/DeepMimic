@@ -29,6 +29,12 @@ void cDrawRLScene::RecordState(int agent_id, Eigen::VectorXd& out_state) const
 	GetRLScene()->RecordState(agent_id, out_state);
 }
 
+void cDrawRLScene::RecordPose(int agent_id, Eigen::VectorXd& out_state) const
+{
+	GetRLScene()->RecordPose(agent_id, out_state);
+
+}
+
 void cDrawRLScene::RecordGoal(int agent_id, Eigen::VectorXd& out_goal) const
 {
 	GetRLScene()->RecordGoal(agent_id, out_goal);

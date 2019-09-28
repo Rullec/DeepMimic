@@ -74,6 +74,10 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	// std::cout << "compute reward, angle diff = " << mEnableAngleDiffLog <<", dir = " << mAngleDiffDir <<std::endl;
 	if (mEnableAngleDiffLog == true)	DiffLogOutput(sim_char, kin_char);
 
+	// get current run time from kin_char
+	//double time = kin_char.GetTime();
+	//std::cout << "time = " << time << std::endl;
+	
 	// reward共计5项，pose, vel, end_effector, root, com
 	// 五项权重: 
 	double pose_w = RewParams.pose_w;
@@ -112,7 +116,8 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	const auto& body_defs = sim_char.GetBodyDefs();
 	double reward = 0;
 
-	// sim_char和kin_char的区别是什么?
+	// sim_char: simulation character
+	// kin_char: the representation of motion data
 	const Eigen::VectorXd& pose0 = sim_char.GetPose();
 	const Eigen::VectorXd& vel0 = sim_char.GetVel();
 	const Eigen::VectorXd& pose1 = kin_char.GetPose();

@@ -142,7 +142,7 @@ public:
 	virtual void SetColMask(short col_mask);
 
 protected:
-	std::shared_ptr<cMultiBody> mMultBody;
+	std::shared_ptr<cMultiBody> mMultiBody;
 	std::vector<std::shared_ptr<cSimBodyLink>> mBodyParts;
 	tEigenArr<cSimBodyJoint> mJoints;
 	std::vector<std::shared_ptr<btMultiBodyJointLimitConstraint>> mCons;
