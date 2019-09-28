@@ -351,6 +351,9 @@ class RLAgent(ABC):
         r = self.world.env.calc_reward(self.id)
         return r
 
+    def _record_contact_info(self):
+        c = self.world.env.record_contact_info(self.id)
+        return c
 
     def _apply_action(self, a):
         # print("action = " + str(a))
@@ -368,6 +371,7 @@ class RLAgent(ABC):
 
     def _end_path(self):
         s = self._record_state()
+        c = self._record_contact_info()
         p = self._record_pose()
         g = self._record_goal()
         r = self._record_reward()
@@ -376,6 +380,7 @@ class RLAgent(ABC):
         print("[rl agent] end path, r = {}".format(r))
         self.path.rewards.append(r)
         self.path.states.append(s)
+        self.path.contact_info.append(c)
         self.path.poses.append(p)
 
         assert np.isfinite(s).all() == True # 在end of path的时候，state突然崩了。
@@ -395,6 +400,7 @@ class RLAgent(ABC):
         '''
         # 获取新的action
         s = self._record_state()
+        c = self._record_contact_info()
         p = self._record_pose()
         g = self._record_goal()
         # print("goal is %s" % str(g))
@@ -430,6 +436,7 @@ class RLAgent(ABC):
         # path里面有所有信息: state goal actions logps flags，每次就是存进去。
         # 所以现在的问题就是，为什么这些state action goal a logp会是nan?
         self.path.states.append(s)
+        self.path.contact_info.append(c)
         self.path.poses.append(p)
         self.path.goals.append(g)
         self.path.actions.append(a)

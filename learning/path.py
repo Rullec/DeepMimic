@@ -43,6 +43,7 @@ class Path(object):
         self.logps = []
         self.rewards = []
         self.flags = []
+        self.contact_info = []
         self.terminate = Env.Terminate.Null
         return
 
@@ -61,6 +62,7 @@ class Path(object):
             "actions" : [i.tolist() for i in self.actions],
             "logps" : [float(i) for i in self.logps],
             "rewards" : [ float(i) for i in self.rewards],
+            "contact_info" : [i.tolist() for i in self.contact_info]
         }
         with open(filename, "w") as f:
             json.dump(cont, f, indent=4)
