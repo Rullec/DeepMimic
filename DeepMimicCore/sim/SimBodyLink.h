@@ -42,7 +42,7 @@ public:
 	virtual int GetJointID() const;
 
 protected:
-	std::shared_ptr<cMultiBody> mMultBody;
+	std::shared_ptr<cMultiBody> mMultiBody;
 	std::unique_ptr<btMultiBodyLinkCollider> mColObj;	// 从这个地方拿到当前mesh link的真正位置
 
 	int mJointID;

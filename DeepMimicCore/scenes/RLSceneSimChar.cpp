@@ -1,4 +1,5 @@
 ﻿#include "RLSceneSimChar.h"
+#include "../sim/CtController.h"
 #include <iostream>
 
 cRLSceneSimChar::cRLSceneSimChar()
@@ -63,11 +64,32 @@ void cRLSceneSimChar::RecordState(int agent_id, Eigen::VectorXd& out_state) cons
 	ctrl->RecordState(out_state);
 }
 
+void cRLSceneSimChar::RecordPose(int agent_id, Eigen::VectorXd& out_state) const
+{
+	const cSimCharacter * sim_char = GetAgentChar(agent_id);
+	const Eigen::VectorXd & char_pose = sim_char->GetPose();
+	const int char_pose_size = char_pose.size();
+	cCtController * ctrl = dynamic_cast<cCtController *>(sim_char->GetController().get());
+	if (nullptr == ctrl)
+	{
+		out_state.resize(0);
+		std::cout << "[error] get controller failed when RecordPose" << std::endl;
+	}
+	else
+	{
+		out_state.resize(1 + char_pose_size);
+		out_state[0] = 1.0 / ctrl->GetUpdateRate();	// 1 / update_frenquency
+		out_state.block(1, 0, char_pose_size, 1) = char_pose;
+	}
+}
+
 void cRLSceneSimChar::RecordGoal(int agent_id, Eigen::VectorXd& out_goal) const
 {
+	class cCtController;
 	// std::cout << "get goal from controller " << std::endl;
 	const auto& ctrl = GetController(agent_id);
 	ctrl->RecordGoal(out_goal);
+	
 }
 
 void cRLSceneSimChar::RecordContactInfo(int agent_id, Eigen::VectorXd& out_goal) const

@@ -246,10 +246,10 @@ void cSimCharacter::SetVel(const Eigen::VectorXd& vel)
 	tVector root_ang_vel = cKinTree::GetRootAngVel(mJointMat, vel);
 	cKinTree::eJointType root_type = cKinTree::GetJointType(mJointMat, root_id);
 
-	if (!mMultBody->hasFixedBase())
+	if (!mMultiBody->hasFixedBase())
 	{
-		mMultBody->setBaseVel(world_scale * btVector3(root_vel[0], root_vel[1], root_vel[2]));
-		mMultBody->setBaseOmega(btVector3(root_ang_vel[0], root_ang_vel[1], root_ang_vel[2]));
+		mMultiBody->setBaseVel(world_scale * btVector3(root_vel[0], root_vel[1], root_vel[2]));
+		mMultiBody->setBaseOmega(btVector3(root_ang_vel[0], root_ang_vel[1], root_ang_vel[2]));
 	}
 	else
 	{
@@ -748,8 +748,8 @@ void cSimCharacter::SetPose(const Eigen::VectorXd& pose)
 	cKinTree::eJointType root_type = cKinTree::GetJointType(mJointMat, root_id);
 
 	tVector euler = cMathUtil::QuaternionToEuler(root_rot);
-	mMultBody->setBasePos(world_scale * btVector3(root_pos[0], root_pos[1], root_pos[2]));
-	mMultBody->setWorldToBaseRot(btQuaternion(root_rot.x(), root_rot.y(), root_rot.z(), root_rot.w()).inverse());
+	mMultiBody->setBasePos(world_scale * btVector3(root_pos[0], root_pos[1], root_pos[2]));
+	mMultiBody->setWorldToBaseRot(btQuaternion(root_rot.x(), root_rot.y(), root_rot.z(), root_rot.w()).inverse());
 
 	cSimBodyJoint& root_joint = GetJoint(root_id);
 	Eigen::VectorXd root_pose = Eigen::VectorXd::Zero(GetParamSize(root_id));
@@ -786,16 +786,16 @@ bool cSimCharacter::BuildSimBody(const tParams& params)
 	{
 		mInvRootAttachRot = cMathUtil::EulerToQuaternion(cKinTree::GetAttachTheta(mJointMat, GetRootID())).inverse();
 		
-		succ &= BuildMultiBody(mMultBody);
-		succ &= BuildConstraints(mMultBody);
+		succ &= BuildMultiBody(mMultiBody);
+		succ &= BuildConstraints(mMultiBody);
 		succ &= BuildBodyLinks();
 		succ &= BuildJoints();
 
 		mWorld->AddCharacter(*this);
 
-		mVecBuffer0.resize(mMultBody->getNumLinks() + 1);
-		mVecBuffer1.resize(mMultBody->getNumLinks() + 1);
-		mRotBuffer.resize(mMultBody->getNumLinks() + 1);
+		mVecBuffer0.resize(mMultiBody->getNumLinks() + 1);
+		mVecBuffer1.resize(mMultiBody->getNumLinks() + 1);
+		mRotBuffer.resize(mMultiBody->getNumLinks() + 1);
 	}
 
 	return succ;
@@ -812,11 +812,11 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 	bool fixed_base = FixedBase();
 	btVector3 base_intertia = btVector3(0, 0, 0);
 	btScalar base_mass = 0;
-	mMultBody = std::shared_ptr<cMultiBody>(new cMultiBody(num_joints, base_mass, base_intertia, fixed_base, false));
+	mMultiBody = std::shared_ptr<cMultiBody>(new cMultiBody(num_joints, base_mass, base_intertia, fixed_base, false));
 
 	btTransform base_trans;
 	base_trans.setIdentity();
-	mMultBody->setBaseWorldTransform(base_trans);
+	mMultiBody->setBaseWorldTransform(base_trans);
 
 	for (int j = 0; j < num_joints; ++j)
 	{
@@ -876,7 +876,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 		std::cout<<"[init body] link " << j <<", mass = " << mass <<", inertia = " << tmp_inertia.transpose() << std::endl;
 		if (is_root && !fixed_base)
 		{
-			mMultBody->setupFixed(j, static_cast<btScalar>(mass), inertia, parent_joint,
+			mMultiBody->setupFixed(j, static_cast<btScalar>(mass), inertia, parent_joint,
 				parent_body_to_body_trans.getRotation(),
 				world_scale * btVector3(joint_attach_pt[0], joint_attach_pt[1], joint_attach_pt[2]),
 				world_scale * btVector3(body_attach_pt[0], body_attach_pt[1], body_attach_pt[2]),
@@ -891,7 +891,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 				tVector axis = tVector(1, 0, 0, 0);
 				axis = cMathUtil::QuatRotVec(this_to_body, axis);
 
-				mMultBody->setupRevolute(j, static_cast<btScalar>(mass), inertia, parent_joint,
+				mMultiBody->setupRevolute(j, static_cast<btScalar>(mass), inertia, parent_joint,
 					parent_body_to_body_trans.getRotation(),
 					btVector3(axis[0], axis[1], axis[2]),
 					world_scale * btVector3(joint_attach_pt[0], joint_attach_pt[1], joint_attach_pt[2]),
@@ -907,7 +907,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 				tVector axis = tVector(0, 0, 1, 0);
 				axis = cMathUtil::QuatRotVec(this_to_body, axis);
 
-				mMultBody->setupPlanar(j, static_cast<btScalar>(mass), inertia, parent_joint,
+				mMultiBody->setupPlanar(j, static_cast<btScalar>(mass), inertia, parent_joint,
 					parent_body_to_body_trans.getRotation(),
 					btVector3(axis[0], axis[1], axis[2]),
 					world_scale * btVector3(offset[0], offset[1], offset[2]),
@@ -919,7 +919,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 				tVector axis = tVector(1, 0, 0, 0);
 				axis = cMathUtil::QuatRotVec(this_to_body, axis);
 				
-				mMultBody->setupPrismatic(j, static_cast<btScalar>(mass), inertia, parent_joint,
+				mMultiBody->setupPrismatic(j, static_cast<btScalar>(mass), inertia, parent_joint,
 					parent_body_to_body_trans.getRotation(),
 					btVector3(axis[0], axis[1], axis[2]),
 					world_scale * btVector3(joint_attach_pt[0], joint_attach_pt[1], joint_attach_pt[2]),
@@ -929,7 +929,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 			break;
 			case cKinTree::eJointTypeFixed:
 			{
-				mMultBody->setupFixed(j, static_cast<btScalar>(mass), inertia, parent_joint,
+				mMultiBody->setupFixed(j, static_cast<btScalar>(mass), inertia, parent_joint,
 					parent_body_to_body_trans.getRotation(),
 					world_scale * btVector3(joint_attach_pt[0], joint_attach_pt[1], joint_attach_pt[2]),
 					world_scale * btVector3(body_attach_pt[0], body_attach_pt[1], body_attach_pt[2]),
@@ -938,7 +938,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 			break;
 			case cKinTree::eJointTypeSpherical:
 			{
-				mMultBody->setupSpherical(j, static_cast<btScalar>(mass), inertia, parent_joint,
+				mMultiBody->setupSpherical(j, static_cast<btScalar>(mass), inertia, parent_joint,
 					parent_body_to_body_trans.getRotation(),
 					world_scale * btVector3(joint_attach_pt[0], joint_attach_pt[1], joint_attach_pt[2]),
 					world_scale * btVector3(body_attach_pt[0], body_attach_pt[1], body_attach_pt[2]),
@@ -954,7 +954,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 
 		// 从这里开始，添加碰撞。
 		// 如果有问题，只有可能是添加的时候初始化有问题，就从这里排查，把log打出来，然后看他们究竟有什么不一样的地方。
-		btMultiBodyLinkCollider* col_obj = new btMultiBodyLinkCollider(mMultBody.get(), j);
+		btMultiBodyLinkCollider* col_obj = new btMultiBodyLinkCollider(mMultiBody.get(), j);
 
 		col_obj->setCollisionShape(col_shape);
 		btTransform col_obj_trans;
@@ -967,10 +967,10 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 		std::cout << "[add collider] filter group " << j << " = " << collisionFilterGroup << std::endl;
 		std::cout << "[add collider] filter mask " << j << " = " << collisionFilterMask << std::endl;
 		mWorld->AddCollisionObject(col_obj, collisionFilterGroup, collisionFilterMask);
-		mMultBody->getLink(j).m_collider = col_obj;
+		mMultiBody->getLink(j).m_collider = col_obj;
 	}
 	
-	mMultBody->finalizeMultiDof();
+	mMultiBody->finalizeMultiDof();
 
 	return succ;
 }
@@ -993,7 +993,7 @@ bool cSimCharacter::BuildConstraints(std::shared_ptr<cMultiBody>& out_body)
 					lim_high *= world_scale;
 				}
 
-				auto joint_cons = std::shared_ptr<btMultiBodyJointLimitConstraint>(new btMultiBodyJointLimitConstraint(mMultBody.get(), j, lim_low[0], lim_high[0]));
+				auto joint_cons = std::shared_ptr<btMultiBodyJointLimitConstraint>(new btMultiBodyJointLimitConstraint(mMultiBody.get(), j, lim_low[0], lim_high[0]));
 				joint_cons->finalizeMultiDof();
 				mCons.push_back(joint_cons);
 			}
@@ -1032,7 +1032,7 @@ bool cSimCharacter::BuildBodyLinks()
 		curr_part->SetColGroup(col_group);
 		curr_part->SetColMask(col_mask);
 
-		curr_part->Init(mWorld, mMultBody, params);
+		curr_part->Init(mWorld, mMultiBody, params);
 	}
 
 	return true;
@@ -1120,7 +1120,7 @@ bool cSimCharacter::BuildJoints()
 			joint_params.mParentPos = cMathUtil::GetRigidTrans(joint_to_parent);		// 父亲的position?
 		}
 
-		curr_joint.Init(mWorld, mMultBody, parent_link, child_link, joint_params);
+		curr_joint.Init(mWorld, mMultiBody, parent_link, child_link, joint_params);
 	}
 
 	return true;
@@ -1191,7 +1191,7 @@ void cSimCharacter::RemoveFromWorld()
 		mJoints.clear();
 		mBodyParts.clear();
 		mCons.clear();
-		mMultBody.reset();
+		mMultiBody.reset();
 		mWorld.reset();
 	}
 }
@@ -1252,11 +1252,25 @@ void cSimCharacter::UpdateJoints()
 
 		}
 	}
+	// test link pos, joint pos
+	//int num_links = mMultiBody->getNumLinks();
+	//for (int i = 0; i < num_links; i++)
+	//{
+	//	btMultibodyLink & link_i = mMultiBody->getLink(i);
+	//	/*std::string link_name(link_i.m_linkName);
+	//	std::string joint_name(link_i.m_jointName);*/
+	//	double mass = link_i.m_mass;
+	//	btScalar *joint_pos = link_i.m_jointPos;
+	//	std::cout << "link " << i << ", mass = " << mass << " joint pos = ";
+	//	for (int i = 0; i < 7; i++) std::cout << joint_pos[i] << " ";
+	//	std::cout << std::endl;
+	//}
+
 }
 
 void cSimCharacter::UpdateLinkPos()
 {
-	mMultBody->updateCollisionObjectWorldTransforms(mRotBuffer, mVecBuffer0);
+	mMultiBody->updateCollisionObjectWorldTransforms(mRotBuffer, mVecBuffer0);
 }
 
 void cSimCharacter::UpdateLinkVel()
@@ -1272,7 +1286,7 @@ void cSimCharacter::UpdateLinkVel()
 	btAlignedObjectArray<btVector3>& ang_vel_buffer = mVecBuffer0;
 	btAlignedObjectArray<btVector3>& vel_buffer = mVecBuffer1;
 
-	mMultBody->compTreeLinkVelocities(&ang_vel_buffer[0], &vel_buffer[0]);
+	mMultiBody->compTreeLinkVelocities(&ang_vel_buffer[0], &vel_buffer[0]);
 
 	double world_scale = mWorld->GetScale();
 	for (int b = 0; b < GetNumBodyParts(); ++b)
@@ -1344,12 +1358,12 @@ double cSimCharacter::CalcTotalMass() const
 
 void cSimCharacter::SetLinearDamping(double damping)
 {
-	mMultBody->setLinearDamping(damping);
+	mMultiBody->setLinearDamping(damping);
 }
 
 void cSimCharacter::SetAngularDamping(double damping)
 {
-	mMultBody->setAngularDamping(damping);
+	mMultiBody->setAngularDamping(damping);
 }
 
 tVector cSimCharacter::GetPos() const
@@ -1460,7 +1474,7 @@ const std::shared_ptr<cWorld>& cSimCharacter::GetWorld() const
 
 const std::shared_ptr<cMultiBody>& cSimCharacter::GetMultiBody() const
 {
-	return mMultBody;
+	return mMultiBody;
 }
 
 const std::vector<std::shared_ptr<btMultiBodyJointLimitConstraint>>& cSimCharacter::GetConstraints() const

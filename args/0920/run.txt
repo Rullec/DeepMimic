@@ -20,9 +20,9 @@
 --sync_char_root_rot false
 
 #---imitate return adjust + angle_diff/torque log print---
---enable_angle_diff_log true
+--enable_angle_diff_log false
 --angle_diff_dir logs/controller_logs/angle_diff_log/
---enable_torque_record true
+--enable_torque_record false
 --torque_record_file logs/controller_logs/torque.record.0920.run
 --reward_file data/0920/rewards/reward_weight.json
 
