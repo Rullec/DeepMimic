@@ -201,10 +201,27 @@ std::vector<double> cDeepMimicCore::RecordState(int agent_id) const
 	{
 		Eigen::VectorXd state;
 		rl_scene->RecordState(agent_id, state);
-		// std::cout <<"record state in std::vector<double> cDeepMimicCore::RecordState(int agent_id) const" << std::endl;
+		//std::cout << "record state = " << state.transpose() << std::endl;
+		
 		std::vector<double> out_state;
 		ConvertVector(state, out_state);
 		return out_state;
+	}
+	return std::vector<double>(0);
+}
+
+std::vector<double> cDeepMimicCore::RecordPose(int agent_id) const
+{
+	const auto& rl_scene = GetRLScene();
+	if (rl_scene != nullptr)
+	{
+		Eigen::VectorXd pose;
+		rl_scene->RecordPose(agent_id, pose);
+		//std::cout << "record pose = " << pose.transpose() << std::endl;
+
+		std::vector<double> out_pose;
+		ConvertVector(pose, out_pose);
+		return out_pose;
 	}
 	return std::vector<double>(0);
 }
@@ -214,9 +231,6 @@ std::vector<double> cDeepMimicCore::RecordGoal(int agent_id) const
 	const auto& rl_scene = GetRLScene();
 	if (rl_scene != nullptr)
 	{
-		// rl scene不是空的话，就有goal，否则没有。
-		// 照这么说的话，现在的rl_scene是空的?
-		// std::cout << "rl scene is not null, so goal return should be ok"<<std::endl;
 		Eigen::VectorXd goal;
 		rl_scene->RecordGoal(agent_id, goal);
 
@@ -224,7 +238,6 @@ std::vector<double> cDeepMimicCore::RecordGoal(int agent_id) const
 		ConvertVector(goal, out_goal);
 		return out_goal;
 	}
-	// std::cout << "rl scene is null, so goal return is null"<<std::endl;
 	return std::vector<double>(0);
 }
 

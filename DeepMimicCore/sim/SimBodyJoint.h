@@ -91,7 +91,7 @@ protected:
 	cKinTree::eJointType mType;
 	tParams mParams;
 	std::shared_ptr<cWorld> mWorld;
-	std::shared_ptr<cMultiBody> mMultBody;
+	std::shared_ptr<cMultiBody> mMultiBody;
 	std::shared_ptr<cSimBodyLink> mParent;
 	std::shared_ptr<cSimBodyLink> mChild;
 

@@ -241,7 +241,7 @@ void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::V
 	int num_joints = mChar->GetNumJoints();	// 获取joint 个数
 	int ctrl_offset = GetActionCtrlOffset();	// 获取action ctrl offset? 这个不是1就是0, 表明打开阶段性action.
 	// 由于enableXX必然是false,所以ctrl_offset必然是0
-	std::cout <<"void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale) const, out_Scale1[0] = "  << out_scale[0]<<std::endl;
+	//std::cout <<"void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale) const, out_Scale1[0] = "  << out_scale[0]<<std::endl;
 	if (mEnablePhaseAction)
 	{
 		// 也就是如果打开phaseaction的话，0处就会被设置为-1或者1
@@ -250,7 +250,7 @@ void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::V
 		out_offset[phase_offset] = -1 / mCyclePeriod;	// 设置为
 		out_scale[phase_offset] = 1;
 	}
-	std::cout <<"void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale) const, out_Scale2[0] = "  << out_scale[0]<<std::endl;
+	//std::cout <<"void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale) const, out_Scale2[0] = "  << out_scale[0]<<std::endl;
 	for (int j = root_id + 1; j < num_joints; ++j)
 	{
 		// root 不循环，那么对于所有joint来说，一个个的赋值...
@@ -260,7 +260,7 @@ void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::V
 		{
 			int param_offset = mChar->GetParamOffset(j);	// 对于这个joint而言，他从哪里开始?
 			int param_size = mChar->GetParamSize(j);		// 这个joint占据几个自由度?
-			std::cout <<"[get scale and offset] joint " << j <<", param_offset = " << param_offset <<", size = " << param_size << std::endl;
+			//std::cout <<"[get scale and offset] joint " << j <<", param_offset = " << param_offset <<", size = " << param_size << std::endl;
 
 			if (param_size > 0)
 			{
@@ -284,7 +284,7 @@ void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::V
 			}
 		}
 	}
-	std::cout <<"void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale) const, out_Scale3[0] = "  << out_scale[0]<<std::endl;
+	//std::cout <<"void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale) const, out_Scale3[0] = "  << out_scale[0]<<std::endl;
 	// abort();
 }
 
@@ -387,11 +387,14 @@ void cCtController::BuildStatePhaseOffsetScale(Eigen::VectorXd& phase_offset, Ei
 
 void cCtController::BuildStatePose(Eigen::VectorXd& out_pose) const
 {
-	// 在这个函数里面拿到当前的state的前148个数字: pose
-	// hint: (后126个是vel)
-	// std::cout << "build state pose void cCtController::BuildStatePose(Eigen::VectorXd& out_pose) const" << std::endl;
+	/*
+		This function is used to build the 2nd part of record state: state_pose.
+				(record_state = [phase, state_pose, state_vel])
 
-	tMatrix origin_trans = mChar->BuildOriginTrans();	// 世界坐标系到root坐标系的变换(包含平移和旋转), 但旋转只在Y轴上
+	
+	*/
+	tMatrix origin_trans = mChar->BuildOriginTrans();	// 世界坐标系到root坐标系的变换(包含平移和旋转), 但旋转只在Y轴上, 位移只在XZ轴上
+	//std::cout << "origin_trans = " << origin_trans << std::endl;
 	// 世界坐标系的向量，在root坐标系下的表达
 	tQuaternion origin_quat = cMathUtil::RotMatToQuaternion(origin_trans);
 
@@ -402,22 +405,30 @@ void cCtController::BuildStatePose(Eigen::VectorXd& out_pose) const
 	}
 
 	tVector root_pos = mChar->GetRootPos();	// root joint在世界坐标系下的位置
+	//std::cout << "root_pos = " << root_pos.transpose() << std::endl;
 	tVector root_pos_rel = root_pos;
 
 	root_pos_rel[3] = 1;
-	root_pos_rel = origin_trans * root_pos_rel;	// root_pos在世界坐标系下表示，又换回root坐标系。所有位移，以及绕Y的旋转都恢复了
-	root_pos_rel[3] = 0;
+	root_pos_rel = origin_trans * root_pos_rel;	// 把Y轴上的旋转和XZ轴上的位移，变换到root坐标系中。
+	//	直观一点说，就是root pos的Y轴旋转归0(变到root坐标系下), root pos的XZ坐标归0。
+
+
+	root_pos_rel[3] = 0; // 这个变换，相当于消除了
+	//std::cout << "root_pos_rel = " << root_pos_rel.transpose() << std::endl;
 	// std::cout <<"root_pos_rel(in root local coordinate) = " << root_pos_rel.transpose() << std::endl;
 
 	out_pose = Eigen::VectorXd::Zero(GetStatePoseSize());
-	out_pose[0] = root_pos_rel[1];
+	out_pose[0] = root_pos_rel[1];	// out_pose(不是record_state)的第一个数字，是root pos的Y轴坐标
+	//std::cout << "root pos.Y = " << out_pose[0] << std::endl;
 	int num_parts = mChar->GetNumBodyParts();
 	int root_id = mChar->GetRootID();
 
 	int pos_dim = GetPosFeatureDim();
 	int rot_dim = GetRotFeatureDim();
 
-	tQuaternion mirror_inv_origin_quat = origin_quat.conjugate();	// 共轭，反向旋转。root到世界换系旋转。
+
+	// 这个quaternion只要不record_pos，就没有用(一般的配置好像都不记录)
+	tQuaternion mirror_inv_origin_quat = origin_quat.conjugate();	// 共轭，反向旋转。root到世界换系旋转。把Y轴上的旋转和XZ轴上的位移，从root变换到世界坐标系中。
 	mirror_inv_origin_quat = cMathUtil::MirrorQuaternion(mirror_inv_origin_quat, cMathUtil::eAxisZ);	// 只把Z轴给镜像掉
 
 	int idx = 1;
@@ -489,7 +500,6 @@ void cCtController::BuildStatePose(Eigen::VectorXd& out_pose) const
 			idx += rot_dim;
 		}
 	}
-	// std::cout << "cCtController::BuildStatePose, final pose = " << out_pose.transpose()<<std::endl;
 }
 
 void cCtController::BuildStateVel(Eigen::VectorXd& out_vel) const

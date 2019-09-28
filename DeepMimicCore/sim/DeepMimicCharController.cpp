@@ -308,6 +308,7 @@ void cDeepMimicCharController::BuildStatePose(Eigen::VectorXd& out_pose) const
 	// 获取state的pose
 	std::cout << "build state in void cDeepMimicCharController::BuildStatePose(Eigen::VectorXd& out_pose) const "<< std::endl;
 	tMatrix origin_trans = mChar->BuildOriginTrans();
+	
 
 	tVector root_pos = mChar->GetRootPos();
 	tVector root_pos_rel = root_pos;
@@ -341,6 +342,8 @@ void cDeepMimicCharController::BuildStatePose(Eigen::VectorXd& out_pose) const
 			idx += mPosDim;
 		}
 	}
+
+
 }
 
 void cDeepMimicCharController::BuildStateVel(Eigen::VectorXd& out_vel) const

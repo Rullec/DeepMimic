@@ -109,7 +109,7 @@ protected:
 	tQuaternion mJoint2ChildQuat;
 
 	std::shared_ptr<btTypedConstraint> mCons;
-	std::shared_ptr<btMultiBodyConstraint> mMultBodyCons;
+	std::shared_ptr<btMultiBodyConstraint> mMultiBodyCons;
 
 	virtual void RemoveFromWorld();
 

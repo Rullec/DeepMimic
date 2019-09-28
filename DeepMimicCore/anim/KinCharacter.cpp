@@ -31,6 +31,7 @@ bool cKinCharacter::Init(const tParams& params)
 	bool succ = cCharacter::Init(params.mCharFile, params.mLoadDrawShapes);
 	if (succ)
 	{
+		// load motion data for kin_char
 		if (params.mMotionFile != "")
 		{
 			LoadMotion(params.mMotionFile);
@@ -180,11 +181,11 @@ double cKinCharacter::GetPhase() const
 
 void cKinCharacter::Pose(double time)
 {
-	// 计算姿势 设置姿势　
+	// compute time
 	CalcPose(time, mPose);
 	SetPose(mPose);
 
-	// 计算速度　设置速度
+	// compute velocity
 	CalcVel(time, mVel);
 	SetVel(mVel);
 }
@@ -314,11 +315,13 @@ tVector cKinCharacter::CalcCycleRootDelta() const
 
 void cKinCharacter::CalcPose(double time, Eigen::VectorXd& out_pose) const
 {
+	// given a time, how to compute the pose accordly
 	tVector root_delta = tVector::Zero();
 	tQuaternion root_delta_rot = tQuaternion::Identity();
 
 	if (HasMotion())
 	{
+		// if motion exists
 		mMotion.CalcFrame(time, out_pose);
 		if (mMotion.EnableLoop())
 		{
@@ -334,7 +337,7 @@ void cKinCharacter::CalcPose(double time, Eigen::VectorXd& out_pose) const
 	tVector root_pos = cKinTree::GetRootPos(mJointMat, out_pose);
 	tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, out_pose);
 
-	// 在这里不知道怎么弄的就改变了root pos和 root rot
+	
 	root_delta_rot = mOriginRot * root_delta_rot;
 	root_rot = root_delta_rot * root_rot;
 	root_pos += root_delta;

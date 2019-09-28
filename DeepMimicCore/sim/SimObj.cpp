@@ -23,7 +23,7 @@ tVector cSimObj::GetPos() const
 	const btCollisionObject* col_obj = GetCollisionObject();	// 从bullet中拿object
 	btTransform trans = col_obj->getWorldTransform();	// 从bullet中拿transform
 	
-	btVector3 origin = trans.getOrigin();				// 从bullet中拿origin，也就是位置
+	btVector3 origin = trans.getOrigin();				// 从bullet中拿origin, 猜测是全局的
 	// cout << "tVector cSimObj::GetPos() const, origin = " << origin.x() <<" " << origin.y() <<" "
 	//  << origin.z() <<" " << origin.w() <<" " << endl;
 	tVector pos = tVector(origin[0], origin[1], origin[2], 0);
