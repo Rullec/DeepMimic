@@ -47,7 +47,7 @@ void cSimJoint::Init(std::shared_ptr<cWorld>& world, const std::shared_ptr<cSimO
 
 bool cSimJoint::IsValid() const
 {
-	return mCons != nullptr || mMultBodyCons != nullptr;
+	return mCons != nullptr || mMultiBodyCons != nullptr;
 }
 
 tMatrix cSimJoint::BuildJointChildTrans() const
@@ -423,8 +423,8 @@ void cSimJoint::BuildVel(Eigen::VectorXd& out_vel) const
 
 bool cSimJoint::HasMultBody() const
 {
-	assert(mCons == nullptr || mMultBodyCons == nullptr);
-	return mMultBodyCons != nullptr;
+	assert(mCons == nullptr || mMultiBodyCons == nullptr);
+	return mMultiBodyCons != nullptr;
 }
 
 void cSimJoint::Bind()
@@ -455,7 +455,7 @@ void cSimJoint::RemoveFromWorld()
 	{
 		mWorld->RemoveJoint(*this);
 		mCons.reset();
-		mMultBodyCons.reset();
+		mMultiBodyCons.reset();
 	}
 }
 
@@ -489,7 +489,7 @@ double cSimJoint::GetPrismaticOffset() const
 
 	if (HasMultBody())
 	{
-		//const btMultiBodySliderConstraint* prismatic = reinterpret_cast<const btMultiBodySliderConstraint*>(mMultBodyCons.get());
+		//const btMultiBodySliderConstraint* prismatic = reinterpret_cast<const btMultiBodySliderConstraint*>(mMultiBodyCons.get());
 		//delta = prismatic->getPosition(0);
 		//delta /= scale;
 		assert(false); // unsupported
@@ -526,7 +526,7 @@ void cSimJoint::BuildConstraint(std::shared_ptr<cWorld>& world)
 		assert(false); // unsupported joint type
 		break;
 	}
-	assert(mCons != nullptr ^ mMultBodyCons != nullptr);
+	assert(mCons != nullptr ^ mMultiBodyCons != nullptr);
 	mWorld->AddJoint(*this);
 }
 
@@ -731,7 +731,7 @@ void cSimJoint::BuildConstraintSpherical(std::shared_ptr<cWorld>& world)
 		auto cons = new btMultiBodyPoint2Point(parent_mult->GetMultBody().get(), parent_mult->GetJointID(), child_rb->GetSimBody().get(), 
 												btVector3(parent_pos[0], parent_pos[1], parent_pos[2]),
 												btVector3(child_pos[0], child_pos[1], child_pos[2]));
-		mMultBodyCons = std::shared_ptr<btMultiBodyConstraint>(cons);
+		mMultiBodyCons = std::shared_ptr<btMultiBodyConstraint>(cons);
 	}
 }
 
@@ -847,7 +847,7 @@ const std::shared_ptr<btTypedConstraint>& cSimJoint::GetCons() const
 
 const std::shared_ptr<btMultiBodyConstraint>& cSimJoint::GetMultBodyCons() const
 {
-	return mMultBodyCons;
+	return mMultiBodyCons;
 }
 
 void cSimJoint::SetTotalForce(const tVector& force)

@@ -30,14 +30,14 @@ void cSimBodyLink::Init(const std::shared_ptr<cWorld>& world, const std::shared_
 	mMass = params.mMass;
 
 	mWorld = world;
-	mMultBody = mult_body;
+	mMultiBody = mult_body;
 	mType = eTypeDynamic;
 
 	mLinVel.setZero();
 	mAngVel.setZero();
 
 	// bullet的ColObj是
-	mColObj = std::unique_ptr<btMultiBodyLinkCollider>(mMultBody->getLink(mJointID).m_collider);	//对撞机, 碰撞器?
+	mColObj = std::unique_ptr<btMultiBodyLinkCollider>(mMultiBody->getLink(mJointID).m_collider);	//对撞机, 碰撞器?
 	mColObj->setUserPointer(this);
 	mColShape = std::unique_ptr<btCollisionShape>(mColObj->getCollisionShape());
 
@@ -99,7 +99,7 @@ void cSimBodyLink::ApplyForce(const tVector& force)
 {
 	// bullet中的apply force
 	btScalar scale = static_cast<btScalar>(mWorld->GetScale());
-	mMultBody->addLinkForce(mJointID, scale * btVector3(force[0], force[1], force[2]));
+	mMultiBody->addLinkForce(mJointID, scale * btVector3(force[0], force[1], force[2]));
 }
 
 void cSimBodyLink::ApplyForce(const tVector& force, const tVector& local_pos)
@@ -116,12 +116,13 @@ void cSimBodyLink::ApplyForce(const tVector& force, const tVector& local_pos)
 void cSimBodyLink::ApplyTorque(const tVector& torque)
 {
 	btScalar scale = static_cast<btScalar>(mWorld->GetScale());
-	mMultBody->addLinkTorque(mJointID, scale * scale * btVector3(torque[0], torque[1], torque[2]));
+	mMultiBody->addLinkTorque(mJointID, scale * scale * btVector3(torque[0], torque[1], torque[2]));
+	
 }
 
 void cSimBodyLink::ClearForces()
 {
-	mMultBody->clearForcesAndTorques();
+	mMultiBody->clearForcesAndTorques();
 }
 
 cShape::eShape cSimBodyLink::GetShape() const
@@ -137,7 +138,7 @@ void cSimBodyLink::UpdateVel(const tVector& lin_vel, const tVector& ang_vel)
 
 const std::shared_ptr<cMultiBody>& cSimBodyLink::GetMultBody() const
 {
-	return mMultBody;
+	return mMultiBody;
 }
 
 int cSimBodyLink::GetJointID() const

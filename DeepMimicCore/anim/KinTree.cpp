@@ -1661,7 +1661,7 @@ double cKinTree::CalcHeading(const Eigen::MatrixXd& joint_mat, const Eigen::Vect
 {
 	// heading is the direction of the root in the xz plane: 其实就是root坐标系转动多少能够在xoz上和世界坐标系平齐
 	// heading是root在xoz平面上的方向
-	tVector ref_dir = tVector(1, 0, 0, 0);	// 朝向面前X正方向的vector
+	tVector ref_dir = tVector(1, 0, 0, 0);	// 朝向屏幕右边X正方向的vector
 	tQuaternion root_rot = cKinTree::GetRootRot(joint_mat, pose);	// 获取root的旋转: 是个四元数
 	tVector rot_dir = cMathUtil::QuatRotVec(root_rot, ref_dir);		// 把这个vec按照root的旋转进行旋转。 
 	double heading = std::atan2(-rot_dir[2], rot_dir[0]);			// y = -rot_dir[2], x = rot_dir[0],计算反三角
@@ -1682,7 +1682,8 @@ tMatrix cKinTree::BuildHeadingTrans(const Eigen::MatrixXd& joint_mat, const Eige
 	double heading = CalcHeading(joint_mat, pose);
 	tVector axis = tVector(0, 1, 0, 0);
 	tMatrix mat = cMathUtil::RotateMat(axis, -heading);	// 绕Y轴旋转theta的旋转矩阵: 这个旋转矩阵完成从世界坐标系到root局部坐标系的变换。
-	// 也就相当于在世界坐标系，然后坐标系旋转到局部坐标系。
+	// 也就相当于一个物体的矩阵表示X在世界坐标系，然后矩阵表示左乘这个mat以后(mat * X) = new_X
+	// new_X就是物体在局部坐标系(root坐标系)下面的表示。
 	return mat;
 }
 
@@ -1692,11 +1693,15 @@ tMatrix cKinTree::BuildOriginTrans(const Eigen::MatrixXd& joint_mat, const Eigen
 	// origin is the point right under the root of the character on the xz plane with x-axis
 	// aligned along the character's heading
 	tVector origin = GetRootPos(joint_mat, pose);	// 获取世界坐标系下root joint位置在xoz平面上的投影，称为origin: 也就是从joint坐标系到世界坐标系的变换
-	origin[1] = 0;									
+	//std::cout << "root pos = " << origin.transpose() << std::endl;
+	origin[1] = 0;									// 例如此时origin = [0, 0.89, 0], 之后就是[0, 0, 0], 相当于抹平了Y轴变换
 	tMatrix rot_mat = BuildHeadingTrans(joint_mat, pose);	// 世界坐标系到root局部坐标系的旋转变换: 只绕头顶(Y)上旋转
+	//std::cout << "rot_mat = \n" << rot_mat << std::endl;
 	tMatrix trans_mat = cMathUtil::TranslateMat(-origin);	// 世界坐标系到root坐标系的平移
+	//std::cout << "trans_mat = \n" << trans_mat << std::endl;
 	tMatrix mat = rot_mat * trans_mat;
-	return mat;	// 世界坐标系到root坐标系的平移
+	//std::cout << "total_mat = \n" << mat << std::endl;
+	return mat;	// 世界坐标系到root坐标系的变换
 }
 
 void cKinTree::NormalizePoseHeading(const Eigen::MatrixXd& joint_mat, Eigen::VectorXd& out_pose)

@@ -32,7 +32,7 @@ void cSimBodyJoint::Init(std::shared_ptr<cWorld>& world, const std::shared_ptr<c
 {
 	Clear();
 	mWorld = world;
-	mMultBody = multbody;
+	mMultiBody = multbody;
 	mParent = parent;
 	mChild = child;
 	mParams = params;
@@ -348,7 +348,7 @@ int cSimBodyJoint::GetParamSize() const
 
 void cSimBodyJoint::BuildPose(Eigen::VectorXd& out_pose) const
 {
-	const btScalar* data = mMultBody->getJointPosMultiDof(mParams.mID);
+	const btScalar* data = mMultiBody->getJointPosMultiDof(mParams.mID);
 	double world_scale = mWorld->GetScale();
 	int param_size = GetParamSize();
 	out_pose.resize(param_size);
@@ -360,7 +360,7 @@ void cSimBodyJoint::BuildPose(Eigen::VectorXd& out_pose) const
 		break;
 	case cKinTree::eJointTypePlanar:
 	{
-		const auto& link = mMultBody->getLink(mParams.mID);
+		const auto& link = mMultiBody->getLink(mParams.mID);
 		btVector3 bt_axis1 = link.getAxisBottom(1);
 		btVector3 bt_axis2 = link.getAxisBottom(2);
 		tVector axis1 = tVector(bt_axis1[0], bt_axis1[1], bt_axis1[2], 0);
@@ -397,7 +397,7 @@ void cSimBodyJoint::BuildPose(Eigen::VectorXd& out_pose) const
 
 void cSimBodyJoint::BuildVel(Eigen::VectorXd& out_vel) const
 {
-	const btScalar* data = mMultBody->getJointVelMultiDof(mParams.mID);
+	const btScalar* data = mMultiBody->getJointVelMultiDof(mParams.mID);
 	double world_scale = mWorld->GetScale();
 	int param_size = GetParamSize();
 	out_vel.resize(param_size);
@@ -409,7 +409,7 @@ void cSimBodyJoint::BuildVel(Eigen::VectorXd& out_vel) const
 		break;
 	case cKinTree::eJointTypePlanar:
 	{
-		const auto& link = mMultBody->getLink(mParams.mID);
+		const auto& link = mMultiBody->getLink(mParams.mID);
 		tMatrix body_to_joint = cMathUtil::InvRigidMat(BuildJointChildTrans());
 		const btVector3& axis0 = link.getAxisTop(0);
 		const btVector3& axis1 = link.getAxisBottom(1);
@@ -464,7 +464,7 @@ void cSimBodyJoint::SetPose(const Eigen::VectorXd& pose)
 	case cKinTree::eJointTypePlanar:
 	{
 		tVector pos = cMathUtil::QuatRotVec(mParams.mChildRot, tVector(pose[0], pose[1], 0, 0));
-		const auto& link = mMultBody->getLink(mParams.mID);
+		const auto& link = mMultiBody->getLink(mParams.mID);
 
 		data[2] = link.getAxisBottom(2).dot(btVector3(pos[0], pos[1], pos[2])) * world_scale;
 		data[1] = link.getAxisBottom(1).dot(btVector3(pos[0], pos[1], pos[2])) * world_scale;
@@ -493,7 +493,7 @@ void cSimBodyJoint::SetPose(const Eigen::VectorXd& pose)
 		break;
 	}
 
-	mMultBody->setJointPosMultiDof(mParams.mID, data);
+	mMultiBody->setJointPosMultiDof(mParams.mID, data);
 }
 
 void cSimBodyJoint::SetVel(const Eigen::VectorXd& vel)
@@ -509,7 +509,7 @@ void cSimBodyJoint::SetVel(const Eigen::VectorXd& vel)
 	case cKinTree::eJointTypePlanar:
 	{
 		tMatrix joint_to_body = BuildJointChildTrans();
-		const auto& link = mMultBody->getLink(mParams.mID);
+		const auto& link = mMultiBody->getLink(mParams.mID);
 
 		tVector lin_vel = tVector(vel[0], vel[1], 0, 0);
 		tVector ang_vel = tVector(0, 0, vel[2], 0);
@@ -545,7 +545,7 @@ void cSimBodyJoint::SetVel(const Eigen::VectorXd& vel)
 		break;
 	}
 
-	mMultBody->setJointVelMultiDof(mParams.mID, data);
+	mMultiBody->setJointVelMultiDof(mParams.mID, data);
 }
 
 tVector cSimBodyJoint::GetTotalTorque() const
@@ -559,7 +559,7 @@ tVector cSimBodyJoint::CalcParentLocalPos(const tVector& local_pos) const
 	cKinTree::eJointType joint_type = GetType();
 	tVector pt = local_pos;
 	double world_scale = mWorld->GetScale();
-	const btScalar* data = mMultBody->getJointPosMultiDof(mParams.mID);
+	const btScalar* data = mMultiBody->getJointPosMultiDof(mParams.mID);
 	if (joint_type == cKinTree::eJointTypePrismatic)
 	{
 		double delta = data[0] / world_scale;
@@ -567,7 +567,7 @@ tVector cSimBodyJoint::CalcParentLocalPos(const tVector& local_pos) const
 	}
 	else if (joint_type == cKinTree::eJointTypePlanar)
 	{
-		const auto& link = mMultBody->getLink(mParams.mID);
+		const auto& link = mMultiBody->getLink(mParams.mID);
 		btVector3 bt_axis1 = link.getAxisBottom(1);
 		btVector3 bt_axis2 = link.getAxisBottom(2);
 		tVector axis1 = tVector(bt_axis1[0], bt_axis1[1], bt_axis1[2], 0);
@@ -598,11 +598,11 @@ void cSimBodyJoint::SetTotalTorque(const tVector& torque)
 
 cKinTree::eJointType cSimBodyJoint::FetchJointType() const
 {
-	btMultibodyLink::eFeatherstoneJointType bt_type = mMultBody->getLink(mParams.mID).m_jointType;
+	btMultibodyLink::eFeatherstoneJointType bt_type = mMultiBody->getLink(mParams.mID).m_jointType;
 	cKinTree::eJointType joint_type = cKinTree::eJointTypeNone;
 
 	bool is_root = IsRoot();
-	if (is_root && !mMultBody->hasFixedBase())
+	if (is_root && !mMultiBody->hasFixedBase())
 	{
 		joint_type = cKinTree::eJointTypeNone;
 	}
@@ -648,7 +648,7 @@ void cSimBodyJoint::ApplyTauRevolute()
 
 	double world_scale = mWorld->GetScale();
 	btScalar bt_data[] = { static_cast<btScalar>(world_scale * world_scale * torque[2]) };
-	mMultBody->addJointTorqueMultiDof(mParams.mID, bt_data);
+	mMultiBody->addJointTorqueMultiDof(mParams.mID, bt_data);
 }
 
 void cSimBodyJoint::ApplyTauPlanar()
@@ -661,7 +661,7 @@ void cSimBodyJoint::ApplyTauPlanar()
 	ClampTotalForce(force);
 	SetTotalForce(force);
 
-	const auto& link = mMultBody->getLink(mParams.mID);
+	const auto& link = mMultiBody->getLink(mParams.mID);
 
 	cSpAlg::tSpTrans trans = cSpAlg::MatToTrans(BuildJointChildTrans());
 	cSpAlg::tSpVec sv = cSpAlg::BuildSV(torque, force);
@@ -673,7 +673,7 @@ void cSimBodyJoint::ApplyTauPlanar()
 	btScalar bt_data[] = { static_cast<btScalar>(world_scale * world_scale * link.getAxisTop(0).dot(btVector3(torque[0], torque[1], torque[2]))),
 							static_cast<btScalar>(world_scale * link.getAxisBottom(1).dot(btVector3(force[0], force[1], force[2]))),
 							static_cast<btScalar>(world_scale * link.getAxisBottom(2).dot(btVector3(force[0], force[1], force[2]))) };
-	mMultBody->addJointTorqueMultiDof(mParams.mID, bt_data);
+	mMultiBody->addJointTorqueMultiDof(mParams.mID, bt_data);
 }
 
 void cSimBodyJoint::ApplyTauPrismatic()
@@ -684,7 +684,7 @@ void cSimBodyJoint::ApplyTauPrismatic()
 
 	double world_scale = mWorld->GetScale();
 	btScalar bt_data[] = { static_cast<btScalar>(world_scale * force[0]) };
-	mMultBody->addJointTorqueMultiDof(mParams.mID, bt_data);
+	mMultiBody->addJointTorqueMultiDof(mParams.mID, bt_data);
 }
 
 void cSimBodyJoint::ApplyTauSpherical()
@@ -701,7 +701,7 @@ void cSimBodyJoint::ApplyTauSpherical()
 	btScalar bt_data[] = { static_cast<btScalar>(world_scale * world_scale * torque[0]),
 							static_cast<btScalar>(world_scale * world_scale * torque[1]),
 							static_cast<btScalar>(world_scale * world_scale * torque[2]) };
-	mMultBody->addJointTorqueMultiDof(mParams.mID, bt_data);
+	mMultiBody->addJointTorqueMultiDof(mParams.mID, bt_data);
 }
 
 void cSimBodyJoint::SetTotalForce(const tVector& force)

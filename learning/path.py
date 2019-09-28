@@ -1,3 +1,5 @@
+import os
+import json
 import numpy as np
 from env.env import Env
 
@@ -35,6 +37,7 @@ class Path(object):
 
     def clear(self):
         self.states = []
+        self.poses = []
         self.goals = []
         self.actions = []
         self.logps = []
@@ -47,5 +50,17 @@ class Path(object):
         return len(self.rewards)
 
     def calc_return(self):
-        print("cal_return in path: num = %d, sum = %.2f" % (len(self.rewards), sum(self.rewards)))
         return sum(self.rewards)
+
+    def save(self, filename):
+        if os.path.exists(filename):
+            os.remove(filename)
+        cont = {
+            "states" : [i.tolist() for i in self.states],
+            "poses" : [i.tolist() for i in self.poses],
+            "actions" : [i.tolist() for i in self.actions],
+            "logps" : [float(i) for i in self.logps],
+            "rewards" : [ float(i) for i in self.rewards],
+        }
+        with open(filename, "w") as f:
+            json.dump(cont, f, indent=4)
