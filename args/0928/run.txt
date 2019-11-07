@@ -35,7 +35,7 @@
 --torque_record_file logs/controller_logs/torque.record.0920.run
 --reward_file data/0920/rewards/reward_weight.json
 
---agent_files data/0910/agents/agent_512_0911.txt
+--agent_files data/0928/agents/agent_512_dont_save_path.txt
 --train_agents false
 
 --output_path output/0920
