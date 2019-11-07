@@ -43,7 +43,9 @@ class RLAgent(ABC):
     EXP_PARAM_BEG_KEY = "ExpParamsBeg"
     EXP_PARAM_END_KEY = "ExpParamsEnd"
     
-    
+    ENABLE_SAVE_PATH_KEY = "EnableSavePath"
+    PATH_SAVE_DIR_KEY = "PathSaveDir"
+
     def __init__(self, world, id, json_data):
         '''
             Agent中有: 
@@ -108,6 +110,9 @@ class RLAgent(ABC):
         self.exp_params_end = ExpParams()
         self.exp_params_curr = ExpParams()
 
+        self.enable_save_path = False
+        self.path_save_dir = ""
+        
         '''
             传进来的json_data现在要开始load
         '''
@@ -316,6 +321,12 @@ class RLAgent(ABC):
         if (self.EXP_ANNEAL_SAMPLES_KEY in json_data):
             self.exp_anneal_samples = json_data[self.EXP_ANNEAL_SAMPLES_KEY]
 
+        if (self.ENABLE_SAVE_PATH_KEY in json_data):
+            self.enable_save_path = json_data[self.ENABLE_SAVE_PATH_KEY]
+
+        if(self.PATH_SAVE_DIR_KEY in json_data):
+            self.path_save_dir = json_data[self.PATH_SAVE_DIR_KEY]
+
         if (self.EXP_PARAM_BEG_KEY in json_data):
             self.exp_params_beg.load(json_data[self.EXP_PARAM_BEG_KEY])
 
@@ -388,8 +399,15 @@ class RLAgent(ABC):
         self.path.goals.append(g)
         self.path.terminate = self.world.env.check_terminate(self.id)
 
-        cur_time_str = str(datetime.datetime.now()).replace(" ", "_").replace(":","-")
-        self.path.save("logs/paths/" + cur_time_str)
+        if self.enable_save_path == True:
+            if self.path_save_dir == "":
+                self.path_save_dir = "./logs/paths/"
+            if False == os.path.exists(self.path_save_dir):
+                os.makedirs(self.path_save_dir)
+            
+            cur_time_str = str(datetime.datetime.now()).replace(" ", "_").replace(":","-")
+            filename = os.path.join(self.path_save_dir, cur_time_str)
+            self.path.save(filename)
         return
 
     def _update_new_action(self):
