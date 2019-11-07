@@ -253,7 +253,6 @@
     <ClCompile Include="anim\KinTree.cpp" />
     <ClCompile Include="anim\Motion.cpp" />
     <ClCompile Include="anim\Shape.cpp" />
-    <ClCompile Include="DeepMimicCore_wrap.cpp" />
     <ClCompile Include="Main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Swig|x64'">true</ExcludedFromBuild>
     </ClCompile>

@@ -299,9 +299,6 @@
     <ClCompile Include="sim\DeepMimicCharController.cpp">
       <Filter>Source Files\sim</Filter>
     </ClCompile>
-    <ClCompile Include="DeepMimicCore_wrap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util\CircularBuffer.h">
