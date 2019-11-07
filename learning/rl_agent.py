@@ -406,7 +406,7 @@ class RLAgent(ABC):
                 os.makedirs(self.path_save_dir)
             
             cur_time_str = str(datetime.datetime.now()).replace(" ", "_").replace(":","-")
-            filename = os.path.join(self.path_save_dir, cur_time_str)
+            filename = os.path.join(self.path_save_dir, cur_time_str + ".json")
             self.path.save(filename)
         return
 

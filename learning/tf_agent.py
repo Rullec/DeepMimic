@@ -155,7 +155,7 @@ class TFAgent(RLAgent):
 
     def _build_saver(self):
         vars = self._get_saver_vars()
-        [print(i) for i in vars]
+        # [print(i) for i in vars]
         self.saver = tf.train.Saver(vars, max_to_keep=0)
         return
 
