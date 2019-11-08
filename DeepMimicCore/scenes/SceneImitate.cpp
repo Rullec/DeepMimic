@@ -122,6 +122,10 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	const Eigen::VectorXd& vel0 = sim_char.GetVel();
 	const Eigen::VectorXd& pose1 = kin_char.GetPose();
 	const Eigen::VectorXd& vel1 = kin_char.GetVel();
+	
+	Eigen::VectorXd contact_info;
+	contact_info.resize(0);
+	SolveInverseDynamic(sim_char.GetID(), pose0, pose1, vel0, vel1, contact_info);
 	tMatrix origin_trans = sim_char.BuildOriginTrans();
 	tMatrix kin_origin_trans = kin_char.BuildOriginTrans();
 
@@ -686,4 +690,19 @@ double cSceneImitate::CalcRandKinResetTime()
 	double dur = kin_char->GetMotionDuration();
 	double rand_time = cMathUtil::RandDouble(0, dur);
 	return rand_time;
+}
+
+void cSceneImitate::SolveID(int agent_id)
+{
+	const auto & kin_char = GetKinChar();
+	const auto * sim_char = GetAgentChar(agent_id);
+	const cMotion & motion = kin_char->GetMotion();
+	int num_frames = motion.GetNumFrames();
+	for (int i = 0; i < num_frames - 1; i++)
+	{
+		Eigen::VectorXd cur_pos = motion.GetFrame(i), next_pos = motion.GetFrame(i + 1);
+		Eigen::VectorXd cur_vel = Eigen::VectorXd::Zero(cur_pos.size()), next_vel = Eigen::VectorXd::Zero(next_pos.size());
+		Eigen::VectorXd contact_info = Eigen::VectorXd::Zero(0);
+		cSceneSimChar::SolveInverseDynamic(agent_id, cur_pos, next_pos, cur_vel, next_vel, contact_info);
+	}
 }

@@ -76,6 +76,9 @@ public:
 
 	virtual std::string GetName() const;
 
+	// Inverse Dynamic
+	virtual void SolveInverseDynamic(int sim_char_id, Eigen::VectorXd pre_pos, Eigen::VectorXd next_pos, Eigen::VectorXd pre_vel, Eigen::VectorXd next_vel, Eigen::VectorXd contact_info) const;
+
 protected:
 
 	struct tPerturbParams

@@ -53,6 +53,14 @@ cSceneSimChar::tPerturbParams::tPerturbParams()
 	mMinDuration = 0.1;
 	mMaxDuration = 0.5;
 }
+//
+//cSceneSimChar::tInverseDynamicInfo::tInverseDynamicInfo()
+//{
+//	mPrevPos.resize(0), mPrevVel.resize(0);
+//	mNextPos.resize(0), mNextVel.resize(0);
+//	mContactInfo.resize(0);
+//	mTimestep = 0;
+//}
 
 cSceneSimChar::cSceneSimChar()
 {
@@ -60,6 +68,7 @@ cSceneSimChar::cSceneSimChar()
 	mEnableRandCharPlacement = true;
 	mEnableTorqueRecord = false;
 	mTorqueRecordFile = "";
+	//mIDInfo.clear();
 
 	mWorldParams.mNumSubsteps = 1;
 	mWorldParams.mScale = 1;
@@ -414,6 +423,7 @@ bool cSceneSimChar::ParseCharParams(const std::shared_ptr<cArgParser>& parser, s
 	
 	int num_files = static_cast<int>(char_files.size());
 	out_params.resize(num_files);
+
 	for (int i = 0; i < num_files; ++i)
 	{
 		cSimCharacter::tParams& params = out_params[i];
@@ -1005,4 +1015,10 @@ void cSceneSimChar::ResetRandPertrub()
 {
 	mPerturbParams.mTimer = 0;
 	mPerturbParams.mNextTime = mRand.RandDouble(mPerturbParams.mTimeMin, mPerturbParams.mTimeMax);
+}
+
+void cSceneSimChar::SolveInverseDynamic(int sim_char_id, Eigen::VectorXd pre_pos, Eigen::VectorXd next_pos, Eigen::VectorXd pre_vel, Eigen::VectorXd next_vel, Eigen::VectorXd contact_info) const
+{
+	std::cout << "[log] SolveInverseDynamic: char id = " << sim_char_id <<", pos size = " << pre_pos.size() << std::endl;
+
 }
