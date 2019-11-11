@@ -208,7 +208,7 @@ void cCtCtrlUtil::BuildOffsetScaleVel(const Eigen::MatrixXd& joint_mat, int join
 
 void cCtCtrlUtil::BuildOffsetScalePD(const Eigen::MatrixXd& joint_mat, int joint_id, Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale)
 {
-	std::cout <<"void cCtCtrlUtil::BuildOffsetScalePD" <<std::endl;
+	//std::cout <<"void cCtCtrlUtil::BuildOffsetScalePD" <<std::endl;
 	cKinTree::eJointType joint_type = cKinTree::GetJointType(joint_mat, joint_id);
 	switch (joint_type)
 	{
@@ -399,11 +399,11 @@ void cCtCtrlUtil::BuildOffsetScalePDRevolute(const Eigen::MatrixXd& joint_mat, i
 
 		out_offset[i] = curr_offset;
 		out_scale[i] = curr_scale;
-		std::cout << "[joint offset and scale compute] joint revolute " << joint_id << \
-		"val_high, val_low = (" << val_high << ", " << val_low<<"), curr_offset = " << curr_offset <<", curr_scale = " << curr_scale << std::endl;
+		//std::cout << "[joint offset and scale compute] joint revolute " << joint_id << \
+		//"val_high, val_low = (" << val_high << ", " << val_low<<"), curr_offset = " << curr_offset <<", curr_scale = " << curr_scale << std::endl;
 	}
-	std::cout <<"[joint offset and scale compute] joint revolute " << joint_id <<" offset = "\
-	 << out_offset.transpose() <<", scale = " << out_scale.transpose() << std::endl;
+	//std::cout <<"[joint offset and scale compute] joint revolute " << joint_id <<" offset = "\
+	// << out_offset.transpose() <<", scale = " << out_scale.transpose() << std::endl;
 }
 
 void cCtCtrlUtil::BuildOffsetScalePDPrismatic(const Eigen::MatrixXd& joint_mat, int joint_id, Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale)
@@ -468,7 +468,7 @@ void cCtCtrlUtil::BuildOffsetScalePDFixed(const Eigen::MatrixXd& joint_mat, int 
 	int joint_dim = cKinTree::GetParamSize(joint_mat, joint_id);
 	out_offset = Eigen::VectorXd::Zero(joint_dim);
 	out_scale = Eigen::VectorXd::Ones(joint_dim);
-	std::cout <<"[joint offset and scale compute] joint fixed " << joint_id <<" offset = " << out_offset.transpose() <<", scale = " << out_scale.transpose() << std::endl;
+	//std::cout <<"[joint offset and scale compute] joint fixed " << joint_id <<" offset = " << out_offset.transpose() <<", scale = " << out_scale.transpose() << std::endl;
 }
 
 void cCtCtrlUtil::BuildOffsetScalePDSpherical(const Eigen::MatrixXd& joint_mat, int joint_id, Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale)
@@ -511,5 +511,5 @@ void cCtCtrlUtil::BuildOffsetScalePDSpherical(const Eigen::MatrixXd& joint_mat, 
 	out_offset(0) = -0.2;
 #endif
 	
-	std::cout <<"[joint offset and scale compute] joint spherical " << joint_id << "val_high, val_low = (" << val_high << ", " << val_low<<")"<< ",  offset = " << out_offset.transpose() <<", scale = " << out_scale.transpose() << std::endl;
+	//std::cout <<"[joint offset and scale compute] joint spherical " << joint_id << "val_high, val_low = (" << val_high << ", " << val_low<<")"<< ",  offset = " << out_offset.transpose() <<", scale = " << out_scale.transpose() << std::endl;
 }	

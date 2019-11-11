@@ -73,6 +73,10 @@ bool cSimCharacter::Init(const std::shared_ptr<cWorld>& world, const tParams& pa
 		SetVel(mVel);
 	}
 
+	// set these 2 ID infos NULL
+	mIDStatusCur = nullptr;
+	mIDStatusNext = nullptr;
+
 	return succ;
 }
 
@@ -873,7 +877,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 		bool disable_parent_collision = true;
 
 		Eigen::Vector3d tmp_inertia = Eigen::Vector3d(inertia[0], inertia[1], inertia[2]);
-		std::cout<<"[init body] link " << j <<", mass = " << mass <<", inertia = " << tmp_inertia.transpose() << std::endl;
+		//std::cout<<"[init body] link " << j <<", mass = " << mass <<", inertia = " << tmp_inertia.transpose() << std::endl;
 		if (is_root && !fixed_base)
 		{
 			mMultiBody->setupFixed(j, static_cast<btScalar>(mass), inertia, parent_joint,
@@ -964,8 +968,8 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 
 		int collisionFilterGroup = GetPartColGroup(j);
 		int collisionFilterMask = GetPartColMask(j);
-		std::cout << "[add collider] filter group " << j << " = " << collisionFilterGroup << std::endl;
-		std::cout << "[add collider] filter mask " << j << " = " << collisionFilterMask << std::endl;
+		//std::cout << "[add collider] filter group " << j << " = " << collisionFilterGroup << std::endl;
+		//std::cout << "[add collider] filter mask " << j << " = " << collisionFilterMask << std::endl;
 		mWorld->AddCollisionObject(col_obj, collisionFilterGroup, collisionFilterMask);
 		mMultiBody->getLink(j).m_collider = col_obj;
 	}
@@ -977,6 +981,8 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 
 bool cSimCharacter::BuildConstraints(std::shared_ptr<cMultiBody>& out_body)
 {
+	// 这里增加的约束，并不是bullet中rigid body之间的point2point等约束
+	// 而是角度限制约束, 对于btMultiBody而言，这个约束是必要的。
 	double world_scale = mWorld->GetScale();
 	for (int j = 0; j < GetNumJoints(); ++j)
 	{
@@ -1594,4 +1600,47 @@ const btCollisionObject* cSimCharacter::GetCollisionObject() const
 btCollisionObject* cSimCharacter::GetCollisionObject()
 {
 	return nullptr;
+}
+
+void cSimCharacter::SetIDStatus(std::shared_ptr<tInverseDynamicInfo> cur, std::shared_ptr< tInverseDynamicInfo> next)
+{
+	mIDStatusCur = cur;
+	mIDStatusNext = next;
+}
+
+void cSimCharacter::GetIDStatus(std::shared_ptr< tInverseDynamicInfo> &cur, std::shared_ptr< tInverseDynamicInfo> &next) const
+{
+	cur = mIDStatusCur;
+	next = mIDStatusNext;
+}
+
+void btvector2eigen(btAlignedObjectArray<btScalar> & r, Eigen::VectorXd &e)
+{
+	e.resize(r.size());
+	for (int i = 0; i < r.size(); i++)	e[i] = r[i];
+}
+void cSimCharacter::SolveID(Eigen::VectorXd & action)
+{
+	//std::cout << "[log] solve ID in cSimCharacter" << std::endl;
+	int num_links = mMultiBody->getNumLinks();
+	btAlignedObjectArray<btScalar> scratch_r;
+	btAlignedObjectArray<btVector3> scratch_v;
+	btAlignedObjectArray<btMatrix3x3> scratch_m;
+	
+	//Eigen::VectorXd r_eigen;
+	//for (int i = 0; i < num_links; i++)
+	//{
+	//	scratch_r.clear();
+	//	//btScalar * t = mMultiBody->getJointPosMultiDof(i);
+	//	
+	//	//mMultiBody->computeAccelerationsArticulatedBodyAlgorithmMultiDof(i, scratch_r, scratch_v, scratch_m);
+	//	btvector2eigen(scratch_r, r_eigen);
+	//	//std::cout << "[log] SolveID " << i << " link r = " << r_eigen.transpose() << std::endl;
+	//}
+	
+	Eigen::VectorXd cur_pos = GetPose();
+	std::cout << "[log] character cur pos size = " << cur_pos.size() << std::endl;
+	std::cout << "[log] character wanna pos size = " << mIDStatusCur->q.size() << std::endl;
+	SetPose(mIDStatusCur->q);
+	
 }

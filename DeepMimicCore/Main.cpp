@@ -216,6 +216,53 @@ void InitTime()
 	gUpdatesPerSec = 0;
 }
 
+void UpdateID(double time_elapsed)
+{
+	int num_substeps = gCore->GetNumUpdateSubsteps();
+	double timestep = time_elapsed / num_substeps;		// 一个timestep必定分成多少个子步，那和减小时间步长有什么区别?
+	num_substeps = (time_elapsed == 0) ? 1 : num_substeps;
+
+	for (int i = 0; i < num_substeps; ++i)
+	{
+		for (int id = 0; id < gCore->GetNumAgents(); ++id)
+		{
+			if (gCore->NeedNewAction(id))
+			{
+				auto s = gCore->RecordState(id);
+				auto g = gCore->RecordGoal(id);
+				double r = gCore->CalcReward(id);
+				++gSampleCount;
+
+				std::vector<double> action = std::vector<double>(gCore->GetActionSize(id), 0);
+				gCore->SetAction(id, action);
+			}
+		}
+
+		gCore->Update(timestep);
+
+		if (gCore->IsRLScene())
+		{
+			bool end_episode = gCore->IsEpisodeEnd();
+			bool valid_episode = gCore->CheckValidEpisode();
+			if (end_episode || !valid_episode)
+			{
+				for (int id = 0; id < gCore->GetNumAgents(); ++id)
+				{
+					int terminated = gCore->CheckTerminate(id);
+					if (terminated)
+					{
+						printf("Agent %i terminated\n", id);
+					}
+				}
+				gCore->SetSampleCount(gSampleCount);
+				gCore->Reset();
+			}
+		}
+	}
+
+	gCore->SolveID(0);
+}
+
 void Animate(int callback_val)
 {
 	const double counter_decay = 0;
@@ -230,7 +277,8 @@ void Animate(int callback_val)
 		double timestep = (gPlaybackSpeed < 0) ? -gAnimStep : gAnimStep;
 		for (int i = 0; i < num_steps; ++i)
 		{
-			Update(timestep);
+			//Update(timestep);
+			UpdateID(timestep);
 		}
 		
 		// FPS counting

@@ -344,7 +344,7 @@ bool cKinTree::GetBodyEnableFallContact(const Eigen::MatrixXd& body_defs, int pa
 
 void cKinTree::SetBodyEnableFallContact(int part_id, bool enable, Eigen::MatrixXd& out_body_defs)
 {
-	std::cout <<"set " << part_id <<"th body contact = " << enable << std::endl;
+	//std::cout <<"set " << part_id <<"th body contact = " << enable << std::endl;
 	out_body_defs(part_id, eBodyParamEnableFallContact) = (enable) ? 1 : 0;
 }
 
