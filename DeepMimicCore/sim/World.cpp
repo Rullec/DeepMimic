@@ -128,7 +128,7 @@ void cWorld::RemoveRigidBody(cSimRigidBody& obj)
 void cWorld::AddCollisionObject(btCollisionObject* col_obj, int col_filter_group, int col_filter_mask)
 {
 	col_filter_mask |= cContactManager::gFlagRayTest;
-	std::cout <<"[add collision] add a object as " << col_filter_group <<" " <<  col_filter_mask <<std::endl;
+	//std::cout <<"[add collision] add a object as " << col_filter_group <<" " <<  col_filter_mask <<std::endl;
 	mSimWorld->addCollisionObject(col_obj, col_filter_group, col_filter_mask);
 }
 

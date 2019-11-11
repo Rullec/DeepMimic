@@ -2,6 +2,7 @@
 
 #include "render/DrawUtil.h"
 #include "scenes/SceneBuilder.h"
+#include "scenes/DrawSceneImitate.h"
 
 // 这代码明摆着是visual studio搞出来的
 cDeepMimicCore::cDeepMimicCore(bool enable_draw)
@@ -711,4 +712,13 @@ void cDeepMimicCore::ConvertVector(const std::vector<int>& in_vec, Eigen::Vector
 	int size = static_cast<int>(in_vec.size());
 	out_vec.resize(size);
 	std::memcpy(out_vec.data(), in_vec.data(), size * sizeof(int));
+}
+void cDeepMimicCore::SolveID(int agent_id)
+{
+	cDrawRLScene * rl_scene = dynamic_cast<cDrawRLScene *>(GetRLScene().get());
+	if (rl_scene != nullptr)
+	{
+		rl_scene->SolveID(agent_id);
+	}
+	
 }

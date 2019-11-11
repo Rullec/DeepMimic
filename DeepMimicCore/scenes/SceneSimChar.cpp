@@ -1017,8 +1017,30 @@ void cSceneSimChar::ResetRandPertrub()
 	mPerturbParams.mNextTime = mRand.RandDouble(mPerturbParams.mTimeMin, mPerturbParams.mTimeMax);
 }
 
+#include <BulletInverseDynamics/IDConfig.hpp>
+#include <Extras/InverseDynamics/btMultiBodyTreeCreator.hpp>
+
 void cSceneSimChar::SolveInverseDynamic(int sim_char_id, Eigen::VectorXd pre_pos, Eigen::VectorXd next_pos, Eigen::VectorXd pre_vel, Eigen::VectorXd next_vel, Eigen::VectorXd contact_info) const
 {
-	std::cout << "[log] SolveInverseDynamic: char id = " << sim_char_id <<", pos size = " << pre_pos.size() << std::endl;
+	typedef cSimCharacter::tInverseDynamicInfo IDInfo;
+	//std::cout << "***************** solve inverse dynamic begin for character " << sim_char_id << "*************" << std::endl;
+	//std::cout << "[log] SolveInverseDynamic: char id = " << sim_char_id <<", pos size = " << pre_pos.size() << std::endl;
+	std::shared_ptr<cSimCharacter> sim_char = GetCharacter(sim_char_id);
+	if (nullptr == sim_char)
+	{
+		std::cout << "[error] get " << sim_char_id << "failed" << std::endl;
+		exit(1);
+	}
+	
+	std::shared_ptr<IDInfo> cur_info, next_info;
+	cur_info = (shared_ptr<IDInfo>) new IDInfo(), next_info = (shared_ptr<IDInfo>) new IDInfo();
+	cur_info->q = pre_pos, cur_info->q_dot = pre_vel, cur_info->contact_info = contact_info;
+	next_info->q_dot = next_pos, next_info->q_dot = next_vel, next_info->contact_info = contact_info;
 
+	sim_char->SetIDStatus(cur_info, next_info);
+
+	Eigen::VectorXd action;
+	sim_char->SolveID(action);
+	//std::cout << "[log] cSceneSimChar::SolveInverseDynami solved action = " << action.transpose() << std::endl;
+	//std::cout << "***************** solve inverse dynamic end for character " << sim_char_id << "********************" << std::endl; 
 }

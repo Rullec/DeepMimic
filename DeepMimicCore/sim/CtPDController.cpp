@@ -96,7 +96,7 @@ void cCtPDController::BuildJointActionBounds(int joint_id, Eigen::VectorXd& out_
 
 void cCtPDController::BuildJointActionOffsetScale(int joint_id, Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale) const
 {
-	std::cout <<"void cCtPDController::BuildJointActionOffsetScale(int joint_id, Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale) const" <<std::endl;
+	//std::cout <<"void cCtPDController::BuildJointActionOffsetScale(int joint_id, Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale) const" <<std::endl;
 	const Eigen::MatrixXd& joint_mat = mChar->GetJointMat();
 	cCtCtrlUtil::BuildOffsetScalePD(joint_mat, joint_id, out_offset, out_scale);
 }

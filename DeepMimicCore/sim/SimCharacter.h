@@ -31,6 +31,11 @@ public:
 		bool mEnableContactFall;
 	};
 
+	struct tInverseDynamicInfo {
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+		Eigen::VectorXd q, q_dot, contact_info;
+	};
+
 	cSimCharacter();
 	virtual ~cSimCharacter();
 
@@ -140,7 +145,9 @@ public:
 	virtual void SetColGroup(short col_group);
 	virtual short GetColMask() const;
 	virtual void SetColMask(short col_mask);
-
+	virtual void SetIDStatus(std::shared_ptr< tInverseDynamicInfo> prev, std::shared_ptr< tInverseDynamicInfo> cur);
+	virtual void GetIDStatus(std::shared_ptr< tInverseDynamicInfo> &prev, std::shared_ptr< tInverseDynamicInfo> &cur) const;
+	virtual void SolveID(Eigen::VectorXd & action);
 protected:
 	std::shared_ptr<cMultiBody> mMultiBody;
 	std::vector<std::shared_ptr<cSimBodyLink>> mBodyParts;
@@ -157,6 +164,9 @@ protected:
 	btAlignedObjectArray<btVector3> mVecBuffer0;
 	btAlignedObjectArray<btVector3> mVecBuffer1;
 	btAlignedObjectArray<btQuaternion> mRotBuffer;
+
+	// Inverse Dynamic info structs
+	std::shared_ptr<tInverseDynamicInfo>  mIDStatusCur, mIDStatusNext;
 
 	virtual bool LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_body_defs) const;
 	
