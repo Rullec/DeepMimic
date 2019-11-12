@@ -1,0 +1,9 @@
+--scene kin_char
+
+# 测试: 新的
+#--character_file data/0920/characters/skeleton_092001.json
+#--motion_file data/1107/motions/2019-11-07_14-17-54.855606.json
+
+# 测试
+--character_file data/1107/characters/110907.json
+--motion_file data/1107/motions/111001.txt

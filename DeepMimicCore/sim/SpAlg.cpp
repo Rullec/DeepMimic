@@ -286,8 +286,8 @@ cSpAlg::tSpVec cSpAlg::ApplyInvTransM(const tSpTrans& X, const tSpVec& sv)
 	tVector o0 = GetOmega(sv);
 	tVector v0 = GetV(sv);
 
-	tVector o1 = E.transpose() * o0;
-	tVector v1 = E.transpose() * v0 + r.cross3(E.transpose() * o0);
+	tVector o1 = E.transpose() * o0;		// 转化坐标系之后的，角速度
+	tVector v1 = E.transpose() * v0 + r.cross3(E.transpose() * o0);	// 转化坐标系之后的，线速度。
 
 	tSpVec new_vec = BuildSV(o1, v1);
 	return new_vec;
@@ -311,7 +311,7 @@ Eigen::MatrixXd cSpAlg::ApplyInvTransM(const tSpTrans& X, const Eigen::MatrixXd&
 {
 	assert(sm.rows() == gSpVecSize);
 	Eigen::MatrixXd result(sm.rows(), sm.cols());
-	for (int i = 0; i < sm.cols(); ++i)
+	for (int i = 0; i < sm.cols(); ++i)	// 对于sm的每一列
 	{
 		const tSpVec& curr_sv = sm.col(i);
 		result.col(i) = ApplyInvTransM(X, curr_sv);
@@ -351,6 +351,7 @@ cSpAlg::tSpTrans cSpAlg::GetTrans(const Eigen::MatrixXd& trans_arr, int j)
 	int row_idx = j * gSVTransRows;
 	assert(row_idx <= trans_arr.rows() - gSVTransRows);
 
+	// 这是一个(3, 4)的矩阵
 	tSpTrans X = trans_arr.block(row_idx, 0, gSVTransRows, gSVTransCols);
 	return X;
 }

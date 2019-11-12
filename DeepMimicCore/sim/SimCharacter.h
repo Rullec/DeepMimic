@@ -10,6 +10,7 @@
 #include "BulletDynamics/Featherstone/btMultiBodyLinkCollider.h"
 #include "BulletDynamics/Featherstone/btMultiBodyJointLimitConstraint.h"
 
+class MultiRigidBodyModel;
 class cSimCharacter : public virtual cCharacter, public virtual cSimObj
 {
 public:
@@ -65,6 +66,8 @@ public:
 
 	virtual void SetPose(const Eigen::VectorXd& pose);
 	virtual void SetVel(const Eigen::VectorXd& vel);
+	void SetPose_xudong(const Eigen::VectorXd & pose);
+	void SetVel_xudong(const Eigen::VectorXd & pose);
 
 	virtual tVector CalcJointPos(int joint_id) const;
 	virtual tVector CalcJointVel(int joint_id) const;
@@ -148,6 +151,7 @@ public:
 	virtual void SetIDStatus(std::shared_ptr< tInverseDynamicInfo> prev, std::shared_ptr< tInverseDynamicInfo> cur);
 	virtual void GetIDStatus(std::shared_ptr< tInverseDynamicInfo> &prev, std::shared_ptr< tInverseDynamicInfo> &cur) const;
 	virtual void SolveID(Eigen::VectorXd & action);
+
 protected:
 	std::shared_ptr<cMultiBody> mMultiBody;
 	std::vector<std::shared_ptr<cSimBodyLink>> mBodyParts;
@@ -167,6 +171,7 @@ protected:
 
 	// Inverse Dynamic info structs
 	std::shared_ptr<tInverseDynamicInfo>  mIDStatusCur, mIDStatusNext;
+	std::unique_ptr<MultiRigidBodyModel> mIDRigidModel;
 
 	virtual bool LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_body_defs) const;
 	
@@ -200,4 +205,6 @@ protected:
 	virtual bool CheckFallContact() const;
 	virtual const btCollisionObject* GetCollisionObject() const;
 	virtual btCollisionObject* GetCollisionObject();
+
+	virtual void BuildIDRigidModel();
 };

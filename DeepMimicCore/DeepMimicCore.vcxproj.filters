@@ -299,6 +299,9 @@
     <ClCompile Include="sim\DeepMimicCharController.cpp">
       <Filter>Source Files\sim</Filter>
     </ClCompile>
+    <ClCompile Include="util\BulletUtil.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util\CircularBuffer.h">
@@ -606,6 +609,9 @@
     </ClInclude>
     <ClInclude Include="sim\DeepMimicCharController.h">
       <Filter>Source Files\sim</Filter>
+    </ClInclude>
+    <ClInclude Include="util\BulletUtil.h">
+      <Filter>Source Files\util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

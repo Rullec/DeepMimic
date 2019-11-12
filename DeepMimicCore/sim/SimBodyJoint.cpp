@@ -551,6 +551,7 @@ void cSimBodyJoint::SetVel(const Eigen::VectorXd& vel)
 tVector cSimBodyJoint::GetTotalTorque() const
 {
 	tVector torque = cSpAlg::GetOmega(mTotalTau);
+	
 	return torque;
 }
 

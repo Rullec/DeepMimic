@@ -1041,6 +1041,7 @@ void cSceneSimChar::SolveInverseDynamic(int sim_char_id, Eigen::VectorXd pre_pos
 
 	Eigen::VectorXd action;
 	sim_char->SolveID(action);
-	//std::cout << "[log] cSceneSimChar::SolveInverseDynami solved action = " << action.transpose() << std::endl;
-	//std::cout << "***************** solve inverse dynamic end for character " << sim_char_id << "********************" << std::endl; 
+	
+	//cCtPDController
+	
 }

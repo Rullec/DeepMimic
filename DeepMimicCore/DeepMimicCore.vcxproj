@@ -157,8 +157,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;BulletDynamics_Debug.lib;BulletCollision_Debug.lib;BulletInverseDynamics_Debug.lib;BulletInverseDynamicsUtils_Debug.lib;Bullet3Common_Debug.lib;LinearMath_Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;BulletDynamics_Debug.lib;BulletCollision_Debug.lib;BulletInverseDynamics_Debug.lib;BulletInverseDynamicsUtils_Debug.lib;Bullet3Common_Debug.lib;LinearMath_Debug.lib;IDRigidModel.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -329,6 +329,7 @@
     <ClCompile Include="DeepMimicCore.cpp" />
     <ClCompile Include="util\Annealer.cpp" />
     <ClCompile Include="util\ArgParser.cpp" />
+    <ClCompile Include="util\BulletUtil.cpp" />
     <ClCompile Include="util\FileUtil.cpp" />
     <ClCompile Include="util\IndexManager.cpp" />
     <ClCompile Include="util\JsonUtil.cpp" />
@@ -422,6 +423,7 @@
     <ClInclude Include="DeepMimicCore.h" />
     <ClInclude Include="util\Annealer.h" />
     <ClInclude Include="util\ArgParser.h" />
+    <ClInclude Include="util\BulletUtil.h" />
     <ClInclude Include="util\CircularBuffer.h" />
     <ClInclude Include="util\FileUtil.h" />
     <ClInclude Include="util\IndexBuffer.h" />
