@@ -724,4 +724,6 @@ void cSceneImitate::SolveID(int agent_id)
 
 	cSceneSimChar::SolveInverseDynamic(agent_id, cur_pos, next_pos, cur_vel, next_vel, contact_info);
 	test_var++;
+	
+	//cRBDUtil::SolveInvDyna()
 }

@@ -277,8 +277,8 @@ void Animate(int callback_val)
 		double timestep = (gPlaybackSpeed < 0) ? -gAnimStep : gAnimStep;
 		for (int i = 0; i < num_steps; ++i)
 		{
-			//Update(timestep);
-			UpdateID(timestep);
+			Update(timestep);
+			//UpdateID(timestep);
 		}
 		
 		// FPS counting

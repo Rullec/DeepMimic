@@ -4,6 +4,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.28010.2026
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeepMimicCore", "DeepMimicCore.vcxproj", "{43011113-B968-462C-B99A-539E3E98BC15}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864} = {C30D7E3C-E32B-4890-BDEF-AD29CD701864}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IDRigidModel", "..\IDRigidModel\IDRigidModel.vcxproj", "{C30D7E3C-E32B-4890-BDEF-AD29CD701864}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +32,18 @@ Global
 		{43011113-B968-462C-B99A-539E3E98BC15}.Release|x64.Build.0 = Release|x64
 		{43011113-B968-462C-B99A-539E3E98BC15}.Release|x86.ActiveCfg = Release|Win32
 		{43011113-B968-462C-B99A-539E3E98BC15}.Release|x86.Build.0 = Release|Win32
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Debug|x64.ActiveCfg = Debug|x64
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Debug|x64.Build.0 = Debug|x64
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Debug|x86.ActiveCfg = Debug|Win32
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Debug|x86.Build.0 = Debug|Win32
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Release_Swig|x64.ActiveCfg = Release|x64
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Release_Swig|x64.Build.0 = Release|x64
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Release_Swig|x86.ActiveCfg = Release|Win32
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Release_Swig|x86.Build.0 = Release|Win32
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Release|x64.ActiveCfg = Release|x64
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Release|x64.Build.0 = Release|x64
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Release|x86.ActiveCfg = Release|Win32
+		{C30D7E3C-E32B-4890-BDEF-AD29CD701864}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

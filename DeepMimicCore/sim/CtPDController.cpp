@@ -38,6 +38,7 @@ std::string cCtPDController::GetName() const
 
 void cCtPDController::SetupPDControllers(const Json::Value& json, const tVector& gravity)
 {
+	
 	Eigen::MatrixXd pd_params;
 	bool succ = false;
 	if (!json[gPDControllersKey].isNull())

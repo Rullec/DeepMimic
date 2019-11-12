@@ -145,8 +145,9 @@ tMatrix cRBDModel::GetJointWorldMat(int j) const
 
 cSpAlg::tSpTrans cRBDModel::GetSpWorldJointTrans(int j) const
 {
+	// 对于joint j，获取其世界转移
 	assert(j >= 0 && j < GetNumJoints());
-	cSpAlg::tSpTrans trans = cSpAlg::GetTrans(mSpWorldJointTransArr, j);
+	cSpAlg::tSpTrans trans = cSpAlg::GetTrans(mSpWorldJointTransArr, j);	// 一个(3, 4)的矩阵
 	return trans;
 }
 

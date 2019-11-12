@@ -43,6 +43,7 @@ void cSimBodyLink::Init(const std::shared_ptr<cWorld>& world, const std::shared_
 
 	mObjShape = FetchObjShape();
 	InitSize(mSize);
+	this->GetWorldTransform();
 }
 
 tVector cSimBodyLink::GetSize() const

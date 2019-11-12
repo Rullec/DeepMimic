@@ -5,9 +5,11 @@
 #include "SimCapsule.h"
 #include "SimSphere.h"
 #include "RBDUtil.h"
+#include "RigidSystem/MultiRigidBodyModel.h"
 
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
+#include "util/BulletUtil.h"
 
 cSimCharacter::tParams::tParams()
 {
@@ -318,6 +320,49 @@ void cSimCharacter::SetVel(const Eigen::VectorXd& vel)
 	}
 }
 
+void cSimCharacter::SetPose_xudong(const Eigen::VectorXd & pose)
+{
+	cCharacter::SetPose(pose);
+
+	// 获取root信息，获取root type
+	double world_scale = mWorld->GetScale();
+	int root_id = cKinTree::GetRoot(mJointMat);
+	tVector root_pos = cKinTree::GetRootPos(mJointMat, pose);
+	tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, pose);
+	cKinTree::eJointType root_type = cKinTree::GetJointType(mJointMat, root_id);
+
+	// 设置mMultiBody中的root pos & orientation
+	tVector euler = cMathUtil::QuaternionToEuler(root_rot);	// 从quaternion转化为旋转矩阵
+	mMultiBody->setBasePos(world_scale * btVector3(root_pos[0], root_pos[1], root_pos[2]));	// 设置root joint位置
+	mMultiBody->setWorldToBaseRot(btQuaternion(root_rot.x(), root_rot.y(), root_rot.z(), root_rot.w()));	// 这就是设置root joint rot，因为没有直接设置root orientation名字的API
+
+	// simulation的root_joint 旋转设置为单位阵
+	cSimBodyJoint & root_joint = GetJoint(root_id);
+	Eigen::VectorXd root_pose = Eigen::VectorXd::Zero(GetParamSize(root_id));
+	if (cKinTree::eJointTypeSpherical == root_type)	// 如果root是ball joint
+	{
+		root_pose = cMathUtil::QuatToVec(tQuaternion::Identity());	//[w, x, y, z]
+	}
+	root_joint.SetPose(root_pose);	// root作为None类型，是没有数据的。他只有一个全局位置，和一个世界坐标系到它的变换。
+
+	for (int j = 1; j < GetNumJoints(); j++)
+	{
+		cSimBodyJoint & curr_joint = GetJoint(j);
+		int param_offset = GetParamOffset(j);
+		int param_size = GetParamSize(j);
+		Eigen::VectorXd curr_params = pose.segment(param_offset, param_size);
+		curr_joint.SetPose(curr_params);
+	}
+
+	UpdateLinkPos();
+	UpdateLinkVel();
+
+}
+
+void cSimCharacter::SetVel_xudong(const Eigen::VectorXd & pose)
+{
+
+}
 tVector cSimCharacter::CalcJointPos(int joint_id) const
 {
 	const cSimBodyJoint& joint = GetJoint(joint_id);
@@ -1292,6 +1337,7 @@ void cSimCharacter::UpdateLinkVel()
 	btAlignedObjectArray<btVector3>& ang_vel_buffer = mVecBuffer0;
 	btAlignedObjectArray<btVector3>& vel_buffer = mVecBuffer1;
 
+	// 利用bullet计算速度
 	mMultiBody->compTreeLinkVelocities(&ang_vel_buffer[0], &vel_buffer[0]);
 
 	double world_scale = mWorld->GetScale();
@@ -1302,12 +1348,14 @@ void cSimCharacter::UpdateLinkVel()
 			const btVector3& bt_vel = vel_buffer[b + 1];
 			const btVector3& bt_ang_vel = ang_vel_buffer[b + 1];
 
+			// 从bullet中获取各个body的质心 线速度和角速度(局部坐标系下)
 			tVector com_vel = tVector(bt_vel[0], bt_vel[1], bt_vel[2], 0);
 			tVector com_omega = tVector(bt_ang_vel[0], bt_ang_vel[1], bt_ang_vel[2], 0);
 			com_vel /= world_scale;
 
 			// velocities are in the body's local coordinates
 			// so need to transform them into world coords
+			// 局部坐标系转化为全局坐标系下
 			tQuaternion world_rot = GetBodyPart(b)->GetRotation();
 			com_vel = cMathUtil::QuatRotVec(world_rot, com_vel);
 			com_omega = cMathUtil::QuatRotVec(world_rot, com_omega);
@@ -1642,5 +1690,62 @@ void cSimCharacter::SolveID(Eigen::VectorXd & action)
 	std::cout << "[log] character cur pos size = " << cur_pos.size() << std::endl;
 	std::cout << "[log] character wanna pos size = " << mIDStatusCur->q.size() << std::endl;
 	SetPose(mIDStatusCur->q);
+
+	for (int i = 0; i < this->GetNumJoints(); i++)
+	{
+		/*
+			btAlignedObjectArray<btVector3> mVecBuffer0;
+			btAlignedObjectArray<btVector3> mVecBuffer1;
+			btAlignedObjectArray<btQuaternion> mRotBuffer;
+		*/
+		mMultiBody->computeAccelerationsArticulatedBodyAlgorithmMultiDof(i, scratch_r, scratch_v, scratch_m);
+	}
+	
+	//SetPose_xudong(mIDStatusCur->q);
+}
+
+
+void cSimCharacter::BuildIDRigidModel()
+{
+	//if (nullptr != mIDRigidModel)
+	//{
+	//	std::cout << "[error] ID rigid model is not empty in cSimCharacter" << std::endl;
+	//	return;
+	//}
+
+	std::cout << "[log] cSimCharacter::BuildIDRigidModel begin" << std::endl;
+	mIDRigidModel = (std::unique_ptr<MultiRigidBodyModel>) (new MultiRigidBodyModel());
+
+	// begin to build mIDRigidModel
+	int num_links = GetNumBodyParts();
+	int num_links_bt = mMultiBody->getNumLinks();
+	assert(num_links == num_links_bt);
+	if (num_links != num_links_bt)
+	{
+		std::cout << "[error] these 2 num: " << num_links << " " << num_links_bt << " is diff" << std::endl;
+		exit(1);
+	}
+	for (int i = 0; i < num_links; i++)
+	{
+		const btMultibodyLink & bt_link = mMultiBody->getLink(i);
+		const std::string link_name = bt_link.m_linkName, joint_name = bt_link.m_jointName;
+		std::cout << "[log] link " << i << "link & joint name = " << link_name << " " << joint_name << std::endl;
+		std::shared_ptr<cSimBodyLink> sim_link = GetBodyPart(i);
+		double bt_mass = bt_link.m_mass, sim_mass = sim_link->GetMass();
+		if (bt_mass != sim_mass)
+		{
+			printf("[log] link %d mass = %lf and %lf, diff", i, bt_mass, sim_mass);
+			exit(1);
+		}
+		
+		Eigen::Vector3d inertia = BT2EIGEN(mMultiBody->getLinkInertia(i));	// 我不知道bullet的索引和我是否一致
+		Matrix3d mat_inertia;
+		mat_inertia.setZero();
+		mat_inertia.diagonal() = inertia;
+		std::cout << "[log] link " << i << " inertia = " << mat_inertia << std::endl;
+		
+		mIDRigidModel->addLink(mat_inertia, bt_mass, link_name);
+	}
+	
 	
 }

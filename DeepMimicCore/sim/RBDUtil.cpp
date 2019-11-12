@@ -29,10 +29,11 @@ void cRBDUtil::SolveInvDyna(const cRBDModel& model, const Eigen::VectorXd& acc, 
 			cSpAlg::tSpTrans parent_child_trans = model.GetSpParentChildTrans(j);
 			cSpAlg::tSpTrans world_child_trans = model.GetSpWorldJointTrans(j);
 
-			const auto S = model.GetJointSubspace(j);
+			const auto S = model.GetJointSubspace(j);	// 获取joint子空间?joint还有子空间?
 			Eigen::VectorXd q;
 			Eigen::VectorXd dq;
 			Eigen::VectorXd ddq;
+			// 对Joint j 拿取当前时刻 pose, vel, accel
 			cKinTree::GetJointParams(joint_mat, pose, j, q);
 			cKinTree::GetJointParams(joint_mat, vel, j, dq);
 			cKinTree::GetJointParams(joint_mat, acc, j, ddq);
@@ -269,21 +270,27 @@ Eigen::MatrixXd cRBDUtil::MultJacobianEndEff(const Eigen::MatrixXd& joint_mat, c
 
 void cRBDUtil::BuildJacobian(const cRBDModel& model, Eigen::MatrixXd& out_J)
 {
+	//给定RBD model 计算jacobian...
 	const Eigen::MatrixXd& joint_mat = model.GetJointMat();
 	const Eigen::VectorXd& pose = model.GetPose();
 
 	int num_dofs = model.GetNumDof();
-	out_J = Eigen::MatrixXd::Zero(cSpAlg::gSpVecSize, num_dofs);
+	out_J = Eigen::MatrixXd::Zero(cSpAlg::gSpVecSize, num_dofs);	// 6 * n，确实是[Jv, Jw]的形式
 
 	int num_joints = cKinTree::GetNumJoints(joint_mat);
 	for (int j = 0; j < num_joints; ++j)
 	{
-		cSpAlg::tSpTrans world_joint_trans = model.GetSpWorldJointTrans(j);
+		// 对于每一个Joint
+		// cSpAlg::空间代数库
+		// 字面意思 大概是从世界坐标系到local的变换(3, 4)
+		cSpAlg::tSpTrans world_joint_trans = model.GetSpWorldJointTrans(j);	
 
 		int offset = cKinTree::GetParamOffset(joint_mat, j);
 		int size = cKinTree::GetParamSize(joint_mat, j);
 		const Eigen::MatrixXd S = model.GetJointSubspace(j);
 
+		// 进入一个 6 * DOF的块, 如果DOF一直是3的话，就没问题。
+		// 可能还是得跑一下测一下
 		out_J.block(0, offset, cSpAlg::gSpVecSize, size) = cSpAlg::ApplyInvTransM(world_joint_trans, S);
 	}
 }
@@ -894,6 +901,7 @@ Eigen::MatrixXd cRBDUtil::BuildJointSubspaceSpherical(const Eigen::MatrixXd& joi
 
 cSpAlg::tSpVec cRBDUtil::BuildCj(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& q, const Eigen::VectorXd& q_dot, int j)
 {
+	// buildCj是什么?
 	cKinTree::eJointType j_type = cKinTree::GetJointType(joint_mat, j);
 	bool is_root = cKinTree::IsRoot(joint_mat, j);
 	cSpAlg::tSpVec cj;
