@@ -88,6 +88,7 @@ class RLAgent(ABC):
 
         self._output_dir = ""
         self._int_output_dir = ""
+        self._buffer_output_path = None
         self.output_iters = 100
         self.int_output_iters = 100
         '''
@@ -150,6 +151,21 @@ class RLAgent(ABC):
         return
 
     int_output_dir = property(get_int_output_dir, set_int_output_dir)
+
+    def get_buffer_output_dir(self):
+        return self._buffer_output_path
+
+    def set_buffer_output_dir(self, out_dir):
+        self._buffer_output_path = out_dir
+        if self._buffer_output_path is not None:
+            self.replay_buffer.buffer_output_path = self._buffer_output_path
+            self.replay_buffer.save_buffer = True
+        else:
+            self.replay_buffer.buffer_output_path = None
+            self.replay_buffer.save_buffer = False
+        return
+
+    buffer_output_path = property(get_buffer_output_dir, set_buffer_output_dir)
 
     def reset(self):
         self.path.clear()

@@ -47,5 +47,6 @@ set_source_files_properties(DeepMimicCore.i PROPERTIES CPLUSPLUS ON)
 swig_add_library(DeepMimicCore LANGUAGE python OUTPUT_DIR ${CMAKE_SOURCE_DIR} OUTFILE_DIR ${CMAKE_SOURCE_DIR} SOURCES DeepMimicCore.i DeepMimicCore.cpp)
 
 swig_link_libraries(DeepMimicCore ${mylibs} ${libs} ${PYTHON_LIBRARIES})
-INSTALL(FILES cmake-build-debug/_DeepMimicCore.so
+
+INSTALL(FILES cmake-build-release/_DeepMimicCore.so
         DESTINATION ${CMAKE_SOURCE_DIR})

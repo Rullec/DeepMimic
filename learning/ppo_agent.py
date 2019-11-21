@@ -78,7 +78,7 @@ class PPOAgent(PGAgent):
         # setup input tensors
         self.s_tf = tf.placeholder(tf.float32, shape=[None, s_size], name="s")  # 输入state
         self.a_tf = tf.placeholder(tf.float32, shape=[None, a_size], name="a")  # 输入action
-        self.tar_val_tf = tf.placeholder(tf.float32, shape=[None], name="tar_val")  # 输入:target value，从MC方法来的，外部计算输入，用于监督训练critic net
+        self.tar_val_tf = tf.placeholder(tf.float32, shape=[None], name="tar_val")  # 输入:target value，从MC方法来的，外部计算输入，用于监督训练critic sa
         self.adv_tf = tf.placeholder(tf.float32, shape=[None], name="adv")  # advantage function
         self.g_tf = tf.placeholder(tf.float32, shape=([None, g_size] if self.has_goal() else None), name="g")   # goal
         self.old_logp_tf = tf.placeholder(tf.float32, shape=[None], name="old_logp")    # old logp，用来做重要性采样
@@ -94,10 +94,10 @@ class PPOAgent(PGAgent):
                 self.critic_tf = self._build_net_critic(critic_net_name)
                
         if (self.a_mean_tf != None):
-            Logger.print('Built actor net: ' + actor_net_name)
+            Logger.print('Built actor sa: ' + actor_net_name)
 
         if (self.critic_tf != None):
-            Logger.print('Built critic net: ' + critic_net_name)
+            Logger.print('Built critic sa: ' + critic_net_name)
         
         # 本网络输出的action所服从的高斯分布的标准差在这里: 是一个噪音乘以全１向量(只是为了扩展维度)
         self.norm_a_std_tf = self.exp_params_curr.noise * tf.ones(a_size)

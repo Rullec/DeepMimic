@@ -54,6 +54,7 @@ class Path(object):
         return sum(self.rewards)
 
     def save(self, filename):
+        pass
         if os.path.exists(filename):
             os.remove(filename)
         cont = {

@@ -244,7 +244,7 @@ std::vector<double> cDeepMimicCore::RecordGoal(int agent_id) const
 std::vector<double> cDeepMimicCore::RecordContactInfo(int agent_id) const
 {
 	// align the size of out_goal to 6*7 = 42
-	const int contact_size = 42;
+	const int contact_size = 84;
 	const int INVALID_ID = -1;
 	Eigen::VectorXd contact(contact_size);
 	contact.setConstant(INVALID_ID);
@@ -623,6 +623,7 @@ void cDeepMimicCore::SetupScene()
 
 	mScene = nullptr;
 	mRLScene = nullptr;
+	// 根据是否绘制，创建不同的Scene子类对象
 	if (EnableDraw())
 	{
 		cSceneBuilder::BuildDrawScene(scene_name, mScene);

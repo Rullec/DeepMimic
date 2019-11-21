@@ -1,0 +1,5 @@
+--scene kin_char
+
+
+--character_file data/1112/characters/110907.json
+--motion_file data/1112/motions/111001.txt
