@@ -418,7 +418,7 @@ def train_mimic():
     net = autoencoder(theta_num, lr, lr_decay, lr_decay_epoches, lr_min)
 
     # load model
-    # net.load("/home/xudong/Projects/controller-space/data/autoencoder_model/epoch1470-loss0.002821", load_conf= True)
+    # sa.load("/home/xudong/Projects/controller-space/data/autoencoder_model/epoch1470-loss0.002821", load_conf= True)
     for i in range(epochs):
         net.train_one_epoch(skeleton_lst, theta_mat, K, batch_size)
 
@@ -438,7 +438,7 @@ def test_mimic():
     # begin to train
     # initialize the autoencoder
     para_num = sum([i[0] * i[1] if 2 == len(i) else i[0] for i in weight_shape_info])
-    # net = autoencoder(theta_num = para_num)
+    # sa = autoencoder(theta_num = para_num)
 
     # sample 
     train_data_total, target_data_total, weight_data_total, center_pt_id = sample(weight_mat, skeleton_lst, 5, 8)
@@ -451,5 +451,5 @@ if __name__ == "__main__":
     # K = 3, 5, 7, 10
     train_mimic()
     # test_mimic()
-    # net = autoencoder()
+    # sa = autoencoder()
     # test()

@@ -90,6 +90,7 @@ class TFAgent(RLAgent):
 
                 self._initialize_vars()
                 self._build_saver()
+
         return
 
     def _init_normalizers(self):

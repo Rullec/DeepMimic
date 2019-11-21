@@ -1019,6 +1019,6 @@ void cSceneSimChar::ResetRandPertrub()
 
 void cSceneSimChar::SolveInverseDynamic(int sim_char_id, Eigen::VectorXd pre_pos, Eigen::VectorXd next_pos, Eigen::VectorXd pre_vel, Eigen::VectorXd next_vel, Eigen::VectorXd contact_info) const
 {
-	std::cout << "[log] SolveInverseDynamic: char id = " << sim_char_id <<", pos size = " << pre_pos.size() << std::endl;
+//	std::cout << "[log] SolveInverseDynamic: char id = " << sim_char_id <<", pos size = " << pre_pos.size() << std::endl;
 
 }

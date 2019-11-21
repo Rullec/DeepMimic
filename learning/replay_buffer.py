@@ -4,6 +4,8 @@ from util.logger import Logger
 import inspect as inspect
 from env.env import Env
 import util.math_util as MathUtil
+import os
+import datetime
 
 class ReplayBuffer(object):
     # replay buffer中是如何存储goal的?
@@ -21,6 +23,9 @@ class ReplayBuffer(object):
         self.num_paths = 0
         self._sample_buffers = dict()
         self.buffers = None
+
+        self.save_buffer = False
+        self.buffer_output_path = None
 
         self.clear()
         return
@@ -127,6 +132,8 @@ class ReplayBuffer(object):
         return start_idx
 
     def clear(self):
+        if self.save_buffer:
+            self._save(self.buffer_output_path)
         self.buffer_head = 0
         self.buffer_tail = MathUtil.INVALID_IDX
         self.num_paths = 0
@@ -274,6 +281,30 @@ class ReplayBuffer(object):
         self.buffers[self.TERMINATE_KEY][idx] = path.terminate.value
         self.buffers[self.PATH_START_KEY][idx] = idx[0]
         self.buffers[self.PATH_END_KEY][idx] = idx[-1]
+        return
+
+    def _save(self, save_dir):
+        print('=====================================')
+        print('save buffer: ')
+        print('tail: ' + str(self.buffer_tail))
+        print('head: ' + str(self.buffer_head))
+        print('dir: ' + str(save_dir))
+
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
+        cur_time_str = str(datetime.datetime.now()).replace(" ", "_").replace(":","-")
+        filename = os.path.join(save_dir, cur_time_str + ".npz")
+        print('file_name: ' + filename)
+        print('=====================================')
+
+        buffers2dump = dict()
+
+        for key, val in self.buffers.items():
+            buffers2dump[key] = val[self.buffer_tail: self.buffer_head]
+
+        np.savez_compressed(filename, **buffers2dump)
+
         return
 
 class SampleBuffer(object):
