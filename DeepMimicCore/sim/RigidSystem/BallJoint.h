@@ -76,7 +76,7 @@ protected:
 
 	void computeJacobiW();
 	void computeJacobiV();
-	
+	//
 	void computeJacobiWdot(VectorXd &q_dot);
 	void computeJacobiVdot(VectorXd &q_dot);
 
@@ -104,7 +104,7 @@ protected:
 
 public:
 
-	std::vector<Matrix4d> R_m;
+	std::vector<Matrix4d> R_m;	// R_m[0] = Rx, R_m[1] = Ry, R_m[2] = Rz, following the same
 	std::vector<Matrix4d> R_m_firstDeriv;
 	std::vector<Matrix4d> R_m_secondDerive;
 	std::vector<Matrix4d> R_m_thirdDerive;

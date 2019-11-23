@@ -16,6 +16,11 @@ UniversalJoint::~UniversalJoint()
 
 }
 
+/*
+	@Function: UniversalJoint::updateJointState
+	
+	This function is used to set the state of articulated system.
+*/
 void UniversalJoint::updateJointState(VectorXd &q, VectorXd &q_dot, bool updateDynamic /*= true*/)
 {
 	// rx ry rz x y z
@@ -74,6 +79,11 @@ void UniversalJoint::updateJointState(VectorXd &q, VectorXd &q_dot, bool updateD
 
 }
 
+/*
+	@Function: UniversalJoint::clampRotation
+	
+	This function is used to normalize the generalized coordinates(euler angles)
+*/
 void UniversalJoint::clampRotation(VectorXd& _q, VectorXd& _qdot)
 {
 	for (int i = 0; i < 3; i++)
@@ -92,6 +102,11 @@ void UniversalJoint::clampRotation(VectorXd& _q, VectorXd& _qdot)
 	}
 }
 
+/*
+	@Function: UniversalJoint::updateLocalTransform
+
+	This function is used to combine a 3x3 rotation matrix and a 3x1 translational vector into a 4x4 transformal matrix
+*/
 void UniversalJoint::updateLocalTransform()
 {
 	local_TransForm.topLeftCorner<3, 3>() = orientation;
@@ -100,6 +115,14 @@ void UniversalJoint::updateLocalTransform()
 	local_TransForm.data()[14] = position.data()[2];
 }
 
+/*
+	@Function: UniversalJoint::updateRotationMatrix
+	This function is used to compute:
+		1. 3 individual rotation matrix: Rx, Ry, Rz
+		2. 1st order of derivates of these 3 mats: dRx/dx, dRy/dy, dRz/dz
+		3. 2nd order of ...: dRx^2/dx^2, etc
+	3rd order of derivates are ignored
+*/
 void UniversalJoint::updateRotationMatrix()
 {
 	xconventionTransform(R_m[0], generalized_position[0]);
@@ -122,20 +145,54 @@ void UniversalJoint::updateRotationMatrix()
 		xconventionRotation_dxdxdx(R_m_thirdDerive[0], generalized_position[0]);
 		yconventionRotation_dydydy(R_m_thirdDerive[1], generalized_position[1]);
 		zconventionRotation_dzdzdz(R_m_thirdDerive[2], generalized_position[2]);
-		
 	}
 }
 
+/*
+	@Function: UniversalJoint::computeLocalTransformDerive
+		
+	This function computes the rotation matrix from 3 individual components, according to a given rotaion order
+	For example, for order "ZYX" (which means first rotates by Z-axis, then Y-axis and X-axis followed)
+	In this circumstance, the ultimate rotation matrix are managed to be R_total = Rx * Ry * Rz.
+
+	mTq[0] = dRdx = dRx/dx * Ry * Rz (the first components)
+	mTq[1] = dRdy = Rx * dRy/dy * Rz (the second components)
+	mTq[2] = dRdz = Rx * Ry * dRz/dz (the third components)
+*/
 void UniversalJoint::computeLocalTransformDerive()
 {
 	mTq[0].setZero();
 	mTq[1].setZero();
 	mTq[2].setZero();
 
-	mTq[0] = R_m_firstDeriv[0] * R_m[1] * R_m[2];
-	mTq[1] = R_m[0] * R_m_firstDeriv[1] * R_m[2];
-	mTq[2] = R_m[0] * R_m[1] * R_m_firstDeriv[2];
+	if (gRotationOrder == eRotationOrder::ZYX)
+	{
+		// 旋转顺序z->y->x
+		mTq[0] = R_m_firstDeriv[0] * R_m[1] * R_m[2]; // dTdx = (dRx/dx) * Ry * Rz
+		mTq[1] = R_m[0] * R_m_firstDeriv[1] * R_m[2];
+		mTq[2] = R_m[0] * R_m[1] * R_m_firstDeriv[2];
+	}
+	else if (gRotationOrder == eRotationOrder::XYZ)
+	{
+		// 旋转顺序x->y->z, T = Rz * Ry * Rx
+		mTq[0] = R_m[2] * R_m[1] * R_m_firstDeriv[0];	// mTq[0] = dT/dx = Rz * Ry * (dRx/dx)
+		mTq[1] = R_m[2] * R_m_firstDeriv[1] * R_m[0];	// mTq[1] = Rz * (dRy/dy) * Rx
+		mTq[2] = R_m_firstDeriv[2] * R_m[1] * R_m[0];	// mTq[2] = (dRz/dz) *Ry * Rx
+	}
+	else
+	{
+		std::cout << "[error] UniversalJoint::computeLocalTransformDerive Unsupported rotation order: " << ROTATION_ORDER_NAME[gRotationOrder] << std::endl;
+		exit(1);
+	}
 
+	// for final transfromational matrix T(4x4), (dT)/(dtranslation_x) =
+	/*
+		| 0 0 0 1 |
+		| 0 0 0 0 |
+		| 0 0 0 0 | 
+		| 0 0 0 0 |
+		and eigen is default column major
+	*/
 	mTq[3].setZero();
 	mTq[3].data()[12] = 1;
 	mTq[4].setZero();
@@ -146,25 +203,70 @@ void UniversalJoint::computeLocalTransformDerive()
 }
 
 
+/*
+	@Function: UniversalJoint::computeLocalTSecondDerive
+		
+	It can be used to compute second order derivates for local rotation matrix R = Rz * Ry * Rx(it depends on the rotation order)
+	There will be as much as 9 VALID individual components, which can be placed from mTqq[0][0] to mTqq[3][3]
 
+
+	mTqq[0][0] = dR^2/dx^2 = d(dR/dx)/dx = d(dRx/dx * Ry * Rz)/dx = dRx^2/dx^2 * Ry * Rz
+	...
+	mTqq[1][2] = dR^2/dydz = d(dR/dy)/dz = d( Rx * dRy/dy * Rz)/dz = Rx * dRy/dy * dRz/dz
+	...
+
+	But for Universal Joint(root), there will be up to 6 DOFs = [rx, ry, rz, x, y, z]
+	
+*/
 void UniversalJoint::computeLocalTSecondDerive()
 {
+	if (6 != r)
+	{
+		std::cout << "[error] UniversalJoint::computeLocalTSecondDerive: the local dof of this ball joint is not 3 " << std::endl;
+		exit(1);
+	}
+
+	int rotation_order[3] = {  };
+	// this array will be used later, it will decide which rotation matrix will be multiplicated 1st, 2nd, 3rd
+	// and control the rotation order in this way
+	if (gRotationOrder == eRotationOrder::XYZ)
+	{// in this order
+		rotation_order[0] = 0; // Rx will be multiplicated first
+		rotation_order[1] = 1; // then Ry second
+		rotation_order[2] = 2; // then Rz third
+	}
+	else if (gRotationOrder == eRotationOrder::ZYX)
+	{
+		rotation_order[0] = 2; // Rz will be multiplicated first
+		rotation_order[1] = 1; // then Ry second
+		rotation_order[2] = 0; // then Rx third
+	}
+	else
+	{
+		std::cout << "[error] UniversalJoint::computeLocalTSecondDerive: Unsupported rotation order" << std::endl;
+		exit(1);
+	}
+
+	// r = 6 but we only care the first 3 rotation DOF: rx, ry, rz
 	for (int i = 0; i < 3; i++)
 	{
 		for (int j = 0; j < 3; j++)
 		{
 			mTqq[i][j].setIdentity();
-			for (int k = 3 - 1; k >= 0; k--)
+			for (int selected_matrix_order = 0; selected_matrix_order < 3; selected_matrix_order++)
 			{
-				if (k == i&&i != j)
+				int k = rotation_order[selected_matrix_order]; // choose which dimension was chosed to be multiplicated
+				if (k == i && i != j)
 				{
 					mTqq[i][j] = R_m_firstDeriv[k] * mTqq[i][j];
 				}
-				else if (k == i&&i == j)
+				else if (k == i && i == j)
 				{
+					// 如果计算dx^2 / dy^2 / dz^2
+					// 这项只进入一次, 就是
 					mTqq[i][j] = R_m_secondDerive[k] * mTqq[i][j];
 				}
-				else if (k != i&&k == j)
+				else if (k != i && k == j)
 				{
 					mTqq[i][j] = R_m_firstDeriv[k] * mTqq[i][j];
 				}
@@ -177,6 +279,7 @@ void UniversalJoint::computeLocalTSecondDerive()
 		}
 	}
 
+	// any second order terms where the translational DOF (x, y, z) are involved in should be set to zero
 	for (int i = 0; i < 3; i++)
 	{
 		for (int j = 3; j < 6; j++)
@@ -206,8 +309,14 @@ void UniversalJoint::computeLocalTSecondDerive()
 		break;\
 }\
 
+/*
+
+	compute 3rd derivate, ignore
+*/
 void UniversalJoint::computeLocalTThirdDerive()
 {
+	std::cout << "[error] UniversalJoint::computeLocalTThirdDerive: this function didn't support different rotation order but ZYX" << std::endl;
+	exit(1);
 	for (int i = 0; i < r; i++)
 	{
 		for (int j = 0; j < r; j++)
@@ -269,9 +378,19 @@ void UniversalJoint::computeLocalTThirdDerive()
 
 void UniversalJoint::getOrientationByq(Matrix3d &m, VectorXd q)
 {
-	// from zyx to xyz
-	//m = xconventionRotation(q.data()[0])*yconventionRotation(q.data()[1])*zconventionRotation(q.data()[2]);
-	m = zconventionRotation(q.data()[2])*yconventionRotation(q.data()[1])*xconventionRotation(q.data()[0]);
+	// R = Rx * Ry * Rz, zyx旋转顺序
+	if (gRotationOrder == eRotationOrder::XYZ)
+	{
+		m = zconventionRotation(q.data()[2]) * yconventionRotation(q.data()[1]) * xconventionRotation(q.data()[0]);
+	}
+	else if (gRotationOrder == eRotationOrder::ZYX)
+	{
+		m = xconventionRotation(q.data()[0]) * yconventionRotation(q.data()[1]) * zconventionRotation(q.data()[2]);
+	}
+	else
+	{
+		std::cout << "[error] UniversalJoint::getOrientationByq Unsupported rotation order: " << ROTATION_ORDER_NAME[gRotationOrder];
+	}
 }
 
 void UniversalJoint::initGeneralizedInfo()

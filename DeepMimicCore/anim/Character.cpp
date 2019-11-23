@@ -48,7 +48,7 @@ bool cCharacter::Init(const std::string& char_file, bool load_draw_shapes)
 		// 读入character 结构文件 - 这个只是解析文件，并且把他变成Json格式而已。
 		succ = reader.parse(f_stream, root);
 		f_stream.close();
-		cout <<"parse skeleton " << succ << endl;
+		//cout <<"parse skeleton " << succ << endl;
 		if (succ)
 		{
 			// 如果解析json成功，则load skeleton 装载结构;
@@ -58,10 +58,8 @@ bool cCharacter::Init(const std::string& char_file, bool load_draw_shapes)
 			}
 			else
 			{
-				// 进去解析json读取骨架
-				// 读好了以后要看他是如何显示的、如何操作的才行。
-				// 他这个里面load过程中根本不计算全局位置，只是维护local角度和位移
-				// 难道他要一遍遍的计算吗???
+				// load "Skeleton":"Joints" Key in character file (skeleton.json)
+				// It doesn't storage any joint name or link name.
 				succ = LoadSkeleton(root[gSkeletonKey]);
 			}
 		}
@@ -73,10 +71,9 @@ bool cCharacter::Init(const std::string& char_file, bool load_draw_shapes)
 
 		if (cDrawUtil::EnableDraw() && load_draw_shapes)
 		{
-			// 这里想必就是读取character file中另外的两个key了:
-			// 一个是BodyDefs　另一个是DrawShapeDefs
-			// 所以BodyDefs就是mesh了?
-			succ &= LoadMeshes(char_file, mMeshes);
+			succ &= LoadMeshes(char_file, mMeshes);		// deprecated, currently there is no "Meshes" key.
+
+			// load key "DrawShapeDefs" in chracter file
 			succ &= LoadDrawShapeDefs(char_file, mDrawShapeDefs);
 		}
 	}
@@ -99,6 +96,10 @@ void cCharacter::Clear()
 
 	mDrawShapeDefs.resize(0, 0);
 	mMeshes.clear();
+
+	mDrawShapeDefsName.clear();
+	mSkeletonJointsName.clear();
+	mBodyDefsName.clear();
 }
 
 void cCharacter::Update(double time_step)
@@ -393,10 +394,17 @@ bool cCharacter::ReadState(const std::string& file)
 	return succ;
 }
 
+/*
+	Function: cCharacter::LoadSkeleton
+
+	It will parse the json value passed in, extract the data under key "Skeleton" then "Joints"
+*/
 bool cCharacter::LoadSkeleton(const Json::Value& root)
 {
-	// 装载骨架被这个调用, 这就已经到了cCharacter了。
-	return cKinTree::Load(root, mJointMat);
+	// set up joint info in mJointMat
+	mSkeletonJointsName.clear();
+	return cKinTree::Load(root, mJointMat, mSkeletonJointsName);	
+
 }
 
 void cCharacter::InitDefaultState()
@@ -453,9 +461,10 @@ std::string cCharacter::BuildStateJson(const Eigen::VectorXd& pose, const Eigen:
 }
 
 
-bool cCharacter::LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& out_draw_defs) const
+bool cCharacter::LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& out_draw_defs) 
 {
-	bool succ = cKinTree::LoadDrawShapeDefs(char_file, out_draw_defs);
+	bool succ = cKinTree::LoadDrawShapeDefs(char_file, out_draw_defs, mDrawShapeDefsName);
+
 	return succ;
 }
 
