@@ -22,6 +22,8 @@ const std::string gJointTypeNames[cKinTree::eJointTypeMax] =
 };
 
 const std::string gJointsKey = "Joints";
+const std::string gJointsNameKey = "Name";
+
 // 这里面装的就是Joints下面的key
 const std::string gJointDescKeys[cKinTree::eJointDescMax] = 
 {
@@ -47,6 +49,7 @@ const std::string gJointDescKeys[cKinTree::eJointDescMax] =
 };
 
 const std::string gBodyDefsKey = "BodyDefs";
+const std::string gBodyDefsKeyName = "Name";
 // desc是describe的缩写，也就是描述key的意思。
 const std::string gBodyDescKeys[cKinTree::eBodyParamMax] =
 {
@@ -70,6 +73,7 @@ const std::string gBodyDescKeys[cKinTree::eBodyParamMax] =
 };
 
 const std::string gDrawShapeDefsKey = "DrawShapeDefs";
+const std::string gDrawShapeDefsNameKey = "Name";
 const std::string gDrawShapeDescKeys[cKinTree::eDrawShapeParamMax] =
 {
 	"Shape",
@@ -127,7 +131,7 @@ void cKinTree::FindChildren(const Eigen::MatrixXd& joint_desc, int joint_id, Eig
 	}
 }
 
-bool cKinTree::LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_body_defs)
+bool cKinTree::LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_body_defs, std::vector<std::string> & out_body_names)
 {
 	bool succ = true;
 	std::string str;
@@ -145,6 +149,7 @@ bool cKinTree::LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_b
 		{
 			Json::Value body_defs = root.get(gBodyDefsKey, 0);
 			int num_bodies = body_defs.size();
+			out_body_names.resize(num_bodies);
 
 			succ = true;
 			out_body_defs.resize(num_bodies, eBodyParamMax);
@@ -152,7 +157,7 @@ bool cKinTree::LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_b
 			{
 				tBodyDef curr_def = BuildBodyDef();
 				Json::Value body_json = body_defs.get(b, 0);
-				bool succ_def = ParseBodyDef(body_json, curr_def);
+				bool succ_def = ParseBodyDef(body_json, curr_def, out_body_names[b]);
 
 				if (succ)
 				{
@@ -176,7 +181,7 @@ bool cKinTree::LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_b
 	return succ;
 }
 
-bool cKinTree::ParseBodyDef(const Json::Value& root, cKinTree::tBodyDef& out_def)
+bool cKinTree::ParseBodyDef(const Json::Value& root, cKinTree::tBodyDef& out_def, std::string & out_name)
 {
 	std::string shape_str = root.get(gBodyDescKeys[eBodyParamShape], "").asString();
 	cShape::eShape shape;
@@ -184,6 +189,18 @@ bool cKinTree::ParseBodyDef(const Json::Value& root, cKinTree::tBodyDef& out_def
 	if (succ)
 	{
 		out_def(eBodyParamShape) = static_cast<double>(static_cast<int>(shape));
+	}
+	
+	// parse body defs name
+	if (true == root[gBodyDefsKeyName].isNull())
+	{
+		std::cout << "[error] cKinTree::ParseBodyDef: parse body def name failed" << std::endl;
+		exit(1);
+	}
+	else
+	{
+		out_name = root[gBodyDefsKeyName].asString();
+		std::cout << "[debug] parse body def name = " << out_name << std::endl;
 	}
 
 	for (int i = 0; i < eBodyParamMax; ++i)
@@ -201,7 +218,7 @@ bool cKinTree::ParseBodyDef(const Json::Value& root, cKinTree::tBodyDef& out_def
 	return succ;
 }
 
-bool cKinTree::LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& out_draw_defs)
+bool cKinTree::LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& out_draw_defs, std::vector<std::string> & out_draw_names)
 {
 	bool succ = true;
 	std::string str;
@@ -218,6 +235,7 @@ bool cKinTree::LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& 
 		{
 			Json::Value shape_defs = root.get(gDrawShapeDefsKey, 0);
 			int num_shapes = shape_defs.size();
+			out_draw_names.resize(num_shapes);
 
 			succ = true;
 			out_draw_defs.resize(num_shapes, eDrawShapeParamMax);
@@ -225,7 +243,7 @@ bool cKinTree::LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& 
 			{
 				tDrawShapeDef curr_def = BuildDrawShapeDef();
 				Json::Value shape_json = shape_defs.get(b, 0);
-				bool succ_def = ParseDrawShapeDef(shape_json, curr_def);
+				bool succ_def = ParseDrawShapeDef(shape_json, curr_def, out_draw_names[b]);
 
 				if (succ)
 				{
@@ -249,9 +267,11 @@ bool cKinTree::LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& 
 	return succ;
 }
 
-bool cKinTree::ParseDrawShapeDef(const Json::Value& root, tDrawShapeDef& out_def)
+bool cKinTree::ParseDrawShapeDef(const Json::Value& root, tDrawShapeDef& out_def, std::string & out_name)
 {
-	std::string shape_str = root.get(gDrawShapeDescKeys[eDrawShapeShape], "").asString();
+	std::string shape_str = root.get(gDrawShapeDescKeys[eDrawShapeShape], "").asString(); // "Sphere", "box" etc
+
+	// load shape params
 	cShape::eShape shape;
 	bool succ = cShape::ParseShape(shape_str, shape);
 	if (succ)
@@ -269,6 +289,18 @@ bool cKinTree::ParseDrawShapeDef(const Json::Value& root, tDrawShapeDef& out_def
 			double val = json_val.asDouble();
 			out_def(i) = val;
 		}
+	}
+
+	// load draw shape name, "rfemur"... etc
+	if (root[gDrawShapeDefsNameKey].isNull())
+	{
+		printf("[error] cKinTree::ParseDrawShapeDef: load %s failed", gDrawShapeDefsKey.c_str());
+		succ &= false;
+	}
+	else
+	{
+		out_name = root[gDrawShapeDefsNameKey].asString();
+		//std::cout << "[debug] load draw shape name = " << out_name << std::endl;
 	}
 
 	return succ;
@@ -442,19 +474,17 @@ void cKinTree::CalcBodyPartRotation(const Eigen::MatrixXd& joint_mat, const Eige
 	cMathUtil::RotMatToAxisAngle(mat, out_axis, out_theta);
 }
 
-bool cKinTree::Load(const Json::Value& root, Eigen::MatrixXd& out_joint_mat)
+bool cKinTree::Load(const Json::Value& root, Eigen::MatrixXd& out_joint_mat, std::vector<std::string> &out_joint_name)
 {
-	/*
-		输入一串json，需要建立模型的结构
-		他输入的是哪串json?
-	 */
+	// input json value of "skeleton.json"
+	// set up the "Skeleton" then "Joints" key in it
 	bool succ = false;
 
-	// 如果root["Joints"]不是空的话，则可以继续
 	if (!root[gJointsKey].isNull())
 	{
-		Json::Value joints = root[gJointsKey];
-		int num_joints = joints.size();	// 计算joint个数
+		Json::Value joints = root[gJointsKey];	// "Skeleton"
+		int num_joints = joints.size();
+		out_joint_name.resize(num_joints);
 
 		// 全部参数传入一个MaxtrxXd(joint_num, desciption_length) 中
 		out_joint_mat.resize(num_joints, eJointDescMax);
@@ -465,7 +495,7 @@ bool cKinTree::Load(const Json::Value& root, Eigen::MatrixXd& out_joint_mat)
 
 			Json::Value joint_json = joints.get(j, 0);
 			// 读取每一个joint，里面的值都已经从json读取到结构中了(ParseJoint)
-			succ = ParseJoint(joint_json, curr_joint_desc);
+			succ = ParseJoint(joint_json, curr_joint_desc, out_joint_name[j]);
 			if (succ)
 			{
 				// out_joint_mat　存储的似乎是每个joint的"desc"?
@@ -992,14 +1022,25 @@ void cKinTree::CalcSubTreeMasses(const Eigen::MatrixXd& joint_mat, const Eigen::
 	}
 }
 
-bool cKinTree::ParseJoint(const Json::Value& root, tJointDesc& out_joint_desc)
+bool cKinTree::ParseJoint(const Json::Value& root, tJointDesc& out_joint_desc, std::string & out_joint_name)
 {
-	/*
-		给定一个joint的解析输入，parse掉.
-	 */
+	// input a piece of json, output the joint data info & joint_name
 	out_joint_desc = BuildJointDesc();
 	eJointType joint_type = eJointTypeNone;
 	const Json::Value& type_json = root[gJointDescKeys[eJointDescType]];
+
+	// joint name
+	const Json::Value & name_json = root[gJointsNameKey];
+	if (name_json.isNull())
+	{
+		printf("[log] cKinTree:ParseJoint: No Skeleton-Joints Name specified\n");
+		exit(1);
+	}
+	else
+	{
+		out_joint_name = name_json.asString();
+		//std::cout << "[debug] cKinTree:ParseJoint: read json name = " << out_joint_name << std::endl;
+	}
 
 	// joint type
 	if (type_json.isNull())

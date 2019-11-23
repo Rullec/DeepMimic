@@ -157,16 +157,16 @@ public:
 	static tMatrix JointWorldTrans(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& state, int joint_id);
 	static tMatrix WorldJointTrans(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& state, int joint_id);
 	
-	static bool Load(const Json::Value& root, Eigen::MatrixXd& out_joint_mat);
+	static bool Load(const Json::Value& root, Eigen::MatrixXd& out_joint_mat, std::vector<std::string> &out_joint_name);
 	static int GetNumJoints(const Eigen::MatrixXd& joint_mat);
 	static int GetRoot(const Eigen::MatrixXd& joint_mat);
 	static void FindChildren(const Eigen::MatrixXd& joint_mat, int joint_id, Eigen::VectorXi& out_children);
 
-	static bool LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_body_defs);
-	static bool ParseBodyDef(const Json::Value& root, tBodyDef& out_def);
+	static bool LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_body_defs, std::vector<std::string> & out_body_names);
+	static bool ParseBodyDef(const Json::Value& root, tBodyDef& out_def, std::string & out_name);
 	
-	static bool LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& out_draw_defs);
-	static bool ParseDrawShapeDef(const Json::Value& root, tDrawShapeDef& out_def);
+	static bool LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& out_draw_defs, std::vector<std::string> &out_name);
+	static bool ParseDrawShapeDef(const Json::Value& root, tDrawShapeDef& out_def, std::string &);
 	
 	static cShape::eShape GetBodyShape(const Eigen::MatrixXd& body_defs, int part_id);
 	static tVector GetBodyAttachPt(const Eigen::MatrixXd& body_defs, int part_id);
@@ -236,7 +236,7 @@ public:
 	static std::string BuildJointJson(int id, const tJointDesc& joint_desc);
 
 protected:
-	static bool ParseJoint(const Json::Value& root, tJointDesc& out_joint_desc);
+	static bool ParseJoint(const Json::Value& root, tJointDesc& out_joint_desc, std::string & out_joint_name);
 	static bool ParseJointType(const std::string& type_str, eJointType& out_joint_type);
 	static void PostProcessJointMat(Eigen::MatrixXd& out_joint_mat);
 

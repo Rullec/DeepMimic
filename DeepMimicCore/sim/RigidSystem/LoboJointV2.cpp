@@ -3,6 +3,9 @@
 #include <iostream>
 #include "Functions/SkewMatrix.h"
 
+const enum eRotationOrder gRotationOrder = eRotationOrder::XYZ;// LoboSImulator(after cow) default, deepmimic
+//const enum eRotationOrder gRotationOrder = eRotationOrder::ZYX;// LoboSimulator(yifan) default
+
 LoboJointV2::LoboJointV2(LoboLink* link, Vector3d ori_position_, Vector3d ori_position_w_, Matrix3d ori_orientation_w_, Vector3d mass_position_, int id_)
 {
 	init();

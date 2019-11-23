@@ -221,55 +221,79 @@ void BallJoint::updateRotationMatrix()
 void BallJoint::computeTransformFirstDerive()
 {
 	//compute mTq;
-	computeLocalTransformDerive(); // joint rotation and translation derivative with repect to q
-	applyOriOrientationtomTq();  //mTq computation finished
+	computeLocalTransformDerive();	// joint rotation and translation derivative with repect to q
+	applyOriOrientationtomTq();		//mTq computation finished
+
 	//compute mWq;
 	computeGlobalTransformDerive();
 }
 
+/* 
+
+	@Function: BallJoint::computeLocalTransformDerive
+	@params: void
+	@return: void
+	
+	For	T_{4*4} =| Rot_{3*3}, Trans_{3*1}|
+				 |0,   0,   0,	1		 |_{4*4}, which represent the transformation from parent joint to child joint
+
+	This function compute mTq = [mTq[0], mTq[1], mTq[2]] = [dT/dq_x, dT/dq_y, dT/dq_z].
+	Obviously, q_x, q_y and q_z are 3 generalized coordinates for this ball joint.
+*/
 void BallJoint::computeLocalTransformDerive()
 {
 	mTq[0].setZero();
 	mTq[1].setZero();
 	mTq[2].setZero();
 
-	//绕轴旋转顺序为x y z, R_m和R_m的导求出来之后已经transpose过了，所以这个乘的顺序没有问题
-	std::cout << "[error] BallJoint danger " << std::endl;
-	exit(1);
-	mTq[0] = R_m_firstDeriv[0] * R_m[1] * R_m[2];
-	mTq[1] = R_m[0] * R_m_firstDeriv[1] * R_m[2];
-	mTq[2] = R_m[0] * R_m[1] * R_m_firstDeriv[2];
 
-
-	/*for (int i = 0; i < 3; i++)
+	if (gRotationOrder == eRotationOrder::ZYX)
 	{
-	std::cout << mTq[i] << std::endl;
+		// 旋转顺序z->y->x
+		mTq[0] = R_m_firstDeriv[0] * R_m[1] * R_m[2]; // dTdx = (dRx/dx) * Ry * Rz
+		mTq[1] = R_m[0] * R_m_firstDeriv[1] * R_m[2];
+		mTq[2] = R_m[0] * R_m[1] * R_m_firstDeriv[2];
 	}
-	std::cout << "*************compare*********************" << std::endl;
-	rotationFirstDerive_dx(mTq[0], generalized_position.data()[0], generalized_position.data()[1], generalized_position.data()[2]);
-	rotationFirstDerive_dy(mTq[1], generalized_position.data()[0], generalized_position.data()[1], generalized_position.data()[2]);
-	rotationFirstDerive_dz(mTq[2], generalized_position.data()[0], generalized_position.data()[1], generalized_position.data()[2]);
-
-	for (int i = 0; i < 3; i++)
+	else if (gRotationOrder == eRotationOrder::XYZ)
 	{
-	std::cout << mTq[i] << std::endl;
-	}*/
-
+		// 旋转顺序x->y->z, T = Rz * Ry * Rx
+		mTq[0] = R_m[2] * R_m[1] * R_m_firstDeriv[0];	// mTq[0] = dT/dx = Rz * Ry * (dRx/dx)
+		mTq[1] = R_m[2] * R_m_firstDeriv[1] * R_m[0];	// mTq[1] = Rz * (dRy/dy) * Rx
+		mTq[2] = R_m_firstDeriv[2] * R_m[1] * R_m[0];	// mTq[2] = (dRz/dz) *Ry * Rx
+	}
+	else
+	{
+		std::cout << "[error] BallJoint::computeLocalTransformDerive Unsupported rotation order: " << ROTATION_ORDER_NAME[gRotationOrder] << std::endl;
+		exit(1);
+	}
+	
 }
 
+/*
+	@Function: BallJoint::computeGlobalTransformDerive
+	@params: void
+	@return: void
+
+	This function will compute mWq Type std::vector<Eigen::Matrix4d>, mWq is a vector storaged 3 Matrix4d mats, which are:
+		mWq[0] = dW/dx, W is the rotation matrix from joint local frame to world frame, x is the first generalized coordinate of this ball joint
+		mWq[1] = dW/dy, W is the rotation matrix from joint local frame to world frame
+		mWq[2] = dW/dz, W is the rotation matrix from joint local frame to world frame
+*/
 void BallJoint::computeGlobalTransformDerive()
 {
-	int numParentDOFs = getDependentDOfs() - getR();
+	// 计算dWdq, 是一个有dependentDof项的数组;
+	int numParentDOFs = getDependentDOfs() - getR(); // 获取他所依赖的自由度(去除自己的)
 
-
+	// 对于他的父亲链上的，通过parent link rotation * local rotation获得从当前到
 	for (int i = 0; i < numParentDOFs; i++)
 	{
-		mWq[i] = joint_parent->mWq[i] * local_TransForm;
+		mWq[i] = joint_parent->mWq[i] * local_TransForm;	// 递归乘法，避免重新计算。获取完成的部分之后去乘。
 	}
 
+	// 对于我自己的那一部分，就是父亲的世界转换 * 我的局部transform对q求偏导
 	for (int i = 0; i < getR(); i++)
 	{
-		if (joint_parent)
+		if (joint_parent) // 如果该joint有父亲, mWq中就存储
 		{
 			mWq[numParentDOFs + i] = joint_parent->global_TransForm*mTq[i];
 		}
@@ -280,6 +304,7 @@ void BallJoint::computeGlobalTransformDerive()
 	}
 }
 
+// 这个二阶导是需要计算的，在计算jacobian的时候
 void BallJoint::computeTransformSecondDerive()
 {
 	computeLocalTSecondDerive();
@@ -287,21 +312,67 @@ void BallJoint::computeTransformSecondDerive()
 	computeGlobalTSecondDerive();
 }
 
+/*
+	@Function: BallJoint::computeLocalTSecondDerive
+	@params: void
+	@return: void
+
+		This function compute the secord order derivate of the local transformation matrix T of this joint.
+	for this Eigen::Matrix4d matrix T, its 2nd order derivations have 9 components, which are
+	from mTqq[0][0] to mTqq[2][2]. 
+		ATTENTION: different rotation order has different formula following. 
+		We will use the order "XYZ" as an example, so T_total = Tz * Ty * Tx
+
+		mTqq[0][0] = dT^2/dxdx = d(dT/dx)/dx = d(Tz * Ty * dTx/dx)/dx = Tz * Ty * dTx^2/dx^2
+		mTqq[1][2] = dT^2/dydz = d(dT/dy)/dz = d(Tz * dTy/dy * Tx)/dz = dTz/dz * dTy/dy * Tx
+		mTqq[2][2] = dT^2/dzdz = ...
+*/
 void BallJoint::computeLocalTSecondDerive()
 {
+	// 这里也存在旋转顺序
+	if (3 != r)
+	{
+		std::cout << "[error] BallJoint::computeLocalTSecondDerive: the local dof of this ball joint is not 3 " << std::endl;
+		exit(1);
+	}
+
+	int rotation_order[3] = { 0, 0, 0 };	
+	// this array will be used later, it will decide which rotation matrix will be multiplicated 1st, 2nd, 3rd
+	// and control the rotation order in this way
+	if (gRotationOrder == eRotationOrder::XYZ)
+	{// in this order
+		rotation_order[0] = 0; // Rx will be multiplicated first
+		rotation_order[1] = 1; // then Ry second
+		rotation_order[2] = 2; // then Rz third
+	}
+	else if (gRotationOrder == eRotationOrder::ZYX)
+	{
+		rotation_order[0] = 2; // Rz will be multiplicated first
+		rotation_order[1] = 1; // then Ry second
+		rotation_order[2] = 0; // then Rx third
+	}
+	else
+	{
+		std::cout << "[error] BallJoint::computeLocalTSecondDerive: Unsupported rotation order" << std::endl;
+		exit(1);
+	}
+
 	for (int i = 0; i < r; i++)
 	{
 		for (int j = 0; j < r; j++)
 		{
 			mTqq[i][j].setIdentity();
-			for (int k = r - 1; k >= 0; k--)
+			for (int selected_matrix_order = 0; selected_matrix_order < r; selected_matrix_order++)
 			{
+				int k = rotation_order[selected_matrix_order]; // choose which dimension was chosed to be multiplicated
 				if (k == i&&i != j)
 				{
 					mTqq[i][j] = R_m_firstDeriv[k] * mTqq[i][j];
 				}
 				else if (k == i&&i == j)
 				{
+					// 如果计算dx^2 / dy^2 / dz^2
+					// 这项只进入一次, 就是
 					mTqq[i][j] = R_m_secondDerive[k] * mTqq[i][j];
 				}
 				else if (k != i&&k == j)
@@ -331,13 +402,15 @@ void BallJoint::computeLocalTSecondDerive()
 	//rotationSecondDerive_dzdx(mTqq[2][0], generalized_position.data()[0], generalized_position.data()[1], generalized_position.data()[2]);
 	//rotationSecondDerive_dzdy(mTqq[2][1], generalized_position.data()[0], generalized_position.data()[1], generalized_position.data()[2]);
 	//rotationSecondDerive_dzdz(mTqq[2][2], generalized_position.data()[0], generalized_position.data()[1], generalized_position.data()[2]);
-
-
-
-
 }
 
-
+/*
+	@Function: BallJoint::computeGlobalSecondDerive
+	@params: void
+	@return: void
+		This function will compute the 2nd order derivation of the global transformation matrix W
+		
+*/
 void BallJoint::computeGlobalTSecondDerive()
 {
 	int numParentDOFs = getDependentDOfs() - getR();
@@ -357,7 +430,6 @@ void BallJoint::computeGlobalTSecondDerive()
 			else
 				mWqq[i][j + numParentDOFs] = mTq[j];
 		}
-
 	}
 
 	for (int i = 0; i < getR(); i++)
@@ -375,7 +447,7 @@ void BallJoint::computeGlobalTSecondDerive()
 		for (int j = 0; j < getR(); j++)
 		{
 			if (joint_parent)
-				mWqq[numParentDOFs + i][numParentDOFs + j] = joint_parent->global_TransForm* mTqq[i][j];
+				mWqq[numParentDOFs + i][numParentDOFs + j] = joint_parent->global_TransForm * mTqq[i][j];
 			else
 				mWqq[numParentDOFs + i][numParentDOFs + j] = mTqq[i][j];
 		}
@@ -402,8 +474,14 @@ void BallJoint::computeTransformThirdDerive()
 		break;\
 }\
 
+/*
+
+	compute 3rd derivate, ignore
+*/
 void BallJoint::computeLocalTThirdDerive()
 {
+	std::cout << "[error] BallJoint::computeLocalTThirdDerive: this function didn't support different rotation order but ZYX" << std::endl;
+	exit(1);
 	int counts[3];
 	counts[0] = 0;
 	counts[1] = 0;
@@ -452,8 +530,11 @@ void BallJoint::computeLocalTThirdDerive()
 	}
 }
 
+// ignore
 void BallJoint::computeGlobalTThirdDerive()
 {
+	std::cout << "[error] BallJoint::computeGlobalTThirdDerive: this function didn't support different rotation order bu ZYX" << std::endl;
+	exit(1);
 	int numParentDOFs = getDependentDOfs() - getR();
 
 	for (int i = 0; i < numParentDOFs; i++)
@@ -518,14 +599,16 @@ void BallJoint::computeGlobalTThirdDerive()
 	}
 }
 
+// 计算Jacobian
 void BallJoint::computeJacobiMatrix(VectorXd &q_dot)
 {
+	// 更新旋转矩阵，W, T, W', T', W'', T''
 	updateRotationMatrix();
 	//applyOriOrientation();
 
-	computeTransformFirstDerive();
-	computeJacobiW();
-	computeJacobiV();
+	computeTransformFirstDerive();	// 计算局部、世界变换的对本ball joint 3个广义坐标xyz的一阶导(individually)，R'[3], W'[3]
+	computeJacobiW();	// 计算Jw
+	computeJacobiV();	// 计算Jv
 
 	//if (ifComputeSecondDerive)
 	//{
@@ -553,17 +636,24 @@ void BallJoint::computeJacobiMatrix(VectorXd &q_dot)
 	return;
 }
 
+/*
+	@Func: BallJoint::updateJacobiByGivenPosition
+	@params: x_position Type Vector3d, given a specified position
+	@params: JK_v Type MatrixXd &, the Jk_v waited to be revised
+
+	Given a position, this function will compute the JK_v matrix in this place.
+*/
 void BallJoint::updateJacobiByGivenPosition(Vector3d x_position, MatrixXd &JK_v_)
 {
-
 	Vector3d target_positionInLocal;
 	//target_positionInLocal = ori_orientation_w.transpose()*(x_position - ori_position_w);
-	target_positionInLocal = orientation_w.transpose()*(x_position - position_w);
+	target_positionInLocal = orientation_w.transpose()*(x_position - position_w);	// 目标的局部位置
 	//std::cout << "target_positionInLocal: " << target_positionInLocal.transpose() << std::endl;
 	int dofs_offset = 0;
-	JK_v_.resize(3, getGlobalR());
+	JK_v_.resize(3, getGlobalR());	// 3 * N Jk_v维度
 	JK_v_.setZero();
-	Vector4d targetpositionlocal_h;
+
+	Vector4d targetpositionlocal_h;	// 齐次坐标形式
 	targetpositionlocal_h.data()[0] = target_positionInLocal.data()[0];
 	targetpositionlocal_h.data()[1] = target_positionInLocal.data()[1];
 	targetpositionlocal_h.data()[2] = target_positionInLocal.data()[2];
@@ -571,11 +661,13 @@ void BallJoint::updateJacobiByGivenPosition(Vector3d x_position, MatrixXd &JK_v_
 
 	for (int i = 0; i < chainJointFromRoot.size(); i++)
 	{
+		// 从当前joint到root的运动链上，对每一个joint:
 		LoboJointV2* joint = chainJointFromRoot[i];
 		int localr = joint->getR();
 		for (int j = 0; j < localr; j++)
 		{
-			int columnid = joint->getGeneralized_offset() + j;
+			// 循环3次
+			int columnid = joint->getGeneralized_offset() + j;	// 当前坐标在广义坐标中的位置
 			int dofsindex = dofs_offset + j;
 
 			Vector4d column = mWq[dofsindex] * targetpositionlocal_h;
@@ -630,6 +722,14 @@ void BallJoint::updateJacobiByGivenRestPosition(Vector3d x_position_rest, Matrix
 	}
 }
 
+/*
+	@Function: BallJoint::computeJacobiW
+	@params: void 
+	@return: void
+
+	This function compute Jw
+	Jw = 
+*/
 void BallJoint::computeJacobiW()
 {
 	int dofs_offset = 0;
@@ -657,8 +757,6 @@ void BallJoint::computeJacobiW()
 	std::cout << JK_w << std::endl;
 	std::cout << "****************global_transofm***************" << std::endl;
 	std::cout << mWq[0].topLeftCorner<3, 3>()*global_TransForm.topLeftCorner<3, 3>().transpose() << std::endl;*/
-
-
 }
 
 void BallJoint::computeJacobiV()
@@ -699,7 +797,6 @@ void BallJoint::computeJacobiV()
 void BallJoint::computeJacobiWdot(VectorXd &q_dot)
 {
 	JK_wdot.setZero();
-
 
 	for (int i = 0; i < getDependentDOfs(); i++)
 	{
@@ -747,6 +844,9 @@ void BallJoint::computeJacobiVdot(VectorXd &q_dot)
 
 void BallJoint::computeJacobiWdotq(VectorXd &q_dot)
 {
+	std::cout << "[error] BallJoint::computeJacobiWdotq: \
+		this function should NOT be called, because it havn't support the rotation order." << std::endl;
+	exit(1);
 	MatrixXd temp(3, getGlobalR());
 
 	for (int i = 0; i < getDependentDOfs(); i++)
@@ -772,6 +872,9 @@ void BallJoint::computeJacobiWdotq(VectorXd &q_dot)
 
 void BallJoint::computeJacobiVdotq(VectorXd &q_dot)
 {
+	std::cout << "[error] BallJoint::computeJacobiWdotq: \
+		this function should NOT be called, because it havn't support the rotation order." << std::endl;
+	exit(1);
 	MatrixXd temp(3, getGlobalR());
 	Vector4d masscenterlocal_h;
 	masscenterlocal_h.data()[0] = massCenterInLocal.data()[0];
@@ -813,7 +916,7 @@ void BallJoint::getOrientationByq(Matrix3d &m, VectorXd q)
 	}
 	else
 	{
-		std::cout << "[error] Unsupported rotation order: " << ROTATION_ORDER_NAME[gRotationOrder];
+		std::cout << "[error] BallJoint::getOrientationByq Unsupported rotation order: " << ROTATION_ORDER_NAME[gRotationOrder];
 	}
 }
 

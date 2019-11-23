@@ -90,6 +90,11 @@ protected:
 
 	Eigen::MatrixXd mDrawShapeDefs;
 	std::vector<std::shared_ptr<cDrawMesh>> mMeshes;
+	
+	// store the name of joints 
+	std::vector<std::string> mSkeletonJointsName;
+	std::vector<std::string> mDrawShapeDefsName;
+	std::vector<std::string> mBodyDefsName;
 
 	cCharacter();
 
@@ -97,6 +102,6 @@ protected:
 	virtual bool ParseState(const Json::Value& root, Eigen::VectorXd& out_state) const;
 	virtual std::string BuildStateJson(const Eigen::VectorXd& pose, const Eigen::VectorXd& vel) const;
 
-	virtual bool LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& out_draw_defs) const;
+	virtual bool LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& out_draw_defs);
 	virtual bool LoadMeshes(const std::string& char_file, std::vector<std::shared_ptr<cDrawMesh>>& out_meshes) const;
 };

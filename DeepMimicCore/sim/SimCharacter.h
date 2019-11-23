@@ -173,7 +173,7 @@ protected:
 	std::shared_ptr<tInverseDynamicInfo>  mIDStatusCur, mIDStatusNext;
 	std::unique_ptr<MultiRigidBodyModel> mIDRigidModel;
 
-	virtual bool LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_body_defs) const;
+	virtual bool LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_body_defs);
 	
 	virtual bool BuildSimBody(const tParams& params);
 	virtual bool BuildMultiBody(std::shared_ptr<cMultiBody>& out_body);
@@ -206,5 +206,5 @@ protected:
 	virtual const btCollisionObject* GetCollisionObject() const;
 	virtual btCollisionObject* GetCollisionObject();
 
-	virtual void BuildIDRigidModel();
+	virtual bool BuildIDRigidModel();
 };

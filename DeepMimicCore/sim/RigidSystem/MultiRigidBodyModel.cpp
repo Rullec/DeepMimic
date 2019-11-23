@@ -1,15 +1,19 @@
 ﻿#include "MultiRigidBodyModel.h"
 #include "LoboLink.h"
+#include "LoboJointV2.h"
 #include "BallJoint.h"
 #include "HingeJoint.h"
 #include "FixedJoint.h"
 #include "UniversalJoint.h"
-
-#include "Functions/SkewMatrix.h"
-#include "Functions/EulerAngelRotationMatrix.h"
-
-#include "XML/tinyxml2.h"
 #include <queue>
+#include "Functions/SkewMatrix.h"
+#include <iostream>
+//#include <QElapsedTimer>
+#include "XML/tinyxml2.h"
+#include "Functions/EulerAngelRotationMatrix.h"
+//#include "Functions/deleteSTDvector.h"
+//#include "boost_1_61_0\boost\lexical_cast.hpp"
+//#include "LoboTriMesh\LoboTriMesh.h"
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -923,7 +927,7 @@ void MultiRigidBodyModel::convertExternalForce(VectorXd f_cartesian, VectorXd &Q
 	// 这涉及到力的转换，我还不理解。
 	for (int i = 0; i < joints_list.size(); i++)
 	{
-		LoboLink* link_k = joints_list[i]->getConnectedLink();// 拿到after this joint的link指针
+		LoboLink * link_k = joints_list[i]->getConnectedLink();// 拿到after this joint的link指针
 		Vector3d force, torque;
 
 		force.data()[0] = f_cartesian.data()[i * 6 + 0];
@@ -961,7 +965,7 @@ void MultiRigidBodyModel::clampRotation(VectorXd& _q, VectorXd& _qdot)
 		joints_list[jointid]->clampRotation(_q, _qdot);
 	}
 }
-
+//
 //void MultiRigidBodyModel::UpdateRigidMesh()
 //{
 //	//cout <<"[error] Xudong 20190315: this function should be considered carefuuly"<<endl;

@@ -29,7 +29,8 @@ enum eRotationOrder {
 	ZXZ,	// z end
 };
 
-const enum eRotationOrder gRotationOrder = eRotationOrder::XYZ;
+
+extern const enum eRotationOrder gRotationOrder;// rotation order. declared here and defined in LoboJointV2.cpp 
 const std::string ROTATION_ORDER_NAME[] = {
 	"XYZ",
 	"XZY",
