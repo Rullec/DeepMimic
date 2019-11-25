@@ -6,6 +6,7 @@
 #include "sim/GroundPlane.h"
 #include "sim/GroundBuilder.h"
 #include "sim/DeepMimicCharController.h"
+#include "sim/SimInverseDynamics.h"
 
 #include "util/FileUtil.h"
 #include <iostream>
@@ -17,6 +18,7 @@ const double gCharViewDistPad = 1;
 const double cSceneSimChar::gGroundSpawnOffset = -1; // some padding to prevent parts of character from getting spawned inside obstacles
 
 const size_t gInitGroundUpdateCount = std::numeric_limits<size_t>::max();
+
 
 cSceneSimChar::tObjEntry::tObjEntry()
 {
@@ -53,14 +55,6 @@ cSceneSimChar::tPerturbParams::tPerturbParams()
 	mMinDuration = 0.1;
 	mMaxDuration = 0.5;
 }
-//
-//cSceneSimChar::tInverseDynamicInfo::tInverseDynamicInfo()
-//{
-//	mPrevPos.resize(0), mPrevVel.resize(0);
-//	mNextPos.resize(0), mNextVel.resize(0);
-//	mContactInfo.resize(0);
-//	mTimestep = 0;
-//}
 
 cSceneSimChar::cSceneSimChar()
 {
@@ -118,6 +112,12 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 	parser->ParseInts("fall_contact_bodies", mFallContactBodies);	// 哪几个link检测掉落?
 
 	ParseGroundParams(parser, mGroundParams);
+
+	// parse inverse dynamics
+	mEnableID = false;
+	mIDInfoPath = "";
+	mArgParser->ParseBool("enable_inverse_dynamic_solving", mEnableID);
+	mArgParser->ParseString("inverse_dynamic_trajectory_path", mIDInfoPath);
 }
 
 void cSceneSimChar::Init()
@@ -142,6 +142,9 @@ void cSceneSimChar::Init()
 	InitCharacterPos();
 	ResolveCharGroundIntersect();
 
+	// build inverse dynamic
+	BuildInverseDynamic();
+
 	ClearObjs();
 }
 
@@ -158,7 +161,6 @@ void cSceneSimChar::Clear()
 
 void cSceneSimChar::Update(double time_elapsed)
 {
-
 	cScene::Update(time_elapsed);
 
 	if (time_elapsed < 0)
@@ -166,22 +168,36 @@ void cSceneSimChar::Update(double time_elapsed)
 		return;
 	}
 
-	if (mPerturbParams.mEnableRandPerturbs)
+	if (mEnableID == false)
 	{
-		UpdateRandPerturb(time_elapsed);
+		if (mPerturbParams.mEnableRandPerturbs)
+		{
+			UpdateRandPerturb(time_elapsed);
+		}
+
+		PreUpdate(time_elapsed);
+
+		// order matters!
+		UpdateCharacters(time_elapsed);	// 这个就是把所有joint都给aplly tau，然后改变Joint角度
+		UpdateWorld(time_elapsed);
+		UpdateGround(time_elapsed);
+		UpdateObjs(time_elapsed);
+		UpdateJoints(time_elapsed);
+
+		PostUpdateCharacters(time_elapsed);
+		PostUpdate(time_elapsed);
 	}
+	else
+	{
+		// ID-solving mode
+		std::cout << "[log] IDUpdate: cur time = " << GetTime() << std::endl;
 
-	PreUpdate(time_elapsed);
-
-	// order matters!
-	UpdateCharacters(time_elapsed);	// 这个就是把所有joint都给aplly tau，然后改变Joint角度
-	UpdateWorld(time_elapsed);
-	UpdateGround(time_elapsed);
-	UpdateObjs(time_elapsed);
-	UpdateJoints(time_elapsed);
-
-	PostUpdateCharacters(time_elapsed);
-	PostUpdate(time_elapsed);
+		// set pose by ID info
+		Eigen::VectorXd pose = mIDInfo->GetPose(GetTime());
+		mChars[0]->SetPose(pose);
+		//std::cout << "[log] root pos = " << mChars[0]->GetBodyPartPos(0).transpose() << std::endl;
+	}
+	
 }
 
 int cSceneSimChar::GetNumChars() const
@@ -545,6 +561,77 @@ void cSceneSimChar::InitCharacterPosFixed(const std::shared_ptr<cSimCharacter>& 
 	root_pos[1] += h;
 
 	out_char->SetRootPos(root_pos);
+}
+
+void cSceneSimChar::BuildInverseDynamic()
+{
+	// build inverse dynamics
+	auto sim_char = this->GetCharacter(0);
+	mIDInfo = std::shared_ptr<cInverseDynamicsInfo>(new cInverseDynamicsInfo(sim_char));
+
+	// from json vec to Eigen::VectorXd
+	auto JsonVec2Eigen = [](Json::Value root)->Eigen::VectorXd
+	{
+		Eigen::VectorXd vec(root.size());
+		for (int i = 0; i < vec.size(); i++) vec[i] = root[i].asDouble();
+		return vec;
+	};
+	if (mEnableID)
+	{
+		// Inverse Dynamics Mode
+		// parse ID info
+		std::ifstream f_stream(mIDInfoPath);
+		Json::Reader reader;
+		Json::Value root;
+		bool succ = reader.parse(f_stream, root);
+		f_stream.close();
+
+		if (!succ)
+		{
+			std::cout << "[error] void cSceneSimChar::InitInverseDynamic() parse failed " << std::endl;
+			exit(1);
+		}
+		Json::Value states = root["states"], poses = root["poses"], actions = root["actions"], contact_info = root["contact_info"];
+		int num_pairs = states.size();
+		for (int i = 0; i < num_pairs; i++)
+		{
+			// for the final state there is no action
+			Json::Value cur_state = states[i], cur_pose = poses[i], cur_action = actions[i], cur_contact_info = contact_info[i];
+			//printf("[debug] total pairs = %d, state size = %d, pose size = %d, action size = %d, contact_info size = %d\n",
+			//	num_pairs,
+			//	cur_state.size(),
+			//	cur_pose.size(),
+			//	cur_action.size(),
+			//	cur_contact_info.size());
+			Eigen::VectorXd state = JsonVec2Eigen(cur_state), pose = JsonVec2Eigen(cur_pose),
+				action = JsonVec2Eigen(cur_action), contact_info = JsonVec2Eigen(cur_contact_info);
+			mIDInfo->AddNewFrame(state, pose, action, contact_info);
+		}
+		std::cout << "[log] load ID items number = " << mIDInfo->GetNumOfFrames() << std::endl;
+
+		// remodeling the Timer
+		mTimer.SetMaxTime(mIDInfo->GetMaxTime());
+
+		// compute the position, velocity, acceleration for each link in each frame by forward euler
+		mIDInfo->ComputeLinkInfo();
+
+		// print to log file
+		ofstream fout("logs/controller_logs/ID_dist.log");
+		for (int i = 0; i < sim_char->GetNumBodyParts(); i++)
+		{
+			fout << sim_char->GetBodyName(i) << std::endl;
+			for (int j = 0; j < mIDInfo->GetNumOfFrames() - 2; j++)
+			{
+				fout << mIDInfo->GetLinkPos(j, i).transpose() <<" "\
+					 << mIDInfo->GetLinkVel(j, i).transpose() << " "\
+					 << mIDInfo->GetLinkAccel(j, i).transpose() << std::endl;
+			}
+		}
+	}
+	else
+	{
+		std::cout << "[warning] InverseDynamics disabled!" << std::endl;
+	}
 }
 
 void cSceneSimChar::SetCharRandPlacement(const std::shared_ptr<cSimCharacter>& out_char)
@@ -1022,25 +1109,25 @@ void cSceneSimChar::ResetRandPertrub()
 
 void cSceneSimChar::SolveInverseDynamic(int sim_char_id, Eigen::VectorXd pre_pos, Eigen::VectorXd next_pos, Eigen::VectorXd pre_vel, Eigen::VectorXd next_vel, Eigen::VectorXd contact_info) const
 {
-	typedef cSimCharacter::tInverseDynamicInfo IDInfo;
-	//std::cout << "***************** solve inverse dynamic begin for character " << sim_char_id << "*************" << std::endl;
-	//std::cout << "[log] SolveInverseDynamic: char id = " << sim_char_id <<", pos size = " << pre_pos.size() << std::endl;
-	std::shared_ptr<cSimCharacter> sim_char = GetCharacter(sim_char_id);
-	if (nullptr == sim_char)
-	{
-		std::cout << "[error] get " << sim_char_id << "failed" << std::endl;
-		exit(1);
-	}
-	
-	std::shared_ptr<IDInfo> cur_info, next_info;
-	cur_info = (shared_ptr<IDInfo>) new IDInfo(), next_info = (shared_ptr<IDInfo>) new IDInfo();
-	cur_info->q = pre_pos, cur_info->q_dot = pre_vel, cur_info->contact_info = contact_info;
-	next_info->q_dot = next_pos, next_info->q_dot = next_vel, next_info->contact_info = contact_info;
+	//typedef cSimCharacter::tInverseDynamicInfo IDInfo;
+	////std::cout << "***************** solve inverse dynamic begin for character " << sim_char_id << "*************" << std::endl;
+	////std::cout << "[log] SolveInverseDynamic: char id = " << sim_char_id <<", pos size = " << pre_pos.size() << std::endl;
+	//std::shared_ptr<cSimCharacter> sim_char = GetCharacter(sim_char_id);
+	//if (nullptr == sim_char)
+	//{
+	//	std::cout << "[error] get " << sim_char_id << "failed" << std::endl;
+	//	exit(1);
+	//}
+	//
+	//std::shared_ptr<IDInfo> cur_info, next_info;
+	//cur_info = (shared_ptr<IDInfo>) new IDInfo(), next_info = (shared_ptr<IDInfo>) new IDInfo();
+	//cur_info->q = pre_pos, cur_info->q_dot = pre_vel, cur_info->contact_info = contact_info;
+	//next_info->q_dot = next_pos, next_info->q_dot = next_vel, next_info->contact_info = contact_info;
 
-	sim_char->SetIDStatus(cur_info, next_info);
+	//sim_char->SetIDStatus(cur_info, next_info);
 
-	Eigen::VectorXd action;
-	sim_char->SolveID(action);
+	//Eigen::VectorXd action;
+	//sim_char->SolveID(action);
 	
 	//cCtPDController
 	

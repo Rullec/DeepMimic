@@ -98,9 +98,15 @@ void UpdateFrameBuffer()
 	}
 }
 
+// add the ID reference motion in ID config file
+void Update_ForID(double time_elasped)
+{
+
+}
+
 void Update(double time_elapsed)
 {
-	int num_substeps = gCore->GetNumUpdateSubsteps();
+	int num_substeps = gCore->GetNumUpdateSubsteps();		// the simulation substeps between 2 frames
 	double timestep = time_elapsed / num_substeps;
 	num_substeps = (time_elapsed == 0) ? 1 : num_substeps;
 

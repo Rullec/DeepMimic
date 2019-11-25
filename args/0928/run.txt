@@ -40,3 +40,7 @@
 
 --output_path output/0920
 --model_files output/0920/agent0_model_2019_09_21_10_26_21_575.30.ckpt
+
+#---------------------- Inverse Dyanmics config-------------------
+--enable_inverse_dynamic_solving true
+--inverse_dynamic_trajectory_path logs/paths/2019-11-07_14-17-44.227521.json

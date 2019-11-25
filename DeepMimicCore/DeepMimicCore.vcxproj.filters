@@ -302,6 +302,9 @@
     <ClCompile Include="util\BulletUtil.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
+    <ClCompile Include="sim\SimInverseDynamics.cpp">
+      <Filter>Source Files\sim</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util\CircularBuffer.h">
@@ -612,6 +615,9 @@
     </ClInclude>
     <ClInclude Include="util\BulletUtil.h">
       <Filter>Source Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="sim\SimInverseDynamics.h">
+      <Filter>Source Files\sim</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

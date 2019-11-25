@@ -45,6 +45,7 @@ void cDeepMimicCore::ParseArgs(const std::vector<std::string>& args)
 	}
 
 	mArgParser->ParseInt("num_update_substeps", mNumUpdateSubsteps);
+
 }
 
 void cDeepMimicCore::Init()

@@ -102,6 +102,9 @@ protected:
 	double mPlaybackSpeed;
 	double mUpdatesPerSec; // FPS counter
 	
+	// info for solving inverse dynamics
+	bool mEnableInverseDynamicSolving;
+	std::string mInverseDynamicTrajectoryPath;
 	virtual void SetupScene();
 	virtual void ClearScene();
 

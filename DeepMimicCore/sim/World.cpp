@@ -79,7 +79,7 @@ void cWorld::Reset()
 	mTimeStep = 0;
 	mContactManager.Reset();
 	mPerturbManager.Clear();
-
+	
 	mSimWorld->clearForces();
 	mSolver->reset();
 	mBroadPhase->resetPool(mCollisionDispatcher.get());
