@@ -34,7 +34,8 @@ public:
 
 	struct tInverseDynamicInfo {
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-		Eigen::VectorXd q, q_dot, contact_info;
+		//Eigen::VectorXd q, q_dot, q_ddot, contact_info;
+		std::vector<Eigen::VectorXd> link_pos;
 	};
 
 	cSimCharacter();
@@ -148,9 +149,9 @@ public:
 	virtual void SetColGroup(short col_group);
 	virtual short GetColMask() const;
 	virtual void SetColMask(short col_mask);
-	virtual void SetIDStatus(std::shared_ptr< tInverseDynamicInfo> prev, std::shared_ptr< tInverseDynamicInfo> cur);
-	virtual void GetIDStatus(std::shared_ptr< tInverseDynamicInfo> &prev, std::shared_ptr< tInverseDynamicInfo> &cur) const;
-	virtual void SolveID(Eigen::VectorXd & action);
+	//virtual void SetIDStatus(std::shared_ptr<tInverseDynamicInfo> prev);
+	//virtual void GetIDStatus(std::shared_ptr<tInverseDynamicInfo> &prev) const;
+	virtual void SolveID(const tInverseDynamicInfo & info, Eigen::VectorXd & torque);
 
 protected:
 	std::shared_ptr<cMultiBody> mMultiBody;
@@ -169,15 +170,11 @@ protected:
 	btAlignedObjectArray<btVector3> mVecBuffer1;
 	btAlignedObjectArray<btQuaternion> mRotBuffer;
 
-	// Inverse Dynamic info structs
-	std::shared_ptr<tInverseDynamicInfo>  mIDStatusCur, mIDStatusNext;
-	std::unique_ptr<MultiRigidBodyModel> mIDRigidModel;
-
 	virtual bool LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_body_defs);
 	
 	virtual bool BuildSimBody(const tParams& params);
 	virtual bool BuildMultiBody(std::shared_ptr<cMultiBody>& out_body);
-	virtual bool BuildConstraints(std::shared_ptr<cMultiBody>& out_body);
+	virtual bool BuildJointLimits(std::shared_ptr<cMultiBody>& out_body);
 	
 	virtual bool BuildBodyLinks();
 	virtual btCollisionShape* BuildCollisionShape(const cShape::eShape shape, const tVector& shape_size);

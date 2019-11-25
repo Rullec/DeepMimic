@@ -515,3 +515,18 @@ bool cCharacter::LoadMeshes(const std::string& char_file, std::vector<std::share
 
 	return succ;
 }
+
+std::string cCharacter::GetBodyName(int id) const
+{
+	return mBodyDefsName[id];
+}
+
+std::string cCharacter::GetJointName(int id) const
+{
+	return mSkeletonJointsName[id];
+}
+
+std::string cCharacter::GetDrawShapeName(int id) const
+{
+	return mDrawShapeDefsName[id];
+}

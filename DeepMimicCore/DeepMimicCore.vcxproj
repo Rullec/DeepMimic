@@ -316,6 +316,7 @@
     <ClCompile Include="sim\SimCharBuilder.cpp" />
     <ClCompile Include="sim\SimCharGeneral.cpp" />
     <ClCompile Include="sim\SimBodyLink.cpp" />
+    <ClCompile Include="sim\SimInverseDynamics.cpp" />
     <ClCompile Include="sim\SimJoint.cpp" />
     <ClCompile Include="sim\SimCylinder.cpp" />
     <ClCompile Include="sim\SimObj.cpp" />
@@ -410,6 +411,7 @@
     <ClInclude Include="sim\SimCharBuilder.h" />
     <ClInclude Include="sim\SimCharGeneral.h" />
     <ClInclude Include="sim\SimBodyLink.h" />
+    <ClInclude Include="sim\SimInverseDynamics.h" />
     <ClInclude Include="sim\SimJoint.h" />
     <ClInclude Include="sim\SimCylinder.h" />
     <ClInclude Include="sim\SimObj.h" />

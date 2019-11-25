@@ -80,6 +80,11 @@ public:
 	virtual const std::shared_ptr<cDrawMesh>& GetMesh(int i) const;
 	virtual int GetNumMeshes() const;
 	
+
+	virtual std::string GetBodyName(int id) const;
+	virtual std::string GetJointName(int id) const;
+	virtual std::string GetDrawShapeName(int id) const;
+
 protected:
 	int mID;
 	Eigen::MatrixXd mJointMat;

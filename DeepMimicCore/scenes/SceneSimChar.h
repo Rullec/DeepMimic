@@ -8,6 +8,7 @@
 #include "sim/Ground.h"
 #include "sim/CtrlBuilder.h"
 #include "sim/SimJoint.h"
+#include "sim/SimInverseDynamics.h"
 #include "util/IndexBuffer.h"
 
 class cSceneSimChar : virtual public cScene
@@ -120,10 +121,16 @@ protected:
 	cIndexBuffer<tObjEntry, Eigen::aligned_allocator<tObjEntry>> mObjs;
 	cIndexBuffer<tJointEntry> mJoints;
 
+	// inverse dynamics info
+	// parse for inverse dynamics solving
+	bool mEnableID;
+	std::string mIDInfoPath;
+	std::shared_ptr<cInverseDynamicsInfo> mIDInfo;
+
 	virtual bool ParseCharTypes(const std::shared_ptr<cArgParser>& parser, std::vector<cSimCharBuilder::eCharType>& out_types) const;
 	virtual bool ParseCharParams(const std::shared_ptr<cArgParser>& parser, std::vector<cSimCharacter::tParams>& out_params) const;
 	virtual bool ParseCharCtrlParams(const std::shared_ptr<cArgParser>& parser, std::vector<cCtrlBuilder::tCtrlParams>& out_params) const;
-
+	
 	virtual void BuildWorld();
 	virtual bool BuildCharacters();
 	virtual void BuildGround();
@@ -133,6 +140,7 @@ protected:
 	virtual void InitCharacterPos();
 	virtual void InitCharacterPos(const std::shared_ptr<cSimCharacter>& out_char);
 	virtual void InitCharacterPosFixed(const std::shared_ptr<cSimCharacter>& out_char);
+	virtual void BuildInverseDynamic();
 	virtual void SetCharRandPlacement(const std::shared_ptr<cSimCharacter>& out_char);
 	virtual void CalcCharRandPlacement(const std::shared_ptr<cSimCharacter>& out_char, tVector& out_pos, tQuaternion& out_rot);
 	virtual void ResolveCharGroundIntersect(const std::shared_ptr<cSimCharacter>& out_char) const;
