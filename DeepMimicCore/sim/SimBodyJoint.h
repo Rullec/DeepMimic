@@ -3,6 +3,37 @@
 #include "SimBodyLink.h"
 #include "SpAlg.h"
 
+enum eRotationOrder {
+	XYZ = 0,	// first X, then Y, then Z. X->Y->Z. R_{total} = Rz * Ry * Rx;
+	XZY,
+	XYX,
+	XZX,	// x end
+	YXZ,
+	YZX,
+	YXY,
+	YZY,	// y end
+	ZXY,
+	ZYX,
+	ZYZ,
+	ZXZ,	// z end
+};
+
+
+extern const enum eRotationOrder gRotationOrder;// rotation order. declared here and defined in LoboJointV2.cpp 
+const std::string ROTATION_ORDER_NAME[] = {
+	"XYZ",
+	"XZY",
+	"XYX",
+	"XZX",
+	"YXZ",
+	"YZX",
+	"YXY",
+	"YZY",
+	"ZXY",
+	"ZYX",
+	"ZYZ",
+	"ZXZ",
+};
 // for now joints are assumed to be hinge joints fixed along the z axis
 class cSimBodyJoint
 {

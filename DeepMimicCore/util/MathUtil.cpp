@@ -524,7 +524,7 @@ double cMathUtil::QuatTheta(const tQuaternion& dq)
 		q1.normalize();
 	}
 
-	double sin_theta = std::sqrt(1 - q1.w() * q1.w());
+	double sin_theta = std::sqrt(1 - q1.w() * q1.w());// sin(theta) which "theta" is the rotation angle/2 in dq
 	if (sin_theta > 0.0001)
 	{
 		theta = 2 * std::acos(q1.w());
