@@ -195,6 +195,7 @@ void cSceneSimChar::Update(double time_elapsed)
 		// set pose by ID info
 		Eigen::VectorXd pose = mIDInfo->GetPose(GetTime());
 		mChars[0]->SetPose(pose);
+		//mChars[0]
 		//std::cout << "[log] root pos = " << mChars[0]->GetBodyPartPos(0).transpose() << std::endl;
 	}
 	

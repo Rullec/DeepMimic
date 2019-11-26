@@ -15,6 +15,15 @@ public:
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 		// pos, vel, accel in COM of each link for every frame
 		Eigen::MatrixXd mLinkPos, mLinkVel, mLinkAccel;
+
+		struct tAngularQuaternionInfo {
+			Eigen::MatrixXd mLinkJointAngle, mLinkAngularVel, mLinkAngularAccel;
+		} mAngularQuaternionInfo;	// quaternion storaged format info
+		
+		struct tAngularEulerInfo {
+			Eigen::MatrixXd mLinkJointAngle, mLinkAngularVel, mLinkAngularAccel;
+		} mAngularEulerInfo;		// euler-angle storaged format info 
+
 		Eigen::VectorXd mTimesteps;
 	};
 
@@ -26,6 +35,12 @@ public:
 	Eigen::Vector3d GetLinkPos(int frame, int body_id);
 	Eigen::Vector3d GetLinkVel(int frame, int body_id);
 	Eigen::Vector3d GetLinkAccel(int frame, int body_id);
+	tVector GetLinkJointAngle_quaternion(int frame, int body_id);
+	tVector GetLinkAngularVel_quaternion(int frame, int body_id);
+	tVector GetLinkAngularAccel_quaternion(int frame, int body_id);
+	tVector GetLinkJointAngle_euler(int frame, int body_id);
+	tVector GetLinkAngularVel_euler(int frame, int body_id);
+	tVector GetLinkAngularAccel_euler(int frame, int body_id);
 
 	void AddNewFrame(const Eigen::VectorXd & state_, const Eigen::VectorXd & pose_, const Eigen::VectorXd & action_, const Eigen::VectorXd & _contact_info);
 	void ComputeLinkInfo();
@@ -42,5 +57,9 @@ private:
 	
 	// pos/vel/accel of COM for each link in every frame
 	std::shared_ptr<struct tLinkCOMInfo> mLinkInfo;
+
+	void ComputeLinkInfo0(int, int);
+	void ComputeLinkInfo1(int, int);
+	void ComputeLinkInfo2(int, int);
 };
 
