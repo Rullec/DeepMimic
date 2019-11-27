@@ -1,5 +1,8 @@
 #include "MathUtil.h"
 #include <time.h>
+#include <iostream>
+
+const enum eRotationOrder gRotationOrder = eRotationOrder::XYZ;
 
 cRand cMathUtil::gRand = cRand();
 
@@ -147,33 +150,40 @@ tMatrix cMathUtil::RotateMat(const tVector& euler)
 	double y = euler[1];
 	double z = euler[2];
 
-	double x_s = std::sin(x);
-	double x_c = std::cos(x);
-	double y_s = std::sin(y);
-	double y_c = std::cos(y);
-	double z_s = std::sin(z);
-	double z_c = std::cos(z);
+	double sinx = std::sin(x);
+	double cosx = std::cos(x);
+	double siny = std::sin(y);
+	double cosy = std::cos(y);
+	double sinz = std::sin(z);
+	double cosz = std::cos(z);
 
 	tMatrix mat = tMatrix::Identity();
-	mat(0, 0) = y_c * z_c;
-	mat(1, 0) = y_c * z_s;
-	mat(2, 0) = -y_s;
 
-	mat(0, 1) = x_s * y_s * z_c - x_c * z_s;
-	mat(1, 1) = x_s * y_s * z_s + x_c * z_c;
-	mat(2, 1) = x_s * y_c;
+	if (gRotationOrder == eRotationOrder::XYZ)
+	{
+		mat(0, 0) = cosy * cosz;
+		mat(1, 0) = cosy * sinz;
+		mat(2, 0) = -siny;
 
-	mat(0, 2) = x_c * y_s * z_c + x_s * z_s;
-	mat(1, 2) = x_c * y_s * z_s - x_s * z_c;
-	mat(2, 2) = x_c * y_c;
+		mat(0, 1) = sinx * siny * cosz - cosx * sinz;
+		mat(1, 1) = sinx * siny * sinz + cosx * cosz;
+		mat(2, 1) = sinx * cosy;
 
+		mat(0, 2) = cosx * siny * cosz + sinx * sinz;
+		mat(1, 2) = cosx * siny * sinz - sinx * cosz;
+		mat(2, 2) = cosx * cosy;
+	}
+	else
+	{
+		std::cout << "[error] cMathUtil::RotateMat(const tVector& euler): Unsupported rotation order" << std::endl;
+		exit(1);
+	}
 	return mat;
 }
 
 tMatrix cMathUtil::RotateMat(const tVector& axis, double theta)
 {
 	assert(std::abs(axis.squaredNorm() - 1) < 0.0001);
-	
 	double c = std::cos(theta);
 	double s = std::sin(theta);
 	double x = axis[0];
@@ -181,10 +191,20 @@ tMatrix cMathUtil::RotateMat(const tVector& axis, double theta)
 	double z = axis[2];
 
 	tMatrix mat;
-	mat <<	c + x * x * (1 - c),		x * y * (1 - c) - z * s,	x * z * (1 - c) + y * s,	0,
-			y * x * (1 - c) + z * s,	c + y * y * (1 - c),		y * z * (1 - c) - x * s,	0,
-			z * x * (1 - c) - y * s,	z * y * (1 - c) + x * s,	c + z * z * (1 - c),		0,
-			0,							0,							0,							1;
+
+	if (gRotationOrder == eRotationOrder::XYZ)
+	{
+
+		mat << c + x * x * (1 - c), x * y * (1 - c) - z * s, x * z * (1 - c) + y * s, 0,
+			y * x * (1 - c) + z * s, c + y * y * (1 - c), y * z * (1 - c) - x * s, 0,
+			z * x * (1 - c) - y * s, z * y * (1 - c) + x * s, c + z * z * (1 - c), 0,
+								0,							0,					0, 1;
+	}
+	else
+	{
+		std::cout << "[error] cMathUtil::RotateMat(const tVector& axis, double theta): Unsupported rotation order" << std::endl;
+		exit(1);
+	}
 
 	return mat;
 }
@@ -199,24 +219,33 @@ tMatrix cMathUtil::RotateMat(const tQuaternion& q)
 	double sqz = q.z() * q.z();
 	double invs = 1 / (sqx + sqy + sqz + sqw);
 
-	mat(0, 0) = (sqx - sqy - sqz + sqw) * invs;
-	mat(1, 1) = (-sqx + sqy - sqz + sqw) * invs;
-	mat(2, 2) = (-sqx - sqy + sqz + sqw) * invs;
 
-	double tmp1 = q.x()*q.y();
-	double tmp2 = q.z()*q.w();
-	mat(1, 0) = 2.0 * (tmp1 + tmp2) * invs;
-	mat(0, 1) = 2.0 * (tmp1 - tmp2) * invs;
+	if (gRotationOrder == eRotationOrder::XYZ)
+	{
+		mat(0, 0) = (sqx - sqy - sqz + sqw) * invs;
+		mat(1, 1) = (-sqx + sqy - sqz + sqw) * invs;
+		mat(2, 2) = (-sqx - sqy + sqz + sqw) * invs;
 
-	tmp1 = q.x()*q.z();
-	tmp2 = q.y()*q.w();
-	mat(2, 0) = 2.0 * (tmp1 - tmp2) * invs;
-	mat(0, 2) = 2.0 * (tmp1 + tmp2) * invs;
+		double tmp1 = q.x()*q.y();
+		double tmp2 = q.z()*q.w();
+		mat(1, 0) = 2.0 * (tmp1 + tmp2) * invs;
+		mat(0, 1) = 2.0 * (tmp1 - tmp2) * invs;
 
-	tmp1 = q.y()*q.z();
-	tmp2 = q.x()*q.w();
-	mat(2, 1) = 2.0 * (tmp1 + tmp2) * invs;
-	mat(1, 2) = 2.0 * (tmp1 - tmp2) * invs;
+		tmp1 = q.x()*q.z();
+		tmp2 = q.y()*q.w();
+		mat(2, 0) = 2.0 * (tmp1 - tmp2) * invs;
+		mat(0, 2) = 2.0 * (tmp1 + tmp2) * invs;
+
+		tmp1 = q.y()*q.z();
+		tmp2 = q.x()*q.w();
+		mat(2, 1) = 2.0 * (tmp1 + tmp2) * invs;
+		mat(1, 2) = 2.0 * (tmp1 - tmp2) * invs;
+	}
+	else
+	{
+		std::cout << "[error] cMathUtil::RotateMat: Unsupported rotation order" << std::endl;
+		exit(1);
+	}
 
 	return mat;
 }
@@ -247,43 +276,71 @@ tVector cMathUtil::GetRigidTrans(const tMatrix& mat)
 
 tVector cMathUtil::InvEuler(const tVector& euler)
 {
-	tMatrix inv_mat = cMathUtil::RotateMat(tVector(1, 0, 0, 0), -euler[0])
-					* cMathUtil::RotateMat(tVector(0, 1, 0, 0), -euler[1])
-					* cMathUtil::RotateMat(tVector(0, 0, 1, 0), -euler[2]);
-	tVector inv_euler = cMathUtil::RotMatToEuler(inv_mat);
-	return inv_euler;
+	if (gRotationOrder == eRotationOrder::XYZ)
+	{
+		tMatrix inv_mat = cMathUtil::RotateMat(tVector(1, 0, 0, 0), -euler[0])
+			* cMathUtil::RotateMat(tVector(0, 1, 0, 0), -euler[1])
+			* cMathUtil::RotateMat(tVector(0, 0, 1, 0), -euler[2]);
+		tVector inv_euler = cMathUtil::RotMatToEuler(inv_mat);
+		return inv_euler;
+	}
+	else
+	{
+		std::cout << "[error] cMathUtil::InvEuler: Unsupported rotation order" << std::endl;
+		exit(1);
+	}
 }
 
 void cMathUtil::RotMatToAxisAngle(const tMatrix& mat, tVector& out_axis, double& out_theta)
 {
-	double c = (mat(0, 0) + mat(1, 1) + mat(2, 2) - 1) * 0.5;
-	c = cMathUtil::Clamp(c, -1.0, 1.0);
-
-	out_theta = std::acos(c);
-	if (std::abs(out_theta) < 0.00001)
+	if (gRotationOrder == eRotationOrder::XYZ)
 	{
-		out_axis = tVector(0, 0, 1, 0);
+		double c = (mat(0, 0) + mat(1, 1) + mat(2, 2) - 1) * 0.5;
+		c = cMathUtil::Clamp(c, -1.0, 1.0);
+
+		out_theta = std::acos(c);
+		if (std::abs(out_theta) < 0.00001)
+		{
+			out_axis = tVector(0, 0, 1, 0);
+		}
+		else
+		{
+			double m21 = mat(2, 1) - mat(1, 2);
+			double m02 = mat(0, 2) - mat(2, 0);
+			double m10 = mat(1, 0) - mat(0, 1);
+			double denom = std::sqrt(m21 * m21 + m02 * m02 + m10 * m10);
+			out_axis[0] = m21 / denom;
+			out_axis[1] = m02 / denom;
+			out_axis[2] = m10 / denom;
+			out_axis[3] = 0;
+		}
 	}
 	else
 	{
-		double m21 = mat(2, 1) - mat(1, 2);
-		double m02 = mat(0, 2) - mat(2, 0);
-		double m10 = mat(1, 0) - mat(0, 1);
-		double denom = std::sqrt(m21 * m21 + m02 * m02 + m10 * m10);
-		out_axis[0] = m21 / denom;
-		out_axis[1] = m02 / denom;
-		out_axis[2] = m10 / denom;
-		out_axis[3] = 0;
+		std::cout << "[error] cMathUtil::RotMatToAxisAngle: Unsupported rotation order" << std::endl;
+		exit(1);
 	}
+
+
 }
 
 tVector cMathUtil::RotMatToEuler(const tMatrix& mat)
 {
 	tVector euler;
-	euler[0] = std::atan2(mat(2, 1), mat(2, 2));
-	euler[1] = std::atan2(-mat(2, 0), std::sqrt(mat(2, 1) * mat(2, 1) + mat(2, 2) * mat(2, 2)));
-	euler[2] = std::atan2(mat(1, 0), mat(0, 0)); 
-	euler[3] = 0;
+	if (gRotationOrder == eRotationOrder::XYZ)
+	{
+		
+		euler[0] = std::atan2(mat(2, 1), mat(2, 2));
+		euler[1] = std::atan2(-mat(2, 0), std::sqrt(mat(2, 1) * mat(2, 1) + mat(2, 2) * mat(2, 2)));
+		euler[2] = std::atan2(mat(1, 0), mat(0, 0));
+		euler[3] = 0;
+	}
+	else
+	{
+		std::cout << "[error] cMathUtil::RotateMat: Unsupported rotation order" << std::endl;
+		exit(1);
+	}
+
 	return euler;
 }
 
@@ -292,33 +349,41 @@ tQuaternion cMathUtil::RotMatToQuaternion(const tMatrix& mat)
 	double tr = mat(0, 0) + mat(1, 1) + mat(2, 2);
 	tQuaternion q;
 
-	if (tr > 0) {
-		double S = sqrt(tr + 1.0) * 2; // S=4*qw 
-		q.w() = 0.25 * S;
-		q.x() = (mat(2, 1) - mat(1, 2)) / S;
-		q.y() = (mat(0, 2) - mat(2, 0)) / S;
-		q.z() = (mat(1, 0) - mat(0, 1)) / S;
+	if (gRotationOrder == eRotationOrder::XYZ)
+	{
+		if (tr > 0) {
+			double S = sqrt(tr + 1.0) * 2; // S=4*qw 
+			q.w() = 0.25 * S;
+			q.x() = (mat(2, 1) - mat(1, 2)) / S;
+			q.y() = (mat(0, 2) - mat(2, 0)) / S;
+			q.z() = (mat(1, 0) - mat(0, 1)) / S;
+		}
+		else if ((mat(0, 0) > mat(1, 1) && (mat(0, 0) > mat(2, 2)))) {
+			double S = sqrt(1.0 + mat(0, 0) - mat(1, 1) - mat(2, 2)) * 2; // S=4*qx 
+			q.w() = (mat(2, 1) - mat(1, 2)) / S;
+			q.x() = 0.25 * S;
+			q.y() = (mat(0, 1) + mat(1, 0)) / S;
+			q.z() = (mat(0, 2) + mat(2, 0)) / S;
+		}
+		else if (mat(1, 1) > mat(2, 2)) {
+			double S = sqrt(1.0 + mat(1, 1) - mat(0, 0) - mat(2, 2)) * 2; // S=4*qy
+			q.w() = (mat(0, 2) - mat(2, 0)) / S;
+			q.x() = (mat(0, 1) + mat(1, 0)) / S;
+			q.y() = 0.25 * S;
+			q.z() = (mat(1, 2) + mat(2, 1)) / S;
+		}
+		else {
+			double S = sqrt(1.0 + mat(2, 2) - mat(0, 0) - mat(1, 1)) * 2; // S=4*qz
+			q.w() = (mat(1, 0) - mat(0, 1)) / S;
+			q.x() = (mat(0, 2) + mat(2, 0)) / S;
+			q.y() = (mat(1, 2) + mat(2, 1)) / S;
+			q.z() = 0.25 * S;
+		}
 	}
-	else if ((mat(0, 0) > mat(1, 1) && (mat(0, 0) > mat(2, 2)))) {
-		double S = sqrt(1.0 + mat(0, 0) - mat(1, 1) - mat(2, 2)) * 2; // S=4*qx 
-		q.w() = (mat(2, 1) - mat(1, 2)) / S;
-		q.x() = 0.25 * S;
-		q.y() = (mat(0, 1) + mat(1, 0)) / S;
-		q.z() = (mat(0, 2) + mat(2, 0)) / S;
-	}
-	else if (mat(1, 1) > mat(2, 2)) {
-		double S = sqrt(1.0 + mat(1, 1) - mat(0, 0) - mat(2, 2)) * 2; // S=4*qy
-		q.w() = (mat(0, 2) - mat(2, 0)) / S;
-		q.x() = (mat(0, 1) + mat(1, 0)) / S;
-		q.y() = 0.25 * S;
-		q.z() = (mat(1, 2) + mat(2, 1)) / S;
-	}
-	else {
-		double S = sqrt(1.0 + mat(2, 2) - mat(0, 0) - mat(1, 1)) * 2; // S=4*qz
-		q.w() = (mat(1, 0) - mat(0, 1)) / S;
-		q.x() = (mat(0, 2) + mat(2, 0)) / S;
-		q.y() = (mat(1, 2) + mat(2, 1)) / S;
-		q.z() = 0.25 * S;
+	else
+	{
+		std::cout << "[error] cMathUtil::RotMatToQuaternion: Unsupported rotation order" << std::endl;
+		exit(1);
 	}
 
 	return q;
@@ -326,36 +391,50 @@ tQuaternion cMathUtil::RotMatToQuaternion(const tMatrix& mat)
 
 void cMathUtil::EulerToAxisAngle(const tVector& euler, tVector& out_axis, double& out_theta)
 {
-	double x = euler[0];
-	double y = euler[1];
-	double z = euler[2];
 
-	double x_s = std::sin(x);
-	double x_c = std::cos(x);
-	double y_s = std::sin(y);
-	double y_c = std::cos(y);
-	double z_s = std::sin(z);
-	double z_c = std::cos(z);
 
-	double c = (y_c * z_c + x_s * y_s * z_s + x_c * z_c + x_c * y_c - 1) * 0.5;
-	c = Clamp(c, -1.0, 1.0);
-
-	out_theta = std::acos(c);
-	if (std::abs(out_theta) < 0.00001)
+	if (gRotationOrder == eRotationOrder::XYZ)
 	{
-		out_axis = tVector(0, 0, 1, 0);
+		double x = euler[0];
+		double y = euler[1];
+		double z = euler[2];
+
+		double sinx = std::sin(x);
+		double cosx = std::cos(x);
+		double siny = std::sin(y);
+		double cosy = std::cos(y);
+		double sinz = std::sin(z);
+		double cosz = std::cos(z);
+
+		double c = (cosy * cosz + sinx * siny * sinz + cosx * cosz + cosx * cosy - 1) * 0.5;
+		c = Clamp(c, -1.0, 1.0);
+
+		out_theta = std::acos(c);
+		if (std::abs(out_theta) < 0.00001)
+		{
+			out_axis = tVector(0, 0, 1, 0);
+		}
+		else
+		{
+			double m21 = sinx * cosy - cosx * siny * sinz + sinx * cosz;
+			double m02 = cosx * siny * cosz + sinx * sinz + siny;
+			double m10 = cosy * sinz - sinx * siny * cosz + cosx * sinz;
+			double denom = std::sqrt(m21 * m21 + m02 * m02 + m10 * m10);
+			out_axis[0] = m21 / denom;
+			out_axis[1] = m02 / denom;
+			out_axis[2] = m10 / denom;
+			out_axis[3] = 0;
+		}
 	}
 	else
 	{
-		double m21 = x_s * y_c - x_c * y_s * z_s + x_s * z_c;
-		double m02 = x_c * y_s * z_c + x_s * z_s + y_s;
-		double m10 = y_c * z_s - x_s * y_s * z_c + x_c * z_s;
-		double denom = std::sqrt(m21 * m21 + m02 * m02 + m10 * m10);
-		out_axis[0] = m21 / denom;
-		out_axis[1] = m02 / denom;
-		out_axis[2] = m10 / denom;
-		out_axis[3] = 0;
+		std::cout << "[error] cMathUtil::EulerToAxisAngle: Unsupported rotation order" << std::endl;
+		exit(1);
 	}
+
+
+
+
 }
 
 tVector cMathUtil::AxisAngleToEuler(const tVector& axis, double theta)
@@ -379,9 +458,20 @@ tMatrix cMathUtil::DirToRotMat(const tVector& dir, const tVector& up)
 	tVector z = dir;
 
 	tMatrix mat = tMatrix::Identity();
-	mat.block(0, 0, 3, 1) = x.segment(0, 3);
-	mat.block(0, 1, 3, 1) = y.segment(0, 3);
-	mat.block(0, 2, 3, 1) = z.segment(0, 3);
+
+
+	if (gRotationOrder == eRotationOrder::XYZ)
+	{
+
+		mat.block(0, 0, 3, 1) = x.segment(0, 3);
+		mat.block(0, 1, 3, 1) = y.segment(0, 3);
+		mat.block(0, 2, 3, 1) = z.segment(0, 3);
+	}
+	else
+	{
+		std::cout << "[error] cMathUtil::DirToRotMat: Unsupported rotation order" << std::endl;
+		exit(1);
+	}
 
 	return mat;
 }
@@ -408,28 +498,43 @@ tQuaternion cMathUtil::EulerToQuaternion(const tVector& euler)
 	return AxisAngleToQuaternion(axis, theta);
 }
 
+tQuaternion cMathUtil::CoefVectorToQuaternion(const tVector & coef)
+{
+	// coef = [x, y, z, w]
+	return tQuaternion(coef[3], coef[0], coef[1], coef[2]);
+}
+
 tVector cMathUtil::QuaternionToEuler(const tQuaternion& q)
 {
-	double sinr = 2.0 * (q.w() * q.x() + q.y() * q.z());
-	double cosr = 1.0 - 2.0 * (q.x() * q.x() + q.y() * q.y());
-	double x = std::atan2(sinr, cosr);
-
-	double sinp = 2.0 * (q.w() * q.y() - q.z() * q.x());
-	double y = 0;
-	if (fabs(sinp) >= 1)
+	if (gRotationOrder == eRotationOrder::XYZ)
 	{
-		y = copysign(M_PI / 2, sinp); // use 90 degrees if out of range
+		double sinr = 2.0 * (q.w() * q.x() + q.y() * q.z());
+		double cosr = 1.0 - 2.0 * (q.x() * q.x() + q.y() * q.y());
+		double x = std::atan2(sinr, cosr);
+
+		double sinp = 2.0 * (q.w() * q.y() - q.z() * q.x());
+		double y = 0;
+		if (fabs(sinp) >= 1)// north pole and south pole
+		{
+			y = copysign(M_PI / 2, sinp); // use 90 degrees if out of range
+		}
+		else
+		{
+			y = asin(sinp); 
+		}
+
+		double siny = 2.0 * (q.w() * q.z() + q.x() * q.y());
+		double cosy = 1.0 - 2.0 * (q.y() * q.y() + q.z() * q.z());
+		double z = std::atan2(siny, cosy);
+
+		return tVector(x, y, z, 0);
 	}
 	else
 	{
-		y = asin(sinp);
+		std::cout << "[error] cMathUtil::QuaternionToEuler: Unsupported rotation order" << std::endl;
+		exit(1);
 	}
 
-	double siny = 2.0 * (q.w() * q.z() + q.x() * q.y());
-	double cosy = 1.0 - 2.0 * (q.y() * q.y() + q.z() * q.z());
-	double z = std::atan2(siny, cosy);
-
-	return tVector(x, y, z, 0);
 }
 
 tQuaternion cMathUtil::AxisAngleToQuaternion(const tVector& axis, double theta)
@@ -496,11 +601,13 @@ tVector cMathUtil::CalcQuaternionVelRel(const tQuaternion& q0, const tQuaternion
 
 tQuaternion cMathUtil::VecToQuat(const tVector& v)
 {
+	// v format: [w, x, y, z]
 	return tQuaternion(v[0], v[1], v[2], v[3]);
 }
 
 tVector cMathUtil::QuatToVec(const tQuaternion& q)
 {
+	// return value format : [w, x, y, z]
 	return tVector(q.w(), q.x(), q.y(), q.z());
 }
 

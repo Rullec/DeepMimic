@@ -9,6 +9,38 @@
 
 const int gInvalidIdx = -1;
 
+enum eRotationOrder {
+	XYZ = 0,	// first X, then Y, then Z. X->Y->Z. R_{total} = Rz * Ry * Rx;
+	XZY,
+	XYX,
+	XZX,	// x end
+	YXZ,
+	YZX,
+	YXY,
+	YZY,	// y end
+	ZXY,
+	ZYX,
+	ZYZ,
+	ZXZ,	// z end
+};
+
+
+extern const enum eRotationOrder gRotationOrder;// rotation order. declared here and defined in LoboJointV2.cpp 
+const std::string ROTATION_ORDER_NAME[] = {
+	"XYZ",
+	"XZY",
+	"XYX",
+	"XZX",
+	"YXZ",
+	"YZX",
+	"YXY",
+	"YZY",
+	"ZXY",
+	"ZYX",
+	"ZYZ",
+	"ZXZ",
+};
+
 // for convenience define standard vector for rendering
 typedef Eigen::Vector4d tVector;
 typedef Eigen::Vector4d tVector3;
@@ -85,6 +117,7 @@ public:
 	static tMatrix DeltaRot(const tMatrix& R0, const tMatrix& R1);
 
 	static tQuaternion EulerToQuaternion(const tVector& euler);
+	static tQuaternion cMathUtil::CoefVectorToQuaternion(const tVector & coef);
 	static tVector QuaternionToEuler(const tQuaternion& q);
 	static tQuaternion AxisAngleToQuaternion(const tVector& axis, double theta);
 	static void QuaternionToAxisAngle(const tQuaternion& q, tVector& out_axis, double& out_theta);

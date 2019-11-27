@@ -2,7 +2,7 @@
 #include "SimBodyJoint.h"
 #include "BulletDynamics/Featherstone/btMultiBodyLink.h"
 
-const enum eRotationOrder gRotationOrder = eRotationOrder::XYZ;
+
 
 cSimBodyJoint::tParams::tParams()
 {

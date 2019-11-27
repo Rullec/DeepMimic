@@ -35,12 +35,12 @@ public:
 	Eigen::Vector3d GetLinkPos(int frame, int body_id);
 	Eigen::Vector3d GetLinkVel(int frame, int body_id);
 	Eigen::Vector3d GetLinkAccel(int frame, int body_id);
-	tVector GetLinkJointAngle_quaternion(int frame, int body_id);
-	tVector GetLinkAngularVel_quaternion(int frame, int body_id);
-	tVector GetLinkAngularAccel_quaternion(int frame, int body_id);
-	tVector GetLinkJointAngle_euler(int frame, int body_id);
-	tVector GetLinkAngularVel_euler(int frame, int body_id);
-	tVector GetLinkAngularAccel_euler(int frame, int body_id);
+	tQuaternion GetLinkJointAngle_quaternion(int frame, int body_id);
+	tQuaternion GetLinkAngularVel_quaternion(int frame, int body_id);
+	tQuaternion GetLinkAngularAccel_quaternion(int frame, int body_id);
+	Eigen::Vector3d GetLinkJointAngle_euler(int frame, int body_id);
+	Eigen::Vector3d GetLinkAngularVel_euler(int frame, int body_id);
+	Eigen::Vector3d GetLinkAngularAccel_euler(int frame, int body_id);
 
 	void AddNewFrame(const Eigen::VectorXd & state_, const Eigen::VectorXd & pose_, const Eigen::VectorXd & action_, const Eigen::VectorXd & _contact_info);
 	void ComputeLinkInfo();
