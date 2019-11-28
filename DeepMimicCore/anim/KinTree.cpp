@@ -903,6 +903,21 @@ int cKinTree::GetParent(const Eigen::MatrixXd& joint_mat, int joint_id)
 	return parent;
 }
 
+void cKinTree::GetChild(const Eigen::MatrixXd & joint_mat, int parent_id, Eigen::VectorXd out_child_id)
+{
+	out_child_id.resize(0);
+
+	int num_joints = joint_mat.rows();
+	for (int i = 0; i < joint_mat.rows(); i++)
+	{
+		if (parent_id == GetParent(joint_mat, i))
+		{
+			out_child_id.conservativeResize(out_child_id.size() + 1);
+			out_child_id[out_child_id.size() - 1] = i;
+		}
+	}
+}
+
 bool cKinTree::HasParent(const Eigen::MatrixXd& joint_mat, int joint_id)
 {
 	int parent = GetParent(joint_mat, joint_id);

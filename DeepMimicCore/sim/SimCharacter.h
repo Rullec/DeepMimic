@@ -77,6 +77,8 @@ public:
 
 	virtual const cSimBodyJoint& GetJoint(int joint_id) const;
 	virtual cSimBodyJoint& GetJoint(int joint_id);
+	virtual void GetChildJoint(int joint_id, Eigen::VectorXd & out_child_id);
+	virtual int GetParentJoint(int joint_id);
 	virtual const std::shared_ptr<cSimBodyLink>& GetBodyPart(int idx) const;
 	virtual std::shared_ptr<cSimBodyLink>& GetBodyPart(int idx);
 	virtual tVector GetBodyPartPos(int idx) const;

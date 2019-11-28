@@ -7,10 +7,9 @@
 	This class is used to storage / compute / utilize the essential info in InverseDynamics solving procedure.
 */
 class cInverseDynamicsInfo {
-
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-	
+
 	struct tLinkCOMInfo {
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 		// pos, vel, accel in COM of each link for every frame, all of them are in Cartesian space
@@ -36,25 +35,36 @@ public:
 	tVector GetLinkRotation(int frame, int body_id);	// get Quaternion coeff 4*1 [x, y, z, w]
 	tVector GetLinkAngularVel(int frame, int body_id);	// get link angular vel 4*1 [wx, wy, wz, 0]
 	tVector GetLinkAngularAccel(int frame, int body_id);	// get link angular accel 4*1 [ax, ay, az, 0]
+	
 	void AddNewFrame(const Eigen::VectorXd & state_, const Eigen::VectorXd & pose_, const Eigen::VectorXd & action_, const Eigen::VectorXd & _contact_info);
-	void ComputeLinkInfo();
+	void SolveInverseDynamics();
 
 private:
+	enum eIDStatus {
+		INVALID = 0,
+		PREPARED,
+		SOLVED,
+	};
+
 	std::shared_ptr<cSimCharacter> mSimChar;
+	eIDStatus mIDStatus;
 
-	// number of frames
+	// read ID essential info from file
 	int mNumOfFrames;
-
-	// infos from ID recording file
-	Eigen::MatrixXd mState, mPose, mAction, mContact_info;
+	Eigen::MatrixXd mState, mPose, mAction, mContact_info;		
 	int mStateSize, mPoseSize, mActionSize, mContact_infoSize;
 	
-	// pos/vel/accel of COM for each link in every frame
+	// info for solving ID (link status)
 	std::shared_ptr<struct tLinkCOMInfo> mLinkInfo;
-
+	
+	void ComputeLinkInfo();
 	void ComputeLinkInfo0(int, int);
-	void ComputeLinkInfo1(int, int);
-	void ComputeLinkInfo2(int, int);
+	void ComputeLinkInfo1(int, int) ;
+	void ComputeLinkInfo2(int, int) ;
+	void ComputeJointTorque(const std::shared_ptr<struct tLinkCOMInfo> &, Eigen::VectorXd &) const ;
+	void ComputeSingleJointTorque(const std::shared_ptr<struct tLinkCOMInfo> &, Eigen::VectorXd &) const;
+	void ComputePDTarget(const Eigen::VectorXd &, Eigen::VectorXd &) const ;
 
+	void PrintLinkInfo();
 };
 

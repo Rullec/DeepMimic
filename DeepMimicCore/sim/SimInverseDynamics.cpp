@@ -1,6 +1,6 @@
 #include "anim/Motion.h"
 #include "sim/SimInverseDynamics.h"
-
+#include <queue>
 #include <iostream>
 using namespace std;
 using namespace Eigen;
@@ -46,6 +46,7 @@ cInverseDynamicsInfo::cInverseDynamicsInfo(std::shared_ptr<cSimCharacter> & sim_
 	mContact_info.resize(0, 0);
 
 	mSimChar = sim_char;
+	mIDStatus = eIDStatus::INVALID;
 	mLinkInfo = (std::shared_ptr<cInverseDynamicsInfo::tLinkCOMInfo>)(new cInverseDynamicsInfo::tLinkCOMInfo());
 }
 
@@ -92,6 +93,8 @@ void cInverseDynamicsInfo::AddNewFrame(const Eigen::VectorXd & state_, const Eig
 			exit(1);
 		}
 	}
+
+	mIDStatus = eIDStatus::PREPARED;
 }
 
 int cInverseDynamicsInfo::GetNumOfFrames()
@@ -162,29 +165,82 @@ Eigen::Vector3d cInverseDynamicsInfo::GetLinkAccel(int frame, int body_id)
 
 tVector cInverseDynamicsInfo::GetLinkRotation(int frame, int body_id)	// get Quaternion coeff 4*1 [x, y, z, w]
 {
+	if (frame < 0 || frame >= mLinkInfo->mLinkRot.rows())
+	{
+		std::cout << "[error] cInverseDynamicsInfo::GetLinkRotation: illegal access" << std::endl;
+		exit(1);
+	}
+
 	// [x, y, z, w] quaternion
 	return mLinkInfo->mLinkRot.block(frame, body_id * 4, 1, 4).transpose();
 }
 
 tVector cInverseDynamicsInfo::GetLinkAngularVel(int frame, int body_id)	// get link angular vel 4*1 [wx, wy, wz, 0]
 {
+	if (frame < 0 || frame >= mLinkInfo->mLinkAngularVel.rows())
+	{
+		std::cout << "[error] cInverseDynamicsInfo::GetLinkAngularVel: illegal access" << std::endl;
+		exit(1);
+	}
+
 	// [ax, ay, az, dtheta/dt] axis-angle angular velocity
 	return mLinkInfo->mLinkAngularVel.block(frame, body_id * 4, 1, 4).transpose();
 }
 
 tVector cInverseDynamicsInfo::GetLinkAngularAccel(int frame, int body_id)	// get link angular accel 4*1 [ax, ay, az, 0]
 {
+	if (frame < 0 || frame >= mLinkInfo->mLinkAngularAccel.rows())
+	{
+		std::cout << "[error] cInverseDynamicsInfo::GetLinkAngularAccel: illegal access" << std::endl;
+		exit(1);
+	}
 	// [ax, ay, az, dtheta^2/dt^2] axis-angle angular velocity
 	return mLinkInfo->mLinkAngularAccel.block(frame, body_id * 4, 1, 4).transpose();
 }
 
+/*
+	@Function: cInverseDynamicsInfo::SolveInverseDynamics
+	@params: void
+
+	As it is, given the character poses info & contact info, this function will computes the actions accordly.
+	It can be divided into 2 parts:
+	
+	1. compute dynamic link info(pos, vel, accel, angular displacement, angular vel, angular accel)
+	2. calculate joint torques using a
+	3. convert the torque to PD target by individual PD params
+*/
+void cInverseDynamicsInfo::SolveInverseDynamics()
+{
+	if (mIDStatus != eIDStatus::PREPARED)
+	{
+		std::cout << "[warn] You do not need to / can not solve Inverse Dynamics, flag = " << mIDStatus << std::endl;
+		return;
+	}
+
+	if (mSimChar == nullptr)
+	{
+
+	}
+	;
+
+	// 1. compute dynamic link info
+	ComputeLinkInfo();
+
+	// 2. calculate joint toruqe for each frames
+	VectorXd joint_torque;
+	ComputeJointTorque(mLinkInfo, joint_torque);
+
+	// 3. convert the torque to PD target
+	VectorXd pd_target;
+	ComputePDTarget(joint_torque, pd_target);
 
 
+}
 
 /*
-	@Function: void cInverseDynamicsInfo
-
-		Accoroding to the motion info in mState & mPos, this function will compute the linear 
+	@Function: void cInverseDynamicsInfo::ComputeLinkInfo
+	@params: void
+		Accoroding to the motion info in mState & mPos, this function will compute the linear
 	velocity & acceleration for the COM of each link in every frame.
 		We supposed that the intergrator empoloies explicit Euler method.
 */
@@ -207,7 +263,7 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 	{
 		// timesteps
 		mLinkInfo->mTimesteps.resize(mNumOfFrames);
-		
+
 		// linear infos
 		mLinkInfo->mLinkPos.resize(mNumOfFrames, num_bodies * 3);	// mLinkPos.size == (total num of frames, NumOfBodies * 3);
 		mLinkInfo->mLinkVel.resize(mNumOfFrames - 1, num_bodies * 3);
@@ -218,7 +274,7 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 		mLinkInfo->mLinkAngularVel.resize(mNumOfFrames - 1, num_bodies * 4);	// axis angle [x,y,z,theta]
 		mLinkInfo->mLinkAngularAccel.resize(mNumOfFrames - 2, num_bodies * 4);	// the same axis angle
 	}
-	
+
 
 	for (int i = 0; i < mNumOfFrames; i++)
 	{
@@ -236,84 +292,14 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 
 			// 2.3 1st order info computing(velocity)
 			ComputeLinkInfo1(i - 1, body_id);
-			
+
 			// 2.4 2nd order info computing (acceleration)
 			ComputeLinkInfo2(i - 2, body_id);
 		}
 	}
 
-	// TODO: output the result of angular velocity and visualization
-	ofstream fout("quaternion.log");
-	for (int frame = 0; frame < mNumOfFrames - 1; frame++)
-	{
-		for (int body_id = 0; body_id < num_bodies; body_id++)
-		{
-			// 1. get rotation and angular velocity
-			tVector q1_quater_ultimate = GetLinkRotation(frame, body_id),
-					q2_quater_ultimate = GetLinkRotation(frame + 1, body_id);
+	PrintLinkInfo();
 
-			double timestep = mLinkInfo->mTimesteps[frame];
-			fout << "--------[debug] body " << body_id << "--------" << std::endl;
-			fout << "[debug] timestep = " << timestep << std::endl;
-			
-			// 0 order info output
-			{
-				tVector coef = GetLinkRotation(frame, body_id);
-				tQuaternion q1_quater_ultimate = tQuaternion(coef[3], coef[0], coef[1], coef[2]);
-				tVector q1_axis_angle;
-				q1_axis_angle.setZero();
-				cMathUtil::QuaternionToAxisAngle(q1_quater_ultimate, q1_axis_angle, q1_axis_angle[3]);
-				fout << "[debug] time 0 rotation quaterinion = " << coef.transpose()\
-					<< ", axis angle = " << q1_axis_angle.transpose() << std::endl;
-			}
-			
-			// 1 order info output
-			{
-				tVector q1_vel_ultimate = GetLinkAngularVel(frame, body_id);	
-				fout << "[debug] time 0 angular velocity axis-angle = " << q1_vel_ultimate.transpose() << std::endl;
-
-			}
-			
-			// 2 order info output
-			{
-				tVector q2_accel_ultimate = GetLinkAngularAccel(frame, body_id);
-				q2_accel_ultimate *= q2_accel_ultimate[3];
-				q2_accel_ultimate[3] = 0;
-				fout << "[debug] time 0 angular accel ultimate = " << q2_accel_ultimate.segment(0, 3).transpose() << std::endl;
-			}
-			
-
-			//// 四元数1 + 角位移得到的四元数move = 四元数2, 验证成功
-			//{
-			//	tVector angular_dist;
-			//	angular_dist.setZero();
-			//	angular_dist.segment(0, 3) = (q_vel_euler * timestep);
-			//	tQuaternion predicted_q_move = cMathUtil::EulerToQuaternion(angular_dist);
-
-			//	tQuaternion predicted_q = predicted_q_move * q1;
-			//	fout << "[debug] predicted time 1 quaternion by euler angle = " << predicted_q.coeffs().transpose() << std::endl;
-
-			//}
-
-			//// 角位移 + 四元数得到的角位移 = 角位移2，
-			//{
-			//	tQuaternion q_move = q2 * q1.conjugate();
-			//	Vector3d euler_move = cMathUtil::QuaternionToEuler(q_move).segment(0, 3);
-			//	Vector3d predicted_q = euler_move + q1_euler;
-			//	fout << "[debug] predicted time 1 euler angle by quaternion = " << predicted_q.transpose() << std::endl;
-			//}
-
-
-			////fout << "[debug] time 0 quaternion vel = " << q_vel.coeffs().transpose() \
-			////	<< " (" << 2 *cMathUtil::QuaternionToEuler(q_vel).transpose() \
-			////	<< ", euler angles = " << q_vel_euler.transpose() << std::endl;
-			//
-			//fout << "[debug] time 0 + vel * timestep = " << (q1_euler + q_vel_euler * timestep).transpose() << std::endl;
-			//fout << "[debug] time 1 = " << q2_euler.transpose() << std::endl;
-			fout << "--------[debug] body " << body_id << " end----" << std::endl;
-		}
-	}
-	
 	auto &DIVIDE = [](Vector3d a, Vector3d b)->Vector3d
 	{
 		return Vector3d(a[0] / b[0], a[1] / b[1], a[2] / b[2]);
@@ -339,7 +325,7 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 				}
 			}
 		}
-		
+
 		// check accel
 		for (int frame = 0; frame < GetNumOfFrames() - 2; frame++)
 		{
@@ -370,6 +356,11 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 	mSimChar->SetPose(pose_before);
 }
 
+/*
+	@Function: cIvnerseDynamicsInfo::ComputeLinkInfo0
+	@params: frame Type int
+	@params: body_id Type int 
+*/
 void cInverseDynamicsInfo::ComputeLinkInfo0(int frame, int body_id)
 {
 	if (frame < 0) return;
@@ -404,6 +395,13 @@ void cInverseDynamicsInfo::ComputeLinkInfo0(int frame, int body_id)
 	}
 }
 
+/*
+	@Function: cInverseDynamicsInfo::ComputeLinkInfo1
+	@params: the same as above
+
+	This function computes first order info for links, including 
+		linear vel and angular vel
+*/
 void cInverseDynamicsInfo::ComputeLinkInfo1(int frame, int body_id)
 {
 	if (frame < 0) return;
@@ -471,6 +469,14 @@ void cInverseDynamicsInfo::ComputeLinkInfo1(int frame, int body_id)
 	}
 }
 
+/*
+	@Function: cInverseDynamicsInfo::ComputeLinkInfo2
+	@params: the same as above
+
+	This function computes second order link motion terms
+		linear accel and angular accel
+	
+*/
 void cInverseDynamicsInfo::ComputeLinkInfo2(int frame, int body_id)
 {
 	if (frame < 0) return;
@@ -508,6 +514,161 @@ void cInverseDynamicsInfo::ComputeLinkInfo2(int frame, int body_id)
 			std::cout << "[error] ComputeLinkInfo2 error in ultimate accel: " << get_accel.transpose() \
 				<< " " << q1_accel.transpose() << std::endl;
 			exit(1);
+		}
+	}
+}
+
+/*
+	@Function: cInverseDynamicsInfo::ComputeJointTorque const
+	@params: link_info Type const ptr &, given the link info
+	@params: torque Type VectorXd, the computation goal
+
+	This function implement the classic ID method "Recursive Inverse Dynamic Method"
+	both in C.K. Liu: "A Quick Tutorial on Multibody Dynamics" and in Featherstone's book(2008)
+	2 parts:
+	1. construct the links' topology tree, which has a root and all of the links who has no successors are leaves
+	2. for each link compute the connection torque given by his parent from far to near, fulfills the feature of "recusive"
+	3. utill no links left in this circumstance
+*/
+void cInverseDynamicsInfo::ComputeJointTorque(const std::shared_ptr<struct tLinkCOMInfo> & link_info, VectorXd & torque) const
+{
+	// 1. compute topolocgy of this tree (find end effector)
+	std::queue<int> joint_queue;
+	for (int joint_id = 0; joint_id < mSimChar->GetNumJoints(); joint_id++)
+	{
+		if (mSimChar->IsEndEffector(joint_id))
+		{
+			joint_queue.push(joint_id);
+			std::cout << "[log] joint " << joint_id << " " << mSimChar->GetJointName(joint_id) << " is end effecotr" << std::endl;
+		}
+	}
+
+	// 2. computed for each frame
+	for (int frame_id = 0; frame_id < mNumOfFrames; frame_id++)
+	{
+		// 2.1 decide the target link
+		while (false == joint_queue.empty())
+		{
+			// pop one
+			int cur_joint = joint_queue.front();
+			joint_queue.pop();
+
+			// push its parent
+			int parent_id = mSimChar->GetParentJoint(cur_joint);
+			if (parent_id != -1) joint_queue.push(parent_id);
+			else
+			{
+				std::cout << "[log] for joint " << cur_joint << " " << mSimChar->GetJointName(cur_joint) << ", its has no parent" << std::endl;
+			}
+
+			// do something to compute torques...
+			// 1. given joint id (so that the program can access link dynamic info accordly)
+			// 2. given all external forces & torque
+			// 3. output 
+
+		}
+	}
+
+
+
+	std::cout << "[log] need to be implemented..." << std::endl;
+	exit(1);
+}
+
+/*
+	@Function: cInverseDynamicsInfo::ComputeSingleJointTorque
+	@params: 
+*/
+void cInverseDynamicsInfo::ComputeSingleJointTorque(const std::shared_ptr<struct tLinkCOMInfo> &, Eigen::VectorXd &) const
+{
+	
+}
+
+void cInverseDynamicsInfo::ComputePDTarget(const VectorXd & torque, VectorXd & pd_target) const
+{
+
+}
+
+/*
+	Function: cInverseDynamicsInfo::PrintLinkInfo
+	@params:
+
+	Output the dynamic link info, from 0 order to 2nd order, including:
+		linear: pos, vel, accel
+		angular: displacement, vel, accel
+	to log file.
+*/
+void cInverseDynamicsInfo::PrintLinkInfo()
+{
+	if (mSimChar == nullptr) return;
+
+	ofstream fout("logs/controller_logs/quaternion.log");
+	int num_bodies = mSimChar->GetNumBodyParts();
+	for (int frame = 0; frame < mNumOfFrames - 1; frame++)
+	{
+		double timestep = mLinkInfo->mTimesteps[frame];
+		for (int body_id = 0; body_id < num_bodies; body_id++)
+		{
+			fout << "--------[debug] body " << body_id << "--------" << std::endl;
+			fout << "[debug] timestep = " << timestep << std::endl;
+
+			// 1. output 0 order info 
+			{
+				tVector coef = GetLinkRotation(frame, body_id);
+				tQuaternion q1_quater_ultimate = tQuaternion(coef[3], coef[0], coef[1], coef[2]);
+				tVector q1_axis_angle;
+				q1_axis_angle.setZero();
+				cMathUtil::QuaternionToAxisAngle(q1_quater_ultimate, q1_axis_angle, q1_axis_angle[3]);
+				fout << "[debug] time 0 rotation quaterinion = " << coef.transpose()\
+					<< ", axis angle = " << q1_axis_angle.transpose() << std::endl;
+			}
+
+			// 2. 1 order info output
+			if (frame < mNumOfFrames - 1)
+			{
+				tVector q1_vel_ultimate = GetLinkAngularVel(frame, body_id);
+				fout << "[debug] time 0 angular velocity axis-angle = " << q1_vel_ultimate.transpose() << std::endl;
+
+			}
+
+			// 3. 2 order info output
+			if (frame < mNumOfFrames - 2)
+			{
+				tVector q2_accel_ultimate = GetLinkAngularAccel(frame, body_id);
+				q2_accel_ultimate *= q2_accel_ultimate[3];
+				q2_accel_ultimate[3] = 0;
+				fout << "[debug] time 0 angular accel ultimate = " << q2_accel_ultimate.segment(0, 3).transpose() << std::endl;
+			}
+
+
+			//// 四元数1 + 角位移得到的四元数move = 四元数2, 验证成功
+			//{
+			//	tVector angular_dist;
+			//	angular_dist.setZero();
+			//	angular_dist.segment(0, 3) = (q_vel_euler * timestep);
+			//	tQuaternion predicted_q_move = cMathUtil::EulerToQuaternion(angular_dist);
+
+			//	tQuaternion predicted_q = predicted_q_move * q1;
+			//	fout << "[debug] predicted time 1 quaternion by euler angle = " << predicted_q.coeffs().transpose() << std::endl;
+
+			//}
+
+			//// 角位移 + 四元数得到的角位移 = 角位移2，
+			//{
+			//	tQuaternion q_move = q2 * q1.conjugate();
+			//	Vector3d euler_move = cMathUtil::QuaternionToEuler(q_move).segment(0, 3);
+			//	Vector3d predicted_q = euler_move + q1_euler;
+			//	fout << "[debug] predicted time 1 euler angle by quaternion = " << predicted_q.transpose() << std::endl;
+			//}
+
+
+			////fout << "[debug] time 0 quaternion vel = " << q_vel.coeffs().transpose() \
+			////	<< " (" << 2 *cMathUtil::QuaternionToEuler(q_vel).transpose() \
+			////	<< ", euler angles = " << q_vel_euler.transpose() << std::endl;
+			//
+			//fout << "[debug] time 0 + vel * timestep = " << (q1_euler + q_vel_euler * timestep).transpose() << std::endl;
+			//fout << "[debug] time 1 = " << q2_euler.transpose() << std::endl;
+			fout << "--------[debug] body " << body_id << " end----" << std::endl;
 		}
 	}
 }
