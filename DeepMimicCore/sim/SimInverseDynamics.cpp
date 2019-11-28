@@ -160,60 +160,26 @@ Eigen::Vector3d cInverseDynamicsInfo::GetLinkAccel(int frame, int body_id)
 	return accel;
 }
 
-tQuaternion cInverseDynamicsInfo::GetLinkJointAngle_quaternion(int frame, int body_id)
+tVector cInverseDynamicsInfo::GetLinkRotation(int frame, int body_id)	// get Quaternion coeff 4*1 [x, y, z, w]
 {
-	const auto & target = mLinkInfo->mAngularQuaternionInfo.mLinkJointAngle;
-	if (frame >= target.rows())
-	{
-		std::cout << "[error] cInverseDynamicsInfo::GetLinkJointAngle_quaternion(int frame, int body_id) illegal access" << std::endl;
-		exit(1);
-	}
-
-	tVector q_vec = target.block(frame, body_id * 4, 1, 4).transpose();
-	return cMathUtil::CoefVectorToQuaternion(q_vec);
+	// [x, y, z, w] quaternion
+	return mLinkInfo->mLinkRot.block(frame, body_id * 4, 1, 4).transpose();
 }
 
-tQuaternion cInverseDynamicsInfo::GetLinkAngularVel_quaternion(int frame, int body_id)
+tVector cInverseDynamicsInfo::GetLinkAngularVel(int frame, int body_id)	// get link angular vel 4*1 [wx, wy, wz, 0]
 {
-	const auto & target = mLinkInfo->mAngularQuaternionInfo.mLinkAngularVel;
-	if (frame >= target.rows())
-	{
-		std::cout << "[error] cInverseDynamicsInfo::GetLinkAngularVel_quaternion(int frame, int body_id) illegal access" << std::endl;
-		exit(1);
-	}
-	tVector q_vec = target.block(frame, body_id * 4, 1, 4).transpose();
-	return cMathUtil::CoefVectorToQuaternion(q_vec);
+	// [ax, ay, az, dtheta/dt] axis-angle angular velocity
+	return mLinkInfo->mLinkAngularVel.block(frame, body_id * 4, 1, 4).transpose();
 }
 
-tQuaternion cInverseDynamicsInfo::GetLinkAngularAccel_quaternion(int frame, int body_id)
+tVector cInverseDynamicsInfo::GetLinkAngularAccel(int frame, int body_id)	// get link angular accel 4*1 [ax, ay, az, 0]
 {
-	const auto & target = mLinkInfo->mAngularQuaternionInfo.mLinkAngularAccel;
-	if (frame >= target.rows())
-	{
-		std::cout << "[error] cInverseDynamicsInfo::GetLinkAngularAccel_quaternion(int frame, int body_id) illegal access" << std::endl;
-		exit(1);
-	}
-	tVector q_vec = target.block(frame, body_id * 4, 1, 4).transpose();
-	return cMathUtil::CoefVectorToQuaternion(q_vec);
+	// [ax, ay, az, dtheta^2/dt^2] axis-angle angular velocity
+	return mLinkInfo->mLinkAngularAccel.block(frame, body_id * 4, 1, 4).transpose();
 }
 
-Eigen::Vector3d cInverseDynamicsInfo::GetLinkJointAngle_euler(int frame, int body_id)
-{
-	Vector3d euler = mLinkInfo->mAngularEulerInfo.mLinkJointAngle.block(frame, body_id * 3, 1, 3).transpose();
-	return euler;
-}
 
-Eigen::Vector3d cInverseDynamicsInfo::GetLinkAngularVel_euler(int frame, int body_id)
-{
-	Vector3d euler = mLinkInfo->mAngularEulerInfo.mLinkAngularVel.block(frame, body_id * 3, 1, 3).transpose();
-	return euler;
-}
 
-Eigen::Vector3d cInverseDynamicsInfo::GetLinkAngularAccel_euler(int frame, int body_id)
-{
-	Vector3d euler = mLinkInfo->mAngularEulerInfo.mLinkAngularAccel.block(frame, body_id * 3, 1, 3).transpose();
-	return euler;
-}
 
 /*
 	@Function: void cInverseDynamicsInfo
@@ -247,16 +213,10 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 		mLinkInfo->mLinkVel.resize(mNumOfFrames - 1, num_bodies * 3);
 		mLinkInfo->mLinkAccel.resize(mNumOfFrames - 2, num_bodies * 3);
 
-		// angular infos - quaternion format
-		mLinkInfo->mAngularQuaternionInfo.mLinkJointAngle.resize(mNumOfFrames, num_bodies * 4);
-		mLinkInfo->mAngularQuaternionInfo.mLinkAngularVel.resize(mNumOfFrames - 1, num_bodies * 4);
-		mLinkInfo->mAngularQuaternionInfo.mLinkAngularAccel.resize(mNumOfFrames - 2, num_bodies * 4);
-
-		// angular infos - euler angles format
-		mLinkInfo->mAngularEulerInfo.mLinkJointAngle.resize(mNumOfFrames, num_bodies * 3);
-		mLinkInfo->mAngularEulerInfo.mLinkAngularVel.resize(mNumOfFrames - 1, num_bodies * 3);
-		mLinkInfo->mAngularEulerInfo.mLinkAngularAccel.resize(mNumOfFrames - 2, num_bodies * 3);
-		
+		// ultimate angular infos 
+		mLinkInfo->mLinkRot.resize(mNumOfFrames, num_bodies * 4);		// quaternion coeff [x, y, z, w]
+		mLinkInfo->mLinkAngularVel.resize(mNumOfFrames - 1, num_bodies * 4);	// axis angle [x,y,z,theta]
+		mLinkInfo->mLinkAngularAccel.resize(mNumOfFrames - 2, num_bodies * 4);	// the same axis angle
 	}
 	
 
@@ -268,8 +228,6 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 		mLinkInfo->mTimesteps[i] = cur_timestep;
 		mSimChar->SetPose(cur_pose);
 
-		if (i == 2)
-			i = 2;
 		// get & set position info
 		for (int body_id = 0; body_id < mSimChar->GetNumBodyParts(); body_id++)
 		{
@@ -286,60 +244,76 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 
 	// TODO: output the result of angular velocity and visualization
 	ofstream fout("quaternion.log");
-	for (int frame = 0; frame < 1; frame++)
+	for (int frame = 0; frame < mNumOfFrames - 1; frame++)
 	{
 		for (int body_id = 0; body_id < num_bodies; body_id++)
 		{
 			// 1. get rotation and angular velocity
-			tQuaternion q1 = GetLinkJointAngle_quaternion(frame, body_id),
-					q2 = GetLinkJointAngle_quaternion(frame + 1, body_id),
-					q_vel = GetLinkAngularVel_quaternion(frame, body_id);
-			
-			Vector3d q1_euler = GetLinkJointAngle_euler(frame, body_id),
-				q2_euler = GetLinkJointAngle_euler(frame + 1, body_id),
-				q_vel_euler = GetLinkAngularVel_euler(frame, body_id);
+			tVector q1_quater_ultimate = GetLinkRotation(frame, body_id),
+					q2_quater_ultimate = GetLinkRotation(frame + 1, body_id);
 
 			double timestep = mLinkInfo->mTimesteps[frame];
 			fout << "--------[debug] body " << body_id << "--------" << std::endl;
 			fout << "[debug] timestep = " << timestep << std::endl;
 			
-			fout << "[debug] time 0 quaternion = " << q1.coeffs().transpose()\
-				<<" ("<< cMathUtil::QuaternionToEuler(q1).transpose() \
-				<< "), euler angles = " << q1_euler.transpose() << std::endl;
-			
-			fout << "[debug] time 1 quaternion = " << q2.coeffs().transpose() \
-				<<" (" << cMathUtil::QuaternionToEuler(q2).transpose() \
-				<< ", euler angles = " << q2_euler.transpose() << std::endl;
-
-			// 四元数1 + 角位移得到的四元数move = 四元数2, 验证成功
+			// 0 order info output
 			{
-				tVector angular_dist;
-				angular_dist.setZero();
-				angular_dist.segment(0, 3) = (q_vel_euler * timestep);
-				tQuaternion predicted_q_move = cMathUtil::EulerToQuaternion(angular_dist);
-
-				tQuaternion predicted_q = predicted_q_move * q1;
-				fout << "[debug] predicted time 1 quaternion by euler angle = " << predicted_q.coeffs().transpose() << std::endl;
+				tVector coef = GetLinkRotation(frame, body_id);
+				tQuaternion q1_quater_ultimate = tQuaternion(coef[3], coef[0], coef[1], coef[2]);
+				tVector q1_axis_angle;
+				q1_axis_angle.setZero();
+				cMathUtil::QuaternionToAxisAngle(q1_quater_ultimate, q1_axis_angle, q1_axis_angle[3]);
+				fout << "[debug] time 0 rotation quaterinion = " << coef.transpose()\
+					<< ", axis angle = " << q1_axis_angle.transpose() << std::endl;
+			}
+			
+			// 1 order info output
+			{
+				tVector q1_vel_ultimate = GetLinkAngularVel(frame, body_id);	
+				fout << "[debug] time 0 angular velocity axis-angle = " << q1_vel_ultimate.transpose() << std::endl;
 
 			}
-
-			// 角位移 + 四元数得到的角位移 = 角位移2，
-			{
-				tQuaternion q_move = q2 * q1.conjugate();
-				Vector3d euler_move = cMathUtil::QuaternionToEuler(q_move).segment(0, 3);
-				Vector3d predicted_q = euler_move + q1_euler;
-				fout << "[debug] predicted time 1 euler angle by quaternion = " << predicted_q.transpose() << std::endl;
-			}
-			fout << "[debug] time 0 quaternion vel = " << q_vel.coeffs().transpose() \
-				<< " (" << 2 *cMathUtil::QuaternionToEuler(q_vel).transpose() \
-				<< ", euler angles = " << q_vel_euler.transpose() << std::endl;
 			
-			fout << "[debug] time 0 + vel * timestep = " << (q1_euler + q_vel_euler * timestep).transpose() << std::endl;
-			fout << "[debug] time 1 = " << q2_euler.transpose() << std::endl;
+			// 2 order info output
+			{
+				tVector q2_accel_ultimate = GetLinkAngularAccel(frame, body_id);
+				q2_accel_ultimate *= q2_accel_ultimate[3];
+				q2_accel_ultimate[3] = 0;
+				fout << "[debug] time 0 angular accel ultimate = " << q2_accel_ultimate.segment(0, 3).transpose() << std::endl;
+			}
+			
+
+			//// 四元数1 + 角位移得到的四元数move = 四元数2, 验证成功
+			//{
+			//	tVector angular_dist;
+			//	angular_dist.setZero();
+			//	angular_dist.segment(0, 3) = (q_vel_euler * timestep);
+			//	tQuaternion predicted_q_move = cMathUtil::EulerToQuaternion(angular_dist);
+
+			//	tQuaternion predicted_q = predicted_q_move * q1;
+			//	fout << "[debug] predicted time 1 quaternion by euler angle = " << predicted_q.coeffs().transpose() << std::endl;
+
+			//}
+
+			//// 角位移 + 四元数得到的角位移 = 角位移2，
+			//{
+			//	tQuaternion q_move = q2 * q1.conjugate();
+			//	Vector3d euler_move = cMathUtil::QuaternionToEuler(q_move).segment(0, 3);
+			//	Vector3d predicted_q = euler_move + q1_euler;
+			//	fout << "[debug] predicted time 1 euler angle by quaternion = " << predicted_q.transpose() << std::endl;
+			//}
+
+
+			////fout << "[debug] time 0 quaternion vel = " << q_vel.coeffs().transpose() \
+			////	<< " (" << 2 *cMathUtil::QuaternionToEuler(q_vel).transpose() \
+			////	<< ", euler angles = " << q_vel_euler.transpose() << std::endl;
+			//
+			//fout << "[debug] time 0 + vel * timestep = " << (q1_euler + q_vel_euler * timestep).transpose() << std::endl;
+			//fout << "[debug] time 1 = " << q2_euler.transpose() << std::endl;
 			fout << "--------[debug] body " << body_id << " end----" << std::endl;
 		}
 	}
-	exit(1);
+	
 	auto &DIVIDE = [](Vector3d a, Vector3d b)->Vector3d
 	{
 		return Vector3d(a[0] / b[0], a[1] / b[1], a[2] / b[2]);
@@ -365,7 +339,7 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 				}
 			}
 		}
-
+		
 		// check accel
 		for (int frame = 0; frame < GetNumOfFrames() - 2; frame++)
 		{
@@ -401,40 +375,30 @@ void cInverseDynamicsInfo::ComputeLinkInfo0(int frame, int body_id)
 	if (frame < 0) return;
 
 	// linear terms
-	Eigen::Vector3d cur_pos = mSimChar->GetBodyPartPos(body_id).segment(0, 3).transpose();
-	mLinkInfo->mLinkPos.block(frame, body_id * 3, 1, 3) = cur_pos.transpose();
-	Vector3d get_pos = GetLinkPos(frame, body_id);
-	if (JudgeSameVec(get_pos, cur_pos) == false)
 	{
-		std::cout << "[error] mLinkPos set error" << cur_pos.transpose() << " " << get_pos.transpose() << std::endl;
-		exit(1);
-	}
-
-	// angular terms - quaternion parts
-	{
-		auto &cur_part = mSimChar->GetBodyPart(body_id);
-		tQuaternion quater = cur_part->GetRotation();
-		tVector coef = quater.coeffs();// x, y, z, w
-		mLinkInfo->mAngularQuaternionInfo.mLinkJointAngle.block(frame, body_id * 4, 1, 4) = coef.transpose();
-		tVector get_joint_angle = GetLinkJointAngle_quaternion(frame, body_id).coeffs();
-		if (JudgeSameVec(get_joint_angle, coef) == false)
+		Eigen::Vector3d cur_pos = mSimChar->GetBodyPartPos(body_id).segment(0, 3).transpose();
+		mLinkInfo->mLinkPos.block(frame, body_id * 3, 1, 3) = cur_pos.transpose();
+		Vector3d get_pos = GetLinkPos(frame, body_id);
+		if (JudgeSameVec(get_pos, cur_pos) == false)
 		{
-			std::cout << "[error] mLinkJointAngle set error: ideal = " << coef.transpose() << ", get = " << get_joint_angle.transpose() << std::endl;
+			std::cout << "[error] mLinkPos set error" << cur_pos.transpose() << " " << get_pos.transpose() << std::endl;
 			exit(1);
 		}
 	}
 	
-	// angular terms - euler angles parts
+	// ultimate angular term
 	{
-		auto &cur_part = mSimChar->GetBodyPart(body_id);
+		auto & cur_part = mSimChar->GetBodyPart(body_id);
 		tQuaternion quater = cur_part->GetRotation();
-		tVector euler = cMathUtil::QuaternionToEuler(quater);
-		Vector3d coef = euler.segment(0, 3);
-		mLinkInfo->mAngularEulerInfo.mLinkJointAngle.block(frame, body_id * 3, 1, 3) = coef.transpose();
-		Vector3d get_joint_angle = GetLinkJointAngle_euler(frame, body_id);
-		if (JudgeSameVec(get_joint_angle, coef) == false)
+		tVector coeff = quater.coeffs().transpose();
+		mLinkInfo->mLinkRot.block(frame, body_id * 4, 1, 4) = coeff.transpose();
+
+		// verify
+		tVector get_coef = GetLinkRotation(frame ,body_id);
+		if (false == JudgeSameVec(coeff, get_coef))
 		{
-			std::cout << "[error] mLinkJointAngle set error: ideal = " << coef.transpose() << ", get = " << get_joint_angle.transpose() << std::endl;
+			std::cout << "[error] ComputeLinkInfo0: set ultimate angular term error: " \
+				<< coeff.transpose() << " " << get_coef.transpose() << std::endl;
 			exit(1);
 		}
 	}
@@ -443,105 +407,106 @@ void cInverseDynamicsInfo::ComputeLinkInfo0(int frame, int body_id)
 void cInverseDynamicsInfo::ComputeLinkInfo1(int frame, int body_id)
 {
 	if (frame < 0) return;
-
+	double timestep = mLinkInfo->mTimesteps[frame];
 	// linear terms
-	Vector3d vel = (mLinkInfo->mLinkPos.block(frame + 1, body_id * 3, 1, 3) - mLinkInfo->mLinkPos.block(frame, body_id * 3, 1, 3)).transpose() / mLinkInfo->mTimesteps[frame];
-	mLinkInfo->mLinkVel.block(frame, body_id * 3, 1, 3) = vel.transpose();
-	Vector3d get_vel = GetLinkVel(frame, body_id);
-	if (JudgeSameVec(get_vel, vel) == false)
 	{
-		std::cout << "[error] mLinkVel set error: " << vel.transpose() << " " << get_vel.transpose() << std::endl;
-		exit(1);
-	}
-
-	// angular terms - quaternion parts
-	{
-		tQuaternion q1 = GetLinkJointAngle_quaternion(frame, body_id), q2 = GetLinkJointAngle_quaternion(frame + 1, body_id);
-
-		double timestep = mLinkInfo->mTimesteps[frame];
-		tVector q_vel_axisangle = cMathUtil::CalcQuaternionVel(q1, q2, timestep);	// 返回轴角[theta * ax, theta * ay, theta *az, 0];
-		double q_vel_magnitude = q_vel_axisangle.norm();
-		tVector q_vel_axis = q_vel_axisangle / q_vel_magnitude;
-		tQuaternion q_vel = cMathUtil::AxisAngleToQuaternion(q_vel_axis, q_vel_magnitude);
-
-		mLinkInfo->mAngularQuaternionInfo.mLinkAngularVel.block(frame, body_id * 4, 1, 4)
-			= q_vel.coeffs().transpose();
-
-		// check get result 
-		tVector coef = q_vel.coeffs();
-		tVector get_ang_vel = GetLinkAngularVel_quaternion(frame, body_id).coeffs();
-		if (JudgeSameVec(get_ang_vel, coef) == false)
+		Vector3d vel = (GetLinkPos(frame + 1, body_id) - GetLinkPos(frame, body_id)) / timestep;
+		mLinkInfo->mLinkVel.block(frame, body_id * 3, 1, 3) = vel.transpose();
+		Vector3d get_vel = GetLinkVel(frame, body_id);
+		if (JudgeSameVec(get_vel, vel) == false)
 		{
-			std::cout << "[error] mLinkAngularVel set error: ideal = " << coef.transpose() << ", get = " << get_ang_vel.transpose() << std::endl;
+			std::cout << "[error] mLinkVel set error: " << vel.transpose() << " " << get_vel.transpose() << std::endl;
 			exit(1);
 		}
 	}
-	
-	// angular terms - euler angle parts
-	{
-		double timestep = mLinkInfo->mTimesteps[frame];
-		Vector3d q1 = GetLinkJointAngle_euler(frame, body_id), q2 = GetLinkJointAngle_euler(frame + 1, body_id);
-		Vector3d q_vel = (q2 - q1) / timestep;
-		mLinkInfo->mAngularEulerInfo.mLinkAngularVel.block(frame, body_id * 3, 1, 3) = q_vel.transpose();
 
-		Vector3d get_ang_vel = GetLinkAngularVel_euler(frame, body_id);
-		if (JudgeSameVec(get_ang_vel, q_vel) == false)
+	// ultimate angular velocity
+	{
+		tVector q1_coef = GetLinkRotation(frame, body_id), q2_coef = GetLinkRotation(frame + 1, body_id);
+		tQuaternion q1 = tQuaternion(q1_coef[3], q1_coef[0], q1_coef[1], q1_coef[2]),
+					q2 = tQuaternion(q2_coef[3], q2_coef[0], q2_coef[1], q2_coef[2]);
+		tVector omega = cMathUtil::CalcQuaternionVel(q1, q2, timestep);
+
+		// normalize
+		double mag = omega.norm();
+		omega /= mag;
+		omega[3] = mag;
+
+		// normalized axis angle, format [ax, ay, az, theta]
+		mLinkInfo->mLinkAngularVel.block(frame, body_id * 4, 1, 4) = omega.transpose();
+
+		tVector get_vel = GetLinkAngularVel(frame, body_id);
+
+		if (JudgeSameVec(get_vel, omega) == false)
 		{
-			std::cout << "[error] mLinkAngularVel set error: ideal = " << q_vel.transpose() << ", get = " << get_ang_vel.transpose() << std::endl;
+			std::cout << "[error] ComputeLinkInfo1: ultimate angular velocity error = " << get_vel.transpose()\
+				<< " " << omega.transpose() << std::endl;
 			exit(1);
 		}
+		/*
+			The following code implement this formula:
+				w = 0.5 *  dot(q) * q^*
+			it works well only when the angular displacement is SMALL, because only in this case 
+			can dot(q) be approximated to q_{t+1} - q_t
+		*/
+		
+		// test : w = 0.5 * (q2 - q1) / timestep * conj(q1)
+		//btQuaternion q1_bt = btQuaternion(q1.x(), q1.y(), q1.z(), q1.w());
+		//btQuaternion q2_bt = btQuaternion(q2.x(), q2.y(), q2.z(), q2.w());
+		//tQuaternion q2_conj = q2.conjugate();
+		//btQuaternion q2_conj_bt = btQuaternion(q2_conj.x(), q2_conj.y(), q2_conj.z(), q2_conj.w());
+		//q1_bt = q1_bt.normalize();
+		//q2_bt = q2_bt.normalize();
+		////0.5 * (q2_bt - q1_bt) / timestep;
+		//btQuaternion omega_bt_quater = (q2_bt - q1_bt) * 2 / timestep * q2_conj_bt;
+		//btVector3 axis = omega_bt_quater.getAxis();
+		//tVector omega_bt = tVector(axis.getX(), axis.getY(), axis.getZ(), 0);
+		//double mag_bt = omega_bt.norm();
+		//omega_bt /= mag_bt;
+		//omega_bt[3] = mag_bt;
+		//
+		//std::cout << omega_bt.transpose() << std::endl;
+		//std::cout << omega.transpose() << std::endl;
+
 	}
 }
 
 void cInverseDynamicsInfo::ComputeLinkInfo2(int frame, int body_id)
 {
 	if (frame < 0) return;
-
+	double timestep = mLinkInfo->mTimesteps[frame];
 	// linear terms
-	Vector3d accel = (mLinkInfo->mLinkVel.block(frame + 1, body_id * 3, 1, 3) - mLinkInfo->mLinkVel.block(frame, body_id * 3, 1, 3)).transpose() / mLinkInfo->mTimesteps[frame];
-	mLinkInfo->mLinkAccel.block(frame, body_id * 3, 1, 3) = accel.transpose();
-	Vector3d get_accel = GetLinkAccel(frame, body_id);
-	if (JudgeSameVec(get_accel, accel) == false)
 	{
-		std::cout << "[error] mLinkAccel set error " << accel.transpose() << " " << get_accel.transpose() << std::endl;
-		exit(1);
-	}
-
-	// angular terms - quaternion part
-	{
-		tQuaternion q1 = GetLinkAngularVel_quaternion(frame, body_id), q2 = GetLinkAngularVel_quaternion(frame + 1, body_id);
-
-		double timestep = mLinkInfo->mTimesteps[frame];
-		tVector q_accel_axisangle = cMathUtil::CalcQuaternionVel(q1, q2, timestep);	// 返回轴角
-		double q_accel_magnitude = q_accel_axisangle.norm();
-		tVector q_accel_axis = q_accel_axisangle / q_accel_axisangle.norm();
-		tQuaternion q_accel = cMathUtil::AxisAngleToQuaternion(q_accel_axis, q_accel_magnitude);
-
-		mLinkInfo->mAngularQuaternionInfo.mLinkAngularAccel.block(frame, body_id * 4, 1, 4)
-			= q_accel.coeffs().transpose();
-
-
-		// check get result 
-		tVector coef = q_accel.coeffs();
-		tVector get_ang_accel = GetLinkAngularAccel_quaternion(frame, body_id).coeffs();
-		if (JudgeSameVec(get_ang_accel, coef) == false)
+		Vector3d accel = (GetLinkVel(frame + 1, body_id) - GetLinkVel(frame, body_id)) / timestep;
+		mLinkInfo->mLinkAccel.block(frame, body_id * 3, 1, 3) = accel.transpose();
+		Vector3d get_accel = GetLinkAccel(frame, body_id);
+		if (JudgeSameVec(get_accel, accel) == false)
 		{
-			std::cout << "[error] mLinkAngularAccel set error: ideal = " << coef.transpose() << ", get = " << get_ang_accel.transpose() << std::endl;
+			std::cout << "[error] mLinkAccel set error " << accel.transpose() << " " << get_accel.transpose() << std::endl;
 			exit(1);
 		}
 	}
 
-	// angular terms - euler part
+	// ultimate angular terms, computed from axis-angle to accel
 	{
-		double timestep = mLinkInfo->mTimesteps[frame];
-		Vector3d q_vel1 = GetLinkAngularVel_euler(frame, body_id), q_vel2 = GetLinkAngularVel_euler(frame + 1, body_id);
-		Vector3d q_accel = (q_vel2 - q_vel1) / timestep;
-		mLinkInfo->mAngularEulerInfo.mLinkAngularAccel.block(frame, body_id * 3, 1, 3) = q_accel.transpose();
+		
+		tVector q1_vel_a = GetLinkAngularVel(frame, body_id), q2_vel_a = GetLinkAngularVel(frame + 1, body_id);
+		double mag_1 = q1_vel_a[3], mag_2 = q2_vel_a[3];
+		q1_vel_a *= mag_1, q2_vel_a *= mag_2;
+		q1_vel_a[3] = 0, q2_vel_a[3] = 0;
 
-		Vector3d get_accel = GetLinkAngularAccel_euler(frame, body_id);
-		if (JudgeSameVec(q_accel, get_accel) == false)
+		tVector q1_accel = (q2_vel_a - q1_vel_a) / timestep;
+		double mag_accel = q1_accel.norm();
+		mag_accel /= mag_accel;
+		q1_accel[3] = mag_accel;
+
+		mLinkInfo->mLinkAngularAccel.block(frame, body_id * 4, 1, 4) = q1_accel.transpose();
+
+		tVector get_accel = GetLinkAngularAccel(frame, body_id);
+		if (JudgeSameVec(get_accel, q1_accel) == false)
 		{
-			std::cout << "[error] mLinkAngularAccel euler set error: ideal = " << q_accel.transpose() << ", get = " << get_accel.transpose() << std::endl;
+			std::cout << "[error] ComputeLinkInfo2 error in ultimate accel: " << get_accel.transpose() \
+				<< " " << q1_accel.transpose() << std::endl;
 			exit(1);
 		}
 	}
