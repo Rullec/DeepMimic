@@ -614,7 +614,7 @@ void cSceneSimChar::BuildInverseDynamic()
 		mTimer.SetMaxTime(mIDInfo->GetMaxTime());
 
 		// compute the position, velocity, acceleration for each link in each frame by forward euler
-		mIDInfo->ComputeLinkInfo();
+		mIDInfo->SolveInverseDynamics();
 
 		// print to log file
 		ofstream fout("logs/controller_logs/ID_dist.log");

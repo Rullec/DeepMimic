@@ -133,6 +133,7 @@ public:
 	static eJointType GetJointType(const Eigen::MatrixXd& joint_mat, int joint_id);
 	static int GetParent(const Eigen::MatrixXd& joint_mat, int joint_id);
 	static bool HasParent(const Eigen::MatrixXd& joint_mat, int joint_id);
+	static void GetChild(const Eigen::MatrixXd & joint_mat, int parent_id, Eigen::VectorXd out_child_id);
 	static bool IsRoot(const Eigen::MatrixXd& joint_mat, int joint_id);
 	static bool IsJointActuated(const Eigen::MatrixXd& joint_mat, int joint_id);
 	static double GetTorqueLimit(const Eigen::MatrixXd& joint_mat, int joint_id);
