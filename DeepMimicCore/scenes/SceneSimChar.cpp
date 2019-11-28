@@ -623,9 +623,41 @@ void cSceneSimChar::BuildInverseDynamic()
 			fout << sim_char->GetBodyName(i) << std::endl;
 			for (int j = 0; j < mIDInfo->GetNumOfFrames() - 2; j++)
 			{
+				// linear info
 				fout << mIDInfo->GetLinkPos(j, i).transpose() <<" "\
 					 << mIDInfo->GetLinkVel(j, i).transpose() << " "\
-					 << mIDInfo->GetLinkAccel(j, i).transpose() << std::endl;
+					 << mIDInfo->GetLinkAccel(j, i).transpose() << " ";
+
+				// angular displacement, angular velocity and angular accel
+
+				tVector rot = mIDInfo->GetLinkRotation(j, i);// quaternion
+				tQuaternion rot_q = tQuaternion(rot[3], rot[0], rot[1], rot[2]);
+				tVector euler = cMathUtil::QuaternionToEuler(rot_q);	// get euler angle
+				if (abs(euler[3]) > 1e-5)
+				{
+					std::cout << "[error] euler error " << euler.transpose() << std::endl;
+					exit(1);
+				}
+				tVector omega_axis_angle = mIDInfo->GetLinkAngularVel(j, i);
+				if (abs(omega_axis_angle.segment(0, 3).norm() - 1) > 1e-5)
+				{
+					std::cout << "[error] omega error " << omega_axis_angle.transpose() << std::endl;
+				}
+				omega_axis_angle *= omega_axis_angle[3];
+				omega_axis_angle[3] = 0;	// get angular velocity
+
+				tVector alpha_axi_angle = mIDInfo->GetLinkAngularAccel(j, i);
+				if (abs(alpha_axi_angle.segment(0, 3).norm() - 1) > 1e-5)
+				{
+					std::cout << "[error] alpha error " << omega_axis_angle.transpose() << std::endl;
+				}
+				alpha_axi_angle *= alpha_axi_angle[3];
+				alpha_axi_angle[3] = 0;		// get angular accel
+
+				fout << euler.transpose() << " "\
+					<< omega_axis_angle.transpose() << " "\
+					<< alpha_axi_angle.transpose() << std::endl;
+
 			}
 		}
 	}
