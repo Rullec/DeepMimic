@@ -16,13 +16,13 @@ cSimBodyLink::cSimBodyLink()
 	mObjShape = cShape::eShapeNull;
 	mLinVel.setZero();
 	mAngVel.setZero();
+	mRotationCenter.setIdentity();
 }
 
 cSimBodyLink::~cSimBodyLink()
 {
 	RemoveFromWorld();
 }
-#include <iostream>
 
 void cSimBodyLink::Init(const std::shared_ptr<cWorld>& world, const std::shared_ptr<cMultiBody>& mult_body, const tParams& params)
 {
@@ -32,7 +32,7 @@ void cSimBodyLink::Init(const std::shared_ptr<cWorld>& world, const std::shared_
 	mMass = params.mMass;
 	const btVector3 bt_inertia = mult_body->getLinkInertia(mJointID);
 	mInertia = tVector(bt_inertia[0], bt_inertia[1], bt_inertia[2], 0);
-
+	
 	mWorld = world;
 	mMultiBody = mult_body;
 	mType = eTypeDynamic;
@@ -40,7 +40,6 @@ void cSimBodyLink::Init(const std::shared_ptr<cWorld>& world, const std::shared_
 	mLinVel.setZero();
 	mAngVel.setZero();
 
-	// bullet的ColObj是
 	mColObj = std::unique_ptr<btMultiBodyLinkCollider>(mMultiBody->getLink(mJointID).m_collider);	//对撞机, 碰撞器?
 	mColObj->setUserPointer(this);
 	mColShape = std::unique_ptr<btCollisionShape>(mColObj->getCollisionShape());
@@ -103,6 +102,16 @@ double cSimBodyLink::GetFriction() const
 void cSimBodyLink::SetFriction(double friction)
 {
 	mColObj->setFriction(friction);
+}
+
+void cSimBodyLink::SetRotationCenter(const tVector & origin_)
+{
+	mRotationCenter = origin_;
+}
+
+tVector cSimBodyLink::GetRotationCenter()
+{
+	return mRotationCenter;
 }
 
 void cSimBodyLink::ApplyForce(const tVector& force)

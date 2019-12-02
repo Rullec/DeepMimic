@@ -431,10 +431,6 @@ void cMathUtil::EulerToAxisAngle(const tVector& euler, tVector& out_axis, double
 		std::cout << "[error] cMathUtil::EulerToAxisAngle: Unsupported rotation order" << std::endl;
 		exit(1);
 	}
-
-
-
-
 }
 
 tVector cMathUtil::AxisAngleToEuler(const tVector& axis, double theta)
