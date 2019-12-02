@@ -5,7 +5,8 @@
 using namespace std;
 using namespace Eigen;
 
-const std::string gIDLogPath = "./logs/controller_logs/ID_compute.log";
+const std::string gIDLogPath_f = "./logs/controller_logs/ID_compute_force.log";
+const std::string gIDLogPath_t = "./logs/controller_logs/ID_compute_torque.log";
 
 auto JudgeSameVec = [](VectorXd a, VectorXd b, double eps = 1e-5)
 {
@@ -47,19 +48,37 @@ cInverseDynamicsInfo::cInverseDynamicsInfo(std::shared_ptr<cSimCharacter> & sim_
 	mAction.resize(0, 0);
 	mContact_info.resize(0, 0);
 
+	mNumLinks = sim_char->GetNumJoints();
 	mSimChar = sim_char;
 	mIDStatus = eIDStatus::INVALID;
-	mLinkInfo = (std::shared_ptr<cInverseDynamicsInfo::tLinkCOMInfo>)(new cInverseDynamicsInfo::tLinkCOMInfo());
+	mLinkInfo = (std::shared_ptr<cInverseDynamicsInfo::tLinkInfo>)(new cInverseDynamicsInfo::tLinkInfo());
+
+	BuildTopoInfo();
+
+	// init temp & final result
+	mReactionForce.resize(mNumLinks);
+	mReactionForce_pof.resize(mNumLinks);
+	mReactionTorque.resize(mNumLinks);
+
+	for (int i = 0; i < mNumLinks; i++)
+	{
+		mReactionForce[i].setZero();
+		// get joint position
+		auto & cur_link = mSimChar->GetJoint(i).GetChild();
+		mReactionForce_pof[i] = cur_link->GetRotationCenter();
+	}
+	
 }
 
-/*
+void cInverseDynamicsInfo::AddNewFrame(const Eigen::VectorXd & state_, const Eigen::VectorXd & pose_, const Eigen::VectorXd & action_, const Eigen::VectorXd & contact_info_)
+{
+	/*
 	Function: cInverseDynamicsInfo::AddNewFrame
-		
+
 	This function will append a new frame info into the storaged MatrixXd array
 
 */
-void cInverseDynamicsInfo::AddNewFrame(const Eigen::VectorXd & state_, const Eigen::VectorXd & pose_, const Eigen::VectorXd & action_, const Eigen::VectorXd & contact_info_)
-{
+
 	if (mNumOfFrames == -1)
 	{
 		mNumOfFrames = 0;
@@ -171,6 +190,8 @@ tVector cInverseDynamicsInfo::GetLinkAccel(int frame, int body_id)const
 
 tVector cInverseDynamicsInfo::GetLinkRotation(int frame, int body_id) const // get Quaternion coeff 4*1 [x, y, z, w]
 {
+	// local to world
+
 	if (frame < 0 || frame >= mLinkInfo->mLinkRot.rows())
 	{
 		std::cout << "[error] cInverseDynamicsInfo::GetLinkRotation: illegal access" << std::endl;
@@ -179,6 +200,22 @@ tVector cInverseDynamicsInfo::GetLinkRotation(int frame, int body_id) const // g
 
 	// [x, y, z, w] quaternion
 	return mLinkInfo->mLinkRot.block(frame, body_id * 4, 1, 4).transpose();
+}
+
+tMatrix cInverseDynamicsInfo::GetLinkTrans(int frame, int body_id) const 
+{
+	// in this frame, for this link body_id, return the 4x4 transformation matrix local to world
+	tMatrix local_to_world_mat = GetLinkRotationMat(frame, body_id);
+	tVector link_pos = GetLinkPos(frame, body_id);
+	return cMathUtil::TranslateMat(link_pos) * local_to_world_mat;
+}
+
+tMatrix cInverseDynamicsInfo::GetLinkRotationMat(int frame, int body_id) const
+{
+	tVector quat_coeff = GetLinkRotation(frame, body_id);
+	tQuaternion local_to_world = tQuaternion(quat_coeff[3], quat_coeff[0], quat_coeff[1], quat_coeff[2]);
+	tMatrix local_to_world_mat = cMathUtil::RotateMat(local_to_world);
+	return local_to_world_mat;
 }
 
 tVector cInverseDynamicsInfo::GetLinkAngularVel(int frame, int body_id)	const // get link angular vel 4*1 [wx, wy, wz, 0]
@@ -229,21 +266,26 @@ void cInverseDynamicsInfo::GetLinkContactInfo(int frame, int link, tEigenArr<tVe
 
 }
 
-/*
+void cInverseDynamicsInfo::SolveInverseDynamics()
+{
+	/*
 	@Function: cInverseDynamicsInfo::SolveInverseDynamics
 	@params: void
 
 	As it is, given the character poses info & contact info, this function will computes the actions accordly.
 	It can be divided into 2 parts:
-	
+
 	1. compute dynamic link info(pos, vel, accel, angular displacement, angular vel, angular accel)
 	2. calculate joint torques using a
 	3. convert the torque to PD target by individual PD params
 */
-void cInverseDynamicsInfo::SolveInverseDynamics()
-{
+
 	// clear log path
-	ofstream f_clear(gIDLogPath);
+	ofstream f_clear;
+	f_clear.open(gIDLogPath_f);
+	f_clear << "";
+	f_clear.close();
+	f_clear.open(gIDLogPath_t);
 	f_clear << "";
 	f_clear.close();
 
@@ -273,15 +315,15 @@ void cInverseDynamicsInfo::SolveInverseDynamics()
 
 }
 
-/*
-	@Function: void cInverseDynamicsInfo::ComputeLinkInfo
-	@params: void
-		Accoroding to the motion info in mState & mPos, this function will compute the linear
-	velocity & acceleration for the COM of each link in every frame.
-		We supposed that the intergrator empoloies explicit Euler method.
-*/
 void cInverseDynamicsInfo::ComputeLinkInfo()
 {
+	/*
+		@Function: void cInverseDynamicsInfo::ComputeLinkInfo
+		@params: void
+			Accoroding to the motion info in mState & mPos, this function will compute the linear
+		velocity & acceleration for the COM of each link in every frame.
+			We supposed that the intergrator empoloies explicit Euler method.
+	*/
 	// check input 
 	if (mNumOfFrames == -1 || mSimChar == nullptr || mLinkInfo == nullptr)
 	{
@@ -337,12 +379,6 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 
 	PrintLinkInfo();
 
-	//auto &DIVIDE = [](tVector a, tVector b)->tVector
-	//{
-	//	return tVector::Zero();
-	//	//return tVector(a[0] / b[0], a[1] / b[1], a[2] / b[2]);
-	//};
-
 	// 5. check the storage
 	{
 		// check velocity
@@ -394,13 +430,14 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 	mSimChar->SetPose(pose_before);
 }
 
-/*
-	@Function: cIvnerseDynamicsInfo::ComputeLinkInfo0
-	@params: frame Type int
-	@params: body_id Type int 
-*/
 void cInverseDynamicsInfo::ComputeLinkInfo0(int frame, int body_id)
 {
+	/*
+	@Function: cIvnerseDynamicsInfo::ComputeLinkInfo0
+	@params: frame Type int
+	@params: body_id Type int
+	*/
+
 	if (frame < 0) return;
 
 	// linear terms
@@ -433,15 +470,16 @@ void cInverseDynamicsInfo::ComputeLinkInfo0(int frame, int body_id)
 	}
 }
 
-/*
+void cInverseDynamicsInfo::ComputeLinkInfo1(int frame, int body_id)
+{
+	/*
 	@Function: cInverseDynamicsInfo::ComputeLinkInfo1
 	@params: the same as above
 
-	This function computes first order info for links, including 
+	This function computes first order info for links, including
 		linear vel and angular vel
 */
-void cInverseDynamicsInfo::ComputeLinkInfo1(int frame, int body_id)
-{
+
 	if (frame < 0) return;
 	double timestep = mLinkInfo->mTimesteps[frame];
 	// linear terms
@@ -507,16 +545,17 @@ void cInverseDynamicsInfo::ComputeLinkInfo1(int frame, int body_id)
 	}
 }
 
-/*
+void cInverseDynamicsInfo::ComputeLinkInfo2(int frame, int body_id)
+{
+	/*
 	@Function: cInverseDynamicsInfo::ComputeLinkInfo2
 	@params: the same as above
 
 	This function computes second order link motion terms
 		linear accel and angular accel
-	
-*/
-void cInverseDynamicsInfo::ComputeLinkInfo2(int frame, int body_id)
-{
+
+	*/
+
 	if (frame < 0) return;
 	double timestep = mLinkInfo->mTimesteps[frame];
 	// linear terms
@@ -556,7 +595,9 @@ void cInverseDynamicsInfo::ComputeLinkInfo2(int frame, int body_id)
 	}
 }
 
-/*
+void cInverseDynamicsInfo::ComputeJointDynamics(VectorXd & torque)
+{
+	/*
 	@Function: cInverseDynamicsInfo::ComputeJointDynamics const
 	@params: torque Type VectorXd, the computation goal
 
@@ -565,90 +606,32 @@ void cInverseDynamicsInfo::ComputeLinkInfo2(int frame, int body_id)
 	2 parts:
 	1. construct the links' topology tree, which has a root and all of the links who has no successors are leaves
 	2. for each frame, calculates the torque & force between links
-*/
-void cInverseDynamicsInfo::ComputeJointDynamics(VectorXd & torque) const
-{
+	*/
+
 	if (mSimChar == nullptr)
 	{
 		std::cout << "[error] void cInverseDynamicsInfo::ComputeJointDynamics(VectorXd & torque) empty model" << std::endl;
 		exit(1);
 	}
-	// 1. computes the topology tree(visiting tree)
-	int num_joints = mSimChar->GetNumBodyParts(), cur = 0;
-	tEigenArr<VectorXd> joint_children(num_joints);
-	VectorXd visit_seq = VectorXd::Zero(num_joints);
-	visit_seq[cur] = mSimChar->GetRootID();
-	bool * is_visited = new bool[num_joints];
-	memset(is_visited, 0, sizeof(bool) * num_joints);
-	is_visited[int(visit_seq[cur])] = true;
-	cur++;
-
-	while (true)
-	{
-		int seq_size = visit_seq.size();
-		for (int i = 0; i < seq_size; i++)
-		{
-			int cur_joint = visit_seq[i];
-			VectorXd child_joint;
-			mSimChar->GetChildJoint(cur_joint, child_joint);
-			
-			for (int j = 0; j < child_joint.size(); j++)
-			{
-				int cur_child_joint = child_joint[j];
-				if (is_visited[cur_child_joint] == false)
-				{
-					visit_seq[cur++] = cur_child_joint;
-					is_visited[cur_child_joint] = true;
-				}
-				
-			}
-		}
-		if (seq_size == visit_seq.size()) break;
-	}
-
-	VectorXd visit_seq_rev = visit_seq.reverse();
-	for (int i = 0; i < visit_seq_rev.size(); i++)
-	{
-		std::cout << "[log] visit " << visit_seq_rev[i] << " " << mSimChar->GetBodyName(visit_seq_rev[i]) << std::endl;
-	}
 
 	// 2. compute forces for each frame
-	MatrixXd torque_set;
 	VectorXd cur_torque;
-	torque_set.resize(mNumOfFrames - 2, num_joints * 3), cur_torque.resize(0);
-	torque_set.setZero(), cur_torque.setZero();
+	mTorque.resize(mNumOfFrames - 2, mNumLinks * 3);
+	mTorque.setZero();
 	
 	for (int frame_id = 0; frame_id < mNumOfFrames - 2; frame_id++)
 	{
-		ComputeJointDynamicsFrame(frame_id, joint_children, visit_seq_rev, cur_torque);
-		torque_set.row(frame_id) = cur_torque;
+		ComputeJointDynamicsFrame(frame_id, cur_torque);
+		mTorque.row(frame_id) = cur_torque;
 	}
 
 	std::cout << "[log] need to be implemented..." << std::endl;
 	exit(1);
 }
 
-/*
-	@Function: cInverseDynamicsInfo::ComputeSingleJointDynamics
-	@params: frame_id Type const int, 
-	@params: topo Type const tEigenArr<VectorXd> &, topology tree of joints
-	@params: torque Type MatrixXd & the whole collection of torques for each link in each frame
-
-	For this frame, computes the force given by its parent for each link
-		1. check input
-		2. iteration 
-		3. computes the force given by its parent by newton equation, in this frame
-			mass
-*/
-void cInverseDynamicsInfo::ComputeJointDynamicsFrame(const int frame_id, const tEigenArr<Eigen::VectorXd> & topo, const VectorXd & visit_seq, Eigen::VectorXd & torque) const
+void cInverseDynamicsInfo::ComputeJointDynamicsFrame(const int frame_id, Eigen::VectorXd & torque)
 {
-	/*
-		TODO: dynamics memory allocation can be extermely slow in windows, pre-allocated would be a better way.
-	*/
-
 	// 1. check input 
-	//std::cout << "[debug] cInverseDynamicsInfo::ComputeJointDynamicsFrame begin" << std::endl;
-
 	if (nullptr == mSimChar  || frame_id >= mNumOfFrames)
 	{
 		std::cout << "[error] void cInverseDynamicsInfo::ComputeSingleJointTorque: input invalid " << std::endl;
@@ -657,135 +640,222 @@ void cInverseDynamicsInfo::ComputeJointDynamicsFrame(const int frame_id, const t
 	torque.resize(3 * mSimChar->GetNumBodyParts());
 	torque.setZero();
 	int num_links = mSimChar->GetNumBodyParts();
-	//std::cout << "[debug] skeleton parts num verify: " << num_links << " " << mSimChar->GetNumJoints() << std::endl;
 
-	tEigenArr<Eigen::VectorXd> reaction_force_set(num_links), point_of_reaction_force_set(num_links);	// forces given by its parent, recording
-	bool * is_reaction_force_set = new bool[num_links];
-	memset(is_reaction_force_set, 0, sizeof(bool) * num_links);
-
-	ofstream fout(gIDLogPath, ios::app);
-	fout << "----------------frame " << frame_id << "----------------" << std::endl;
 	// 2. iteration for each joint
 	for (int index = 0; index < num_links; index++)
 	{
-		int link_id = visit_seq[index];
-		fout << "----------------begin to calculate link " << link_id << " " << mSimChar->GetBodyName(link_id) << std::endl;
-		// 3. computes the force between joints in this frame
-		{
-			auto & link = mSimChar->GetJoint(link_id).GetChild();
-			string link_name = mSimChar->GetBodyName(link_id);
-			double link_mass = link->GetMass();
-			fout << "mass = " << link_mass << std::endl;
-			tVector link_rot_coeff = GetLinkRotation(frame_id, link_id);	// local frame to world frame
-			tQuaternion link_rot = tQuaternion(link_rot_coeff[3], link_rot_coeff[0], link_rot_coeff[1], link_rot_coeff[2]);	// local to world frame
-			tQuaternion link_rot_conj = link_rot.conjugate();	// world frame to local frame, rotation
-			tVector link_pos = GetLinkPos(frame_id, link_id);
-			fout << "link pos = " << link_pos.transpose() << std::endl;
-			tMatrix link_world_to_local_trans = cMathUtil::RotateMat(link_rot_conj);
-			link_world_to_local_trans(0, 3) = link_pos[0];
-			link_world_to_local_trans(1, 3) = link_pos[1];
-			link_world_to_local_trans(2, 3) = link_pos[2];
-			fout << "link wtol trans = " << link_world_to_local_trans << std::endl;
-
-			// 3.1 computes the COM accel of this link in local frame
-			tVector link_accel_world = tVector::Zero();
-			link_accel_world = GetLinkAccel(frame_id, link_id);	// in world frame
-			tVector link_accel_local = cMathUtil::QuatRotVec(link_rot_conj, link_accel_world);
-			fout << "link accel = " << link_accel_world.transpose() << std::endl;;
-
-			// 3.2 tackle the contact_force and reaction force coming from its child joint(link)
-			// contact forces
-			tEigenArr<tVector> contact_force_lst, contact_point_of_force_lst;	// contact forces in world frame
-			GetLinkContactInfo(frame_id, link_id, contact_force_lst, contact_point_of_force_lst);
-			// convert contact forces and point of forces to local frame
-			tVector link_contact_force_total = tVector::Zero(); 
-			for (int i = 0; i < contact_force_lst.size(); i++)
-			{
-				// force: free vector, no fixed start point
-				tVector cur_contact_force = tVector(
-					contact_force_lst[i][0],
-					contact_force_lst[i][1],
-					contact_force_lst[i][2],
-					1);
-				// point of force: fixed vector, a point in this space
-				tVector cur_contact_pof = tVector(
-					contact_point_of_force_lst[i][0],
-					contact_point_of_force_lst[i][1],
-					contact_point_of_force_lst[i][2],
-					1);
-
-				// 这里需要验证
-				cur_contact_force = cMathUtil::QuatRotVec(link_rot_conj, cur_contact_force);
-				cur_contact_pof = cMathUtil::QuatRotVec(link_rot_conj, cur_contact_pof);
-				cur_contact_pof -= link_pos;	// 这个pos前面应该需要乘以一个东西
-				link_contact_force_total += cur_contact_force;
-			}
-
-			// computes the composition of child reaction forces
-			const VectorXd child_id_set = topo[link_id];
-			const int num_child = child_id_set.size();
-			tEigenArr<tVector> child_force_lst(num_child), child_point_of_force_lst(num_child);	// reaction force from the child joints
-			tVector child_force_total = tVector::Zero();
-			for (int i = 0; i < num_child; i++)
-			{
-				int child_id = child_id_set[i];
-				if (false == is_reaction_force_set[child_id])
-				{
-					std::cout << "[error] invalid reaction force access: " << link_id << " " << child_id << std::endl;
-					exit(1);
-				}
-
-				// 拿到的reaction_force_set是他们的坐标系下，需要转换到我坐标系下才行，包括作用点和力矢量
-				// 所以，这里需要从child frame convert to parent frame(cur joint frame)
-				std::cout << "[warn] get positive force in this place, keep up with the assignment step" << std::endl;
-				tVector cur_reaction_force = reaction_force_set[child_id],
-						point_of_reaction_force = point_of_reaction_force_set[child_id];	// 这个作用点是joint 处，也就是旋转中心，如何获取?
-				{
-					// child coordinate to world trans
-					tVector child_pos = GetLinkPos(frame_id, child_id);
-					tVector child_to_world_vec = GetLinkRotation(frame_id, child_id);
-					tQuaternion child_to_world_qua = tQuaternion(child_to_world_vec[3],
-						child_to_world_vec[0],
-						child_to_world_vec[1],
-						child_to_world_vec[2]);
-					tMatrix child_to_world_trans = cMathUtil::RotateMat(child_to_world_qua);
-					child_to_world_trans(0, 3) += child_pos[0];
-					child_to_world_trans(1, 3) += child_pos[1];
-					child_to_world_trans(2, 3) += child_pos[2];
-					
-					// world trans to parent coordinate
-					point_of_reaction_force = link_world_to_local_trans * child_to_world_trans * point_of_reaction_force;
-
-					cur_reaction_force = cMathUtil::QuatRotVec(child_to_world_qua, cur_reaction_force);
-					cur_reaction_force = cMathUtil::QuatRotVec(link_rot_conj, cur_reaction_force);
-					
-				}
-				child_force_lst[i] = cur_reaction_force;
-				child_point_of_force_lst[i] = point_of_reaction_force;
-				child_force_total += cur_reaction_force;
-			}
-
-			/*
-				3.3 computes the force given by its parent
-				f_{parent(link_id)} = mass * accel_local - contact_force_set + f_{child(link_id)}_set
-
-				ATTENTION: we define "f_{any_link}" as the forces applied to any_link which coming from its parent,
-					and in this status, the symbol of "f_{any_link}" is positive.
-			*/
-			tVector f_parent = tVector::Zero();
-			f_parent = link_mass * link_accel_local - link_contact_force_total + child_force_total;
-			fout << "force = " << f_parent.transpose() << std::endl;
-		}
-
-		// 4. computes the torque in this frame
-		/*
-			I_{ck} * \dot{w} + \dot{w} x (I_{ck} * w) = \tau - c_k x fk - \sum{R * \tau_child + (d-c)x(R_i * f_i)}
-		*/
-		{
-			
-		}
+		int link_id = mVisitSeq[index];
+		std::cout << "[debug] begin to compute the force for link " << link_id << " " << mSimChar->GetBodyName(link_id) << std::endl;
+		ComputeJointDynamicsFrameForce(frame_id, link_id);
+		std::cout << "[debug] begin to compute the torque for link " << link_id << " " << mSimChar->GetBodyName(link_id) << std::endl;
+		
+		ComputeJointDynamicsFrameTorque(frame_id, link_id);
 	}
 
+}
+
+void cInverseDynamicsInfo::ComputeJointDynamicsFrameForce(const int frame_id, const int link_id)
+{
+	ofstream fout(gIDLogPath_t, ios::app);
+	fout << "----------------frame " << frame_id << "----------------" << std::endl;
+	fout << "----------------begin to calculate link " << link_id << " " << mSimChar->GetBodyName(link_id) << std::endl;
+
+	// 3. computes the force between joints in this frame
+	auto & link = mSimChar->GetJoint(link_id).GetChild();
+	string link_name = mSimChar->GetBodyName(link_id);
+	double link_mass = link->GetMass();
+	fout << "mass = " << link_mass << std::endl;
+	
+	tVector link_rot_coeff = GetLinkRotation(frame_id, link_id);	// local frame to world frame
+	tQuaternion link_rot = tQuaternion(link_rot_coeff[3], link_rot_coeff[0], link_rot_coeff[1], link_rot_coeff[2]);	// local to world frame
+	tQuaternion link_rot_conj = link_rot.conjugate();	// world frame to local frame, rotation
+	tVector link_pos = GetLinkPos(frame_id, link_id);
+	fout << "link pos = " << link_pos.transpose() << std::endl;
+	tMatrix link_world_to_local_trans = cMathUtil::RotateMat(link_rot_conj);
+	link_world_to_local_trans(0, 3) = link_pos[0];
+	link_world_to_local_trans(1, 3) = link_pos[1];
+	link_world_to_local_trans(2, 3) = link_pos[2];
+	fout << "link wtol trans = " << link_world_to_local_trans << std::endl;
+
+	// 3.1 computes the COM accel of this link in local frame
+	tVector link_accel_world = tVector::Zero();
+	link_accel_world = GetLinkAccel(frame_id, link_id);	// in world frame
+	tVector link_accel_local = cMathUtil::QuatRotVec(link_rot_conj, link_accel_world);
+	fout << "link accel = " << link_accel_world.transpose() << std::endl;;
+
+	// 3.2 tackle the contact_force and reaction force coming from its child joint(link)
+	// contact forces
+	tEigenArr<tVector> contact_force_lst, contact_point_of_force_lst;	// contact forces in world frame
+	GetLinkContactInfo(frame_id, link_id, contact_force_lst, contact_point_of_force_lst);
+	// convert contact forces and point of forces to local frame
+	tVector link_contact_force_total = tVector::Zero();
+	for (int i = 0; i < contact_force_lst.size(); i++)
+	{
+		// force: free vector, no fixed start point
+		tVector cur_contact_force = tVector(
+			contact_force_lst[i][0],
+			contact_force_lst[i][1],
+			contact_force_lst[i][2],
+			1);
+		// point of force: fixed vector, a point in this space
+		tVector cur_contact_pof = tVector(
+			contact_point_of_force_lst[i][0],
+			contact_point_of_force_lst[i][1],
+			contact_point_of_force_lst[i][2],
+			1);
+
+		// 这里需要验证
+		cur_contact_force = cMathUtil::QuatRotVec(link_rot_conj, cur_contact_force);
+		cur_contact_pof = cMathUtil::QuatRotVec(link_rot_conj, cur_contact_pof);
+		cur_contact_pof -= link_pos;	// 这个pos前面应该需要乘以一个东西
+		link_contact_force_total += cur_contact_force;
+	}
+
+	// computes the composition of child reaction forces
+	const VectorXd child_id_set = mJointChildren[link_id];
+	const int num_child = child_id_set.size();
+	tEigenArr<tVector> child_force_lst(num_child), child_point_of_force_lst(num_child);	// reaction force from the child joints
+	tVector child_force_total = tVector::Zero();
+	for (int i = 0; i < num_child; i++)
+	{
+		int child_id = child_id_set[i];
+
+		// what we got is in child frame, we need to convert it to parent frame(this frame)
+		std::cout << "[warn] get positive force in this place, keep up with the assignment step" << std::endl;
+		tVector cur_reaction_force = mReactionForce[child_id],
+			point_of_reaction_force = mReactionForce_pof[child_id];	// 这个作用点是joint 处，也就是旋转中心，如何获取?
+		{
+			// child coordinate to world trans
+			tVector child_pos = GetLinkPos(frame_id, child_id);
+			tVector child_to_world_vec = GetLinkRotation(frame_id, child_id);
+			tQuaternion child_to_world_qua = tQuaternion(child_to_world_vec[3],
+				child_to_world_vec[0],
+				child_to_world_vec[1],
+				child_to_world_vec[2]);
+			tMatrix child_to_world_trans = cMathUtil::RotateMat(child_to_world_qua);
+			child_to_world_trans(0, 3) += child_pos[0];
+			child_to_world_trans(1, 3) += child_pos[1];
+			child_to_world_trans(2, 3) += child_pos[2];
+
+			// world trans to parent coordinate
+			point_of_reaction_force = link_world_to_local_trans * child_to_world_trans * point_of_reaction_force;
+
+			cur_reaction_force = cMathUtil::QuatRotVec(child_to_world_qua, cur_reaction_force);
+			cur_reaction_force = cMathUtil::QuatRotVec(link_rot_conj, cur_reaction_force);
+
+		}
+		child_force_lst[i] = cur_reaction_force;
+		child_point_of_force_lst[i] = point_of_reaction_force;
+		child_force_total += cur_reaction_force;
+	}
+
+	/*
+		3.3 computes the force given by its parent
+		f_{parent(link_id)} = mass * accel_local - contact_force_set + f_{child(link_id)}_set
+
+		ATTENTION: we define "f_{any_link}" as the forces applied to any_link which coming from its parent,
+			and in this status, the symbol of "f_{any_link}" is positive.
+	*/
+	tVector f_parent = tVector::Zero();
+	f_parent = link_mass * link_accel_local - link_contact_force_total + child_force_total;
+	fout << "force = " << f_parent.transpose() << std::endl;
+
+}
+
+void cInverseDynamicsInfo::ComputeJointDynamicsFrameTorque(const int frame_id, const int link_id)
+{
+	// check input
+	if (frame_id < 0 || frame_id >= mNumOfFrames)
+	{
+		std::cout << "[error] frame id illegel " << std::endl;
+		exit(1);
+	}
+
+	/*
+		I_{ck} * \dot{w} + \dot{w} x (I_{ck} * w) = \tau - c_k x fk - \sum{R * \tau_child + (d-c)x(R_i * f_i)}
+	*/
+	auto & cur_link = mSimChar->GetJoint(link_id).GetChild();
+	std::cout << "[debug] link " << link_id << " inertia = " << cur_link->GetInertia().transpose() << std::endl;
+	/*
+		\tau = I_{ck} * \dot{w}^l + {w_k}^l x I_{ck} {w_k}^l + c_k x f_k + sum(...)
+	*/
+
+	tVector final_torque = tVector::Zero();
+
+	// 1. get inertia
+	tVector inertia = cur_link->GetInertia();
+	tMatrix inertia_tensor = tMatrix::Identity();
+	inertia_tensor(0, 0) = inertia[0];
+	inertia_tensor(1, 1) = inertia[1];
+	inertia_tensor(2, 2) = inertia[2];
+
+	// 2. get angular accel, convert it to local
+	tVector link_ang_accel = GetLinkAngularAccel(frame_id, link_id);
+	tVector link_ang_vel = GetLinkAngularVel(frame_id, link_id);
+	tVector link_pos = GetLinkPos(frame_id, link_id);	// COM world position
+	tMatrix local_to_world_rot = GetLinkRotationMat(frame_id, link_id);
+	tMatrix local_to_world_trans = cMathUtil::TranslateMat(link_pos) * local_to_world_rot;
+	tMatrix world_to_local_rot = cMathUtil::InvRigidMat(local_to_world_rot);
+	tMatrix world_to_local_trans = cMathUtil::InvRigidMat(local_to_world_trans);
+
+	final_torque += inertia_tensor * link_ang_accel + link_ang_vel.cross3(inertia_tensor * link_ang_vel);
+
+	// 3. get the reaction force given by his parent
+	tVector link_reaction_force = mReactionForce[link_id],		// in local frame
+		link_reaction_force_pof = mReactionForce_pof[link_id];	// in local frame
+	
+	final_torque -= link_reaction_force_pof.cross3(link_reaction_force);
+
+	// 4. get the reaction force & torque accordly given by his children
+	VectorXd total_children = mJointChildren[link_id];
+	for (int i = 0; i < total_children.size(); i++)
+	{
+		int cur_child = total_children[i];
+		tVector cur_force = -mReactionForce[cur_child];
+		tVector cur_force_pof = mReactionForce_pof[cur_child];
+
+		// from child frame to parent link frame (this frame), both free vector and fixed vector
+		{
+			// for free vector
+			tMatrix child_to_world = GetLinkRotationMat(frame_id, cur_child);
+			/*local_to_world_rot = GetLinkRotationMat()*/
+			tMatrix child_to_local = cMathUtil::InvRigidMat(local_to_world_rot) * child_to_world;
+			cur_force = child_to_local * cur_force;
+		}
+		{
+			// for fixed vector (point)
+			tMatrix child_to_world_trans = GetLinkTrans(frame_id, cur_child);
+			tMatrix child_to_local_trans = world_to_local_trans * child_to_world_trans;
+			cur_force_pof = child_to_local_trans * cur_force_pof;
+		}
+		
+		tVector cur_torque = cur_force_pof.cross3(cur_force);	// calculate the torque caused by these force
+		final_torque -= cur_torque;
+	}
+
+	// 5. get the reaction torque given by his children
+	for (int i = 0; i < total_children.size(); i++)
+	{
+		int cur_child = total_children[i];
+		tVector cur_torque = -mReactionTorque[cur_child];
+		final_torque -= cur_torque;
+	}
+
+	// 6. torque given by external forces
+	tVectorArr contact_force, contact_pof;
+	GetLinkContactInfo(frame_id, link_id, contact_force, contact_pof);
+	for (int i = 0; i < contact_force.size(); i++)
+	{
+		tVector cur_contact_force = contact_force[i],
+			cur_contact_force_pof = contact_pof[i];
+		
+		// computes torque
+		cur_contact_force = world_to_local_rot * cur_contact_force;
+		cur_contact_force_pof = world_to_local_trans * cur_contact_force_pof;
+		final_torque -= cur_contact_force_pof.cross3(cur_contact_force);
+	}
+
+	mReactionTorque[link_id] = final_torque;
 }
 
 void cInverseDynamicsInfo::ComputePDTarget(const VectorXd & torque, VectorXd & pd_target) const
@@ -793,7 +863,9 @@ void cInverseDynamicsInfo::ComputePDTarget(const VectorXd & torque, VectorXd & p
 
 }
 
-/*
+void cInverseDynamicsInfo::PrintLinkInfo()
+{
+	/*
 	Function: cInverseDynamicsInfo::PrintLinkInfo
 	@params:
 
@@ -801,9 +873,8 @@ void cInverseDynamicsInfo::ComputePDTarget(const VectorXd & torque, VectorXd & p
 		linear: pos, vel, accel
 		angular: displacement, vel, accel
 	to log file.
-*/
-void cInverseDynamicsInfo::PrintLinkInfo()
-{
+	*/
+
 	if (mSimChar == nullptr) return;
 
 	ofstream fout("logs/controller_logs/quaternion.log");
@@ -874,5 +945,55 @@ void cInverseDynamicsInfo::PrintLinkInfo()
 			//fout << "[debug] time 1 = " << q2_euler.transpose() << std::endl;
 			fout << "--------[debug] body " << body_id << " end----" << std::endl;
 		}
+	}
+}
+
+void cInverseDynamicsInfo::BuildTopoInfo()
+{
+	// computes the topological info about the skeleton
+	int cur = 0;
+
+	// 1. mJointChildren
+	mJointChildren.resize(mNumLinks);
+	for (int i = 0; i < mNumLinks; i++) mSimChar->GetChildJoint(i, mJointChildren[i]);
+
+	// 2. mVisitSeq
+	Eigen::VectorXd visit_seq;
+	visit_seq = VectorXd::Zero(mNumLinks);
+	bool * is_visited = new bool[mNumLinks];
+	memset(is_visited, 0, sizeof(bool) * mNumLinks);
+	is_visited[int(visit_seq[cur])] = true;
+	visit_seq[cur++] = mSimChar->GetRootID();
+
+	// from root joint, bfs the whole tree. 
+	// why not begin the visit from leaf nodes? because it will be wrong.A link may have many children.
+	VectorXd child_joint;
+	while (true)
+	{
+		int seq_size = visit_seq.size();
+		for (int i = 0; i < seq_size; i++)
+		{
+			int cur_joint = visit_seq[i];
+			child_joint = mJointChildren[cur_joint];
+
+			for (int j = 0; j < child_joint.size(); j++)
+			{
+				int cur_child_joint = child_joint[j];
+				if (is_visited[cur_child_joint] == false)
+				{
+					visit_seq[cur++] = cur_child_joint;
+					is_visited[cur_child_joint] = true;
+				}
+			}
+		}
+		if (seq_size == visit_seq.size()) break;
+	}
+
+	// reverse
+	mVisitSeq = visit_seq.reverse();
+	for (int i = 0; i < mVisitSeq.size(); i++)
+	{
+		int joint_id = mVisitSeq[i];
+		std::cout << "[debug] visit " << joint_id << " " << mSimChar->GetBodyName(joint_id) << std::endl;
 	}
 }
