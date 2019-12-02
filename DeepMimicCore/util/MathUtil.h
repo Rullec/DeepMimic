@@ -43,7 +43,7 @@ const std::string ROTATION_ORDER_NAME[] = {
 
 // for convenience define standard vector for rendering
 typedef Eigen::Vector4d tVector;
-typedef Eigen::Vector4d tVector3;
+typedef Eigen::Vector3d tVector3;
 typedef Eigen::Matrix4d tMatrix;
 typedef Eigen::Matrix3d tMatrix3;
 typedef Eigen::Quaterniond tQuaternion;

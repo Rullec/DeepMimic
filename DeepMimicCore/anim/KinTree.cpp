@@ -903,7 +903,7 @@ int cKinTree::GetParent(const Eigen::MatrixXd& joint_mat, int joint_id)
 	return parent;
 }
 
-void cKinTree::GetChild(const Eigen::MatrixXd & joint_mat, int parent_id, Eigen::VectorXd out_child_id)
+void cKinTree::GetChild(const Eigen::MatrixXd & joint_mat, int parent_id, Eigen::VectorXd &out_child_id)
 {
 	out_child_id.resize(0);
 

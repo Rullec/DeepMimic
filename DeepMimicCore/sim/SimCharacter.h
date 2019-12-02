@@ -145,8 +145,6 @@ public:
 	virtual void SetColGroup(short col_group);
 	virtual short GetColMask() const;
 	virtual void SetColMask(short col_mask);
-	virtual void SolveID(const std::vector<Eigen::Vector3d> & link_pos, const std::vector<Eigen::Vector3d> & link_vel,
-		const std::vector<Eigen::Vector3d> & link_accel, Eigen::VectorXd & action ) const;
 
 protected:
 	std::shared_ptr<cMultiBody> mMultiBody;
@@ -197,6 +195,4 @@ protected:
 	virtual bool CheckFallContact() const;
 	virtual const btCollisionObject* GetCollisionObject() const;
 	virtual btCollisionObject* GetCollisionObject();
-
-	virtual bool BuildIDRigidModel();
 };
