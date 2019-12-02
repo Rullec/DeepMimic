@@ -27,6 +27,7 @@ public:
 	virtual tVector GetAngularVelocity() const;
 	virtual void SetAngularVelocity(const tVector& vel);
 
+	virtual tVector GetInertia() const;
 	virtual double GetMass() const;
 	virtual double GetFriction() const;
 	virtual void SetFriction(double friction);
@@ -47,6 +48,7 @@ protected:
 
 	int mJointID;
 	double mMass;
+	tVector mInertia;
 	tVector mSize;				// 通过一个4d的vector，4个实数是不能够准确描述的
 	cShape::eShape mObjShape;	// 对象的形状，盒子、胶囊、圆柱等有限个, enum。形状具体参数是从json中读到的
 

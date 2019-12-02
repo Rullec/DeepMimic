@@ -33,7 +33,7 @@ void cSimCapsule::Init(const std::shared_ptr<cWorld>& world, const tParams& para
 	btRigidBody::btRigidBodyConstructionInfo cons_info(mass, this, mColShape.get(), inertia);
 	mSimBody = std::unique_ptr<btRigidBody>(new btRigidBody(cons_info));
 	mSimBody->setFriction(static_cast<btScalar>(params.mFriction));
-
+	
 	cSimRigidBody::Init(world);
 	SetPos(params.mPos);
 	SetRotation(params.mAxis, params.mTheta);

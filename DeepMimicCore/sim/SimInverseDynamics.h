@@ -26,15 +26,16 @@ public:
 
 	cInverseDynamicsInfo(std::shared_ptr<cSimCharacter> &);
 
-	int GetNumOfFrames();
-	double GetMaxTime();
+	int GetNumOfFrames() const;
+	double GetMaxTime() const;
 	Eigen::VectorXd GetPose(double time);
-	Eigen::Vector3d GetLinkPos(int frame, int body_id);
-	Eigen::Vector3d GetLinkVel(int frame, int body_id);
-	Eigen::Vector3d GetLinkAccel(int frame, int body_id);
-	tVector GetLinkRotation(int frame, int body_id);	// get Quaternion coeff 4*1 [x, y, z, w]
-	tVector GetLinkAngularVel(int frame, int body_id);	// get link angular vel 4*1 [wx, wy, wz, 0]
-	tVector GetLinkAngularAccel(int frame, int body_id);	// get link angular accel 4*1 [ax, ay, az, 0]
+	tVector GetLinkPos(int frame, int body_id) const;
+	tVector GetLinkVel(int frame, int body_id) const;
+	tVector GetLinkAccel(int frame, int body_id) const;
+	tVector GetLinkRotation(int frame, int body_id) const;	// get Quaternion coeff 4*1 [x, y, z, w]
+	tVector GetLinkAngularVel(int frame, int body_id) const;	// get link angular vel 4*1 [wx, wy, wz, 0]
+	tVector GetLinkAngularAccel(int frame, int body_id) const ;	// get link angular accel 4*1 [ax, ay, az, 0]
+	void GetLinkContactInfo(int frame, int link, tEigenArr<tVector> & force, tEigenArr<tVector> & point_of_force) const;
 	
 	void AddNewFrame(const Eigen::VectorXd & state_, const Eigen::VectorXd & pose_, const Eigen::VectorXd & action_, const Eigen::VectorXd & _contact_info);
 	void SolveInverseDynamics();
@@ -61,8 +62,8 @@ private:
 	void ComputeLinkInfo0(int, int);
 	void ComputeLinkInfo1(int, int) ;
 	void ComputeLinkInfo2(int, int) ;
-	void ComputeJointTorque(const std::shared_ptr<struct tLinkCOMInfo> &, Eigen::VectorXd &) const ;
-	void ComputeSingleJointTorque(const std::shared_ptr<struct tLinkCOMInfo> &, Eigen::VectorXd &) const;
+	void ComputeJointDynamics(Eigen::VectorXd &torque_) const ;
+	void ComputeJointDynamicsFrame(const int frame_id, const tEigenArr<Eigen::VectorXd> & topo, const Eigen::VectorXd & visit_seq, Eigen::VectorXd & torque) const;
 	void ComputePDTarget(const Eigen::VectorXd &, Eigen::VectorXd &) const ;
 
 	void PrintLinkInfo();

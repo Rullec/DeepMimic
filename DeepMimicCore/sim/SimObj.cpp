@@ -63,7 +63,7 @@ void cSimObj::GetRotation(tVector& out_axis, double& out_theta) const
 tQuaternion cSimObj::GetRotation() const
 {
 	const btCollisionObject* col_obj = GetCollisionObject();
-	btTransform trans = col_obj->getWorldTransform();	// 相对于世界坐标系的旋转
+	btTransform trans = col_obj->getWorldTransform();	// 局部->世界
 	btQuaternion bt_q = trans.getRotation();
 	tQuaternion q = tQuaternion(bt_q.w(), bt_q.x(), bt_q.y(), bt_q.z());
 	return q;

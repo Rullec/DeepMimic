@@ -10,6 +10,7 @@ cSimBodyLink::tParams::tParams()
 cSimBodyLink::cSimBodyLink()
 {
 	mMass = 0;
+	mInertia = tVector::Zero();
 	mJointID = gInvalidIdx;
 	mSize.setZero();
 	mObjShape = cShape::eShapeNull;
@@ -21,13 +22,16 @@ cSimBodyLink::~cSimBodyLink()
 {
 	RemoveFromWorld();
 }
+#include <iostream>
 
 void cSimBodyLink::Init(const std::shared_ptr<cWorld>& world, const std::shared_ptr<cMultiBody>& mult_body, const tParams& params)
 {
 	RemoveFromWorld();
-
+	
 	mJointID = params.mJointID;
 	mMass = params.mMass;
+	const btVector3 bt_inertia = mult_body->getLinkInertia(mJointID);
+	mInertia = tVector(bt_inertia[0], bt_inertia[1], bt_inertia[2], 0);
 
 	mWorld = world;
 	mMultiBody = mult_body;
@@ -84,6 +88,11 @@ void cSimBodyLink::SetAngularVelocity(const tVector& vel)
 double cSimBodyLink::GetMass() const
 {
 	return mMass;
+}
+
+tVector cSimBodyLink::GetInertia() const
+{
+	return mInertia;
 }
 
 double cSimBodyLink::GetFriction() const
