@@ -29,6 +29,7 @@ public:
 	int GetNumOfFrames() const;
 	double GetMaxTime() const;
 	Eigen::VectorXd GetPose(double time);
+	Eigen::VectorXd GetTorque(double time);
 	tVector GetLinkPos(int frame, int body_id) const;
 	tVector GetLinkVel(int frame, int body_id) const;
 	tVector GetLinkAccel(int frame, int body_id) const;
@@ -64,8 +65,8 @@ private:
 	Eigen::VectorXd mVisitSeq;	// Recursive ID method visiting sequence
 
 	// temp & final result 
-	tEigenArr<tVector> mReactionForce, mReactionForce_pof;	// force & point of force
-	tEigenArr<tVector> mReactionTorque;	// torque given by others
+	tEigenArr<tVector> mReactionForce, mReactionForce_pof;	// force & point of force, world frame
+	tEigenArr<tVector> mReactionTorque;	// torque given by others, world frame
 	Eigen::MatrixXd mTorque;	// calculated torque for each joint
 
 	void BuildTopoInfo();
@@ -74,12 +75,12 @@ private:
 	void ComputeLinkInfo0(int, int);
 	void ComputeLinkInfo1(int, int) ;
 	void ComputeLinkInfo2(int, int) ;
-	void ComputeJointDynamics(Eigen::VectorXd &torque_);
-	void ComputeJointDynamicsFrame(const int frame_id, Eigen::VectorXd & torque);
+	void ComputeJointDynamics();
+	void ComputeJointDynamicsFrame(const int frame_id);
 	void ComputeJointDynamicsFrameForce(const int frame_id, const int link_id);
 
 	void ComputeJointDynamicsFrameTorque(const int frame_id, const int link_id);
-	void ComputePDTarget(const Eigen::VectorXd &, Eigen::VectorXd &) const ;
+	void ComputePDTarget() const ;
 
 	void PrintLinkInfo();
 };
