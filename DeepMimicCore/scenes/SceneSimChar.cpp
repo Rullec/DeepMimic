@@ -178,7 +178,7 @@ void cSceneSimChar::Update(double time_elapsed)
 		PreUpdate(time_elapsed);
 
 		// order matters!
-		UpdateCharacters(time_elapsed);	// 这个就是把所有joint都给aplly tau，然后改变Joint角度
+		UpdateCharacters(time_elapsed);	// 这个就是把所有joint都给apply tau，然后改变Joint角度
 		UpdateWorld(time_elapsed);
 		UpdateGround(time_elapsed);
 		UpdateObjs(time_elapsed);
@@ -193,10 +193,43 @@ void cSceneSimChar::Update(double time_elapsed)
 		std::cout << "[log] IDUpdate: cur time = " << GetTime() << std::endl;
 
 		// set pose by ID info
-		Eigen::VectorXd pose = mIDInfo->GetPose(GetTime());
-		mChars[0]->SetPose(pose);
-		//mChars[0]
-		//std::cout << "[log] root pos = " << mChars[0]->GetBodyPartPos(0).transpose() << std::endl;
+		//Eigen::VectorXd pose = mIDInfo->GetPose(GetTime());
+		//mChars[0]->SetPose(pose);
+		
+		// set this tau to character
+
+
+		// 下面正常更新
+		PreUpdate(time_elapsed);
+		
+		
+		//Eigen::VectorXd tau(curr_char->GetNumDof());
+		//mChars[0]->ApplyControlForces(tau);
+
+		// order matters!
+		//UpdateCharacters(time_elapsed);	// apply torque to bullet
+		{
+			auto & curr_char = mChars[0];
+			Eigen::VectorXd tau = mIDInfo->GetTorque(GetTime());	// get tau solved by ID
+			// set this tau to joints, and apply 
+			for (int i = 0; i < curr_char->GetNumBodyParts(); i++)
+			{
+				Eigen::Vector3d cur_torque = tau.segment(i * 3, 3);
+				std::cout << "[log] for link " << i << " " << curr_char->GetBodyName(i)\
+					<< "torque = " << cur_torque.transpose() << std::endl;
+				auto cur_joint = curr_char->GetJoint(i);
+				cur_joint.ClearTau();
+				cur_joint.AddTau(cur_torque);
+				cur_joint.ApplyTau();
+			}
+		}
+		UpdateWorld(time_elapsed);
+		UpdateGround(time_elapsed);
+		UpdateObjs(time_elapsed);
+		UpdateJoints(time_elapsed);
+
+		PostUpdateCharacters(time_elapsed);
+		PostUpdate(time_elapsed);
 	}
 	
 }
@@ -615,51 +648,6 @@ void cSceneSimChar::BuildInverseDynamic()
 
 		// compute the position, velocity, acceleration for each link in each frame by forward euler
 		mIDInfo->SolveInverseDynamics();
-
-		// print to log file
-		ofstream fout("logs/controller_logs/ID_dist.log");
-		for (int i = 0; i < sim_char->GetNumBodyParts(); i++)
-		{
-			fout << sim_char->GetBodyName(i) << std::endl;
-			for (int j = 0; j < mIDInfo->GetNumOfFrames() - 2; j++)
-			{
-				// linear info
-				fout << mIDInfo->GetLinkPos(j, i).transpose() <<" "\
-					 << mIDInfo->GetLinkVel(j, i).transpose() << " "\
-					 << mIDInfo->GetLinkAccel(j, i).transpose() << " ";
-
-				// angular displacement, angular velocity and angular accel
-
-				tVector rot = mIDInfo->GetLinkRotation(j, i);// quaternion
-				tQuaternion rot_q = tQuaternion(rot[3], rot[0], rot[1], rot[2]);
-				tVector euler = cMathUtil::QuaternionToEuler(rot_q);	// get euler angle
-				if (abs(euler[3]) > 1e-5)
-				{
-					std::cout << "[error] euler error " << euler.transpose() << std::endl;
-					exit(1);
-				}
-				tVector omega_axis_angle = mIDInfo->GetLinkAngularVel(j, i);
-				if (abs(omega_axis_angle.segment(0, 3).norm() - 1) > 1e-5)
-				{
-					std::cout << "[error] omega error " << omega_axis_angle.transpose() << std::endl;
-				}
-				omega_axis_angle *= omega_axis_angle[3];
-				omega_axis_angle[3] = 0;	// get angular velocity
-
-				tVector alpha_axi_angle = mIDInfo->GetLinkAngularAccel(j, i);
-				if (abs(alpha_axi_angle.segment(0, 3).norm() - 1) > 1e-5)
-				{
-					std::cout << "[error] alpha error " << omega_axis_angle.transpose() << std::endl;
-				}
-				alpha_axi_angle *= alpha_axi_angle[3];
-				alpha_axi_angle[3] = 0;		// get angular accel
-
-				fout << euler.transpose() << " "\
-					<< omega_axis_angle.transpose() << " "\
-					<< alpha_axi_angle.transpose() << std::endl;
-
-			}
-		}
 	}
 	else
 	{
@@ -748,6 +736,10 @@ void cSceneSimChar::UpdateWorld(double time_step)
 
 void cSceneSimChar::UpdateCharacters(double time_step)
 {
+	/*
+		1. compute torque by PD target
+		2. apply these torques to joints, then bullet links
+	*/
 	// std::cout << "void cSceneSimChar::UpdateCharacters(double time_step)" << std::endl;
 	int num_chars = GetNumChars();
 	for (int i = 0; i < num_chars; ++i)
@@ -755,7 +747,7 @@ void cSceneSimChar::UpdateCharacters(double time_step)
 		// 角色更新
 		const auto& curr_char = GetCharacter(i);
 		curr_char->Update(time_step);
-
+		
 		// print torque info
 		if (true == mEnableTorqueRecord && mTorqueRecordFile.size() > 0)
 		{
