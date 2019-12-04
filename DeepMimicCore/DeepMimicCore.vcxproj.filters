@@ -305,6 +305,9 @@
     <ClCompile Include="sim\SimInverseDynamics.cpp">
       <Filter>Source Files\sim</Filter>
     </ClCompile>
+    <ClCompile Include="sim\cReverseController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util\CircularBuffer.h">
@@ -619,6 +622,7 @@
     <ClInclude Include="sim\SimInverseDynamics.h">
       <Filter>Source Files\sim</Filter>
     </ClInclude>
+    <ClInclude Include="sim\cReverseController.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="DeepMimicCore.i" />

@@ -108,6 +108,7 @@ void cCtPDController::ConvertActionToTargetPose(int joint_id, Eigen::VectorXd& o
 	cKinTree::eJointType joint_type = GetJointType(joint_id);
 	if (joint_type == cKinTree::eJointTypeSpherical)
 	{
+		// for ball joint, out_theta = [angle(rad), ax, ay, az], it is action, 轴角
 		double rot_theta = out_theta[0];
 		tVector axis = tVector(out_theta[1], out_theta[2], out_theta[3], 0);
 		if (axis.squaredNorm() == 0)
@@ -116,7 +117,7 @@ void cCtPDController::ConvertActionToTargetPose(int joint_id, Eigen::VectorXd& o
 		}
 
 		axis.normalize();
-		tQuaternion quat = cMathUtil::AxisAngleToQuaternion(axis, rot_theta);
+		tQuaternion quat = cMathUtil::AxisAngleToQuaternion(axis, rot_theta);	// 四元数
 
 		if (FlipStance())
 		{
@@ -127,6 +128,25 @@ void cCtPDController::ConvertActionToTargetPose(int joint_id, Eigen::VectorXd& o
 			}
 		}
 		out_theta = cMathUtil::QuatToVec(quat);
+	}
+#endif
+}
+
+void cCtPDController::ConvertTargetPoseToAction(int joint_id, Eigen::VectorXd& out_theta) const
+{
+#if defined(ENABLE_PD_SPHERE_AXIS)
+	cKinTree::eJointType joint_type = GetJointType(joint_id);
+	if (joint_type == cKinTree::eJointTypeSpherical)
+	{
+		// input quaternion = [x, y, z, w]
+		tQuaternion quater = tQuaternion(out_theta[3], out_theta[0], out_theta[1], out_theta[2]);
+		quater.normalize();
+		tVector axis_angle = cMathUtil::QuaternionToAxisAngle(quater);	//[theta, ax, ay, az]
+		out_theta[0] = axis_angle.norm();
+		axis_angle.normalize();
+		out_theta[1] = axis_angle[0];
+		out_theta[2] = axis_angle[1];
+		out_theta[3] = axis_angle[2];
 	}
 #endif
 }
@@ -167,5 +187,34 @@ void cCtPDController::SetPDTargets(const Eigen::VectorXd& targets)
 			ConvertActionToTargetPose(j, theta);
 			mPDCtrl.SetTargetTheta(j, theta);	// 设置targettheta
 		}
+	}
+}
+
+void cCtPDController::CalcPDTarget(const Eigen::VectorXd & torque_, Eigen::VectorXd out_pd_target)
+{
+	//ApplyAction(out_pd_target);
+	int pd_target_size = GetActionSize();
+	out_pd_target = Eigen::VectorXd::Zero(pd_target_size);	
+	/* 
+		in PD target:
+		spherical - 4 (axis angle)
+		revolute - 1 (joint angle)
+
+		target = Kp 
+	*/
+
+	for (int i = 0; i < mChar->GetNumJoints(); i++)
+	{
+		// 1. get torque
+		tVector tau = tVector::Zero();
+		tau = torque_.segment(i * 4, 4);
+
+		//// 2. 
+		//auto x = mChar->GetJoint(i).GetType();
+		//switch (x)
+		//{
+		//	case cKinTree::eJointType::eJointTypeRevolute: tau = 
+		//}
+		
 	}
 }

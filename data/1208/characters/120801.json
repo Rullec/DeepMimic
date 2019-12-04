@@ -1,0 +1,96 @@
+{
+   "BodyDefs" : [
+      {
+         "AttachThetaX" : 0,
+         "AttachThetaY" : 0,
+         "AttachThetaZ" : 0,
+         "AttachX" : 0,
+         "AttachY" : -0.19768000000000002,
+         "AttachZ" : 0,
+         "BottomScale" : 0.81000000000000005,
+         "ColGroup" : 1,
+         "ColorA" : 1.0,
+         "ColorB" : 0.89999997615814209,
+         "ColorG" : 0.89999997615814209,
+         "ColorR" : 0.89999997615814209,
+         "EnableFallContact" : 0,
+         "ID" : 0,
+         "Mass" : 7,
+         "Name" : "rfemur",
+         "Param0" : 0.085000000000000006,
+         "Param1" : 0.28665999999999991,
+         "Param2" : 0.085000000000000006,
+         "Shape" : "box",
+         "TopScale" : 1.0
+      }
+   ],
+   "DrawShapeDefs" : [
+      {
+         "AttachThetaX" : 0.0,
+         "AttachThetaY" : 0.0,
+         "AttachThetaZ" : 0.0,
+         "AttachX" : 0.0,
+         "AttachY" : 0.0,
+         "AttachZ" : 0.0,
+         "BottomScale" : 1.0,
+         "ColorA" : 1.0,
+         "ColorB" : 0.44999998807907104,
+         "ColorG" : 0.89999997615814209,
+         "ColorR" : 0.44999998807907104,
+         "ID" : 0,
+         "Name" : "joint_rfemur",
+         "Param0" : 0.042519685039999998,
+         "Param1" : 0.042519685039999998,
+         "Param2" : 0.042519685039999998,
+         "ParentJoint" : 0,
+         "Shape" : "sphere",
+         "TopScale" : 1.0
+      },
+      {
+         "AttachThetaX" : 7.921399004483245e-18,
+         "AttachThetaY" : -5.9904092815075514e-11,
+         "AttachThetaZ" : 5.9004992732092365e-16,
+         "AttachX" : 5.1073216729641691e-08,
+         "AttachY" : -0.19768000000000002,
+         "AttachZ" : -1.5297473578877019e-18,
+         "BottomScale" : 0.81000000000000005,
+         "ColorA" : 1.0,
+         "ColorB" : 0.89999997615814209,
+         "ColorG" : 0.89999997615814209,
+         "ColorR" : 0.89999997615814209,
+         "ID" : 0,
+         "Name" : "rfemur",
+         "Param0" : 0.085000000000000006,
+         "Param1" : 0.28665999999999991,
+         "Param2" : 0.085000000000000006,
+         "ParentJoint" : 0,
+         "Shape" : "box",
+         "TopScale" : 1.0
+      }
+   ],
+   "Skeleton" : {
+      "Joints" : [
+         {
+            "AttachThetaX" : 0,
+            "AttachThetaY" : 1.57,
+            "AttachThetaZ" : 0,
+            "AttachX" : 0,
+            "AttachY" : 0,
+            "AttachZ" : 0,
+            "DiffWeight" : 0.5,
+            "ID" : 0,
+            "IsEndEffector" : 0.0,
+            "LimHigh0" : 0.3490658503988659,
+            "LimHigh1" : 1.2217304763960306,
+            "LimHigh2" : 1.0471975511965976,
+            "LimLow0" : -2.7925268031909272,
+            "LimLow1" : -1.2217304763960306,
+            "LimLow2" : -1.2217304763960306,
+            "Name" : "rfemur",
+            "Parent" : -1,
+            "TorqueLim" : 500.0,
+            "Type" : "none"
+         }
+      ]
+   }
+}

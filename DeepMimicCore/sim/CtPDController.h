@@ -18,6 +18,8 @@ public:
 
 	virtual std::string GetName() const;
 
+	virtual void CalcPDTarget(const Eigen::VectorXd & torque_, Eigen::VectorXd out_pd_target);
+
 protected:
 	cImpPDController mPDCtrl;	// 他才是关键的执行器，所有的ApplyAction都是要向这个里面放东西而已。
 
@@ -32,6 +34,7 @@ protected:
 	virtual void BuildJointActionBounds(int joint_id, Eigen::VectorXd& out_min, Eigen::VectorXd& out_max) const;
 	virtual void BuildJointActionOffsetScale(int joint_id, Eigen::VectorXd& out_offset, Eigen::VectorXd& out_scale) const;
 	virtual void ConvertActionToTargetPose(int joint_id, Eigen::VectorXd& out_theta) const;
+	virtual void ConvertTargetPoseToAction(int joint_id, Eigen::VectorXd& out_theta) const;
 	virtual cKinTree::eJointType GetJointType(int joint_id) const;
 
 	virtual void SetPDTargets(const Eigen::VectorXd& targets);

@@ -115,7 +115,11 @@ void Update(double time_elapsed)
 				double r = gCore->CalcReward(id);
 				++gSampleCount;
 
-				std::vector<double> action = std::vector<double>(gCore->GetActionSize(id), 0);
+				std::vector<double> action(0);
+				for (int num = 0; num < gCore->GetActionSize(id); num++)
+				{
+					action.push_back((std::rand()% 100) / 100.0);
+				}
 				gCore->SetAction(id, action);
 			}
 		}

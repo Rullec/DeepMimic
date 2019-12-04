@@ -25,7 +25,7 @@ enum eRotationOrder {
 };
 
 
-extern const enum eRotationOrder gRotationOrder;// rotation order. declared here and defined in LoboJointV2.cpp 
+//extern const enum eRotationOrder gRotationOrder;// rotation order. declared here and defined in LoboJointV2.cpp 
 const std::string ROTATION_ORDER_NAME[] = {
 	"XYZ",
 	"XZY",
@@ -43,6 +43,7 @@ const std::string ROTATION_ORDER_NAME[] = {
 
 // for convenience define standard vector for rendering
 typedef Eigen::Vector4d tVector;
+typedef Eigen::VectorXd tVectorXd;
 typedef Eigen::Vector3d tVector3;
 typedef Eigen::Matrix4d tMatrix;
 typedef Eigen::Matrix3d tMatrix3;
@@ -97,18 +98,18 @@ public:
 	static tMatrix TranslateMat(const tVector& trans);
 	static tMatrix ScaleMat(double scale);
 	static tMatrix ScaleMat(const tVector& scale);
-	static tMatrix RotateMat(const tVector& euler); // euler angles order rot(Z) * rot(Y) * rot(X)
+	static tMatrix RotateMat(const tVector& euler, const eRotationOrder gRotationOrder); // euler angles order rot(Z) * rot(Y) * rot(X)
 	static tMatrix RotateMat(const tVector& axis, double theta);
 	static tMatrix RotateMat(const tQuaternion& q);
 	static tMatrix CrossMat(const tVector& a);
 	// inverts a transformation consisting only of rotations and translations
 	static tMatrix InvRigidMat(const tMatrix& mat);
 	static tVector GetRigidTrans(const tMatrix& mat);
-	static tVector InvEuler(const tVector& euler);
+	static tVector InvEuler(const tVector& euler, const eRotationOrder gRotationOrder);
 	static void RotMatToAxisAngle(const tMatrix& mat, tVector& out_axis, double& out_theta);
-	static tVector RotMatToEuler(const tMatrix& mat);
+	static tVector RotMatToEuler(const tMatrix& mat, const eRotationOrder gRotationOrder);
 	static tQuaternion RotMatToQuaternion(const tMatrix& mat);
-	static void EulerToAxisAngle(const tVector& euler, tVector& out_axis, double& out_theta);
+	static void EulerToAxisAngle(const tVector& euler, tVector& out_axis, double& out_theta, const eRotationOrder gRotationOrder);
 	static tVector AxisAngleToEuler(const tVector& axis, double theta);
 	static tMatrix DirToRotMat(const tVector& dir, const tVector& up);
 
@@ -116,10 +117,11 @@ public:
 							tVector& out_axis, double& out_theta);
 	static tMatrix DeltaRot(const tMatrix& R0, const tMatrix& R1);
 
-	static tQuaternion EulerToQuaternion(const tVector& euler);
+	static tQuaternion EulerToQuaternion(const tVector& euler, const eRotationOrder order);
 	static tQuaternion cMathUtil::CoefVectorToQuaternion(const tVector & coef);
-	static tVector QuaternionToEuler(const tQuaternion& q);
+	static tVector QuaternionToEuler(const tQuaternion& q, const eRotationOrder gRotationOrder);
 	static tQuaternion AxisAngleToQuaternion(const tVector& axis, double theta);
+	static tVector QuaternionToAxisAngle(const tQuaternion& q);
 	static void QuaternionToAxisAngle(const tQuaternion& q, tVector& out_axis, double& out_theta);
 	static tMatrix BuildQuaternionDiffMat(const tQuaternion& q);
 	static tVector CalcQuaternionVel(const tQuaternion& q0, const tQuaternion& q1, double dt);
@@ -175,6 +177,25 @@ public:
 
 	static void ButterworthFilter(double dt, double cutoff, Eigen::VectorXd& out_x);
 	
+	// added by myself
+	static tMatrix RotMat(const tQuaternion & quater);
+	//static tQuaternion RotMatToQuaternion(const tMatrix &mat);
+	static tQuaternion CoefToQuaternion(const tVector &);
+	static tQuaternion AxisAngleToQuaternion(const tVector & angvel);
+	static tQuaternion EulerAnglesToQuaternion(const tVector & vec, const eRotationOrder & order);
+	static tQuaternion MinusQuaternion(const tQuaternion & quad);
+	static tVector QuaternionToCoef(const tQuaternion & quater);
+	//static tVector QuaternionToAxisAngle(const tQuaternion &);
+	static tVector CalcAngularVelocity(const tQuaternion & old_rot, const tQuaternion & new_rot, double timestep);
+	static tVector CalcAngularVelocityFromAxisAngle(const tQuaternion & old_rot, const tQuaternion & new_rot, double timestep);
+	static tVector QuaternionToEulerAngles(const tQuaternion &, const eRotationOrder & order);
+
+	static tMatrix EulerAnglesToRotMat(const tVector & euler, const eRotationOrder & order);
+	static tMatrix EulerAnglesToRotMatDot(const tVector & euler, const eRotationOrder & order);
+	static tVector AngularVelToqdot(const tVector & omega, const tVector & cur_q, const eRotationOrder & order);
+	static tMatrix VectorToSkewMat(const tVector &);
+	static tVector SkewMatToVector(const tMatrix &);
+
 private:
 	static cRand gRand;
 

@@ -1,0 +1,21 @@
+{
+	"UpdateRate": 30,
+	"EnablePhaseInput": true,
+	"RecordWorldRootPos": false,
+	"RecordWorldRootRot": true,
+
+	"RightJoints": [3, 4, 5, 6, 7, 8],
+	"LeftJoints": [9, 10, 11, 12, 13, 14],
+
+	"PDControllers": 
+	[
+		{
+			"ID": 0,
+			"Name": "rfemur",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		}
+	]
+}

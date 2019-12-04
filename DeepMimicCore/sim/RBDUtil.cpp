@@ -3,6 +3,8 @@
 
 void cRBDUtil::SolveInvDyna(const cRBDModel& model, const Eigen::VectorXd& acc, Eigen::VectorXd& out_tau)
 {
+	// acc = 0
+	// out_tau = 
 	const Eigen::MatrixXd& joint_mat = model.GetJointMat();
 	const Eigen::MatrixXd& body_defs = model.GetBodyDefs();
 	const tVector& gravity = model.GetGravity();
@@ -132,18 +134,21 @@ void cRBDUtil::BuildMassMat(const cRBDModel& model, Eigen::MatrixXd& inertia_buf
 	int dim = model.GetNumDof();
 	int num_joints = model.GetNumJoints();
 	H.setZero(dim, dim);
-	const int svs = cSpAlg::gSpVecSize;
+	const int svs = cSpAlg::gSpVecSize;	// svs = 6, spatial vector size = 6
 
-	Eigen::MatrixXd child_parent_mats_F = Eigen::MatrixXd(svs * num_joints, svs);
-	Eigen::MatrixXd parent_child_mats_M = Eigen::MatrixXd(svs * num_joints, svs);
-	Eigen::MatrixXd& Is = inertia_buffer;
+	Eigen::MatrixXd child_parent_mats_F = Eigen::MatrixXd(svs * num_joints, svs);	// 6 * joints, 6
+	Eigen::MatrixXd parent_child_mats_M = Eigen::MatrixXd(svs * num_joints, svs);	// 6 * joints, 6
+	Eigen::MatrixXd& Is = inertia_buffer;	// inertia buffer? for each body? in which frame?
 	for (int j = 0; j < num_joints; ++j)
 	{
 		if (cKinTree::IsValidBody(body_defs, j))
 		{
+			// Is: [6 * joints, 6]
+			// this block: the spatial inertia of this body = combine moment of inertia and mass
 			Is.block(j * svs, 0, svs, svs) = BuildInertiaSpatialMat(body_defs, j);
 		}
 
+		// what's this?
 		cSpAlg::tSpTrans child_parent_trans = model.GetSpChildParentTrans(j);
 		cSpAlg::tSpMat child_parent_mat = cSpAlg::BuildSpatialMatF(child_parent_trans);
 		cSpAlg::tSpMat parent_child_mat = cSpAlg::BuildSpatialMatM(cSpAlg::InvTrans(child_parent_trans));
@@ -153,12 +158,15 @@ void cRBDUtil::BuildMassMat(const cRBDModel& model, Eigen::MatrixXd& inertia_buf
 
 	for (int j = num_joints - 1; j >= 0; --j)
 	{
+		// from children to parents
 		if (cKinTree::IsValidBody(body_defs, j))
 		{
+			// get current Spatial Inertia: curr_I
 			const auto curr_I = Is.block(j * svs, 0, svs, svs);
 			int parent_id = cKinTree::GetParent(joint_mat, j);
 			if (cKinTree::HasParent(joint_mat, j))
 			{
+				// add child spati linertia to its parent
 				cSpAlg::tSpTrans child_parent_trans = model.GetSpChildParentTrans(j);
 				cSpAlg::tSpMat child_parent_mat = child_parent_mats_F.block(j * svs, 0, svs, svs);
 				cSpAlg::tSpMat parent_child_mat = parent_child_mats_M.block(j * svs, 0, svs, svs);
@@ -172,6 +180,8 @@ void cRBDUtil::BuildMassMat(const cRBDModel& model, Eigen::MatrixXd& inertia_buf
 				int offset = cKinTree::GetParamOffset(joint_mat, j);
 				Eigen::MatrixXd F = curr_I * S;
 				H.block(offset, offset, dim, dim) = S.transpose() * F;
+				// H = S.T * F * S, and H is the out_mass_mat
+				// S is joint subspace
 
 				int curr_id = j;
 				while (cKinTree::HasParent(joint_mat, curr_id))
@@ -748,10 +758,23 @@ cSpAlg::tSpMat cRBDUtil::BuildMomentInertiaCylinder(const Eigen::MatrixXd& body_
 
 cSpAlg::tSpMat cRBDUtil::BuildInertiaSpatialMat(const Eigen::MatrixXd& body_defs, int part_id)
 {
-	cSpAlg::tSpMat Ic = BuildMomentInertia(body_defs, part_id);
-	tMatrix body_joint = cKinTree::BodyJointTrans(body_defs, part_id);
-	cSpAlg::tSpTrans X = cSpAlg::MatToTrans(body_joint);
+	// build spatial inertia
+	// both mass & inertia are included
+	/*
+		I_c: 6*6
+		|inertia_x									|
+		|			inertia_y						|
+		|					 inertia_z				|
+		|								mass		|
+		|		0							mass	|				
+		|										mass|
+	*/
+	cSpAlg::tSpMat Ic = BuildMomentInertia(body_defs, part_id);	
+
+	tMatrix body_joint = cKinTree::BodyJointTrans(body_defs, part_id);	// body -> joint frame
+	cSpAlg::tSpTrans X = cSpAlg::MatToTrans(body_joint);	// rotation matrix to spatial trans
 	cSpAlg::tSpMat Io = cSpAlg::BuildSpatialMatF(X) * Ic * cSpAlg::BuildSpatialMatM(cSpAlg::InvTrans(X));
+	// I_o = R * I_body * R.T
 	return Io;
 }
 
@@ -810,6 +833,7 @@ Eigen::MatrixXd cRBDUtil::BuildJointSubspace(const Eigen::MatrixXd& joint_mat, c
 
 	if (is_root)
 	{
+		// S = [6, 7]. rot_mat.T in down left and up right...
 		S = BuildJointSubspaceRoot(joint_mat, pose);
 	}
 	else
@@ -841,15 +865,15 @@ Eigen::MatrixXd cRBDUtil::BuildJointSubspace(const Eigen::MatrixXd& joint_mat, c
 
 Eigen::MatrixXd cRBDUtil::BuildJointSubspaceRoot(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& pose)
 {
-	int dim = cKinTree::gRootDim;
-	int pos_dim = cKinTree::gPosDim;
-	int rot_dim = cKinTree::gRotDim;
+	int dim = cKinTree::gRootDim;		// 7
+	int pos_dim = cKinTree::gPosDim;	// 3
+	int rot_dim = cKinTree::gRotDim;	// 4
 
-	Eigen::MatrixXd S = Eigen::MatrixXd::Zero(cSpAlg::gSpVecSize, dim);
+	Eigen::MatrixXd S = Eigen::MatrixXd::Zero(cSpAlg::gSpVecSize, dim);	// S = [6, 7]
 	tQuaternion quat = cKinTree::GetRootRot(joint_mat, pose);
-	tMatrix E = cMathUtil::RotateMat(quat);
+	tMatrix E = cMathUtil::RotateMat(quat);	// rotation matrix of root joint,  4*4
 
-	S.block(3, 0, 3, pos_dim) = E.block(0, 0, 3, pos_dim).transpose();
+	S.block(3, 0, 3, pos_dim) = E.block(0, 0, 3, pos_dim).transpose();	// S[3,3] down left = rot_mat.T
 	//S.block(0, pos_dim, 3, rot_dim).setIdentity();
 	S.block(0, pos_dim, 3, rot_dim - 1) = E.block(0, 0, 3, rot_dim - 1).transpose();
 	return S;
@@ -858,7 +882,7 @@ Eigen::MatrixXd cRBDUtil::BuildJointSubspaceRoot(const Eigen::MatrixXd& joint_ma
 Eigen::MatrixXd cRBDUtil::BuildJointSubspaceRevolute(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& pose, int j)
 {
 	int dim = cKinTree::GetJointParamSize(cKinTree::eJointTypeRevolute);
-	Eigen::MatrixXd S = Eigen::MatrixXd::Zero(cSpAlg::gSpVecSize, dim);
+	Eigen::MatrixXd S = Eigen::MatrixXd::Zero(cSpAlg::gSpVecSize, dim);	// 6 * 1
 	S(2, 0) = 1;
 	return S;
 }
@@ -1004,6 +1028,7 @@ cSpAlg::tSpVec cRBDUtil::BuildCjSpherical(const Eigen::MatrixXd& joint_mat, cons
 
 void cRBDUtil::BuildBiasForce(const cRBDModel& model, Eigen::VectorXd& out_bias_force)
 {
+	// acc = Zero(DOF);
 	Eigen::VectorXd acc = Eigen::VectorXd::Zero(model.GetNumDof());
 	SolveInvDyna(model, acc, out_bias_force);
 }

@@ -21,10 +21,11 @@ public:
 		double mTorqueLimit;
 		double mForceLimit;
 
-		tVector mParentPos; // parent coords
-		tVector mChildPos; // child coords
-		tQuaternion mParentRot; // parent coords
-		tQuaternion mChildRot; // child coords
+		// parent means joint, child means link accordly
+		tVector mParentPos; // parent coords, joint pos in parent joint frame
+		tVector mChildPos; // child coords, joint pos in link frame
+		tQuaternion mParentRot; // parent coords, from joint frame to parent frame. (for a vec)
+		tQuaternion mChildRot; // child coords, from joint to link coord (for a vector)
 	};
 
 	cSimBodyJoint();
@@ -60,6 +61,7 @@ public:
 
 	virtual tVector GetParentPos() const; // in parent link's coordinates
 	virtual tVector GetChildPos() const; // in child link's coordinates
+	virtual tQuaternion GetChildRot() const;
 	virtual tMatrix BuildJointChildTrans() const;
 	virtual tMatrix BuildJointParentTrans() const;
 	virtual tVector CalcAxisWorld() const;

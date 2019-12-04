@@ -103,8 +103,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>E:\VS2017Projects\include\bullet_src_for_include;E:\VS2017Projects\include;$(ProjectDir);$(IncludePath)</IncludePath>
-    <LibraryPath>E:\VS2017Projects\library_debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\VS2017Projects\bullet3-master;E:\VS2017Projects\include;$(ProjectDir);E:\VS2017Projects\bullet3-master\src;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\VS2017Projects\lib\debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -114,15 +114,15 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>E:\VS2017Projects\include;E:\VS2017Projects\include\bullet_src_for_include;$(ProjectDir);$(IncludePath)</IncludePath>
-    <LibraryPath>E:\VS2017Projects\library_release;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\VS2017Projects\bullet3-master;E:\VS2017Projects\include;$(ProjectDir);E:\VS2017Projects\bullet3-master\src;;$(ProjectDir);$(IncludePath)</IncludePath>
+    <LibraryPath>E:\VS2017Projects\lib\release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Swig|x64'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>_$(ProjectName)</TargetName>
     <TargetExt>.pyd</TargetExt>
     <IncludePath>$(ProjectDir);E:\VS2017Projects\include\bullet_src_for_include;E:\VS2017Projects\include;$(IncludePath)</IncludePath>
-    <LibraryPath>E:\VS2017Projects\library_release;$(LibraryPath)</LibraryPath>
+    <LibraryPath>E:\VS2017Projects\library_release;E:\VS2017Projects\library_release\bullet;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -147,7 +147,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_RUN_ONLY_CORE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_RUN_ONLY_CORE;BT_USE_DOUBLE_PRECISION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -158,7 +158,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;BulletDynamics_Debug.lib;BulletCollision_Debug.lib;BulletInverseDynamics_Debug.lib;BulletInverseDynamicsUtils_Debug.lib;Bullet3Common_Debug.lib;LinearMath_Debug.lib;IDRigidModel.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;BulletDynamics_Debug.lib;BulletCollision_Debug.lib;BulletInverseDynamics_Debug.lib;BulletInverseDynamicsUtils_Debug.lib;Bullet3Common_Debug.lib;LinearMath_Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -207,7 +207,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_RUN_ONLY_CORE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BT_USE_DOUBLE_PRECISION;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_RUN_ONLY_CORE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -220,7 +220,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\..\library\Bullet3\build3\lib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;BulletDynamics.lib;BulletCollision.lib;LinearMath.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;BulletDynamics.lib;BulletCollision.lib;LinearMath.lib;BulletInverseDynamics.lib;BulletInverseDynamicsUtils.lib;Bullet3Common.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Swig|x64'">
@@ -291,6 +291,7 @@
     <ClCompile Include="scenes\SceneSimChar.cpp" />
     <ClCompile Include="sim\AgentRegistry.cpp" />
     <ClCompile Include="sim\CharController.cpp" />
+    <ClCompile Include="sim\cReverseController.cpp" />
     <ClCompile Include="sim\ExpPDController.cpp" />
     <ClCompile Include="sim\ObjTracer.cpp" />
     <ClCompile Include="sim\ContactManager.cpp" />
@@ -386,6 +387,7 @@
     <ClInclude Include="sim\ActionSpace.h" />
     <ClInclude Include="sim\AgentRegistry.h" />
     <ClInclude Include="sim\CharController.h" />
+    <ClInclude Include="sim\cReverseController.h" />
     <ClInclude Include="sim\ExpPDController.h" />
     <ClInclude Include="sim\ObjTracer.h" />
     <ClInclude Include="sim\ContactManager.h" />

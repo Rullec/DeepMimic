@@ -261,6 +261,11 @@ std::vector<double> cDeepMimicCore::RecordContactInfo(int agent_id) const
 			std::cout <<"[error] the size of contact info exceed " << contact_size << std::endl;
 			abort();
 		}
+		if (contact_tmp.hasNaN() == true)
+		{
+			std::cout << "[error] cDeepMimicCore::RecordContactInfo: contact has Nan = " << contact_tmp.transpose() << std::endl;
+			exit(1);
+		}
 		contact.block(0, 0, contact_tmp.size(), 1) = contact_tmp;
 
 		std::vector<double> out_goal;
@@ -432,6 +437,7 @@ std::vector<double> cDeepMimicCore::BuildActionOffset(int agent_id) const
 		std::cout <<"[scale] get offset(mean) from rl_scene:";
 		for(auto i : out_offset)
 			std::cout << i <<" ";
+		std::cout << std::endl;
 		return out_offset;
 	}
 	return std::vector<double>(0);

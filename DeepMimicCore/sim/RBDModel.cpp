@@ -1,4 +1,4 @@
-#include "RBDModel.h"
+﻿#include "RBDModel.h"
 #include "RBDUtil.h"
 #include "anim/KinTree.h"
 
@@ -185,24 +185,25 @@ void cRBDModel::SetVel(const Eigen::VectorXd& vel)
 
 void cRBDModel::InitJointSubspaceArr()
 {
-	/*
-		初始化铰链子空间性质?
-		铰链有什么子空间，有什么性质?
-	 */
+	// init joint "subspace"?
 	int num_dofs = GetNumDof();
 	int num_joints = GetNumJoints();
-	mJointSubspaceArr = Eigen::MatrixXd(cSpAlg::gSpVecSize, num_dofs);
+	mJointSubspaceArr = Eigen::MatrixXd(cSpAlg::gSpVecSize, num_dofs);	// 6 * dofs
 	for (int j = 0; j < num_joints; ++j)
 	{
 		int offset = cKinTree::GetParamOffset(mJointMat, j);
 		int dim = cKinTree::GetParamSize(mJointMat, j);
 		int r = static_cast<int>(mJointSubspaceArr.rows());
+		// given pose, calculates "subpsace" (a vector [gSpVEcSize, dof of this joint]) for each joint
+		// just some rotation matrix in mJointSubspaceArr
 		mJointSubspaceArr.block(0, offset, r, dim) = cRBDUtil::BuildJointSubspace(mJointMat, mPose, j);
 	}
 }
 
 void cRBDModel::UpdateJointSubspaceArr()
 {
+	// update joint subspace(a set of rotation matrices)
+	// pose changed, subspace changed..
 	int num_joints = GetNumJoints();
 	for (int j = 0; j < num_joints; ++j)
 	{

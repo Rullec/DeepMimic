@@ -487,7 +487,7 @@ void cSceneImitate::ResetKinChar()
 	if (EnabledRandRotReset())
 	{
 		double rand_theta = mRand.RandDouble(-M_PI, M_PI);
-		kin_char->RotateOrigin(cMathUtil::EulerToQuaternion(tVector(0, rand_theta, 0, 0)));
+		kin_char->RotateOrigin(cMathUtil::EulerToQuaternion(tVector(0, rand_theta, 0, 0), eRotationOrder::XYZ));
 	}
 }
 
