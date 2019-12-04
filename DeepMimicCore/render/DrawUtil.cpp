@@ -908,7 +908,7 @@ void cDrawUtil::Rotate(const tVector& euler)
 {
 	double theta;
 	tVector axis;
-	cMathUtil::EulerToAxisAngle(euler, axis, theta);
+	cMathUtil::EulerToAxisAngle(euler, axis, theta, eRotationOrder::XYZ);
 	Rotate(theta, axis);
 }
 

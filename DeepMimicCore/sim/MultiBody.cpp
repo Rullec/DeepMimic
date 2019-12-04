@@ -18,8 +18,10 @@ cMultiBody::~cMultiBody()
 {
 }
 
+#include <iostream>
 void cMultiBody::compTreeLinkVelocities(btVector3 *omega, btVector3 *vel) const
 {
+	// 但是这个函数必须保证, 父亲的序号必然小于儿子的序号
 	int num_links = getNumLinks();
 	// Calculates the velocities of each link (and the base) in its local frame
 	const btQuaternion& base_rot = getWorldToBaseRot();
@@ -30,8 +32,18 @@ void cMultiBody::compTreeLinkVelocities(btVector3 *omega, btVector3 *vel) const
 	{
 		const btMultibodyLink& link = getLink(i);
 		const int parent = link.m_parent;
-
+		if (parent > i)
+		{
+			std::cout << "[error] cMultiBody::compTreeLinkVelocities: parent id should < child id" << std::endl;
+			exit(1);
+		}
 		// transform parent vel into this frame, store in omega[i+1], vel[i+1]
+		// bullet是link和link连接的模型，每个link坐标系都建在COM处
+		// m_cachedRotParentToThis 是从parent link坐标系到 child link坐标系的变换阵
+		// m_cachedRVector 是child link坐标系下，vector from COM of parent to COM of this link
+		// 对于角速度omega来说，只是变换了一下
+		// 但是对于线速度来说，
+		// top: angular terms, bottom: linear terms
 		SpatialTransform(btMatrix3x3(link.m_cachedRotParentToThis), link.m_cachedRVector,
 			omega[parent + 1], vel[parent + 1],
 			omega[i + 1], vel[i + 1]);

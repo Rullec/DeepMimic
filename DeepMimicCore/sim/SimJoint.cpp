@@ -536,8 +536,8 @@ void cSimJoint::BuildConstraintRevolute(std::shared_ptr<cWorld>& world)
 	auto sim_link = dynamic_cast<const cSimBodyLink*>(mParent.get());
 	if (sim_link == nullptr)
 	{
-		tVector euler0 = cMathUtil::QuaternionToEuler(GetParentRot());
-		tVector euler1 = cMathUtil::QuaternionToEuler(GetChildRot());
+		tVector euler0 = cMathUtil::QuaternionToEuler(GetParentRot(), eRotationOrder::XYZ);
+		tVector euler1 = cMathUtil::QuaternionToEuler(GetChildRot(), eRotationOrder::XYZ);
 
 		btTransform anchor0_t;
 		anchor0_t.setIdentity();
@@ -588,8 +588,8 @@ void cSimJoint::BuildConstraintPrismatic(std::shared_ptr<cWorld>& world)
 
 	if (parent_sim_link == nullptr)
 	{
-		const tVector& euler0 = cMathUtil::QuaternionToEuler(GetParentRot());
-		const tVector& euler1 = cMathUtil::QuaternionToEuler(GetChildRot());
+		const tVector& euler0 = cMathUtil::QuaternionToEuler(GetParentRot(), eRotationOrder::XYZ);
+		const tVector& euler1 = cMathUtil::QuaternionToEuler(GetChildRot(), eRotationOrder::XYZ);
 
 		btTransform anchor0_t;
 		anchor0_t.setIdentity();
@@ -636,8 +636,8 @@ void cSimJoint::BuildConstraintFixed(std::shared_ptr<cWorld>& world)
 	auto sim_link = dynamic_cast<const cSimBodyLink*>(mParent.get());
 	if (sim_link == nullptr)
 	{
-		const tVector& euler0 = cMathUtil::QuaternionToEuler(GetParentRot());
-		const tVector& euler1 = cMathUtil::QuaternionToEuler(GetChildRot());
+		const tVector& euler0 = cMathUtil::QuaternionToEuler(GetParentRot(), eRotationOrder::XYZ);
+		const tVector& euler1 = cMathUtil::QuaternionToEuler(GetChildRot(), eRotationOrder::XYZ);
 
 		btTransform anchor0_t;
 		anchor0_t.setIdentity();
@@ -678,8 +678,8 @@ void cSimJoint::BuildConstraintSpherical(std::shared_ptr<cWorld>& world)
 	auto child_sim_link = dynamic_cast<const cSimBodyLink*>(mChild.get());
 	if (parent_sim_link == nullptr)
 	{
-		const tVector& euler0 = cMathUtil::QuaternionToEuler(GetParentRot());
-		const tVector& euler1 = cMathUtil::QuaternionToEuler(GetChildRot());
+		const tVector& euler0 = cMathUtil::QuaternionToEuler(GetParentRot(), eRotationOrder::XYZ);
+		const tVector& euler1 = cMathUtil::QuaternionToEuler(GetChildRot(), eRotationOrder::XYZ);
 
 		btTransform anchor0_t;
 		anchor0_t.setIdentity();
@@ -780,7 +780,7 @@ void cSimJoint::BuildPoseSpherical(Eigen::VectorXd& out_pose) const
 		euler = tVector(-sphere->getAngle(0), -sphere->getAngle(1), -sphere->getAngle(2), 0);
 	}
 
-	tQuaternion q = cMathUtil::EulerToQuaternion(euler);
+	tQuaternion q = cMathUtil::EulerToQuaternion(euler, eRotationOrder::XYZ);
 	bool flip = (q.w() < 0);
 
 	out_pose.resize(param_size);

@@ -5,11 +5,14 @@
 #include "sim/RBDUtil.h"
 
 #include "util/FileUtil.h"
+#include "cReverseController.h"
+
+#include <fstream>
 
 cImpPDController::cImpPDController()
 {
 	mExternRBDModel = true;
-
+	
 #if defined(IMP_PD_CTRL_PROFILER)
 	mPerfSolveTime = 0;
 	mPerfTotalTime = 0;
@@ -24,11 +27,12 @@ cImpPDController::~cImpPDController()
 
 void cImpPDController::Init(cSimCharacter* character, const Eigen::MatrixXd& pd_params, const tVector& gravity)
 {
-	// 初始化的时候就要建立RBDModel...
-	// 给定角色和重力之后就可以建立了, 这个Init只是一个wrapper
 	std::shared_ptr<cRBDModel> model = BuildRBDModel(*character, gravity);
 	Init(character, model, pd_params, gravity);
 	mExternRBDModel = false;
+
+	// init reverse controller
+	mReverser = std::make_shared<cReverseController>(character);
 }
 
 void cImpPDController::Init(cSimCharacter* character, const std::shared_ptr<cRBDModel>& model, const Eigen::MatrixXd& pd_params, const tVector& gravity)
@@ -142,131 +146,199 @@ void cImpPDController::UpdateRBDModel()
 	mRBDModel->Update(pose, vel);
 }
 
-void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd& out_tau)
+void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out_tau)
 {
-	/*
-		感觉很关键，究竟是如何计算控制力的?
-	 */
-	double t = time_step;
+	//#define OUTPUT_LOG_CONTROL_FORCE
 
-	const Eigen::VectorXd& pose = mChar->GetPose();
-	const Eigen::VectorXd& vel = mChar->GetVel();
+#ifdef OUTPUT_LOG_CONTROL_FORCE
+	std::cout << "verbose log here\n";
+	std::ofstream fout("logs/controller_logs/control_force.log", std::ios::app);
+#endif // OUTPUT_LOG_CONTROL_FORCE
+
+	double timestep = time_step;
+
+	const Eigen::VectorXd& pose = mChar->GetPose();	// get current character's pose, quaternions for each joint
+	const Eigen::VectorXd& vel = mChar->GetVel();	// get char's vel: vel = d(pose)/ dt, the differential quaternions for each joints
+
 	Eigen::VectorXd tar_pose;
 	Eigen::VectorXd tar_vel;
-	BuildTargetPose(tar_pose);	// 在每个joint对应的controler中把目标的position　拿到，放进tar_pose里面
-	BuildTargetVel(tar_vel);	// velocity拿到，放到tar_vel里
+	BuildTargetPose(tar_pose);
+	BuildTargetVel(tar_vel);
 
-	// 把mKp 和 mKd两个向量(因为每个joint a pd controller)变成对角阵
+
+	// construct mKp & mKd (kp & kd coeffs) to a diagonal mat
 	Eigen::DiagonalMatrix<double, Eigen::Dynamic> Kp_mat = mKp.asDiagonal();
 	Eigen::DiagonalMatrix<double, Eigen::Dynamic> Kd_mat = mKd.asDiagonal();
-
+	Eigen::VectorXd mKp_v = mKp, mKd_v = mKd;
+	
 	for (int j = 0; j < GetNumJoints(); ++j)
 	{
 		const cPDController& pd_ctrl = GetPDCtrl(j);
+
+		// if this joint is invalid, clear it.
+		// NO FORCE can be applied to these joints
 		if (!pd_ctrl.IsValid() || !pd_ctrl.IsActive())
 		{
 			int param_offset = mChar->GetParamOffset(j);
 			int param_size = mChar->GetParamSize(j);
 			Kp_mat.diagonal().segment(param_offset, param_size).setZero();
 			Kd_mat.diagonal().segment(param_offset, param_size).setZero();
+			mKp_v.segment(param_offset, param_size).setZero();
+			mKd_v.segment(param_offset, param_size).setZero();
 		}
 	}
 
-	// 这个里面也是需要动力学的，simulation怎么可能没有动力学呢?
-	// 计算torque的时候，所有的参数都是从这个RBDModel中拿到的, 包括:
-	/*
-		质量阵
-		疑似科氏力的"BiasForce"
-
-	 */
+	// Why we need mass matrix
 	Eigen::MatrixXd M = mRBDModel->GetMassMat();
+	//std::cout << "mass = " << M << std::endl;
+
+#ifdef OUTPUT_LOG_CONTROL_FORCE
+	{
+		fout << "----------------------------\n";
+		fout << "pose = " << pose.transpose() << " | size = " << pose.size() << std::endl;
+		fout << "vel = " << vel.transpose() << " | size = " << vel.size() << std::endl;
+		fout << "tar pose = " << tar_pose.transpose() << " | size = " << tar_pose.size() << std::endl;
+		fout << "tar vel = " << tar_vel.transpose() << " | size = " << tar_vel.size() << std::endl;
+		fout << "Kp = \n" << Kp_mat.toDenseMatrix() << std::endl;
+		fout << "Kd = \n" << Kd_mat.toDenseMatrix() << std::endl;
+		fout << "raw M = \n" << M << std::endl;
+	}
+#endif
+
+	// similar to Carolios foce?
 	const Eigen::VectorXd& C = mRBDModel->GetBiasForce();
-	M.diagonal() += t * mKd;
+	//std::cout << "bias force = " << C.transpose() << std::endl;
+	M.diagonal() += timestep * mKd;
 
-	Eigen::VectorXd pose_inc;
-	const Eigen::MatrixXd& joint_mat = mChar->GetJointMat();
-	cKinTree::VelToPoseDiff(joint_mat, pose, vel, pose_inc);
+#ifdef OUTPUT_LOG_CONTROL_FORCE
+	{
+		fout << "C = \n " << C << std::endl;
 
-	pose_inc = pose + t * pose_inc;
-	cKinTree::PostProcessPose(joint_mat, pose_inc);
-	// 这里的pos是纯粹的四元数了(因为后处理中总是在做归一化)
+#endif
+		//std::cout << "after add mKd, M = " << M.transpose() << std::endl;
 
-	Eigen::VectorXd pose_err;
-	cKinTree::CalcVel(joint_mat, pose_inc, tar_pose, 1, pose_err);
-	Eigen::VectorXd vel_err = tar_vel - vel;
+		// pose_inc = dqdt = q' = 0.5 * w * q, differential of quaternions (pose)
+		Eigen::VectorXd pose_inc;
+		const Eigen::MatrixXd& joint_mat = mChar->GetJointMat();
+		// use pose & vel to calculate "pose_inc"
+		cKinTree::VelToPoseDiff(joint_mat, pose, vel, pose_inc); // pose_inc = dqdt
 
-	// 求加速度acc为什么要减去C?说不清楚
-	// 但究竟bias force是什么，还是说不清
-	Eigen::VectorXd acc = Kp_mat * pose_err + Kd_mat * vel_err - C;
-	
-#if defined(IMP_PD_CTRL_PROFILER)
-	TIMER_RECORD_BEG(Solve)
+#ifdef OUTPUT_LOG_CONTROL_FORCE
+		{
+			fout << "vel to pose diff = " << pose_inc.transpose() << std::endl;
+		}
 #endif
 
-	//int root_size = cKinTree::gRootDim;
-	//int num_act_dofs = static_cast<int>(acc.size()) - root_size;
-	//auto M_act = M.block(root_size, root_size, num_act_dofs, num_act_dofs);
-	//auto acc_act = acc.segment(root_size, num_act_dofs);
-	//acc_act = M_act.ldlt().solve(acc_act);
-	
-	acc = M.ldlt().solve(acc);
+		pose_inc = pose + timestep * pose_inc;	// pose_cur + timestep * dqdt = pose_next (predicted)
+		cKinTree::PostProcessPose(joint_mat, pose_inc);	// normalize, quaternions make sense
+		Eigen::VectorXd pose_err;
+
+		// pose_err: for spherical joints, in local frame
+		cKinTree::CalcVel(joint_mat, pose_inc, tar_pose, 1, pose_err);
+		Eigen::VectorXd vel_err = tar_vel - vel;
+		Eigen::VectorXd acc = Kp_mat * pose_err + Kd_mat * vel_err - C;
+
+#ifdef OUTPUT_LOG_CONTROL_FORCE
+		{
+			fout << "next pose = " << pose_inc.transpose() << std::endl;
+			fout << "pose err = " << pose_err.transpose() << std::endl;
+			fout << "vel err = " << vel_err.transpose() << std::endl;
+			fout << "Q = " << acc.transpose() << std::endl;
+		}
+#endif
 
 #if defined(IMP_PD_CTRL_PROFILER)
-	TIMER_RECORD_END(Solve, mPerfSolveTime, mPerfSolveCount)
+		TIMER_RECORD_BEG(Solve)
 #endif
-	
-	// 然后就可以计算出tau了，最后的公式 tau(torque) = kp * pose_err + kd (val - t*acc)
-	out_tau += Kp_mat * pose_err + Kd_mat * (vel_err - t * acc);
+
+			acc = M.ldlt().solve(acc);
+#if defined(IMP_PD_CTRL_PROFILER)
+		TIMER_RECORD_END(Solve, mPerfSolveTime, mPerfSolveCount)
+#endif
+
+			// final formular: tau(torque) = kp * pose_err + kd (val - t*acc)
+			out_tau += Kp_mat * pose_err + Kd_mat * (vel_err - timestep * acc);
+
+#ifdef OUTPUT_LOG_CONTROL_FORCE
+		{
+			fout << "acc = " << acc.transpose() << std::endl;
+			fout << "tau = " << out_tau.transpose() << std::endl;
+		}
+#endif
+		// begin to solve PD target
+		{
+			// check velocity
+			{
+				tVectorXd target_vel;
+				for (int i = 0; i < GetNumJoints(); i++)
+				{
+					const cPDController & pd_ctrl = GetPDCtrl(i);
+
+					if (true == pd_ctrl.IsValid())
+					{
+						pd_ctrl.GetTargetVel(target_vel);
+						assert(target_vel.norm() < 1e-10);
+					}
+				}
+			}
+
+			// begin to debug the reverse func
+			tVectorXd solved_pd_target;
+			mReverser->SetParams(timestep, mRBDModel->GetMassMat(), mRBDModel->GetBiasForce(), mKp_v, mKd_v);
+			//std::cout << "input pose = " << pose.transpose() << std::endl;
+			//std::cout << "next pose = " << pose_inc.transpose() << std::endl;
+			//std::cout << "pose diff = " << pose_err.transpose() << std::endl;
+			mReverser->CalcPDTarget(out_tau, pose, vel, solved_pd_target);
+			//std::cout << "truth pose = " << tar_pose.transpose() << std::endl;
+			//std::cout << "solved pose = " << wait_pd_target.transpose() << std::endl;
+			tVectorXd diff = (tar_pose - solved_pd_target);
+			for (int i = 0; i < diff.size(); i++)
+			{
+				if (std::abs(diff[i]) < 1e-10) diff[i] = 0;
+			}
+			if (diff.segment(7, diff.size() - 7).norm() > 1e-8)
+			{
+				std::cout << "truth target pose = " << tar_pose.transpose() << std::endl;
+				std::cout << "solve target pose = " << solved_pd_target.transpose() << std::endl;
+				std::cout << "\ndiff = " << diff.transpose() << std::endl;
+			}
+		}
 }
 
-void cImpPDController::BuildTargetPose(Eigen::VectorXd& out_pose) const
+	void cImpPDController::BuildTargetPose(tVectorXd & out_pose) const
 {
-	// 传入的out_pose就是外面的"target pose"在这个函数里需要赋值好
-	out_pose = Eigen::VectorXd::Zero(GetNumDof());
+	out_pose = tVectorXd::Zero(GetNumDof());
 
-	//const auto& joint_mat = mChar->GetJointMat();
-	//tVector root_pos = mChar->GetRootPos();
-	//tQuaternion root_rot = mChar->GetRootRotation();
-	//cKinTree::SetRootPos(joint_mat, root_pos, out_pose);
-	//cKinTree::SetRootRot(joint_mat, root_rot, out_pose);
-
-	for (int j = 0; j < GetNumJoints(); ++j)
+	Eigen::VectorXd cur_pose;
+	for (int i = 0; i < GetNumJoints(); i++)
 	{
-		// 每个关节上都有一个pd controller，设置的参数都是不一样的
-		// 拿到以后，把pd controller里面存储的理想目标拿出来
-		// 存到out_pose &里面，就完成功能了
-		const cPDController& pd_ctrl = GetPDCtrl(j);
-		if (pd_ctrl.IsValid())
+		const cPDController & pd_ctrl = GetPDCtrl(i);
+
+		if (true == pd_ctrl.IsValid())
 		{
-			Eigen::VectorXd curr_pose;
-			pd_ctrl.GetTargetTheta(curr_pose);
-			int param_offset = mChar->GetParamOffset(j);
-			int param_size = mChar->GetParamSize(j);
-			out_pose.segment(param_offset, param_size) = curr_pose;
+			pd_ctrl.GetTargetTheta(cur_pose);
+			int param_offset = mChar->GetParamOffset(i);
+			int param_size = mChar->GetParamSize(i);
+			out_pose.segment(param_offset, param_size) = cur_pose;
 		}
 	}
 }
 
-void cImpPDController::BuildTargetVel(Eigen::VectorXd& out_vel) const
+void cImpPDController::BuildTargetVel(tVectorXd & out_vel) const
 {
-	out_vel = Eigen::VectorXd::Zero(GetNumDof());
+	out_vel = tVectorXd::Zero(GetNumDof());
 
-	//const auto& joint_mat = mChar->GetJointMat();
-	//tVector root_vel = mChar->GetRootVel();
-	//tVector root_ang_vel = mChar->GetRootAngVel();
-	//cKinTree::SetRootVel(joint_mat, root_vel, out_vel);
-	//cKinTree::SetRootAngVel(joint_mat, root_ang_vel, out_vel);
-	
-	for (int j = 0; j < GetNumJoints(); ++j)
+	Eigen::VectorXd cur_vel;
+	for (int i = 0; i < GetNumJoints(); i++)
 	{
-		const cPDController& pd_ctrl = GetPDCtrl(j);
-		if (pd_ctrl.IsValid())
+		const cPDController & pd_ctrl = GetPDCtrl(i);
+
+		if (true == pd_ctrl.IsValid())
 		{
-			Eigen::VectorXd curr_vel;
-			pd_ctrl.GetTargetVel(curr_vel);
-			int param_offset = mChar->GetParamOffset(j);
-			int param_size = mChar->GetParamSize(j);
-			out_vel.segment(param_offset, param_size) = curr_vel;
+			pd_ctrl.GetTargetVel(cur_vel);
+			int param_offset = mChar->GetParamOffset(i);
+			int param_size = mChar->GetParamSize(i);
+			out_vel.segment(param_offset, param_size) = cur_vel;
 		}
 	}
 }

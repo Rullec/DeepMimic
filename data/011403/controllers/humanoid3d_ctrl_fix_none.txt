@@ -1,0 +1,136 @@
+{
+	"UpdateRate": 30,
+	"EnablePhaseInput": true,
+	"RecordWorldRootPos": false,
+	"RecordWorldRootRot": true,
+
+	"RightJoints": [1, 2, 3, 4],
+	"LeftJoints": [5, 6, 7, 8],
+
+	"PDControllers": 
+	[
+		{
+			"ID": 0,
+			"Name": "root",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 1,
+			"Name": "rhipjoint",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 2,
+			"Name": "rfemur",
+			"Kp": 200,
+			"Kd": 20,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 3,
+			"Name": "rtibia",
+			"Kp": 200,
+			"Kd": 20,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 4,
+			"Name": "rfoot",
+			"Kp": 150,
+			"Kd": 15,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 5,
+			"Name": "lhipjoint",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 6,
+			"Name": "lfemur",
+			"Kp": 200,
+			"Kd": 20,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 7,
+			"Name": "ltibia",
+			"Kp": 200,
+			"Kd": 20,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 8,
+			"Name": "lfoot",
+			"Kp": 150,
+			"Kd": 15,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 9,
+			"Name": "lowerback",
+			"Kp": 200,
+			"Kd": 20,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+
+		{
+			"ID": 10,
+			"Name": "upperback",
+			"Kp": 200,
+			"Kd": 20,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+
+		{
+			"ID": 11,
+			"Name": "thorax",
+			"Kp": 200,
+			"Kd": 20,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		
+		{
+			"ID": 12,
+			"Name": "lowerneck",
+			"Kp": 200,
+			"Kd": 20,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 13,
+			"Name": "rclavicle",
+			"Kp": 100,
+			"Kd": 10,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 14,
+			"Name": "rhumerus",
+			"Kp": 150,
+			"Kd": 15,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		}
+	]
+}

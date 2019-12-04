@@ -16,7 +16,6 @@ cSimBodyLink::cSimBodyLink()
 	mObjShape = cShape::eShapeNull;
 	mLinVel.setZero();
 	mAngVel.setZero();
-	mRotationCenter.setIdentity();
 }
 
 cSimBodyLink::~cSimBodyLink()
@@ -104,16 +103,6 @@ double cSimBodyLink::GetFriction() const
 void cSimBodyLink::SetFriction(double friction)
 {
 	mColObj->setFriction(friction);
-}
-
-void cSimBodyLink::SetRotationCenter(const tVector & origin_)
-{
-	mRotationCenter = origin_;
-}
-
-tVector cSimBodyLink::GetRotationCenter()
-{
-	return mRotationCenter;
 }
 
 void cSimBodyLink::ApplyForce(const tVector& force)

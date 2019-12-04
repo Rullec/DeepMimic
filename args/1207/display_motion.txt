@@ -1,0 +1,4 @@
+--scene kin_char
+
+--character_file data/1207/characters/120701.json
+--motion_file data/1207/motions/ID_motion_1207.txt

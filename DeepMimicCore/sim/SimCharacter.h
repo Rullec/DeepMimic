@@ -197,3 +197,5 @@ protected:
 	virtual const btCollisionObject* GetCollisionObject() const;
 	virtual btCollisionObject* GetCollisionObject();
 };
+
+#define MAX_NUM_CONTACT_PTS 10

@@ -161,7 +161,6 @@ void cSceneSimChar::Clear()
 
 void cSceneSimChar::Update(double time_elapsed)
 {
-
 	cScene::Update(time_elapsed);
 
 	if (time_elapsed < 0)
@@ -176,9 +175,17 @@ void cSceneSimChar::Update(double time_elapsed)
 	}
 
 	PreUpdate(time_elapsed);		// clear joint torque
+	// 显示一下速度：是不是最开始的时候设置的速度太大了?
+	auto & sim_char = mChars[0];
 
 	// order matters!
+	mIDInfo->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
+
+
+	// calc & apply torque in this function
 	UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
+	mIDInfo->PreSim();
+
 	UpdateWorld(time_elapsed);
 	UpdateGround(time_elapsed);
 	UpdateObjs(time_elapsed);
@@ -187,8 +194,9 @@ void cSceneSimChar::Update(double time_elapsed)
 	PostUpdateCharacters(time_elapsed);
 	PostUpdate(time_elapsed);
 
+	mIDInfo->PostSim();
+
 	
-	mIDInfo->RecordNewFrameOnline(time_elapsed);	// record new frame
 }
 
 int cSceneSimChar::GetNumChars() const
@@ -558,7 +566,7 @@ void cSceneSimChar::BuildInverseDynamic()
 {
 	// build inverse dynamics
 	auto sim_char = this->GetCharacter(0);
-	mIDInfo = std::shared_ptr<cInverseDynamicsInfo>(new cInverseDynamicsInfo(sim_char));
+	mIDInfo = std::shared_ptr<cIDSolver>(new cIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get()));
 
 	// from json vec to Eigen::VectorXd
 	auto JsonVec2Eigen = [](Json::Value root)->Eigen::VectorXd
@@ -646,6 +654,7 @@ void cSceneSimChar::ResolveCharGroundIntersect()
 
 void cSceneSimChar::ResolveCharGroundIntersect(const std::shared_ptr<cSimCharacter>& out_char) const
 {
+	// 为了防止初始状态和地面有碰撞，加上去。
 	const double pad = 0.001;
 
 	int num_parts = out_char->GetNumBodyParts();
@@ -764,12 +773,17 @@ void cSceneSimChar::ResetScene()
 	{
 		ResetRandPertrub();
 	}
-
+	std::cout << "exit in ResetScene" << std::endl;
+	//mIDInfo->Solve();
+	//mIDInfo->Clear();
+	exit(1);
+	
+	
 	ResetWorld();
 	ResetCharacters();
 	ResetGround();
 	CleanObjs();
-	mIDInfo->ClearOnline();
+	
 
 	InitCharacterPos();
 	ResolveCharGroundIntersect();

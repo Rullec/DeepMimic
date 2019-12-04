@@ -31,8 +31,6 @@ public:
 	virtual double GetMass() const;
 	virtual double GetFriction() const;
 	virtual void SetFriction(double friction);
-	virtual void SetRotationCenter(const tVector & trans);
-	virtual tVector GetRotationCenter();
 	virtual void ApplyForce(const tVector& force);
 	virtual void ApplyForce(const tVector& force, const tVector& local_pos);
 	virtual void ApplyTorque(const tVector& torque);
@@ -55,7 +53,6 @@ protected:
 
 	tVector mLinVel;			// 4d的LinVel 线速度  4d = direct + value?
 	tVector mAngVel;			// 4d的AngVel　角速度 4d = axis + value?
-	tVector mRotationCenter;	// rotation order in link frame
 
 	virtual void InitSize(tVector& out_size) const;
 	virtual cShape::eShape FetchObjShape() const;

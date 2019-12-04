@@ -106,6 +106,7 @@ void cWorld::Update(double time_elapsed)
 
 	btScalar timestep = static_cast<btScalar>(time_elapsed);
 	mSimWorld->stepSimulation(timestep, 1, timestep);	// single step: works well
+	mTimeStep = timestep;
 
 	mContactManager.Update();
 }

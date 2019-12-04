@@ -4,7 +4,7 @@
 #include "sim/RBDModel.h"
 
 //#define IMP_PD_CTRL_PROFILER
-
+class cReverseController;
 class cImpPDController : public cExpPDController
 {
 public:
@@ -28,7 +28,9 @@ protected:
 
 	tVector mGravity;
 	bool mExternRBDModel;
+	
 	std::shared_ptr<cRBDModel> mRBDModel;
+	std::shared_ptr<cReverseController> mReverser;
 
 #if defined(IMP_PD_CTRL_PROFILER)
 	double mPerfSolveTime;
@@ -42,6 +44,8 @@ protected:
 	virtual void UpdateRBDModel();
 
 	virtual void CalcControlForces(double time_step, Eigen::VectorXd& out_tau);
-	virtual void BuildTargetPose(Eigen::VectorXd& out_pose) const;
-	virtual void BuildTargetVel(Eigen::VectorXd& out_vel) const;
+	virtual void BuildTargetPose(tVectorXd& out_pose) const;
+	virtual void BuildTargetVel(tVectorXd& out_vel) const;
+
+
 };

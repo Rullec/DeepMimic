@@ -279,6 +279,11 @@ tVector cSimBodyJoint::GetChildPos() const
 	return mParams.mChildPos; 
 }
 
+tQuaternion cSimBodyJoint::GetChildRot() const
+{
+	return mParams.mChildRot;
+}
+
 tMatrix cSimBodyJoint::BuildJointChildTrans() const
 {
 	return cMathUtil::TranslateMat(mParams.mChildPos) * cMathUtil::RotateMat(mParams.mChildRot);
@@ -309,7 +314,7 @@ void cSimBodyJoint::ClampTotalTorque(tVector& out_torque) const
 	}
 
 	// 添加报警功能，如果满负荷就要报警
-	if(abs(mag - torque_lim) < 1)
+	if(mag - torque_lim > 0)
 	{
 		std::cout <<"[torque lim] joint "<< mParams.mID <<" torque lim = " << torque_lim <<", cur torque = " << mag << std::endl;
 	}
@@ -699,12 +704,12 @@ void cSimBodyJoint::ApplyTauSpherical()
 	// std::cout <<"[after clamp] torque norm = " << torque.norm()<<std::endl;
 
 	double world_scale = mWorld->GetScale();
-	torque = cMathUtil::QuatRotVec(mParams.mChildRot, torque);
+	torque = cMathUtil::QuatRotVec(mParams.mChildRot, torque);	// from joint to link vec
 	// std::cout <<", joint " << mParams.mID <<" apply torque = "  << torque.norm();
 	btScalar bt_data[] = { static_cast<btScalar>(world_scale * world_scale * torque[0]),
 							static_cast<btScalar>(world_scale * world_scale * torque[1]),
 							static_cast<btScalar>(world_scale * world_scale * torque[2]) };
-	mMultiBody->addJointTorqueMultiDof(mParams.mID, bt_data);
+	mMultiBody->addJointTorqueMultiDof(mParams.mID, bt_data);//输入的torque是world frame
 }
 
 void cSimBodyJoint::SetTotalForce(const tVector& force)
