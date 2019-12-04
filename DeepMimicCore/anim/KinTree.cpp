@@ -200,7 +200,6 @@ bool cKinTree::ParseBodyDef(const Json::Value& root, cKinTree::tBodyDef& out_def
 	else
 	{
 		out_name = root[gBodyDefsKeyName].asString();
-		std::cout << "[debug] parse body def name = " << out_name << std::endl;
 	}
 
 	for (int i = 0; i < eBodyParamMax; ++i)

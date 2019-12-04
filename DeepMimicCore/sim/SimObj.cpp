@@ -18,7 +18,6 @@ tVector cSimObj::GetPos() const
 {
 	/*
 		获取当前obj的位置(position)，在世界坐标系下
-
 	*/
 	const btCollisionObject* col_obj = GetCollisionObject();	// 从bullet中拿object
 	btTransform trans = col_obj->getWorldTransform();	// 从bullet中拿transform
@@ -63,7 +62,7 @@ void cSimObj::GetRotation(tVector& out_axis, double& out_theta) const
 tQuaternion cSimObj::GetRotation() const
 {
 	const btCollisionObject* col_obj = GetCollisionObject();
-	btTransform trans = col_obj->getWorldTransform();	// 局部->世界
+	btTransform trans = col_obj->getWorldTransform();	// 局部->世界，因为getposition的时候，直接拿到原点就是位置。
 	btQuaternion bt_q = trans.getRotation();
 	tQuaternion q = tQuaternion(bt_q.w(), bt_q.x(), bt_q.y(), bt_q.z());
 	return q;
