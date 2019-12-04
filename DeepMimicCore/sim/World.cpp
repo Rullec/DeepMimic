@@ -98,10 +98,14 @@ void cWorld::Update(double time_elapsed)
 	time_elapsed = std::max(0.0, time_elapsed);
 	mPerturbManager.Update(time_elapsed);	// 似乎对于扰动有一个统一的管理。
 
+	// multi steps: motion data didn't sync between CollisionObj and btMultiBody
+	//btScalar timestep = static_cast<btScalar>(time_elapsed);
+	//btScalar subtimestep = timestep / mParams.mNumSubsteps;
+	//mSimWorld->stepSimulation(timestep, mParams.mNumSubsteps, subtimestep);	
+	//mTimeStep = subtimestep;
+
 	btScalar timestep = static_cast<btScalar>(time_elapsed);
-	btScalar subtimestep = timestep / mParams.mNumSubsteps;
-	mSimWorld->stepSimulation(timestep, mParams.mNumSubsteps, subtimestep);	// bullet stepSimulation，进行仿真
-	mTimeStep = subtimestep;
+	mSimWorld->stepSimulation(timestep, 1, timestep);	// single step: works well
 
 	mContactManager.Update();
 }
@@ -128,7 +132,7 @@ void cWorld::RemoveRigidBody(cSimRigidBody& obj)
 void cWorld::AddCollisionObject(btCollisionObject* col_obj, int col_filter_group, int col_filter_mask)
 {
 	col_filter_mask |= cContactManager::gFlagRayTest;
-	std::cout << "[log] add collision obj: " << mSimWorld->getNumMultibodies() << " " << " group = " << col_filter_group << ", mask = " << col_filter_mask << std::endl;
+	//std::cout << "[log] add collision obj: " << mSimWorld->getNumMultibodies() << " " << " group = " << col_filter_group << ", mask = " << col_filter_mask << std::endl;
 	//std::cout <<"[add collision] add a object as " << col_filter_group <<" " <<  col_filter_mask <<std::endl;
 	mSimWorld->addCollisionObject(col_obj, col_filter_group, col_filter_mask);
 }

@@ -93,7 +93,8 @@ public:
 	virtual const tEigenArr<cContactManager::tContactPt>& GetContactPts(int idx) const;
 	virtual const tEigenArr<cContactManager::tContactPt>& GetContactPts() const;
 	virtual const cContactManager::tContactHandle& GetContactHandle() const;
-	
+	virtual const void GetTotalContactPts(Eigen::VectorXd &) const;
+
 	virtual bool HasFallen() const;
 	virtual bool HasStumbled() const;
 	virtual bool HasVelExploded(double vel_threshold = 100.0) const;

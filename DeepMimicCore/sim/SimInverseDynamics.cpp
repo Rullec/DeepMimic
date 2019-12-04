@@ -30,7 +30,8 @@ auto ADD_NEW_ITEM = [](Eigen::MatrixXd & mat, const Eigen::VectorXd & vec)->bool
 {
 	if (mat.cols() != vec.size())
 	{
-		std::cout << "[error] ADD_NEW_ITEM FAILED" << std::endl;
+		std::cout << "[error] ADD_NEW_ITEM FAILED: " << mat.cols() <<" | " << vec.size() << std::endl;
+
 		return false;
 	}
 
@@ -68,7 +69,14 @@ cInverseDynamicsInfo::cInverseDynamicsInfo(std::shared_ptr<cSimCharacter> & sim_
 		auto & cur_link = mSimChar->GetJoint(i).GetChild();
 		mReactionForce_pof[i] = cur_link->GetRotationCenter();
 	}
-	
+
+	mCurInfoId = 0;
+
+	// clear log file
+	ofstream fout;
+	fout.open(mIDOnlineLog), fout << "", fout.close();
+	fout.open(mIDOnlineSolveLog), fout << "", fout.close();
+
 }
 
 void cInverseDynamicsInfo::AddNewFrame(const Eigen::VectorXd & state_, const Eigen::VectorXd & pose_, const Eigen::VectorXd & action_, const Eigen::VectorXd & contact_info_)
@@ -119,6 +127,53 @@ void cInverseDynamicsInfo::AddNewFrame(const Eigen::VectorXd & state_, const Eig
 	mIDStatus = eIDStatus::PREPARED;
 }
 
+void cInverseDynamicsInfo::AddNewFrameOnline(
+	const Eigen::VectorXd & pose_, 
+	const Eigen::VectorXd & torque_, 
+	const Eigen::VectorXd & contact_info_)
+{
+	/*
+		Function: AddNewFrameOnline
+			this function is nearly the same as AddNewFrame
+	*/
+	if (mNumOfFrames == -1)
+	{
+		mNumOfFrames = 0;
+		mPoseSize = pose_.size();
+		mTorqueSize = torque_.size();
+		mContact_infoSize = contact_info_.size();
+		
+		mPose.resize(mNumOfFrames, mPoseSize);
+		mTorque_ideal.resize(mNumOfFrames, mTorqueSize);
+		mContact_info.resize(mNumOfFrames, mContact_infoSize);
+	}
+
+	// check input size
+	if (!CHECK_INPUT(torque_, mTorqueSize)
+		|| !CHECK_INPUT(pose_, mPoseSize)	// the size of action can be 0 or mActionSize
+		|| !CHECK_INPUT(contact_info_, mContact_infoSize))
+	{
+		std::cout << "[error] AddNewFrame in InverseDynamicInfo input does not correspond" << std::endl;
+		std::cout << "[debug] pose size = " << pose_.size() << " != " << mPoseSize << std::endl;
+		std::cout << "[debug] action size = " << torque_.size() << " != " << mTorqueSize << std::endl;
+		std::cout << "[debug] contact_info size = " << contact_info_.size() << " != " << mContact_infoSize << std::endl;
+		exit(1);
+	}
+
+	// add new frame
+	mNumOfFrames++;
+	bool succ = true;
+	succ &= ADD_NEW_ITEM(mPose, pose_);
+	succ &= ADD_NEW_ITEM(mContact_info, contact_info_);
+	succ &= ADD_NEW_ITEM(mTorque_ideal, torque_);
+	if (!succ) {
+		std::cout << "[error] AddNewFrame in InverseDynamicInfo failed" << std::endl;
+		exit(1);
+	}
+	
+	mIDStatus = eIDStatus::PREPARED;
+}
+
 int cInverseDynamicsInfo::GetNumOfFrames() const 
 {
 	return mNumOfFrames;
@@ -155,7 +210,7 @@ Eigen::VectorXd cInverseDynamicsInfo::GetTorque(double time)
 		}
 		cur_time += duration;
 	}
-	return mTorque.row(target_frame_id);
+	return mTorque_solved.row(target_frame_id);
 }
 
 double cInverseDynamicsInfo::GetMaxTime() const 
@@ -331,6 +386,109 @@ void cInverseDynamicsInfo::SolveInverseDynamics()
 
 }
 
+
+
+void cInverseDynamicsInfo::RecordNewFrameOnline(double timestep)
+{
+	mCurInfoId++;
+
+	// record link info
+	tFrameInfo cur_info;
+	tVector cur_pos, cur_omega, cur_vel;
+	tQuaternion cur_rot;
+	cur_info.mTorque = VectorXd::Zero(3 * mNumLinks);
+	cur_info.mTimestep = timestep;
+	
+	for (int i = 0; i < mNumLinks; i++)
+	{
+		auto & cur_joint = mSimChar->GetJoint(i);
+		auto & cur_link = cur_joint.GetChild();
+		cur_pos = cur_link->GetPos();
+		cur_rot = cur_link->GetRotation();	// local -> world, 反了?
+		cur_vel = cur_link->GetLinearVelocity();
+		cur_omega = cur_link->GetAngularVelocity();
+		
+		cur_info.mPos.push_back(cur_pos);
+		cur_info.mRot.push_back(cur_rot);
+		cur_info.mOmega.push_back(cur_omega);	// 这个旋转, 是从local->world的旋转，对他求导可以得到角速度吗
+		cur_info.mVel.push_back(cur_vel);
+
+		// record torque info
+		cSpAlg::tSpVec torque = cur_joint.GetTau();
+		cur_info.mTorque.segment(i * 3, 3) = torque.segment(0, 3);
+	}
+
+	// 输出日志log到文件，记录各个link的运动信息，以及当前torque
+	ofstream fout(mIDOnlineLog, ios::app);
+	fout << "-------frame " << mCurInfoId << "-------" << std::endl;
+	for (int i = 0; i < 1; i++)
+	{
+		fout << "---link " << i << "---" << std::endl;
+		fout << "timestep = " << cur_info.mTimestep << std::endl;
+		fout << "pos = " << cur_info.mPos[i].transpose() << std::endl;
+		fout << "rot = " << cur_info.mRot[i].coeffs().transpose() << std::endl;
+		if (mNumOfFrames > 0)
+		{
+			fout << "vel = " << cur_info.mVel[i].transpose() << std::endl;
+			fout << "omega = " << cur_info.mOmega[i].transpose() << std::endl;
+		}
+		
+	}
+
+	// 2. 输入i帧位移、速度、加速度、碰撞信息，求解action，比较区别：必须验证相等。
+	{
+		// resize shape 
+		{
+			int cur_cnt = mLinkInfo->mTimesteps.size();
+
+			// timesteps
+			mLinkInfo->mTimesteps.conservativeResize(cur_cnt + 1);
+
+			// linear infos
+			mLinkInfo->mLinkPos.conservativeResize(cur_cnt + 1, mNumLinks * 3);	// mLinkPos.size == (total num of frames, NumOfBodies * 3);
+			mLinkInfo->mLinkVel.conservativeResize(cur_cnt + 1, mNumLinks * 3);
+			mLinkInfo->mLinkAccel.conservativeResize(cur_cnt + 1, mNumLinks * 3);
+
+			// ultimate angular infos 
+			mLinkInfo->mLinkRot.conservativeResize(cur_cnt + 1, mNumLinks * 4);		// quaternion coeff [x, y, z, w]
+			if(cur_cnt >= 1) mLinkInfo->mLinkAngularVel.conservativeResize(cur_cnt, mNumLinks * 4);	// axis angle [x,y,z,theta]
+			if (cur_cnt >= 2) mLinkInfo->mLinkAngularAccel.conservativeResize(cur_cnt - 1, mNumLinks * 4);	// the same axis angle
+		}
+
+		// get contact info
+		VectorXd contact_info;
+		mSimChar->GetTotalContactPts(contact_info);
+
+		// get current torque
+		VectorXd torque = VectorXd::Zero(3 * mNumLinks);
+		for (int j = 0; j < mNumLinks; j++)
+		{
+			auto & cur_joint = mSimChar->GetJoint(j);
+			torque.segment(j * 3, 3) = cur_joint.GetTotalTorque().segment(0, 3);
+		}
+
+		// set info to mLinkInfo, then call computelinkinfo1 & computelinkinfo2
+		VectorXd pose_tmp = mSimChar->GetPose();
+		VectorXd pose = VectorXd::Zero(pose_tmp.size() + 1);
+		pose[0] = cur_info.mTimestep;
+		pose.segment(1, pose_tmp.size()) = pose_tmp;
+		AddNewFrameOnline(pose, torque, contact_info);
+	}
+}
+
+void cInverseDynamicsInfo::ClearOnline()
+{
+	std::cout << "[log] IDinfo clear, dumps for debug." << std::endl;
+	
+	// 1. 求解整个ID
+	SolveInverseDynamics();
+	exit(1);
+
+	// 2. 清理所有在线数据
+
+	// 3. 清除log file
+}
+
 void cInverseDynamicsInfo::ComputeLinkInfo()
 {
 	/*
@@ -360,14 +518,16 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 		mLinkInfo->mTimesteps.resize(mNumOfFrames);
 
 		// linear infos
-		mLinkInfo->mLinkPos.resize(mNumOfFrames, num_bodies * 3);	// mLinkPos.size == (total num of frames, NumOfBodies * 3);
-		mLinkInfo->mLinkVel.resize(mNumOfFrames - 1, num_bodies * 3);
-		mLinkInfo->mLinkAccel.resize(mNumOfFrames - 2, num_bodies * 3);
+		mLinkInfo->mLinkPos.resize(mNumOfFrames, num_bodies * 3), mLinkInfo->mLinkPos.setZero();	// mLinkPos.size == (total num of frames, NumOfBodies * 3);
+		mLinkInfo->mLinkVel.resize(mNumOfFrames, num_bodies * 3), mLinkInfo->mLinkVel.setZero();
+		mLinkInfo->mLinkAccel.resize(mNumOfFrames - 1, num_bodies * 3), mLinkInfo->mLinkAccel.setZero();
 
 		// ultimate angular infos 
-		mLinkInfo->mLinkRot.resize(mNumOfFrames, num_bodies * 4);		// quaternion coeff [x, y, z, w]
-		mLinkInfo->mLinkAngularVel.resize(mNumOfFrames - 1, num_bodies * 4);	// axis angle [x,y,z,theta]
-		mLinkInfo->mLinkAngularAccel.resize(mNumOfFrames - 2, num_bodies * 4);	// the same axis angle
+		mLinkInfo->mLinkRot.resize(mNumOfFrames, num_bodies * 4), mLinkInfo->mLinkRot.setZero();		// quaternion coeff [x, y, z, w]
+		mLinkInfo->mLinkAngularVel.resize(mNumOfFrames, num_bodies * 4), mLinkInfo->mLinkAngularVel.setZero();	// axis angle [x,y,z,theta]
+		mLinkInfo->mLinkAngularAccel.resize(mNumOfFrames - 1, num_bodies * 4), mLinkInfo->mLinkAngularAccel.setZero();	// the same axis angle
+
+
 	}
 
 
@@ -380,16 +540,25 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 		mSimChar->SetPose(cur_pose);
 
 		// get & set position info
+		/* symplethic integration
+			0. set initial condition
+				v_0 = ignore, x_0 = init_pose
+			1. update velocity via force
+				v_{t+1} = v_t + timestep * a_t
+			2. update displacement by v_{t+1}
+				x_{t+1} = x_t + timestep * v_{t+1}
+
+		*/
 		for (int body_id = 0; body_id < mSimChar->GetNumBodyParts(); body_id++)
 		{
 			// 2.2 0 order info computing 
-			ComputeLinkInfo0(i, body_id);
+			ComputeLinkInfo0(i, body_id);// 0 <= i <= N-1
 
 			// 2.3 1st order info computing(velocity)
-			ComputeLinkInfo1(i - 1, body_id);
+			ComputeLinkInfo1(i, body_id); // vel_i = (pos_i - pos_{i-1})/time_{i-1}, 1 <= i <= N-1
 
 			// 2.4 2nd order info computing (acceleration)
-			ComputeLinkInfo2(i - 2, body_id);
+			ComputeLinkInfo2(i - 1, body_id); // acc_i = (vel_{i+1} - vel_i)/ time_i, 1 <= i <= N-2
 		}
 	}
 
@@ -398,13 +567,13 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 	// 5. check the storage
 	{
 		// check velocity
-		for (int frame = 0; frame < GetNumOfFrames() - 1; frame++)
+		for (int frame = 1; frame < GetNumOfFrames(); frame++)
 		{
-			double timestep = mLinkInfo->mTimesteps[frame];
+			double timestep = mLinkInfo->mTimesteps[frame-1];
 			for (int body = 0; body < this->mSimChar->GetNumBodyParts(); body++)
 			{
 				tVector cur_vel = GetLinkVel(frame, body);
-				tVector cur_pos = GetLinkPos(frame, body), next_pos = GetLinkPos(frame + 1, body);
+				tVector cur_pos = GetLinkPos(frame-1, body), next_pos = GetLinkPos(frame, body);
 				tVector predicted_move = cur_vel.cwiseProduct(tVector::Ones() * timestep);
 				tVector true_move = next_pos - cur_pos;
 				if (JudgeSameVec(predicted_move, true_move) == false)
@@ -417,7 +586,7 @@ void cInverseDynamicsInfo::ComputeLinkInfo()
 		}
 
 		// check accel
-		for (int frame = 0; frame < GetNumOfFrames() - 2; frame++)
+		for (int frame = 1; frame < GetNumOfFrames() - 1; frame++)
 		{
 			double timestep = mLinkInfo->mTimesteps[frame];
 			for (int body = 0; body < this->mSimChar->GetNumBodyParts(); body++)
@@ -460,6 +629,7 @@ void cInverseDynamicsInfo::ComputeLinkInfo0(int frame, int body_id)
 	{
 		tVector cur_pos = mSimChar->GetBodyPartPos(body_id);
 		mLinkInfo->mLinkPos.block(frame, body_id * 3, 1, 3) = cur_pos.segment(0, 3).transpose();
+		//std::cout << "frame " << frame <<", body_id " << body_id << " " << cur_pos.transpose() << std::endl;
 		tVector get_pos = GetLinkPos(frame, body_id);
 		if (JudgeSameVec(get_pos, cur_pos) == false)
 		{
@@ -494,13 +664,16 @@ void cInverseDynamicsInfo::ComputeLinkInfo1(int frame, int body_id)
 
 	This function computes first order info for links, including
 		linear vel and angular vel
+	ATTENTION: x_{t+1} = x_t + time * v_{t+1}, so we will set frame-1 frame
 */
 
-	if (frame < 0) return;
+	if (frame <= 0) return;
+
 	double timestep = mLinkInfo->mTimesteps[frame];
+	// 修改速度的计分方式，注意：加速度积分不需要修改。
 	// linear terms
 	{
-		tVector vel = (GetLinkPos(frame + 1, body_id) - GetLinkPos(frame, body_id)) / timestep;
+		tVector vel = (GetLinkPos(frame, body_id) - GetLinkPos(frame - 1, body_id)) / timestep;
 		mLinkInfo->mLinkVel.block(frame, body_id * 3, 1, 3) = vel.segment(0, 3).transpose();
 		tVector get_vel = GetLinkVel(frame, body_id);
 		if (JudgeSameVec(get_vel, vel) == false)
@@ -512,7 +685,7 @@ void cInverseDynamicsInfo::ComputeLinkInfo1(int frame, int body_id)
 
 	// ultimate angular velocity
 	{
-		tVector q1_coef = GetLinkRotation(frame, body_id), q2_coef = GetLinkRotation(frame + 1, body_id);
+		tVector q1_coef = GetLinkRotation(frame - 1, body_id), q2_coef = GetLinkRotation(frame, body_id);
 		tQuaternion q1 = tQuaternion(q1_coef[3], q1_coef[0], q1_coef[1], q1_coef[2]),
 					q2 = tQuaternion(q2_coef[3], q2_coef[0], q2_coef[1], q2_coef[2]);
 		tVector omega = cMathUtil::CalcQuaternionVel(q1, q2, timestep);
@@ -567,7 +740,7 @@ void cInverseDynamicsInfo::ComputeLinkInfo2(int frame, int body_id)
 
 	*/
 
-	if (frame < 0) return;
+	if (frame <= 0) return;
 	double timestep = mLinkInfo->mTimesteps[frame];
 	// linear terms
 	{
@@ -622,7 +795,7 @@ void cInverseDynamicsInfo::ComputeJointDynamics()
 
 	// 2. compute forces for each frame
 	//for (int frame_id = 0; frame_id < 1; frame_id++)
-	mTorque.resize(mNumOfFrames - 2, 3 * mNumLinks);
+	mTorque_solved.resize(mNumOfFrames - 2, 3 * mNumLinks);
 	for (int frame_id = 0; frame_id < mNumOfFrames - 2; frame_id++)
 	{
 		ComputeJointDynamicsFrame(frame_id);
@@ -632,7 +805,7 @@ void cInverseDynamicsInfo::ComputeJointDynamics()
 		{
 			cur_torque.segment(3 * j, 3) = mReactionTorque[j];
 		}
-		mTorque.row(frame_id) = cur_torque.transpose();
+		mTorque_solved.row(frame_id) = cur_torque.transpose();
 		
 	}
 
@@ -903,12 +1076,12 @@ void cInverseDynamicsInfo::PrintLinkInfo()
 	ofstream fout(gIDLogPath_linkinfo);
 
 	int num_bodies = mSimChar->GetNumBodyParts();
-	for (int frame = 0; frame < 1; frame++)
+	for (int frame = 0; frame < mNumOfFrames; frame++)
 	{
 		double timestep = mLinkInfo->mTimesteps[frame];
 		fout << "----------------frame " << frame << "----------------" << std::endl;
 		fout << "timestep = " << timestep << std::endl;
-		for (int body_id = 0; body_id < num_bodies; body_id++)
+		for (int body_id = 0; body_id < 1; body_id++)
 		{
 			fout << "--------body " << body_id <<" " << mSimChar->GetBodyName(body_id) << " info--------" << std::endl;
 			// 1. output 0 order info 
@@ -919,9 +1092,9 @@ void cInverseDynamicsInfo::PrintLinkInfo()
 				tMatrix link_trans = GetLinkTrans(frame, body_id);
 
 				fout << "link_pos = " << link_pos.transpose() << std::endl;
-				fout << "link_rotmat = \n " << link_rot << std::endl;
+				//fout << "link_rotmat = \n " << link_rot << std::endl;
 				fout << "link_rot_quater = " << link_rot_quater.transpose() << std::endl;
-				fout << "link_trans = \n " << link_trans << std::endl;
+				//fout << "link_trans = \n " << link_trans << std::endl;
 			}
 
 
@@ -1022,6 +1195,6 @@ void cInverseDynamicsInfo::BuildTopoInfo()
 	for (int i = 0; i < mVisitSeq.size(); i++)
 	{
 		int joint_id = mVisitSeq[i];
-		std::cout << "[debug] visit " << joint_id << " " << mSimChar->GetBodyName(joint_id) << std::endl;
+		//std::cout << "[debug] visit " << joint_id << " " << mSimChar->GetBodyName(joint_id) << std::endl;
 	}
 }

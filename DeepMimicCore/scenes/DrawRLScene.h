@@ -47,7 +47,6 @@ public:
 	virtual void LogVal(int agent_id, double val);
 
 	virtual std::string GetName() const;
-	virtual void SolveID(int agent_id);
 
 protected:
 

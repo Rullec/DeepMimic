@@ -166,17 +166,3 @@ std::string cDrawRLScene::GetName() const
 {
 	return GetRLScene()->GetName();
 }
-
-void cDrawRLScene::SolveID(int agent_id)
-{
-	cSceneImitate *imitate_scene = dynamic_cast<cSceneImitate *>(GetRLScene());
-	if (imitate_scene != nullptr)
-	{
-		imitate_scene->SolveID(0);
-	}
-	else
-	{
-		std::cout << "[error] cDrawRLScene::SolveID dynamic_cast failed!" << std::endl;
-		exit(1);
-	}
-}

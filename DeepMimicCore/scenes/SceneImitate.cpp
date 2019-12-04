@@ -691,39 +691,3 @@ double cSceneImitate::CalcRandKinResetTime()
 	double rand_time = cMathUtil::RandDouble(0, dur);
 	return rand_time;
 }
-
-static int test_var = 0;
-void cSceneImitate::SolveID(int agent_id)
-{
-	//const auto & kin_char = GetKinChar();
-	//const auto * sim_char = GetAgentChar(agent_id);
-	//const cMotion & motion = kin_char->GetMotion();
-	//int num_frames = motion.GetNumFrames();
-	//for (int i = 0; i < num_frames - 1; i++)
-	//{
-	//	const int time_i = motion.GetFrameTime(i);
-	//	Eigen::VectorXd cur_pos = motion.GetFrame(i), next_pos = motion.GetFrame(i + 1);
-	//	Eigen::VectorXd cur_vel = Eigen::VectorXd::Zero(cur_pos.size()), next_vel = Eigen::VectorXd::Zero(next_pos.size());
-	//	Eigen::VectorXd contact_info = Eigen::VectorXd::Zero(0);
-	//	std::cout << "begin " << cur_pos.transpose() << std::endl;
-	//	cSceneSimChar::SolveInverseDynamic(agent_id, cur_pos, next_pos, cur_vel, next_vel, contact_info);
-	//}
-
-	// 调用一次本函数，就走一帧
-	const auto & kin_char = GetKinChar();
-	const auto * sim_char = GetAgentChar(agent_id);
-	const cMotion & motion = kin_char->GetMotion();
-	const int num_frames = motion.GetNumFrames();
-	test_var = num_frames == test_var ? 0 : test_var;
-
-	Eigen::VectorXd cur_pos = motion.GetFrame(test_var),
-		next_pos = motion.GetFrame((test_var + 1) % num_frames),
-		cur_vel = Eigen::VectorXd::Zero(cur_pos.size()),
-		next_vel = Eigen::VectorXd::Zero(cur_pos.size()),
-		contact_info;
-
-	cSceneSimChar::SolveInverseDynamic(agent_id, cur_pos, next_pos, cur_vel, next_vel, contact_info);
-	test_var++;
-	
-	//cRBDUtil::SolveInvDyna()
-}

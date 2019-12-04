@@ -85,7 +85,6 @@ public:
 	virtual int CheckTerminate(int agent_id) const;
 	virtual void SetMode(int mode);
 	virtual void SetSampleCount(int count);
-	virtual void SolveID(int agent_id);
 
 protected:
 	unsigned long int mRandSeed;

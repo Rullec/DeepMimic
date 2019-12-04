@@ -161,6 +161,7 @@ void cSceneSimChar::Clear()
 
 void cSceneSimChar::Update(double time_elapsed)
 {
+
 	cScene::Update(time_elapsed);
 
 	if (time_elapsed < 0)
@@ -168,70 +169,26 @@ void cSceneSimChar::Update(double time_elapsed)
 		return;
 	}
 
-	if (mEnableID == false)
+
+	if (mPerturbParams.mEnableRandPerturbs)
 	{
-		if (mPerturbParams.mEnableRandPerturbs)
-		{
-			UpdateRandPerturb(time_elapsed);
-		}
-
-		PreUpdate(time_elapsed);
-
-		// order matters!
-		UpdateCharacters(time_elapsed);	// 这个就是把所有joint都给apply tau，然后改变Joint角度
-		UpdateWorld(time_elapsed);
-		UpdateGround(time_elapsed);
-		UpdateObjs(time_elapsed);
-		UpdateJoints(time_elapsed);
-
-		PostUpdateCharacters(time_elapsed);
-		PostUpdate(time_elapsed);
+		UpdateRandPerturb(time_elapsed);
 	}
-	else
-	{
-		// ID-solving mode
-		std::cout << "[log] IDUpdate: cur time = " << GetTime() << std::endl;
 
-		// set pose by ID info
-		//Eigen::VectorXd pose = mIDInfo->GetPose(GetTime());
-		//mChars[0]->SetPose(pose);
-		
-		// set this tau to character
+	PreUpdate(time_elapsed);		// clear joint torque
 
+	// order matters!
+	UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
+	UpdateWorld(time_elapsed);
+	UpdateGround(time_elapsed);
+	UpdateObjs(time_elapsed);
+	UpdateJoints(time_elapsed);
 
-		// 下面正常更新
-		PreUpdate(time_elapsed);
-		
-		
-		//Eigen::VectorXd tau(curr_char->GetNumDof());
-		//mChars[0]->ApplyControlForces(tau);
+	PostUpdateCharacters(time_elapsed);
+	PostUpdate(time_elapsed);
 
-		// order matters!
-		//UpdateCharacters(time_elapsed);	// apply torque to bullet
-		{
-			auto & curr_char = mChars[0];
-			Eigen::VectorXd tau = mIDInfo->GetTorque(GetTime());	// get tau solved by ID
-			// set this tau to joints, and apply 
-			for (int i = 0; i < curr_char->GetNumBodyParts(); i++)
-			{
-				Eigen::Vector3d cur_torque = tau.segment(i * 3, 3);
-				std::cout << "[log] for link " << i << " " << curr_char->GetBodyName(i)\
-					<< "torque = " << cur_torque.transpose() << std::endl;
-				auto cur_joint = curr_char->GetJoint(i);
-				cur_joint.ClearTau();
-				cur_joint.AddTau(cur_torque);
-				cur_joint.ApplyTau();
-			}
-		}
-		UpdateWorld(time_elapsed);
-		UpdateGround(time_elapsed);
-		UpdateObjs(time_elapsed);
-		UpdateJoints(time_elapsed);
-
-		PostUpdateCharacters(time_elapsed);
-		PostUpdate(time_elapsed);
-	}
 	
+	mIDInfo->RecordNewFrameOnline(time_elapsed);	// record new frame
 }
 
 int cSceneSimChar::GetNumChars() const
@@ -610,49 +567,50 @@ void cSceneSimChar::BuildInverseDynamic()
 		for (int i = 0; i < vec.size(); i++) vec[i] = root[i].asDouble();
 		return vec;
 	};
-	if (mEnableID)
-	{
-		// Inverse Dynamics Mode
-		// parse ID info
-		std::ifstream f_stream(mIDInfoPath);
-		Json::Reader reader;
-		Json::Value root;
-		bool succ = reader.parse(f_stream, root);
-		f_stream.close();
 
-		if (!succ)
-		{
-			std::cout << "[error] void cSceneSimChar::InitInverseDynamic() parse failed " << std::endl;
-			exit(1);
-		}
-		Json::Value states = root["states"], poses = root["poses"], actions = root["actions"], contact_info = root["contact_info"];
-		int num_pairs = states.size();
-		for (int i = 0; i < num_pairs; i++)
-		{
-			// for the final state there is no action
-			Json::Value cur_state = states[i], cur_pose = poses[i], cur_action = actions[i], cur_contact_info = contact_info[i];
-			//printf("[debug] total pairs = %d, state size = %d, pose size = %d, action size = %d, contact_info size = %d\n",
-			//	num_pairs,
-			//	cur_state.size(),
-			//	cur_pose.size(),
-			//	cur_action.size(),
-			//	cur_contact_info.size());
-			Eigen::VectorXd state = JsonVec2Eigen(cur_state), pose = JsonVec2Eigen(cur_pose),
-				action = JsonVec2Eigen(cur_action), contact_info = JsonVec2Eigen(cur_contact_info);
-			mIDInfo->AddNewFrame(state, pose, action, contact_info);
-		}
-		std::cout << "[log] load ID items number = " << mIDInfo->GetNumOfFrames() << std::endl;
-
-		// remodeling the Timer
-		mTimer.SetMaxTime(mIDInfo->GetMaxTime());
-
-		// compute the position, velocity, acceleration for each link in each frame by forward euler
-		mIDInfo->SolveInverseDynamics();
-	}
-	else
-	{
-		std::cout << "[warning] InverseDynamics disabled!" << std::endl;
-	}
+	// offline mode: read trajectory from files, then solve it.
+	// online mode for debug: start with the simulation at the same time, record each state and solve them at onece
+	// then compare the desired ID result and the ideal one. It will be very easy to debug.
+	std::cout << "[warning] Inverse Dynamics runs in online mode.(debug mode)" << std::endl;
+	//if (mEnableID)
+	//{
+	//	// parse ID info
+	//	std::ifstream f_stream(mIDInfoPath);
+	//	Json::Reader reader;
+	//	Json::Value root;
+	//	bool succ = reader.parse(f_stream, root);
+	//	f_stream.close();
+	//	if (!succ)
+	//	{
+	//		std::cout << "[error] void cSceneSimChar::InitInverseDynamic() parse failed " << std::endl;
+	//		exit(1);
+	//	}
+	//	Json::Value states = root["states"], poses = root["poses"], actions = root["actions"], contact_info = root["contact_info"];
+	//	int num_pairs = states.size();
+	//	for (int i = 0; i < num_pairs; i++)
+	//	{
+	//		// for the final state there is no action
+	//		Json::Value cur_state = states[i], cur_pose = poses[i], cur_action = actions[i], cur_contact_info = contact_info[i];
+	//		//printf("[debug] total pairs = %d, state size = %d, pose size = %d, action size = %d, contact_info size = %d\n",
+	//		//	num_pairs,
+	//		//	cur_state.size(),
+	//		//	cur_pose.size(),
+	//		//	cur_action.size(),
+	//		//	cur_contact_info.size());
+	//		Eigen::VectorXd state = JsonVec2Eigen(cur_state), pose = JsonVec2Eigen(cur_pose),
+	//			action = JsonVec2Eigen(cur_action), contact_info = JsonVec2Eigen(cur_contact_info);
+	//		mIDInfo->AddNewFrame(state, pose, action, contact_info);
+	//	}
+	//	std::cout << "[log] load ID items number = " << mIDInfo->GetNumOfFrames() << std::endl;
+	//	// remodeling the Timer
+	//	mTimer.SetMaxTime(mIDInfo->GetMaxTime());
+	//	// compute the position, velocity, acceleration for each link in each frame by forward euler
+	//	mIDInfo->SolveInverseDynamics();
+	//}
+	//else
+	//{
+	//	std::cout << "[warning] InverseDynamics disabled!" << std::endl;
+	//}
 }
 
 void cSceneSimChar::SetCharRandPlacement(const std::shared_ptr<cSimCharacter>& out_char)
@@ -811,6 +769,7 @@ void cSceneSimChar::ResetScene()
 	ResetCharacters();
 	ResetGround();
 	CleanObjs();
+	mIDInfo->ClearOnline();
 
 	InitCharacterPos();
 	ResolveCharGroundIntersect();
@@ -1127,33 +1086,4 @@ void cSceneSimChar::ResetRandPertrub()
 {
 	mPerturbParams.mTimer = 0;
 	mPerturbParams.mNextTime = mRand.RandDouble(mPerturbParams.mTimeMin, mPerturbParams.mTimeMax);
-}
-
-#include <BulletInverseDynamics/IDConfig.hpp>
-#include <Extras/InverseDynamics/btMultiBodyTreeCreator.hpp>
-
-void cSceneSimChar::SolveInverseDynamic(int sim_char_id, Eigen::VectorXd pre_pos, Eigen::VectorXd next_pos, Eigen::VectorXd pre_vel, Eigen::VectorXd next_vel, Eigen::VectorXd contact_info) const
-{
-	//typedef cSimCharacter::tInverseDynamicInfo IDInfo;
-	////std::cout << "***************** solve inverse dynamic begin for character " << sim_char_id << "*************" << std::endl;
-	////std::cout << "[log] SolveInverseDynamic: char id = " << sim_char_id <<", pos size = " << pre_pos.size() << std::endl;
-	//std::shared_ptr<cSimCharacter> sim_char = GetCharacter(sim_char_id);
-	//if (nullptr == sim_char)
-	//{
-	//	std::cout << "[error] get " << sim_char_id << "failed" << std::endl;
-	//	exit(1);
-	//}
-	//
-	//std::shared_ptr<IDInfo> cur_info, next_info;
-	//cur_info = (shared_ptr<IDInfo>) new IDInfo(), next_info = (shared_ptr<IDInfo>) new IDInfo();
-	//cur_info->q = pre_pos, cur_info->q_dot = pre_vel, cur_info->contact_info = contact_info;
-	//next_info->q_dot = next_pos, next_info->q_dot = next_vel, next_info->contact_info = contact_info;
-
-	//sim_char->SetIDStatus(cur_info, next_info);
-
-	//Eigen::VectorXd action;
-	//sim_char->SolveID(action);
-	
-	//cCtPDController
-	
 }

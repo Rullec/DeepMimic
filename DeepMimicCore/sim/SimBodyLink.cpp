@@ -74,8 +74,10 @@ void cSimBodyLink::SetLinearVelocity(const tVector& vel)
 	assert(false); // unsupported
 }
 
+
 tVector cSimBodyLink::GetAngularVelocity() const
 {
+	// 什么坐标系下的? 是世界坐标系吗?
 	return mAngVel;
 }
 
