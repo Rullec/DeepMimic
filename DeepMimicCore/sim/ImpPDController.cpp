@@ -301,6 +301,7 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 				std::cout << "truth target pose = " << tar_pose.transpose() << std::endl;
 				std::cout << "solve target pose = " << solved_pd_target.transpose() << std::endl;
 				std::cout << "\ndiff = " << diff.transpose() << std::endl;
+				exit(1);
 			}
 		}
 }
