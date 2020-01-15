@@ -526,7 +526,7 @@ double cDeepMimicCore::CalcReward(int agent_id) const
 	if (rl_scene != nullptr)
 	{
 		double r = rl_scene->CalcReward(agent_id);
-		// std::cout <<"[get reward] reward = " << r << std::endl;
+//        std::cout <<"[get reward] reward = " << r << std::endl;
 		return r;
 	}
 	return 0;

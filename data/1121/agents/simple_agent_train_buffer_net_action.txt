@@ -28,7 +28,7 @@
 	
 	"OutputIters": 10,
 	"IntOutputIters": 400,
-	"TestEpisodes": 32,
+	"TestEpisodes": 1,
 
 	"ExpAnnealSamples": 64000000,
 	
@@ -53,10 +53,10 @@
 		"Temp": 0.001
 	},
 
-	"buffer_path": "/data/ubuntu_data/DeepMimic/output/1113/111301/",
-	"std_path": "/data/ubuntu_data/DeepMimic/output/1118/111801_norm/std.npz",
-	"mean_path": "/data/ubuntu_data/DeepMimic/output/1118/111801_norm/mean.npz",
-	"net_save_path": "/data/ubuntu_data/DeepMimic/output/1118/111801_net/sa_net.ckpt-1000",
+	"buffer_path": "/data/ubuntu_data/DeepMimic/output/1121/buffer_raw",
+	"std_path": "/home/ljf/playground/TF/sa/output/exp-3/norm/std.npz",
+	"mean_path": "/home/ljf/playground/TF/sa/output/exp-3/norm/mean.npz",
+	"net_save_path": "/home/ljf/playground/TF/sa/output/exp-3/model/sa_net.ckpt-100",
     "batch_size": 2000,
     "l2_coeff": 1e-3,
     "lr": 1e-3,

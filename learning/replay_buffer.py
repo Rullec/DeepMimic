@@ -12,6 +12,7 @@ class ReplayBuffer(object):
     TERMINATE_KEY = 'terminate'
     PATH_START_KEY = 'path_start'
     PATH_END_KEY = 'path_end'
+    BUFFER_KEY_SAVED = False
 
     def __init__(self, buffer_size):
         assert buffer_size > 0
@@ -26,6 +27,7 @@ class ReplayBuffer(object):
 
         self.save_buffer = False
         self.buffer_output_path = None
+        self.buffer_key_save_path = None
 
         self.clear()
         return
@@ -132,8 +134,6 @@ class ReplayBuffer(object):
         return start_idx
 
     def clear(self):
-        if self.save_buffer:
-            self._save(self.buffer_output_path)
         self.buffer_head = 0
         self.buffer_tail = MathUtil.INVALID_IDX
         self.num_paths = 0
@@ -283,7 +283,8 @@ class ReplayBuffer(object):
         self.buffers[self.PATH_END_KEY][idx] = idx[-1]
         return
 
-    def _save(self, save_dir):
+    def save(self):
+        save_dir = self.buffer_output_path
         print('=====================================')
         print('save buffer: ')
         print('tail: ' + str(self.buffer_tail))
@@ -296,6 +297,7 @@ class ReplayBuffer(object):
         cur_time_str = str(datetime.datetime.now()).replace(" ", "_").replace(":","-")
         filename = os.path.join(save_dir, cur_time_str + ".npz")
         print('file_name: ' + filename)
+        self._save_buffer_key()
         print('=====================================')
 
         buffers2dump = dict()
@@ -306,6 +308,23 @@ class ReplayBuffer(object):
         np.savez_compressed(filename, **buffers2dump)
 
         return
+
+    def _save_buffer_key(self):
+        if ReplayBuffer.BUFFER_KEY_SAVED:
+            return
+        else:
+            if self.buffer_key_save_path is None or self.buffer_key_save_path == '':
+                return
+            if not os.path.exists(self.buffer_key_save_path):
+                os.makedirs(self.buffer_key_save_path)
+            keys = []
+            buffer_key_path = os.path.join(self.buffer_key_save_path, 'keys.npz')
+            for key, _ in self.buffers.items():
+                keys.append(key)
+            np.savez(buffer_key_path, keys=keys)
+            self.BUFFER_KEY_SAVED = True
+            print('save buffer keys to: ' + self.buffer_key_save_path)
+
 
 class SampleBuffer(object):
     def __init__(self, size):

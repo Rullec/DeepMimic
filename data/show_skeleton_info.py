@@ -6,7 +6,7 @@ from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
 project_dir = "/home/darknight/Projects/DeepMimic"
 skeleton_path = "data/0917/characters/091702_fix_none_adjust_weight.json"
-pd_path = "data/0917/controllers/humanoid3d_ctrl_fix_none.txt"
+pd_path = "data/0917/controllers/ctrl_aj.txt"
 #skeleton_path = "data/raw/characters/humanoid3d.txt"
 #pd_path = "data/raw/controllers/humanoid3d_ctrl.txt"
 reduce = lambda f : round(f, 4)

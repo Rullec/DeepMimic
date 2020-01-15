@@ -227,12 +227,12 @@ class PGAgent(TFAgent):
                     norm_exp_noise = np.random.randn(*a.shape)
                     norm_exp_noise *= self.exp_params_curr.noise
                     exp_noise = norm_exp_noise * self.a_norm.std
-                    a += exp_noise
+                    a_out = a + exp_noise
 
                     logp = self._calc_action_logp(norm_exp_noise)
                     self._exp_action = True
 
-        return a, logp
+        return a_out, logp, a
 
     def _enable_stoch_policy(self):
         return self.enable_training and (self._mode == self.Mode.TRAIN or self._mode == self.Mode.TRAIN_END)

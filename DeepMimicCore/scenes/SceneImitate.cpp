@@ -4,6 +4,8 @@
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
 #include <iostream>
+#include <cstdio>
+#include <cstring>
 using namespace std;
 
 cSceneImitate::RewardParams::RewardParams()
@@ -71,7 +73,7 @@ void cSceneImitate::DiffLogOutput(const cSimCharacter& sim_char, const cKinChara
 double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKinCharacter& kin_char) const
 {
 	// print
-	// std::cout << "compute reward, angle diff = " << mEnableAngleDiffLog <<", dir = " << mAngleDiffDir <<std::endl;
+//	 std::cout << "compute reward, angle diff = " << mEnableAngleDiffLog <<", dir = " << mAngleDiffDir <<std::endl;
 	if (mEnableAngleDiffLog == true)	DiffLogOutput(sim_char, kin_char);
 
 	// get current run time from kin_char
@@ -161,7 +163,7 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	// 计算root朝向错误
 	pose_err += root_rot_w * cKinTree::CalcRootRotErr(joint_mat, pose0, pose1);
 	vel_err += root_rot_w * cKinTree::CalcRootAngVelErr(joint_mat, vel0, vel1);
-
+//    std::cout << "======================================\n";
 	std::vector<double> joint_angle_err, joint_vel_err;
 	for (int j = root_id + 1; j < num_joints; ++j)
 	{
@@ -169,7 +171,15 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 		// 计算每一个joint的位置、朝向error，根据mJointWeights里的权重求和
 		double curr_pose_err = cKinTree::CalcPoseErr(joint_mat, j, pose0, pose1);
 		double curr_vel_err = cKinTree::CalcVelErr(joint_mat, j, vel0, vel1);
-		joint_angle_err.push_back(curr_pose_err);
+
+//		std::cout << "joint:         " << j << "\n";
+//        std::cout << "w:             " << w << std::endl;
+//        std::cout << "curr_pose_err: " << curr_pose_err << std::endl;
+//        std::cout << "curr_vel_err:  " << curr_vel_err << std::endl;
+//        std::cout << "pose_err:      " << pose_err << std::endl;
+//        std::cout << "vel_err:       " << vel_err << std::endl;
+//        std::cout << "------------------------------------------\n";
+        joint_angle_err.push_back(curr_pose_err);
 		joint_vel_err.push_back(curr_vel_err);
 		pose_err += w * curr_pose_err;
 		vel_err += w * curr_vel_err;
@@ -195,6 +205,7 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 			++num_end_effs;
 		}
 	}
+//    std::cout << "======================================\n";
 
 	if (num_end_effs > 0)
 	{
@@ -222,25 +233,33 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 			+ RewParams.root_angle_vel_w * root_ang_vel_err;
 	com_err = 0.1 * (com_vel1_world - com_vel0_world).squaredNorm();
 
-	// memset(log, 0, 200*sizeof(char));
-	// sprintf(log, "root_pos_w=%f, root_rot_w=%f, root_vel_w=%f, root_angle_vel_w=%f",
-	// 		RewParams.root_pos_w, RewParams.root_rot_w , RewParams.root_vel_w,
-	// 		RewParams.root_angle_vel_w);
-	// std::cout << log << std::endl;
+//	 memset(log, 0, 200*sizeof(char));
+//	 sprintf(log, "root_pos_w=%f, root_rot_w=%f, root_vel_w=%f, root_angle_vel_w=%f",
+//	 		RewParams.root_pos_w, RewParams.root_rot_w , RewParams.root_vel_w,
+//	 		RewParams.root_angle_vel_w);
+//	 std::cout << log << std::endl;
 
 	double pose_reward = exp(-err_scale * pose_scale * pose_err);	// 各个joint的朝向 (实际 - 理想)^2
 	double vel_reward = exp(-err_scale * vel_scale * vel_err);		// joints的速度(实际 - 理想)^2
 	double end_eff_reward = exp(-err_scale * end_eff_scale * end_eff_err);	// end_effector位置误差^2
 	double root_reward = exp(-err_scale * root_scale * root_err);	// root joint的(位置误差+0.1线速度误差+0.01朝向误差+0.001角速度)^2
 	double com_reward = exp(-err_scale * com_scale * com_err);		// 0.1 * (质心速度误差)^2
+//    std::cout << "===================================\n";
+//    std::cout << "pose_reward:    " << pose_reward << "\n"
+//              << "vel_reward:     " << vel_reward << "\n"
+//              << "end_eff_reward: " << end_eff_reward << "\n"
+//              << "root_reward:    " << root_reward << "\n"
+//              << "com_reward:     " << com_reward << "\n";
+//    std::cout << "===================================\n";
 
-	/*
-		double pose_w = 0.5;
-		double vel_w = 0.05;
-		double end_eff_w = 0.15;
-		double root_w = 0.2;
-		double com_w = 0.1;
-	*/
+
+    /*
+        double pose_w = 0.5;
+        double vel_w = 0.05;
+        double end_eff_w = 0.15;
+        double root_w = 0.2;
+        double com_w = 0.1;
+    */
 	reward = pose_w * pose_reward + vel_w * vel_reward + end_eff_w * end_eff_reward
 		+ root_w * root_reward + com_w * com_reward;
 
