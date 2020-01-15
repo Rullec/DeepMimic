@@ -1,5 +1,5 @@
 --scene kin_char
 
 
---character_file data/1112/characters/110907.json
---motion_file data/1112/motions/111001.txt
+--character_file data/1125/characters/111301.json
+--motion_file /home/ljf/playground/DeepMimic/data/1112/motions/111001.txt

@@ -5,7 +5,8 @@ import learning.tf_util as TFUtil
 from util.io import load_buffer_npz
 import numpy as np
 import tensorflow as tf
-from retargeting.sa.SimpleAgentNetWork import NetWork
+# from retargeting.sa.SimpleAgentNetWork import NetWork
+from retargeting.sa.SimpleAgentNetWorkOpt import NetWork
 
 
 class SimpleAgent(TFAgent):
@@ -75,22 +76,10 @@ class SimpleAgent(TFAgent):
     def _build_nets(self, json_data):
         s_size = self.get_state_size()
         a_size = self.get_action_size()
-
-        self.net = NetWork(s_size, a_size)
-
-        # layers = [1024, 512, 256, 128]
-        # activation = tf.nn.relu
-        # self.s_tf = tf.placeholder(tf.float32, shape=[None, s_size], name="s")  # 输入state
-        # self.a_tf = tf.placeholder(tf.float32, shape=[None, a_size], name="a")  # 输入action
-        # self.fc = TFUtil.fc_net(input=self.s_tf, layers_sizes=layers, activation=activation)
-        # h = activation(self.fc)
-        # self.a_out = tf.layers.dense(inputs=h, units=a_size, activation=None,
-        #                              kernel_initializer=tf.random_uniform_initializer(minval=-1, maxval=1))
-
+        self.net = NetWork(s_size, a_size, json_data=json_data)
 
     def init_agent(self, json_data):
-        buffer_dir = json_data[self.BUFFER_PATH]
-        self._init_normalizers()
+        pass
 
     def _build_saver(self):
         self.saver = tf.train.Saver()

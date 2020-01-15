@@ -8,7 +8,7 @@ device_name = '/cpu:0'
 
 
 class NetWork(object):
-    def __init__(self, input_dim, output_dim, lr=3e-4, batch_size=200):
+    def __init__(self, input_dim, output_dim, json_data=None, lr=3e-4, batch_size=200):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.lr = lr

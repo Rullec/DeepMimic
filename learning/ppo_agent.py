@@ -187,8 +187,8 @@ class PPOAgent(PGAgent):
 
         with self.sess.as_default(), self.graph.as_default():
             self._exp_action = self._enable_stoch_policy() and MathUtil.flip_coin(self.exp_params_curr.rate)
-            a, logp = self._eval_actor(s, g, self._exp_action)
-        return a[0], logp[0]
+            a, logp, a_mean = self._eval_actor(s, g, self._exp_action)
+        return a[0], logp[0], a_mean[0]
 
     def _eval_actor(self, s, g, enable_exp):
         s = np.reshape(s, [-1, self.get_state_size()])
@@ -200,7 +200,7 @@ class PPOAgent(PGAgent):
             self.exp_mask_tf: np.array([1 if enable_exp else 0])
         }
 
-        a, logp = self.sess.run([self.sample_a_tf, self.sample_a_logp_tf], feed_dict=feed)
+        a, logp, a_mean = self.sess.run([self.sample_a_tf, self.sample_a_logp_tf, self.a_mean_tf], feed_dict=feed)
 
         # if np.random.rand() < 1e-3:
         #     v1, v2, v3, v4 = self.sess.run([self.norm_a_std_tf, self.norm_a_noise_tf, self.a_mean_tf, self.a_norm.std_tf], feed)
@@ -208,7 +208,7 @@ class PPOAgent(PGAgent):
         #     print("[var] self.norm_a_noise_tf = %s" % str(v2.transpose()))
         #     print("[var] self.a_mean_tf = %s" % str(v3.transpose()))
         #     print("[var] self.a_norm_std_tf = %s" % str(v4.transpose()))
-        return a, logp
+        return a, logp, a_mean
 
     def _train_step(self):
         '''
@@ -326,6 +326,12 @@ class PPOAgent(PGAgent):
         self.logger.log_tabular('Clip_Frac', actor_clip_frac)
         self.logger.log_tabular('Adv_Mean', adv_mean)
         self.logger.log_tabular('Adv_Std', adv_std)
+
+        # if we want to save buffer in TRAIN mode
+        # then we will save buffer to disk at here,
+        # just before clearing the buffer
+        if self.buffer_save_type == self.BufferSaveType.TRAIN:
+            self.replay_buffer.save()
 
         self.replay_buffer.clear()
 
