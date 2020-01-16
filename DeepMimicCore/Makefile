@@ -21,6 +21,16 @@ INC = -I./ \
 # normal
 LIBS = -lGLEW -lGL -lGLU -lglut -lBulletDynamics -lBulletCollision -lLinearMath -lBullet3Common -lBulletInverseDynamics -lBulletInverseDynamicsUtils -lm -lstdc++
 
+# after
+#LIBS = -lGLEW -lGL -lGLU -lglut \
+#	/home/xudong/Projects/bullet3/build_cmake/src/BulletDynamics/libBulletDynamics.so \
+#	/home/xudong/Projects/bullet3/build_cmake/src/BulletCollision/libBulletCollision.so \
+#	/home/xudong/Projects/bullet3/build_cmake/src/LinearMath/libLinearMath.so \
+#	/home/xudong/Projects/bullet3/build_cmake/src/Bullet3Common/libBullet3Common.so \
+#	/home/xudong/Projects/bullet3/build_cmake/src/BulletInverseDynamics/libBulletInverseDynamics.so \
+#	/home/xudong/Projects/bullet3/build_cmake/Extras/InverseDynamics/libBulletInverseDynamicsUtils.so \
+#	-lm -lstdc++
+
 MACROS = --define-macro BT_USE_DOUBLE_PRECISION
 
 CC = clang++
