@@ -1,7 +1,7 @@
 #include "cReverseController.h"
 #include <iostream>
 #include <fstream>
-#include <windows.h>
+// #include <windows.h>
 
 void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove);
 void removeColumn(Eigen::MatrixXd& matrix, unsigned int colToRemove);
