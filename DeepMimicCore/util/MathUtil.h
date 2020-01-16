@@ -118,7 +118,7 @@ public:
 	static tMatrix DeltaRot(const tMatrix& R0, const tMatrix& R1);
 
 	static tQuaternion EulerToQuaternion(const tVector& euler, const eRotationOrder order);
-	static tQuaternion cMathUtil::CoefVectorToQuaternion(const tVector & coef);
+	static tQuaternion CoefVectorToQuaternion(const tVector & coef);
 	static tVector QuaternionToEuler(const tQuaternion& q, const eRotationOrder gRotationOrder);
 	static tQuaternion AxisAngleToQuaternion(const tVector& axis, double theta);
 	static tVector QuaternionToAxisAngle(const tQuaternion& q);
