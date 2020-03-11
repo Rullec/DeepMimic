@@ -1,6 +1,10 @@
 #include "DrawUtil.h"
 #include <GL/glew.h>
-#include <GL/freeglut.h>
+#ifdef __APPLE__
+	#include <GLUT/glut.h>
+#else
+	#include <GL/freeglut.h>
+#endif
 
 tVector cDrawUtil::gColor = tVector::Ones();
 cShader cDrawUtil::gDefaultProg = cShader();
@@ -51,8 +55,14 @@ void cDrawUtil::InitOffscreenDrawContext()
 
 bool cDrawUtil::CheckDrawContextInit()
 {
+#ifdef __APPLE__
+	printf("[error] cDrawUtil::CheckDrawContextInit invalid in OS X platform\n");
+	exit(1);
+	return false;
+#else
 	int state = glutGet(GLUT_INIT_STATE);
 	return state == 1;
+#endif
 }
 
 void cDrawUtil::InitDrawUtil()

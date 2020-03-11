@@ -120,17 +120,24 @@ GLuint cShader::CreateShader(GLuint& vsh_handle, GLuint& psh_handle)
 	}
 	else
 	{
+#ifndef __APPLE__
 		glValidateProgram(shader_program);
 		glGetProgramiv(shader_program, GL_VALIDATE_STATUS, &valid_status);
 		if (!valid_status)
 		{
-			std::cout << "shader validation failed\n";
+			GLchar ErrorLog[512] = { 0 };
+    		GLint size = 0;
+			glGetProgramInfoLog(shader_program, 512, &size, ErrorLog);
+			std::cout << "shader validation failed" << ErrorLog << "\n";
 		}
+#endif
 	}
 
 	if (!valid_status)
 	{
 		shader_program = gInvalidIdx;
+		exit(1);
+		std::cout <<"invalid status\n";
 	}
 
 	return shader_program;
