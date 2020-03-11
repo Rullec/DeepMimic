@@ -341,12 +341,17 @@ void InitDraw(int argc, char** argv)
 {
 	std::cout << "[debug] Init Draw begin" << std::endl;
 	glutInit(&argc, argv);
-	std::cout << "[debug] Init Draw begin 2" << std::endl;
-	glutInitContextVersion(3, 2);
-	glutInitContextFlags(GLUT_FORWARD_COMPATIBLE);
-	glutInitContextProfile(GLUT_CORE_PROFILE);
-	// std::cout << "[debug] Init Draw begin 3" << std::endl;
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+	// std::cout << "[debug] Init Draw begin 2" << std::endl;
+#ifdef	__APPLE__
+	glutInitDisplayMode(GLUT_3_2_CORE_PROFILE| GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+#else
+		glutInitContextVersion(3, 2);
+		glutInitContextProfile(GLUT_CORE_PROFILE);
+		glutInitContextFlags(GLUT_FORWARD_COMPATIBLE);
+		glutInitContextProfile(GLUT_CORE_PROFILE);
+		glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+#endif
+
 	glutInitWindowSize(gWinWidth, gWinHeight);
 	glutCreateWindow("DeepMimic");
 	std::cout << "Init Draw succ" << std::endl;

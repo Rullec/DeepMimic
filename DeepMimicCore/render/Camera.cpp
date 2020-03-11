@@ -2,7 +2,12 @@
 #include <iostream>
 
 #include "render/DrawUtil.h"
-#include <GL/freeglut.h>
+#ifdef __APPLE__
+	#include <GLUT/glut.h>
+#else
+	#include <GL/freeglut.h>
+#endif
+
 
 cCamera::cCamera()
 {

@@ -3,7 +3,11 @@
 #include<stack>
 #include <stdlib.h>
 #include <GL/glew.h>
-#include <GL/freeglut.h>
+#ifdef __APPLE__
+	#include <GLUT/glut.h>
+#else
+	#include <GL/freeglut.h>
+#endif
 #include <fstream>
 
 #include "util/MathUtil.h"
