@@ -30,7 +30,8 @@ public:
 	void SetTimestep(double deltaTime);
 	void PreSim();
 	void PostSim();
-
+	void Reset();
+	
 private:
 	// ID vars
 	cSimCharacter * mSimChar;

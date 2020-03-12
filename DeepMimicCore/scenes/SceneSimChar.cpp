@@ -773,20 +773,16 @@ void cSceneSimChar::ResetScene()
 	{
 		ResetRandPertrub();
 	}
-	std::cout << "exit in ResetScene" << std::endl;
-	//mIDInfo->Solve();
-	//mIDInfo->Clear();
-	exit(1);
-	
 	
 	ResetWorld();
 	ResetCharacters();
 	ResetGround();
 	CleanObjs();
-	
 
 	InitCharacterPos();
 	ResolveCharGroundIntersect();
+
+	mIDInfo->Reset();
 }
 
 void cSceneSimChar::ResetCharacters()
