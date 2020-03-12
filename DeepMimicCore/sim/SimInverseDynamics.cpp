@@ -906,3 +906,15 @@ tVectorXd cIDSolver::CalculateGeneralizedVel(const tVectorXd & q_before, const t
 	}
 	return q_dot;
 }
+
+void cIDSolver::Reset()
+{
+	// clear buffer
+	for (auto & x : mBuffer_q) x.resize(mDof), x.setZero();
+	for (auto & x : mBuffer_u) x.resize(mDof), x.setZero();
+	for (auto & x : mBuffer_u_dot) x.resize(mDof), x.setZero();
+
+	mFrameId = 0;
+
+	ClearID();
+}
