@@ -18,6 +18,7 @@ public:
 	virtual bool LoadFile(const std::string& file);
 
 	virtual int GetNumArgs() const;
+	virtual std::string GetArgFilePath() const;
 	virtual bool ParseString(const std::string& key, std::string& out) const;
 	virtual bool ParseStrings(const std::string& key, std::vector<std::string>& out) const;
 	virtual bool ParseInt(const std::string& key, int& out) const;
@@ -31,6 +32,7 @@ public:
 protected:
 	std::map<std::string, std::vector<std::string>> mTable;
 
+	std::string mArgFilePath;
 	virtual bool IsComment(const std::string& str) const;
 	virtual bool IsKey(const std::string& str) const;
 	virtual bool ParseBool(const std::string& str) const;

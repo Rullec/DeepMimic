@@ -21,7 +21,8 @@ public:
 	static std::string GetFilename(const std::string& path);
 	static void FilterFilesByExtension(std::vector<std::string>& files, const std::string& ext);
 	static bool ExistsFile(const std::string& file_name);
-
+	static bool ValidateFilePath(const std::string& file_name);
+	
 	static void FindLine(std::ifstream& f_stream, int line);
 	static std::string ReadTextFile(const std::string& path);
 

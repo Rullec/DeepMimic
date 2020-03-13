@@ -195,7 +195,7 @@ public:
 	static tVector AngularVelToqdot(const tVector & omega, const tVector & cur_q, const eRotationOrder & order);
 	static tMatrix VectorToSkewMat(const tVector &);
 	static tVector SkewMatToVector(const tMatrix &);
-
+	static bool IsSame(const tVector & v1, const tVector & v2, const double eps);
 private:
 	static cRand gRand;
 

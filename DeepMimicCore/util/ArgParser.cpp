@@ -87,6 +87,7 @@ bool cArgParser::LoadFile(const std::string& file)
 {
 	// file 传入: args/run_human_run_args.txt
 	// LoadFile会解析该配置文件, 读取character, model等各种信息吧。
+	mArgFilePath = file;
 	FILE* file_ptr = cFileUtil::OpenFile(file.c_str(), "r");
 	bool succ = (file_ptr != nullptr);
 
@@ -304,6 +305,10 @@ int cArgParser::GetNumArgs() const
 	return static_cast<int>(mTable.size());
 }
 
+std::string cArgParser::GetArgFilePath() const
+{
+	return mArgFilePath;
+}
 bool cArgParser::ParseBool(const std::string& str) const
 {
 	bool val = false;
