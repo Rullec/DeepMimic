@@ -1,0 +1,16 @@
+{
+    "IDMode": "Offline",
+    "Online_settings":
+    {
+        "cases":0
+    },
+    "Offline_settings":
+    {
+        "mode" : "save",
+        "mode_display" : "display",
+        "mode_solve" : "solve",
+        "save_path" : "data/0313/traj/traj.json",
+        "display_path" : "data/0313/traj/traj.json",
+        "solve_path" : "data/0313/traj/traj.json"
+    }
+}

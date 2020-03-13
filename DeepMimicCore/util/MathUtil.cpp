@@ -1361,6 +1361,12 @@ tVector cMathUtil::SkewMatToVector(const tMatrix & mat)
 	return res;
 }
 
+bool cMathUtil::IsSame(const tVector & v1, const tVector & v2, const double eps)
+{
+	for(int i=0; i<v1.size(); i++) if(std::fabs(v1[i] - v2[i])>eps) return false;
+	return true;
+}
+
 tMatrix xconventionRotation(double x)
 {
 	// ������ת����ϵ����child frame��ת��

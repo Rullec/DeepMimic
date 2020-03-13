@@ -6,8 +6,9 @@
 #include "sim/GroundPlane.h"
 #include "sim/GroundBuilder.h"
 #include "sim/DeepMimicCharController.h"
-#include "sim/SimInverseDynamics.h"
-
+#include "sim/BuildIDSolver.hpp"
+#include "sim/cOnlineIDSolver.hpp"
+#include "sim/cOfflineIDSolver.hpp"
 #include "util/FileUtil.h"
 #include <iostream>
 #include <fstream>
@@ -117,7 +118,14 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 	mEnableID = false;
 	mIDInfoPath = "";
 	mArgParser->ParseBool("enable_inverse_dynamic_solving", mEnableID);
-	mArgParser->ParseString("inverse_dynamic_trajectory_path", mIDInfoPath);
+	mArgParser->ParseString("inverse_dynamic_config_file", mIDInfoPath);
+	if(mEnableID == true && false == cFileUtil::ExistsFile(mIDInfoPath))
+	{
+		
+		std::cout <<"[error] cSceneSimChar::ParseArgs failed for enable id but conf path is illegal: " << mIDInfoPath << std::endl;;
+		exit(1); 
+	}
+	
 }
 
 void cSceneSimChar::Init()
@@ -178,24 +186,81 @@ void cSceneSimChar::Update(double time_elapsed)
 	// 显示一下速度：是不是最开始的时候设置的速度太大了?
 	auto & sim_char = mChars[0];
 
-	// order matters!
-	mIDInfo->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
+	{
+		mOnlineIDSolver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
+		mOfflineIDSolver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
 
+		// calc & apply torque in this function
+		UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
+		mOnlineIDSolver->PreSim();
+		mOfflineIDSolver->PreSim();
 
-	// calc & apply torque in this function
-	UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
-	mIDInfo->PreSim();
+		UpdateWorld(time_elapsed);
+		UpdateGround(time_elapsed);
+		UpdateObjs(time_elapsed);
+		UpdateJoints(time_elapsed);
 
-	UpdateWorld(time_elapsed);
-	UpdateGround(time_elapsed);
-	UpdateObjs(time_elapsed);
-	UpdateJoints(time_elapsed);
+		PostUpdateCharacters(time_elapsed);
+		PostUpdate(time_elapsed);
 
-	PostUpdateCharacters(time_elapsed);
-	PostUpdate(time_elapsed);
+		mOnlineIDSolver->PostSim();
+		mOfflineIDSolver->PostSim();
+	}
+	// // order matters!
+	// if(true == mEnableID && mIDSolver!=nullptr)
+	// {
+	// 	if(eIDSolverType::Online == mIDSolver->GetType())
+	// 	{
+	// 		auto online_solver = std::dynamic_pointer_cast<cOnlineIDSolver>(mIDSolver);
+	// 		online_solver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
 
-	mIDInfo->PostSim();
+	// 		// calc & apply torque in this function
+	// 		UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
+	// 		online_solver->PreSim();
 
+	// 		UpdateWorld(time_elapsed);
+	// 		UpdateGround(time_elapsed);
+	// 		UpdateObjs(time_elapsed);
+	// 		UpdateJoints(time_elapsed);
+
+	// 		PostUpdateCharacters(time_elapsed);
+	// 		PostUpdate(time_elapsed);
+
+	// 		online_solver->PostSim();
+	// 	}
+	// 	else if(eIDSolverType::Offline == mIDSolver->GetType())
+	// 	{
+	// 		// mIDInfo->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
+	// 		auto offline_solver = std::dynamic_pointer_cast<cOfflineIDSolver>(mIDSolver);
+	// 		// calc & apply torque in this function
+	// 		if(eOfflineSolverMode::Save == offline_solver->GetOfflineSolverMode())
+	// 		{
+	// 			offline_solver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
+	// 			UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
+	// 			mIDSolver->PreSim();
+
+	// 			UpdateWorld(time_elapsed);
+	// 			UpdateGround(time_elapsed);
+	// 			UpdateObjs(time_elapsed);
+	// 			UpdateJoints(time_elapsed);
+
+	// 			PostUpdateCharacters(time_elapsed);
+	// 			PostUpdate(time_elapsed);
+
+	// 			mIDSolver->PostSim();	
+	// 		}
+	// 		else
+	// 		{
+	// 			std::cout <<"error mode = " << offline_solver->GetOfflineSolverMode();
+	// 		}
+	// 	}
+	// 	else
+	// 	{
+	// 		std::cout <<"[error] cSceneSimChar::Update IDSolver Type illegal = " << mIDSolver->GetType() << std::endl;
+	// 	}
+
+	// }
+	
 	
 }
 
@@ -566,20 +631,32 @@ void cSceneSimChar::BuildInverseDynamic()
 {
 	// build inverse dynamics
 	auto sim_char = this->GetCharacter(0);
-	mIDInfo = std::shared_ptr<cIDSolver>(new cIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get()));
+	
+	mIDSolver = BuildIDSolver(mIDInfoPath, sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get());
+	mOnlineIDSolver = std::shared_ptr<cOnlineIDSolver>(new cOnlineIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get()));
+	mOfflineIDSolver = std::shared_ptr<cOfflineIDSolver>(new cOfflineIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get(), "./args/0311/id_conf_offline.json"));
+	// std::shared_ptr<cOnlineIDSolver>(new cOnlineIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get()));
 
 	// from json vec to Eigen::VectorXd
-	auto JsonVec2Eigen = [](Json::Value root)->Eigen::VectorXd
-	{
-		Eigen::VectorXd vec(root.size());
-		for (int i = 0; i < vec.size(); i++) vec[i] = root[i].asDouble();
-		return vec;
-	};
+	// auto JsonVec2Eigen = [](Json::Value root)->Eigen::VectorXd
+	// {
+	// 	Eigen::VectorXd vec(root.size());
+	// 	for (int i = 0; i < vec.size(); i++) vec[i] = root[i].asDouble();
+	// 	return vec;
+	// };
 
 	// offline mode: read trajectory from files, then solve it.
 	// online mode for debug: start with the simulation at the same time, record each state and solve them at onece
 	// then compare the desired ID result and the ideal one. It will be very easy to debug.
-	std::cout << "[warning] Inverse Dynamics runs in online mode.(debug mode)" << std::endl;
+	if(eIDSolverType::Offline == mIDSolver->GetType())
+		std::cout << "[log] Inverse Dynamics runs in offline mode." << std::endl;
+	else if(eIDSolverType::Online == mIDSolver->GetType())
+		std::cout << "[log] Inverse Dynamics runs in online mode." << std::endl;
+	else
+	{
+		std::cout <<"unrecognized ID solver mode = " << mIDSolver->GetType() << std::endl;
+		exit(1);
+	}
 	//if (mEnableID)
 	//{
 	//	// parse ID info
@@ -782,7 +859,9 @@ void cSceneSimChar::ResetScene()
 	InitCharacterPos();
 	ResolveCharGroundIntersect();
 
-	mIDInfo->Reset();
+	mIDSolver->Reset();
+	mOnlineIDSolver->Reset();
+	mOfflineIDSolver->Reset();
 }
 
 void cSceneSimChar::ResetCharacters()
@@ -898,7 +977,7 @@ void cSceneSimChar::ClearJointForces()
 	int num_joints = GetNumJoints();
 	for (int j = 0; j < num_joints; ++j)
 	{
-		const tJointEntry& joint = mJoints[j];
+		const tJointEntry & joint = mJoints[j];
 		if (joint.IsValid())
 		{
 			joint.mJoint->ClearTau();

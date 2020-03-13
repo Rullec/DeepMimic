@@ -8,9 +8,11 @@
 #include "sim/Ground.h"
 #include "sim/CtrlBuilder.h"
 #include "sim/SimJoint.h"
-#include "sim/SimInverseDynamics.h"
 #include "util/IndexBuffer.h"
 
+class cIDSolver;
+class cOnlineIDSolver;
+class cOfflineIDSolver;
 class cSceneSimChar : virtual public cScene
 {
 public:
@@ -122,7 +124,10 @@ protected:
 	// parse for inverse dynamics solving
 	bool mEnableID;
 	std::string mIDInfoPath;
-	std::shared_ptr<cIDSolver> mIDInfo;
+	std::shared_ptr<cIDSolver> mIDSolver;
+	std::shared_ptr<cOnlineIDSolver> mOnlineIDSolver;
+	std::shared_ptr<cOfflineIDSolver> mOfflineIDSolver;
+
 
 	virtual bool ParseCharTypes(const std::shared_ptr<cArgParser>& parser, std::vector<cSimCharBuilder::eCharType>& out_types) const;
 	virtual bool ParseCharParams(const std::shared_ptr<cArgParser>& parser, std::vector<cSimCharacter::tParams>& out_params) const;

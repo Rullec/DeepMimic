@@ -157,6 +157,19 @@ bool cFileUtil::ExistsFile(const std::string& file_name)
 	return false;
 }
 
+bool cFileUtil::ValidateFilePath(const std::string& file_name)
+{
+	if(cFileUtil::ExistsFile(file_name) == true) return true;
+	else
+	{
+		if(nullptr!= cFileUtil::OpenFile(file_name, "w"))
+		{
+			cFileUtil::DeleteFile(file_name);
+			return true;
+		}
+		else return false;
+	}
+}
 
 void cFileUtil::FindLine(std::ifstream& f_stream, int line)
 {

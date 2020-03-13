@@ -434,10 +434,10 @@ std::vector<double> cDeepMimicCore::BuildActionOffset(int agent_id) const
 
 		std::vector<double> out_offset;
 		ConvertVector(offset, out_offset);
-		std::cout <<"[scale] get offset(mean) from rl_scene:";
-		for(auto i : out_offset)
-			std::cout << i <<" ";
-		std::cout << std::endl;
+		// std::cout <<"[scale] get offset(mean) from rl_scene:";
+		// for(auto i : out_offset)
+		// 	std::cout << i <<" ";
+		// std::cout << std::endl;
 		return out_offset;
 	}
 	return std::vector<double>(0);

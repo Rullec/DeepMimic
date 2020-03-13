@@ -12,7 +12,8 @@ public:
 	static std::string BuildVectorJson(const Eigen::VectorXd& vec);
 	static std::string BuildVectorString(const Eigen::VectorXd& vec);
 	static bool ReadVectorJson(const Json::Value& root, Eigen::VectorXd& out_vec);
-
+	static bool ParseJson(const std::string & path, Json::Value & value);
+	
 private:
 	
 };
