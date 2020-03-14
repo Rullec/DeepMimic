@@ -58,17 +58,21 @@ protected:
 	void ApplyContactForcesToID(const std::vector<tForceInfo> &mContactForces, const std::vector<tVector> & mLinkPos, const std::vector<tMatrix> & mLinkRot) const;
 	void ApplyExternalForcesToID(const std::vector<tVector> & link_poses, const std::vector<tMatrix> & link_rot, const std::vector<tVector> & ext_forces, const std::vector<tVector> & ext_torques) const;
 
+	// set functions
+	void SetGeneralizedPos(const tVectorXd & q);
+	void SetGeneralizedVel(const tVectorXd & q);
+	
 	// calculation funcs
 	tVectorXd CalculateGeneralizedVel(const tVectorXd & q_before, const tVectorXd & q_after, double timestep) const;
 	
 	// solving single step
 	virtual void SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
 		const std::vector<tForceInfo> & contact_forces,
-		const std::vector<tVector> link_pos, 
-		const std::vector<tMatrix> link_rot, 
-		const tVectorXd * mBuffer_q,
-		const tVectorXd * mBuffer_u,
-		const tVectorXd * mBuffer_u_dot,
+		const std::vector<tVector> &link_pos, 
+		const std::vector<tMatrix> &link_rot, 
+		const tVectorXd & mBuffer_q,
+		const tVectorXd & mBuffer_u,
+		const tVectorXd & mBuffer_u_dot,
 		int frame_id,
 		const std::vector<tVector> &mExternalForces,
 		const std::vector<tVector> &mExternalTorques)const;

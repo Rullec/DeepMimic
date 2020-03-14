@@ -35,6 +35,10 @@ public:
 	{
 		return tQuaternion(qua.w(), qua.x(), qua.y(), qua.z());
 	}
+	static btQuaternion tQuaternionTobtQuaternion(const tQuaternion & rot)
+	{
+		return btQuaternion(rot.x(), rot.y(), rot.z(), rot.w());
+	}
 	static Eigen::VectorXd btArrayToEigenArray(const btScalar * begin, const int size)
 	{
 		Eigen::VectorXd array(size);

@@ -162,7 +162,7 @@ bool cFileUtil::ValidateFilePath(const std::string& file_name)
 	if(cFileUtil::ExistsFile(file_name) == true) return true;
 	else
 	{
-		if(nullptr!= cFileUtil::OpenFile(file_name, "w"))
+		if(nullptr != cFileUtil::OpenFile(file_name, "w"))
 		{
 			cFileUtil::DeleteFile(file_name);
 			return true;

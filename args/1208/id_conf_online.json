@@ -9,7 +9,7 @@
         "mode" : "save",
         "mode_display" : "display",
         "mode_solve" : "solve",
-        "save_path" : "data/0313/traj_1.json",
-        "load_path" : "data/0313/traj_1.json"
+        "save_path" : "data/1208/traj_1.json",
+        "load_path" : "data/1208/traj_1.json"
     }
 }

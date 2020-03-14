@@ -107,6 +107,7 @@ void cOnlineIDSolver::PreSim()
 	// fout << "\n buffer u : ";
 	// fout << mBuffer_u[mFrameId].transpose() <<" ";
 	// fout << std::endl;
+	
 }
 
 void cOnlineIDSolver::PostSim()
@@ -114,7 +115,6 @@ void cOnlineIDSolver::PostSim()
 	mFrameId++;
 
 	RecordGeneralizedInfo(mBuffer_q[mFrameId], mBuffer_u[mFrameId]);
-
 	// record contact forces
 	RecordContactForces(mContactForces, mCurTimestep, mWorldId2InverseId);
 
@@ -185,7 +185,7 @@ void cOnlineIDSolver::PostSim()
 	// fout << "\n buffer u : ";
 	// fout << mBuffer_u[mFrameId].transpose() <<" ";
 	// fout << std::endl;
-	SolveIDSingleStep(mSolvedJointForces, mContactForces, mLinkPos, mLinkRot, mBuffer_q, mBuffer_u, mBuffer_u_dot, mFrameId, mExternalForces, mExternalTorques);
+	SolveIDSingleStep(mSolvedJointForces, mContactForces, mLinkPos, mLinkRot, mBuffer_q[mFrameId-1], mBuffer_u[mFrameId-1], mBuffer_u_dot[mFrameId-1], mFrameId, mExternalForces, mExternalTorques);
 
 	// std::cout <<"online sovler ID record " << mFrameId << std::endl;
 	// fout <<"ID frame id = " << mFrameId;
@@ -364,11 +364,11 @@ void cOnlineIDSolver::Reset()
 
 void cOnlineIDSolver::SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
 		const std::vector<tForceInfo> & contact_forces,
-		const std::vector<tVector> link_pos, 
-		const std::vector<tMatrix> link_rot, 
-		const tVectorXd * buf_q,
-		const tVectorXd * buf_u,
-		const tVectorXd * buf_u_dot,
+		const std::vector<tVector> & link_pos, 
+		const std::vector<tMatrix> & link_rot, 
+		const tVectorXd & buf_q,
+		const tVectorXd & buf_u,
+		const tVectorXd & buf_u_dot,
 		int frame_id,
 		const std::vector<tVector> &external_forces,
 		const std::vector<tVector> &external_torques) const

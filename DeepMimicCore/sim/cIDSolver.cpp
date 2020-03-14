@@ -6,6 +6,8 @@
 
 cIDSolver::cIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, eIDSolverType type)
 {
+	assert(sim_char != nullptr);
+	assert(world != nullptr);
 	mSimChar = sim_char;
 	mMultibody = sim_char->GetMultiBody().get();
 	mWorld = world;
@@ -78,6 +80,7 @@ void cIDSolver::RecordMultibodyInfo(std::vector<tMatrix>& local_to_world_rot, st
 		}
 		else
 		{
+			// frome local to world transformation matrix
 			int multibody_link_id = ID_link_id - 1;
 			auto & cur_trans = mMultibody->getLinkCollider(multibody_link_id)->getWorldTransform();
 			local_to_world_rot[ID_link_id] = cBulletUtil::btMatrixTotMatrix1(cur_trans.getBasis());
@@ -155,6 +158,143 @@ void cIDSolver::RecordGeneralizedInfo(tVectorXd & q, tVectorXd & q_dot) const
             }
         }
 	}
+}
+
+void cIDSolver::SetGeneralizedPos(const tVectorXd & q)
+{
+	assert(q.size() == mDof);
+	if (mFloatingBase == true)
+	{
+		tVector root_pos, euler_angle_rot;
+		for(int i=0; i<3; i++) euler_angle_rot[i] = q[i];
+		for(int i=3; i<6; i++) root_pos[i-3] = q[i];
+		tQuaternion world_to_base_rot = cMathUtil::EulerAnglesToQuaternion(euler_angle_rot, eRotationOrder::XYZ);
+		mMultibody->setBasePos(cBulletUtil::tVectorTobtVector(root_pos));
+		mMultibody->setWorldToBaseRot(cBulletUtil::tQuaternionTobtQuaternion(world_to_base_rot));
+	}
+
+	// other joints besides root
+	for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks(); link_id++)
+	{
+		auto & cur_link = mMultibody->getLink(link_id);
+		int offset = cur_link.m_dofOffset;
+		if (mFloatingBase == true) offset += 6;
+		// std::cout <<"link id = " << link_id <<" type = " << cur_link.m_jointType << std::endl;
+		switch (cur_link.m_jointType)
+		{
+			case btMultibodyLink::eFixed:
+			{
+				break;
+			}
+			case btMultibodyLink::eRevolute:
+			{
+				mMultibody->setJointPos(link_id, q[offset]);
+				// q(offset) = mMultibody->getJointPos(link_id);
+				break;
+			}
+			case btMultibodyLink::eSpherical:
+			{
+				// std::cout << 1<< std::endl;
+				tVector joint_pos_euler;
+				joint_pos_euler.segment(0, 3) = q.segment(offset, 3);
+				// std::cout << 2<< std::endl;
+				tQuaternion rot_qua = cMathUtil::EulerAnglesToQuaternion(joint_pos_euler, eRotationOrder::ZYX);
+				// std::cout << 3<< std::endl;
+				btScalar bt_joint_pos[4] = {rot_qua.x(), rot_qua.y(), rot_qua.z(), rot_qua.w()};
+				// std::cout << 4<< std::endl;
+				mMultibody->setJointPosMultiDof(link_id, bt_joint_pos);
+				break;
+			}
+			default:
+			{
+				std::cout <<"[error] cIDSolver::SetGeneralizedInfo unsupported type = " << cur_link.m_jointType << std::endl;
+				exit(1);
+			}
+		}
+	}
+	btAlignedObjectArray<btVector3> mVecBuffer0;
+	btAlignedObjectArray<btQuaternion> mRotBuffer;
+	mMultibody->updateCollisionObjectWorldTransforms(mRotBuffer, mVecBuffer0);
+	// tVectorXd q_test, q_dot_test;
+	// cIDSolver::RecordGeneralizedInfo(q_test, q_dot_test);
+	// std::cout << "given q = " << q.transpose() << std::endl;
+	// std::cout << "current after set q = " << q_test.transpose() << std::endl;
+	// std::cout << "error = " << (q - q_test).norm() << std::endl; 
+	// std::cout <<"over cIDSolver::SetGeneralizedInfo done\n";
+	// exit(1);
+}
+
+void cIDSolver::SetGeneralizedVel(const tVectorXd & q)
+{
+	assert(q.size() == mDof);
+	if (mFloatingBase == true)
+	{
+		// tVector omega = cBulletUtil::btVectorTotVector0(mMultibody->getBaseOmega());
+		// tVector vel = cBulletUtil::btVectorTotVector0(mMultibody->getBaseVel());
+		// for (int i = 0; i < 3; i++)q_dot(i) = omega[i];
+		// for (int i = 3; i < 6; i++)q_dot(i) = vel[i - 3];
+
+		tVector omega = tVector::Zero(), vel = tVector::Zero();
+		for(int i=0; i<3; i++) omega[i]= q(i), vel[i] = q(i + 3);
+		mMultibody->setBaseOmega(cBulletUtil::tVectorTobtVector(omega));
+		mMultibody->setBaseVel(cBulletUtil::tVectorTobtVector(vel));
+		// tVector root_pos, euler_angle_rot;
+		// for(int i=0; i<3; i++) euler_angle_rot[i] = q[i];
+		// for(int i=3; i<6; i++) root_pos[i-3] = q[i];
+		// tQuaternion world_to_base_rot = cMathUtil::EulerAnglesToQuaternion(euler_angle_rot, eRotationOrder::XYZ);
+		// mMultibody->setBasePos(cBulletUtil::tVectorTobtVector(root_pos));
+		// mMultibody->setWorldToBaseRot(cBulletUtil::tQuaternionTobtQuaternion(world_to_base_rot));
+	}
+
+	// other joints besides root
+	for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks(); link_id++)
+	{
+		auto & cur_link = mMultibody->getLink(link_id);
+		int offset = cur_link.m_dofOffset;
+		if (mFloatingBase == true) offset += 6;
+		// std::cout <<"link id = " << link_id <<" type = " << cur_link.m_jointType << std::endl;
+		switch (cur_link.m_jointType)
+		{
+			case btMultibodyLink::eFixed:
+			{
+				break;
+			}
+			case btMultibodyLink::eRevolute:
+			{
+				mMultibody->setJointVel(link_id, q[offset]);
+				// mMultibody->setJointPos(link_id, q[offset]);
+				// q(offset) = mMultibody->getJointPos(link_id);
+				break;
+			}
+			case btMultibodyLink::eSpherical:
+			{
+				// // std::cout << 1<< std::endl;
+				// tVector joint_pos_euler;
+				// joint_pos_euler.segment(0, 3) = q.segment(offset, 3);
+				// // std::cout << 2<< std::endl;
+				// tQuaternion rot_qua = cMathUtil::EulerAnglesToQuaternion(joint_pos_euler, eRotationOrder::ZYX);
+				// // std::cout << 3<< std::endl;
+				// btScalar bt_joint_pos[4] = {rot_qua.x(), rot_qua.y(), rot_qua.z(), rot_qua.w()};
+				// // std::cout << 4<< std::endl;
+				// mMultibody->setJointPosMultiDof(link_id, bt_joint_pos);
+				btScalar bt_joint_vel[] = {q[offset], q[offset+1], q[offset+2], 0};
+				mMultibody->setJointVelMultiDof(link_id, bt_joint_vel);
+				break;
+			}
+			default:
+			{
+				std::cout <<"[error] cIDSolver::SetGeneralizedInfo unsupported type = " << cur_link.m_jointType << std::endl;
+				exit(1);
+			}
+		}
+	}
+	// tVectorXd q_test, q_dot_test;
+	// cIDSolver::RecordGeneralizedInfo(q_test, q_dot_test);
+	// std::cout << "given q_dot = " << q.transpose() << std::endl;
+	// std::cout << "current after set q = " << q_dot_test.transpose() << std::endl;
+	// std::cout << "error = " << (q - q_dot_test).norm() << std::endl; 
+	// std::cout <<"over cIDSolver::SetGeneralizedVel done\n";
+	// exit(1);
 }
 
 void cIDSolver::RecordJointForces(std::vector<tVector> & mJointForces) const
@@ -305,47 +445,55 @@ void cIDSolver::ApplyContactForcesToID(const std::vector<tForceInfo> &mContactFo
 
 void cIDSolver::SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
 	const std::vector<tForceInfo> & contact_forces,
-	const std::vector<tVector> link_pos, 
-	const std::vector<tMatrix> link_rot, 
-	const tVectorXd * mBuffer_q,
-	const tVectorXd * mBuffer_u,
-	const tVectorXd * mBuffer_u_dot,
+	const std::vector<tVector> & link_pos, 
+	const std::vector<tMatrix> &link_rot, 
+	const tVectorXd & mBuffer_q,
+	const tVectorXd & mBuffer_u,
+	const tVectorXd & mBuffer_u_dot,
 	int frame_id,
 	const std::vector<tVector> &external_forces,
 	const std::vector<tVector> &external_torques) const
 {
 
-	// std::ofstream fout("test3.txt", std::ios::app);
-	// fout <<"----------------------------\n";
-	// fout <<"solve id for frame " << frame_id << std::endl;
+	std::ofstream fout("test3.txt", std::ios::app);
+	fout <<"----------------------------\n";
+	fout <<"solve id for frame " << frame_id << std::endl;
 	// it should have only mNumLinks-1 elements.
+	// std::cout << 1 << std::endl;
 	solved_joint_forces.resize(mNumLinks-1);
+	// std::cout << 2 << std::endl;
 	for(auto & x : solved_joint_forces) x.setZero();
-	// fout <<"link pos : ";
-	// for(auto & x : link_pos) fout << x.transpose() <<" ";
-	// fout <<"\nlink rot : " ;
-	// for(auto & x : link_rot) fout << x.transpose() <<" ";
-	// fout <<"\n external forces and torques : ";
-	// for(int idx = 0; idx < mNumLinks; idx++) fout << external_forces[idx].transpose() <<" " << external_torques[idx].transpose() <<" ";
+	// std::cout << 3 << std::endl;
+	fout <<"link pos : ";
+	for(auto & x : link_pos) fout << x.transpose() <<" ";
+	fout <<"\nlink rot : " ;
+	for(auto & x : link_rot) fout << x.transpose() << std::endl;
+	fout <<"\n external forces and torques : ";
+	for(int idx = 0; idx < mNumLinks; idx++) fout << external_forces[idx].transpose() <<" " << external_torques[idx].transpose() <<" ";
+	fout << std::endl;
 	ApplyContactForcesToID(contact_forces, link_pos, link_rot);
+	// std::cout << 4 << std::endl;
 	ApplyExternalForcesToID(link_pos, link_rot, external_forces, external_torques);
+	// std::cout << 5 << std::endl;
 
 	// solve ID: these joint forces are in joint frame
 	// but the reference
 	btInverseDynamicsBullet3::vecx solve_joint_force_bt(mDof);
 
-	// fout <<"q " << frame_id - 1 <<" " << mBuffer_q[frame_id - 1].transpose() << std::endl;
-	// fout <<"u " << frame_id - 1 <<" " << mBuffer_u[frame_id - 1].transpose() << std::endl;
-	// fout <<"u dor " << frame_id - 1 <<" " << mBuffer_u_dot[frame_id - 1].transpose() << std::endl;
+	fout <<"q " << frame_id - 1 <<" " << mBuffer_q.transpose() << std::endl;
+	fout <<"u " << frame_id - 1 <<" " << mBuffer_u.transpose() << std::endl;
+	fout <<"u dot " << frame_id - 1 <<" " << mBuffer_u_dot.transpose() << std::endl;
+	// std::cout << 6 << std::endl;
 	mInverseModel->calculateInverseDynamics(
-		cBulletUtil::EigenArrayTobtIDArray(mBuffer_q[frame_id - 1]),
-		cBulletUtil::EigenArrayTobtIDArray(mBuffer_u[frame_id - 1]),
-		cBulletUtil::EigenArrayTobtIDArray(mBuffer_u_dot[frame_id - 1]),
+		cBulletUtil::EigenArrayTobtIDArray(mBuffer_q),
+		cBulletUtil::EigenArrayTobtIDArray(mBuffer_u),
+		cBulletUtil::EigenArrayTobtIDArray(mBuffer_u_dot),
 		&solve_joint_force_bt);
-	
+	// std::cout << 7 << std::endl;
 	// convert the solve "solve_joint_force_bt" into individual joint forces for each joint.
 	Eigen::VectorXd solved_joint_force_full_concated = cBulletUtil::btIDArrayToEigenArray(solve_joint_force_bt);
-	// fout <<"result = " << solved_joint_force_full_concated.transpose() << std::endl;
+	fout <<"result = " << solved_joint_force_full_concated.transpose() << std::endl;
+	
 	std::vector<double> true_joint_force(0);
 	for (int i = 0; i < mMultibody->getNumLinks(); i++)
 	{
@@ -392,140 +540,6 @@ void cIDSolver::SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
 			}
 		}
 	}
-// //#define VERBOSE 
-// 	{
-// 		double threshold = 1e-8;
-// 		double sum_error = 0;
-// #ifdef VERBOSE
-// 		std::cout << "solve joint torque diff = ";
-// #endif
-// 		Eigen::VectorXd solved_joint_force_full_concated = cBulletUtil::btIDArrayToEigenArray(solve_joint_force_bt);
-// 		std::vector<double> true_joint_force(0);
-// 		double err = 0;
-// 		// output torque
-// 		if (mFloatingBase == true)
-// 		{
-// 			double val = 0;
-// 			for (int i = 0; i < 6; i++)
-// 			{
-// 				val = solved_joint_force_full_concated[i];
-// 				if (std::fabs(val) < threshold)  val = 0;
-// #ifdef VERBOSE
-// 				std::cout << val << " ";
-// #endif
-// 				err += val * val;
-// 			}
-// #ifdef VERBOSE
-// 			std::cout << "| ";
-// #endif
-// 		}
-
-// 		for (int i = 0; i < mMultibody->getNumLinks(); i++)
-// 		{
-// 			auto & cur_link = mMultibody->getLink(i);
-// 			int offset = cur_link.m_dofOffset;
-// 			if (mFloatingBase == true) offset += 6;
-// 			const int cnt = cur_link.m_dofCount;
-// 			switch (cur_link.m_jointType)
-// 			{
-// 			case btMultibodyLink::eFeatherstoneJointType::eRevolute:
-// 			{
-// 				assert(cnt == 1);
-// 				/*
-// 					solved_joint_force : in joint frame
-// 					mJointForces[i]: in link frame.
-
-// 					transform solved joint force to link frame
-
-// 				*/
-// 				double value = solved_joint_force_full_concated[offset];
-// 				tVector axis_in_body_frame = cBulletUtil::btVectorTotVector0(mMultibody->getLink(i).getAxisTop(0));
-// 				tQuaternion body_to_this = cMathUtil::EulerToQuaternion(cKinTree::GetBodyAttachTheta(mSimChar->GetBodyDefs(), i), eRotationOrder::XYZ);//
-// 				tQuaternion this_to_body = body_to_this.inverse();
-// 				tVector axis_in_joint_frame = cMathUtil::QuatRotVec(body_to_this, axis_in_body_frame);
-// 				tVector torque_in_joint_frame = value * axis_in_joint_frame;
-// 				tVector torque_in_link_frame = cMathUtil::QuatRotVec(this_to_body, torque_in_joint_frame);
-// 				solved_joint_forces[i] = torque_in_link_frame;
-
-// 				for (int id = 0; id < 3; id++)
-// 				{
-// 					double diff_val = torque_in_link_frame[id] - exp_joint_forces[i][id];
-// 					if (std::fabs(diff_val) < threshold) diff_val = 0;
-// 					true_joint_force.push_back(torque_in_link_frame[id]);
-// #ifdef VERBOSE
-// 					std::cout << diff_val << " ";
-// #endif
-// 					err += diff_val * diff_val;
-// 				}
-// #ifdef VERBOSE
-// 				std::cout << " | ";
-// #endif
-// 				break;
-// 			}
-// 			case btMultibodyLink::eFeatherstoneJointType::eSpherical:
-// 			{
-// 				assert(cnt == 3);
-
-// 				tVector torque = tVector(solved_joint_force_full_concated[offset], solved_joint_force_full_concated[offset + 1], solved_joint_force_full_concated[offset + 2], 0);
-
-// 				solved_joint_forces[i] = torque;
-
-// 				double val = 0;
-// 				for (int dof_id = 0; dof_id < cnt; dof_id++)
-// 				{
-// 					val = torque[dof_id] - exp_joint_forces[i][dof_id];
-// 					if (std::fabs(val) < threshold) val = 0;
-// #ifdef VERBOSE
-// 					std::cout << val << " ";
-// #endif
-// 					true_joint_force.push_back(exp_joint_forces[i][dof_id]);
-// 					err += val * val;
-// 				}
-// #ifdef VERBOSE
-// 				std::cout << " | ";
-// #endif
-// 				break;
-// 			}
-// 			case btMultibodyLink::eFeatherstoneJointType::eFixed:
-// 			{
-// 				break;
-// 			}
-// 			default:
-// 			{
-// 				std::cout << "[error] cIDSolver::SolveID: unsupported joint type " << cur_link.m_jointType;
-// 				exit(1);
-// 				break;
-// 			}
-// 			}
-// 		}
-// #ifdef VERBOSE
-// 		std::cout << std::endl;
-// #endif
-// 		if (err > threshold)
-// 		{
-// 			std::cout << "true joint force = ";
-// 			for (int i = 0; i < true_joint_force.size(); i++)
-// 			{
-// 				double val = true_joint_force[i];
-// 				if (std::abs(val) < threshold) val = 0;
-// 				std::cout << val << " ";
-// 			}
-// 			std::cout << std::endl;
-
-// 			std::cout << "solved joint force = ";
-// 			for (int i = 0; i < solved_joint_force_full_concated.size(); i++)
-// 			{
-// 				double val = solved_joint_force_full_concated[i];
-// 				if (std::abs(val) < threshold) val = 0;
-// 				std::cout << val << " ";
-// 			}
-
-// 			std::cout << std::endl;
-
-// 			std::cout << "[error] ID solved wrong\n";
-// 			//exit(1);
-// 		}
-// 	}
 }
 
 
@@ -534,8 +548,11 @@ void cIDSolver::ApplyExternalForcesToID(const std::vector<tVector> & link_poses,
 	const std::vector<tVector> & ext_forces,
 	const std::vector<tVector> & ext_torques) const
 {
-	// attension: mInverseModel MUST be set up well before it is called.
-
+	// attention: mInverseModel MUST be set up well before it is called.
+	assert(link_poses.size() == mNumLinks);
+	assert(link_rot.size() == mNumLinks);
+	assert(ext_forces.size() == mNumLinks);
+	assert(ext_torques.size() == mNumLinks);
 	//add external user force
 	for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
 	{
