@@ -25,6 +25,7 @@ public:
     virtual void PreSim() override final;
     virtual void PostSim() override final;
     void SaveToFile(const std::string & path);
+    void LoadFromFile(const std::string & path);
     virtual void SetTimestep(double deltaTime) override final;
 
     // "solve" mode
@@ -35,8 +36,6 @@ public:
 
 protected:
     eOfflineSolverMode mMode;
-    cSimCharacter * mSimChar;
-    btMultiBodyDynamicsWorld * mWorld;
 
 	struct {
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -53,18 +52,20 @@ protected:
         std::vector<tVector> mExternalForces[MAX_FRAME_NUM], mExternalTorques[MAX_FRAME_NUM];
 	} mSaveInfo;
 
+    struct {
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+        std::string mLoadPath = "";
+        Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat;
+        tVectorXd mTimesteps;
+        std::vector<std::vector<tForceInfo>> mContactForces;
+        std::vector<std::vector<tMatrix>> mLinkRot;	// local to world rotation mats
+        std::vector<std::vector<tVector>> mLinkPos;	// link COM pos in world frame
+        std::vector<std::vector<tVector>> mExternalForces, mExternalTorques;
+        std::vector<std::vector<tVector>> mTruthJointForces;
+        int mTotalFrame = 0;
+        int mCurFrame = 0;
+    } mLoadInfo;    // work for display and solve
+
     // ways
     void ParseConfig(const std::string & path);
-
-    // // solve mode record func
-    // virtual void SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
-    //     const std::vector<tForceInfo> & contact_forces,
-    //     const std::vector<tVector> link_pos, 
-    //     const std::vector<tMatrix> link_rot, 
-    //     const tVectorXd * mBuffer_q,
-    //     const tVectorXd * mBuffer_u,
-    //     const tVectorXd * mBuffer_u_dot,
-    //     int frame_id,
-    //     const std::vector<tVector> &mExternalForces,
-    //     const std::vector<tVector> &mExternalTorques) const override final;
 };

@@ -9,7 +9,7 @@
         "mode_bak2" : "save",
         "mode_bak1" : "display",
         "mode" : "solve",
-        "save_path" : "data/0313/trajs/traj.json",
-        "load_path" : "data/0313/trajs/traj_0.json"
+        "save_path" : "data/1209/trajs/traj.json",
+        "load_path" : "data/1209/trajs/traj_0.json"
     }
 }
