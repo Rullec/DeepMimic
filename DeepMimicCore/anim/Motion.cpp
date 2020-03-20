@@ -72,7 +72,9 @@ bool cMotion::Load(const tParams& params)
 
 	if (succ)
 	{
+		// std::cout <<"[debug] bool cMotion::Load LoadJson begin\n";
 		succ = LoadJson(root);
+		// std::cout <<"[debug] bool cMotion::Load LoadJson end\n";
 		if (succ)
 		{
 			PostProcessFrames(mFrames);
@@ -95,6 +97,7 @@ bool cMotion::Load(const tParams& params)
 void cMotion::Init(int num_frames, int num_dofs)
 {
 	Clear();
+	assert(num_frames >0 && num_dofs > 0);
 	mFrames = Eigen::MatrixXd::Zero(num_frames, num_dofs + eFrameMax);
 }
 
@@ -122,7 +125,10 @@ void cMotion::BuildFrameVel(Eigen::MatrixXd& out_frame_vel, bool mirror /*= fals
 {
 	int num_frames = GetNumFrames();
 	int dof = GetNumDof();
+	
+	assert(num_frames > 0 && dof > 0);
 	out_frame_vel = Eigen::MatrixXd::Zero(num_frames, dof);
+	// std::cout <<"cMotion::BuildFrameVel end " << num_frames <<" " << dof << std::endl;
 
 	Eigen::VectorXd vel;
 	for (int f = 0; f < num_frames - 1; ++f)
@@ -155,7 +161,7 @@ void cMotion::FilterFrameVel(Eigen::MatrixXd& out_frame_vel) const
 {
 	double dt = GetFrameDuration(0);
 	int num_dof = static_cast<int>(out_frame_vel.cols());
-
+	
 	for (int i = 0; i < num_dof; ++i)
 	{
 		Eigen::VectorXd x = out_frame_vel.col(i);
@@ -306,6 +312,7 @@ bool cMotion::LoadJsonFrames(const Json::Value& root, Eigen::MatrixXd& out_frame
 		int idx0 = 0;
 		Json::Value frame_json = root.get(idx0, 0);
 		data_size = frame_json.size();
+		// std::cout <<"[log] cMotion data resize = " << num_frames <<" " << data_size << std::endl;
 		out_frames.resize(num_frames, data_size);
 	}
 
@@ -447,6 +454,45 @@ double cMotion::GetFrameDuration(int f) const
 	return dur;
 }
 
+bool cMotion::AddFrame(const tFrame & frame, double timestep)
+{
+	/*
+	eLoop mLoop;
+	double mVelFilterCutoff;
+	tParams mParams;
+	Eigen::MatrixXd mFrames;
+	Eigen::MatrixXd mFrameVel;
+	Eigen::MatrixXd mFrameVelMirror;
+	*/
+	// std::cout << "cmotion add frame " << mFrames.rows() << std::endl;
+
+	if(mFrames.size() == 0) mFrames.resize(1, frame.size() + 1);
+	else 
+	{
+		assert(frame.size() == mFrames.row(0).size()-1);
+		mFrames.conservativeResize(mFrames.rows()+1, frame.size() + 1);
+	}
+	// std::cout << "after resize " << mFrames.rows() << std::endl;
+
+	// std::cout << "mframe shape = " << mFrames.rows() <<" " << mFrames.cols() << std::endl;
+	// std::cout <<"fr = " << frame.size() << std::endl;
+	// std::cout <<"set timestep = " << timestep << std::endl;
+	mFrames(mFrames.rows()-1, 0) = timestep;
+	mFrames.row(mFrames.rows()-1).segment(1, frame.size()) = frame.transpose();
+	// std::cout << "row added done " << mFrames.rows() << std::endl;
+	// PostProcessFrames(mFrames);
+	// std::cout << "post process done " << mFrames.rows() << std::endl;
+	// UpdateVel();
+	// std::cout << "update vel " << mFrames.rows() << std::endl;
+
+	return true;
+}
+
+void cMotion::FinishAddFrame()
+{
+	PostProcessFrames(mFrames);
+}
+
 int cMotion::CalcCycleCount(double time) const
 {
 	double dur = GetDuration();
@@ -485,11 +531,11 @@ void cMotion::CalcIndexPhase(double time, int& out_idx, double& out_phase) const
 	}
 
 	const Eigen::VectorXd& frame_times = mFrames.col(eFrameTime);
-	auto it = std::upper_bound(frame_times.data(), frame_times.data() + frame_times.size(), time);// ·µ»Ø´óÓÚtimeµÄµÚÒ»¸öÔªËØµÄµØÖ·
+	auto it = std::upper_bound(frame_times.data(), frame_times.data() + frame_times.size(), time);// ï¿½ï¿½ï¿½Ø´ï¿½ï¿½ï¿½timeï¿½Äµï¿½Ò»ï¿½ï¿½Ôªï¿½ØµÄµï¿½Ö·
 	out_idx = static_cast<int>(it - frame_times.data() - 1); // the first element is
 	double time0 = frame_times(out_idx);
 	double time1 = frame_times(out_idx + 1);
-	out_phase = (time - time0) / (time1 - time0);	// ÔÚÕâÒ»Ö¡×ßµ½Ê²Ã´½×¶ÎÁË£¨£©
+	out_phase = (time - time0) / (time1 - time0);	// ï¿½ï¿½ï¿½ï¿½Ò»Ö¡ï¿½ßµï¿½Ê²Ã´ï¿½×¶ï¿½ï¿½Ë£ï¿½ï¿½ï¿½
 }
 
 void cMotion::UpdateVel()
@@ -580,7 +626,11 @@ void cMotion::CalcFrameVel(const tFrame& frame0, const tFrame& frame1, double dt
 void cMotion::Output(const std::string& out_filepath) const
 {
 	FILE* file = cFileUtil::OpenFile(out_filepath, "w");
-
+	if(nullptr == file)
+	{
+		std::cout <<"[error] cMotion::Output(const std::string& out_filepath) const: illegal motion path " << out_filepath << std::endl;
+		exit(1);
+	}
 	fprintf(file, "{\n");
 	fprintf(file, "\"%s\": ", gLoopKey.c_str());
 

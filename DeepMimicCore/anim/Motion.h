@@ -66,6 +66,8 @@ public:
 	virtual void SetDuration(double dur);
 	virtual double GetFrameTime(int f) const;
 	virtual double GetFrameDuration(int f) const;
+	virtual bool AddFrame(const tFrame & frame, double timestep);
+	virtual void FinishAddFrame();
 
 	virtual int CalcCycleCount(double time) const;
 	virtual void CalcIndexPhase(double time, int& out_idx, double& out_phase) const;

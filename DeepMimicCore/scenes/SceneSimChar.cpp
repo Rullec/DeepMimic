@@ -120,7 +120,6 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 	mArgParser->ParseString("inverse_dynamic_config_file", mIDInfoPath);
 	if(mEnableID == true && false == cFileUtil::ExistsFile(mIDInfoPath))
 	{
-		
 		std::cout <<"[error] cSceneSimChar::ParseArgs failed for enable id but conf path is illegal: " << mIDInfoPath << std::endl;;
 		exit(1); 
 	}
@@ -146,13 +145,30 @@ void cSceneSimChar::Init()
 	BuildCharacters();
 
 	// 初始化角色位置
+	// auto & sim_char = GetCharacter(0);
+	// std::cout <<"begin init char pos \n";
+	// std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
+	// std::cout << "root rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
+	// std::cout << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
+
 	InitCharacterPos();
+	// std::cout <<"after init char pos ";
+	// std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
+	// std::cout << "root rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
+	// std::cout << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
+
+	// exit(1);
 	ResolveCharGroundIntersect();
 
 	// build inverse dynamic
 	BuildInverseDynamic();
 
 	ClearObjs();
+
+	// std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
+	// std::cout << "root rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
+	// std::cout << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
+	// exit(1);
 }
 
 void cSceneSimChar::Clear()
@@ -168,6 +184,12 @@ void cSceneSimChar::Clear()
 
 void cSceneSimChar::Update(double time_elapsed)
 {
+	// std::cout <<"------------cSceneSimChar::Update------------" << this->GetTime() << std::endl;;
+	auto & sim_char = GetCharacter();
+	// std::cout <<"[scene] error root pos = " << sim_char->GetRootPos().transpose() << std::endl;
+	// std::cout <<"[scene] error root rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
+	// std::cout <<"[scene] error pose = " << sim_char->GetPose().transpose() << std::endl;
+
 	cScene::Update(time_elapsed);
 
 	if (time_elapsed < 0)
@@ -183,27 +205,6 @@ void cSceneSimChar::Update(double time_elapsed)
 
 	PreUpdate(time_elapsed);		// clear joint torque
 	// 显示一下速度：是不是最开始的时候设置的速度太大了?
-	auto & sim_char = mChars[0];
-	// {
-	// 	mOnlineIDSolver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
-	// 	mOfflineIDSolver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
-
-	// 	// calc & apply torque in this function
-	// 	UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
-	// 	mOnlineIDSolver->PreSim();
-	// 	mOfflineIDSolver->PreSim();
-
-	// 	UpdateWorld(time_elapsed);
-	// 	UpdateGround(time_elapsed);
-	// 	UpdateObjs(time_elapsed);
-	// 	UpdateJoints(time_elapsed);
-
-	// 	PostUpdateCharacters(time_elapsed);
-	// 	PostUpdate(time_elapsed);
-
-	// 	mOnlineIDSolver->PostSim();
-	// 	mOfflineIDSolver->PostSim();
-	// }
 
 	
 	// order matters!
@@ -253,8 +254,9 @@ void cSceneSimChar::Update(double time_elapsed)
 			{
 				// std::cout <<"display!\n";
 				offline_solver->DisplaySet();
-				PostUpdateCharacters(time_elapsed);
-				PostUpdate(time_elapsed);
+				// auto & sim_char = GetCharacter(0);
+				// std::cout <<"error rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
+
 
 				// mIDSolver->PostSim();	
 			}
@@ -273,6 +275,21 @@ void cSceneSimChar::Update(double time_elapsed)
 			std::cout <<"[error] cSceneSimChar::Update IDSolver Type illegal = " << mIDSolver->GetType() << std::endl;
 		}
 
+	}
+	else
+	{
+		// calc & apply torque in this function
+		UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
+
+
+		UpdateWorld(time_elapsed);
+		UpdateGround(time_elapsed);
+		UpdateObjs(time_elapsed);
+		UpdateJoints(time_elapsed);
+
+		PostUpdateCharacters(time_elapsed);
+		PostUpdate(time_elapsed);
+	
 	}
 	
 	
@@ -444,6 +461,7 @@ bool cSceneSimChar::BuildCharacters()
 		cSimCharBuilder::CreateCharacter(char_type, curr_char);
 
 		succ &= curr_char->Init(mWorld, curr_params);
+		std::cout <<"init1 pose = " << curr_char->GetPose().transpose() << std::endl;
 		if (succ)
 		{
 			SetFallContacts(mFallContactBodies, *curr_char);
@@ -455,6 +473,7 @@ bool cSceneSimChar::BuildCharacters()
 			curr_char->RegisterContacts(cWorld::eContactFlagCharacter, cWorld::eContactFlagEnvironment);
 
 			InitCharacterPos(curr_char);
+			std::cout <<"init2 pose = " << curr_char->GetPose().transpose() << std::endl;
 
 			if (i < mCtrlParams.size())
 			{
@@ -471,11 +490,10 @@ bool cSceneSimChar::BuildCharacters()
 					curr_char->SetController(ctrl);
 				}
 			}
-
 			mChars.push_back(curr_char);
 		}
 	}
-	
+	// exit(1);
 	return succ;
 }
 
@@ -643,6 +661,12 @@ void cSceneSimChar::InitCharacterPosFixed(const std::shared_ptr<cSimCharacter>& 
 
 void cSceneSimChar::BuildInverseDynamic()
 {
+	if(!mEnableID)
+	{
+		mIDSolver = nullptr;
+		return;
+	}
+
 	// build inverse dynamics
 	auto sim_char = this->GetCharacter(0);
 	

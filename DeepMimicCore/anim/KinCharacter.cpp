@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <functional>
 #include "util/FileUtil.h"
+// #include <iostream>
 
 const double gDiffTimeStep = 1 / 600.0;
 
@@ -182,6 +183,8 @@ double cKinCharacter::GetPhase() const
 void cKinCharacter::Pose(double time)
 {
 	// compute time
+	// std::cout <<"void cKinCharacter::Pose(double time)" << time << std::endl;
+	
 	CalcPose(time, mPose);
 	SetPose(mPose);
 
@@ -323,6 +326,8 @@ void cKinCharacter::CalcPose(double time, Eigen::VectorXd& out_pose) const
 	{
 		// if motion exists
 		mMotion.CalcFrame(time, out_pose);
+		// std::cout <<"void cKinCharacter::CalcPose: pose size = " << out_pose.size() << std::endl;
+		// std::cout <<"void cKinCharacter::CalcPose: pose = " << out_pose.transpose() << std::endl;
 		if (mMotion.EnableLoop())
 		{
 			int cycle_count = mMotion.CalcCycleCount(time);

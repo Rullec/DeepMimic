@@ -88,6 +88,7 @@ void cController::FetchOptParamScale(Eigen::VectorXd& out_scale) const
 {
 }
 
+#include <iostream>
 void cController::OutputOptParams(const std::string& file, const Eigen::VectorXd& params) const
 {
 	FILE* f = cFileUtil::OpenFile(file, "w");
@@ -95,6 +96,11 @@ void cController::OutputOptParams(const std::string& file, const Eigen::VectorXd
 	{
 		OutputOptParams(f, params);
 		cFileUtil::CloseFile(f);
+	}
+	else
+	{
+		std::cout << "[error] cController::OutputOptParams: open file failed:" << file << std::endl;
+		exit(1);
 	}
 }
 

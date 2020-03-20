@@ -141,7 +141,7 @@ void cOnlineIDSolver::PostSim()
             // fout <<"buffer u " << mFrameId <<" = " << mBuffer_u[mFrameId].transpose()<< std::endl;
             // fout <<"buffer u dot " << mFrameId-1 <<" = " << mBuffer_u_dot[mFrameId - 1].transpose()<< std::endl;
 
-			double threshold = 1e-6;
+			double threshold = 1e-5;
 			{
 				tVectorXd diff = old_vel_after - mBuffer_u[mFrameId];
 				if (diff.norm() > threshold)
