@@ -107,11 +107,23 @@ void cSimBodyJoint::CalcWorldRotation(tVector& out_axis, double& out_theta) cons
 
 tMatrix cSimBodyJoint::BuildWorldTrans() const
 {
+	// if(IsRoot())
+	// {
+	// 	std::cout <<"for root tMatrix cSimBodyJoint::BuildWorldTrans()\n";
+	// }
 	tMatrix mat = tMatrix::Identity();
 	if (HasChild())
 	{
 		mat = mChild->GetWorldTransform();
+		// if(IsRoot())
+		// {
+		// 	std::cout <<"mat = child link world transform = \n" << mat << std::endl;
+		// }
 		mat = mat * BuildJointChildTrans();
+		// if(IsRoot())
+		// {
+		// 	std::cout <<"mat final = \n" << mat << std::endl;
+		// }
 	}
 	else
 	{

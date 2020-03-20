@@ -16,8 +16,8 @@ FILE* cFileUtil::OpenFile(const char* path, const char* mode)
 	f = fopen(path, mode);
 	if (f == nullptr)
 	{
-		printf("Failed to open %s!\n", path);
-		assert(false); // failed to open file
+		printf("[log] cFileUtil::OpenFile\": Failed to open %s!\n", path);
+		// assert(false); // failed to open file
 	}
 	return f;
 }
@@ -47,8 +47,8 @@ void cFileUtil::DeleteFile(const char* file_name)
 	bool succc = remove(file_name) == 0;
 	if (!succc)
 	{
-		printf("Failed to delete %s!\n", file_name);
-		assert(false); // failed to open file
+		printf("[error] cFileUtil::DeleteFile: Failed to delete %s!\n", file_name);
+		assert(false);
 	}
 }
 

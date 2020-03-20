@@ -492,12 +492,17 @@ void cSceneImitate::ResetKinChar()
 }
 
 void cSceneImitate::SyncCharacters()
-{
-	const auto& kin_char = GetKinChar();
+{	const auto& kin_char = GetKinChar();
 	const Eigen::VectorXd& pose = kin_char->GetPose();
 	const Eigen::VectorXd& vel = kin_char->GetVel();
 	
-	const auto& sim_char = GetCharacter();
+	const auto & sim_char = GetCharacter();
+
+	// std::cout <<"------------begin sync char\n";
+	// std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
+	// std::cout << "root rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
+	// std::cout << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
+
 	sim_char->SetPose(pose);
 	sim_char->SetVel(vel);
 
@@ -508,6 +513,11 @@ void cSceneImitate::SyncCharacters()
 		double kin_time = GetKinTime();
 		ct_ctrl->SetInitTime(kin_time);
 	}
+	// std::cout <<"------------end sync char\n";
+	// std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
+	// std::cout << "root rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
+	// std::cout << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
+	// exit(1);
 }
 
 bool cSceneImitate::EnableSyncChar() const

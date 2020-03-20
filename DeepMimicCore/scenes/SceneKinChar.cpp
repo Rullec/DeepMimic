@@ -28,10 +28,14 @@ void cSceneKinChar::Clear()
 {
 	mChar.reset();
 }
-
+// #include <iostream>
 void cSceneKinChar::Update(double time_elapsed)
 {
 	UpdateCharacters(time_elapsed);
+	// auto & kin_char = GetCharacter();
+	// std::cout <<"correct root pos = " << kin_char->GetRootPos().transpose() << std::endl;
+	// std::cout <<"correct root rot = " << kin_char->GetRootRotation().coeffs().transpose() << std::endl;
+	// std::cout <<"correct pose = " << kin_char->GetPose().transpose() << std::endl;
 }
 
 const std::shared_ptr<cKinCharacter>& cSceneKinChar::GetCharacter() const
@@ -109,4 +113,3 @@ void cSceneKinChar::UpdateCharacters(double timestep)
 {
 	mChar->Update(timestep);
 }
-

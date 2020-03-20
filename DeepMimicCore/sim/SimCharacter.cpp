@@ -57,6 +57,7 @@ bool cSimCharacter::Init(const std::shared_ptr<cWorld>& world, const tParams& pa
 	// 在sim char后面还有一个Character
 	bool succ_skeleton = cCharacter::Init(params.mCharFile, params.mLoadDrawShapes);
 	succ &= succ_skeleton;
+	// std::cout <<"2 pose = " << mPose.transpose() << std::endl;
 
 	SetID(params.mID);
 	RemoveFromWorld();
@@ -88,7 +89,6 @@ bool cSimCharacter::Init(const std::shared_ptr<cWorld>& world, const tParams& pa
 		SetVel(mVel);
 	}
 
-	
 	return succ;
 }
 
@@ -168,7 +168,15 @@ tQuaternion cSimCharacter::GetRootRotation() const
 	int root_id = GetRootID();
 	const cSimBodyJoint& root = GetJoint(root_id);
 	tQuaternion rot = root.CalcWorldRotation();
+	// std::cout <<"error root rot.calcworldrot before = " << rot.coeffs().transpose() << std::endl;
+	// std::cout <<"error mInvRootAttachRot = " << mInvRootAttachRot.coeffs().transpose() << std::endl;
 	rot = mInvRootAttachRot * rot;
+	if(mInvRootAttachRot.coeffs().segment(0,3).norm() > 1e-5)
+	{
+		std::cout <<"[error] cSimCharacter::GetRootRotation doesn't support non-zero rest pose " << mInvRootAttachRot.coeffs().transpose() << std::endl;
+		exit(1);
+	}
+	// std::cout <<"error root rot.calcworldrot after = " << rot.coeffs().transpose() << std::endl;
 	return rot;
 }
 
@@ -212,10 +220,14 @@ void cSimCharacter::SetRootRotation(const tQuaternion& q)
 
 void cSimCharacter::SetRootTransform(const tVector& pos, const tQuaternion& rot)
 {
-	tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, mPose);
+	// std::cout <<"set root transform begin\n";
+	// std::cout <<"pos = " << pos.transpose()<<" rot = " << rot.coeffs().transpose() << std::endl;
+	tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, mPose);// pose中的rotation
+	// std::cout << "root rot = " << root_rot.coeffs().transpose() << std::endl;
 	tVector root_vel = cKinTree::GetRootVel(mJointMat, mVel);
 	tVector root_ang_vel = cKinTree::GetRootAngVel(mJointMat, mVel);
 	tQuaternion delta_rot = rot * root_rot.inverse();
+	// std::cout << "delta rot = " << delta_rot.coeffs().transpose() << std::endl;
 
 	root_vel = cMathUtil::QuatRotVec(delta_rot, root_vel);
 	root_ang_vel = cMathUtil::QuatRotVec(delta_rot, root_ang_vel);

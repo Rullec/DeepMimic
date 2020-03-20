@@ -43,4 +43,4 @@
 
 #---------------------- Inverse Dyanmics config-------------------
 --enable_inverse_dynamic_solving true
---inverse_dynamic_config_file args/0311/id_conf_offline.json
+--inverse_dynamic_config_file args/0311/id_conf.json

@@ -15,25 +15,24 @@ void cOfflineIDSolver::ParseConfig(const std::string & path)
 {
     Json::Value root, offline_config;
     cJsonUtil::ParseJson(path, root);
-    offline_config = root["Offline_settings"];
+    offline_config = root["Offline"];
     assert(offline_config.isNull() == false);
     const std::string offline_mode = offline_config["mode"].asString();
     if("save" == offline_mode)
     {
         mMode = eOfflineSolverMode::Save;
-        mSaveInfo.mCurFrameId = 0;
-        mSaveInfo.mSavePath = offline_config["save_path"].asString();
-        assert(cFileUtil::ValidateFilePath(mSaveInfo.mSavePath));
+        ParseConfigSave(offline_config["SaveModeInfo"]);
     }
     else if("display" == offline_mode)
     {
         mMode = eOfflineSolverMode::Display;
-        LoadFromFile(offline_config["load_path"].asString());
+        ParseConfigDisplay(offline_config["DisplayModeInfo"]);
+
     }
     else if("solve" == offline_mode)
     {
         mMode = eOfflineSolverMode::Solve;
-        LoadFromFile(offline_config["load_path"].asString());
+        ParseConfigSolve(offline_config["SolveModeInfo"]);
     }
     else
     {
@@ -53,7 +52,8 @@ void cOfflineIDSolver::Reset()
     else if(mMode == eOfflineSolverMode::Save)
     {
         std::cout <<"cOfflineIDSolver: saving reset, have a new saving epoch, need more work to set up epoches\n";
-        SaveToFile(mSaveInfo.mSavePath);
+        SaveTraj(mSaveInfo.mSaveTrajRoot);
+        SaveMotion(mSaveInfo.mSaveMotionRoot, mSaveInfo.mMotion);
         mSaveInfo.mCurEpoch++;
         mSaveInfo.mCurFrameId = 0;
     }
@@ -90,6 +90,8 @@ void cOfflineIDSolver::PreSim()
         RecordJointForces(mSaveInfo.mTruthJointForces[cur_frame]);
 	    RecordGeneralizedInfo(mSaveInfo.mBuffer_q[cur_frame], mSaveInfo.mBuffer_u[cur_frame]);
 	    RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame]);
+        assert(mSaveInfo.mTimesteps[cur_frame] > 0);
+        mSaveInfo.mMotion->AddFrame(mSimChar->GetPose(), mSaveInfo.mTimesteps[cur_frame]);
         // if(cur_frame > 10.0)
         // {
         //     std::cout <<"frame = 10, begin test\n";
@@ -144,7 +146,7 @@ void cOfflineIDSolver::PostSim()
             // fout <<"buffer u " << cur_frame <<" = " << mSaveInfo.mBuffer_u[cur_frame].transpose()<< std::endl;
             // fout <<"buffer u dot " << cur_frame-1 <<" = " << mSaveInfo.mBuffer_u_dot[cur_frame - 1].transpose()<< std::endl;
 
-			double threshold = 1e-6;
+			double threshold = 1e-5;
 			{
 				tVectorXd diff = old_vel_after - mSaveInfo.mBuffer_u[cur_frame];
 				if (diff.norm() > threshold)
@@ -243,6 +245,7 @@ void cOfflineIDSolver::PostSim()
 
 void cOfflineIDSolver::SetTimestep(double timestep)
 {
+    assert(timestep > 0);
     if(mMode == eOfflineSolverMode::Save)
     {
         mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId] = timestep;
@@ -254,7 +257,7 @@ void cOfflineIDSolver::SetTimestep(double timestep)
     }
 }
 
-void cOfflineIDSolver::SaveToFile(const std::string & path_raw)
+void cOfflineIDSolver::SaveTraj(const std::string & path_raw)
 {
     assert(cFileUtil::ValidateFilePath(path_raw));
     std::string path_root = cFileUtil::RemoveExtension(path_raw);
@@ -341,16 +344,59 @@ void cOfflineIDSolver::SaveToFile(const std::string & path_raw)
 void cOfflineIDSolver::DisplaySet()
 {
     // select and set value for it
-    mLoadInfo.mCurFrame++;
-    const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPoseMat.rows();
-    std::cout <<"[log] cOfflineIDSolver display mode: cur frame = " << cur_frame << std::endl;
-    const tVectorXd & q = mLoadInfo.mPoseMat.row(cur_frame);
-    SetGeneralizedPos(q);
+    if(mLoadInfo.mLoadMode == eLoadMode::INVALID)
+    {
+        std::cout <<"[error] cOfflineIDSolver::DisplaySet invalid info mode\n";
+        exit(1);
+    }
+    else if(mLoadInfo.mLoadMode == eLoadMode::LOAD_TRAJ)
+    {
+        mLoadInfo.mCurFrame++;
+        const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPoseMat.rows();
+        std::cout <<"[log] cOfflineIDSolver display mode: cur frame = " << cur_frame << std::endl;
+        const tVectorXd & q = mLoadInfo.mPoseMat.row(cur_frame);
+        SetGeneralizedPos(q);
+    }
+    else if(mLoadInfo.mLoadMode == eLoadMode::LOAD_MOTION)
+    {
+        mLoadInfo.mCurFrame++;
+        const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mMotion->GetNumFrames();
+        std::cout <<"[log] cOfflineIDSolver display mode: cur frame = " << cur_frame << std::endl;
+        tVectorXd out_pose = mLoadInfo.mMotion->GetFrame(cur_frame);
+        // auto & mJointMat = mSimChar->GetJointMat();
+        // {
+        //     tVector root_delta = tVector::Zero();
+        //     tQuaternion root_delta_rot = tQuaternion::Identity();
+
+        //     tVector root_pos = cKinTree::GetRootPos(mJointMat, out_pose);
+        //     tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, out_pose);
+
+
+        //     // root_delta_rot = mOriginRot * root_delta_rot;
+        //     root_rot = root_delta_rot * root_rot;
+        //     root_pos += root_delta;
+        //     root_pos = cMathUtil::QuatRotVec(root_delta_rot, root_pos);
+        //     // root_pos += mOrigin;
+
+        //     cKinTree::SetRootPos(mJointMat, root_pos, out_pose);
+        //     cKinTree::SetRootRot(mJointMat, root_rot, out_pose);
+        // }
+        mSimChar->SetPose(out_pose);
+        // mSimChar->PostUpdate(0.01);
+        // std::cout <<"[id] error root pos = " << mSimChar->GetRootPos().transpose() << std::endl;
+        // std::cout <<"[id] error root rot = " << mSimChar->GetRootRotation().coeffs().transpose() << std::endl;
+        // std::cout <<"[id] error pose = " << out_pose.transpose() << std::endl;
+    }
+    else
+    {
+        std::cout <<"[error] cOfflineIDSolver::DisplaySet mode invalid: "<< mLoadInfo.mLoadMode << std::endl;
+        exit(1);
+    }
 }
 
-void cOfflineIDSolver::LoadFromFile(const std::string & path)
+void cOfflineIDSolver::LoadTraj(const std::string & path)
 {
-    std::cout <<"[debug] offline load from file " << path << std::endl; 
+    std::cout <<"[debug] offline load trajectory " << path << std::endl; 
     Json::Value data_json, list_json;
     cJsonUtil::ParseJson(path, data_json);
     // std::cout <<"load succ\n";
@@ -456,7 +502,7 @@ void cOfflineIDSolver::LoadFromFile(const std::string & path)
             mLoadInfo.mTruthJointForces[frame_id][idx][j] = cur_truth_joint_force[idx * 4 + j].asDouble();
         }
     }
-    std::cout <<"[debug] cOfflineIDSolver::LoadFromFile " << path <<", number of frames = " << num_of_frames << std::endl;
+    std::cout <<"[debug] cOfflineIDSolver::LoadTraj " << path <<", number of frames = " << num_of_frames << std::endl;
     // exit(1);
 }
 
@@ -575,4 +621,124 @@ void cOfflineIDSolver::OfflineSolve()
     }
     std::cout <<"[log] offline id solver solved succ, total error = " << err << std::endl;
     exit(1);
+}
+
+/**
+    "SaveModeInfo":
+    {
+        "_comment" : "this section focus on the setting of save mode",
+        "save_traj_root" : "data/1209/trajs/traj.json",
+        "save_motion_root" :  "data/1209/motion/ID_motion.txt"
+    },
+*/
+void cOfflineIDSolver::ParseConfigSave(const Json::Value & save_value)
+{
+    assert(save_value.isNull() == false);
+    // std::cout <<"void cOfflineIDSolver::ParseConfigSave(const Json::Value & save_value)\n";
+    mSaveInfo.mCurFrameId = 0;
+    const Json::Value save_path_root = save_value["save_traj_root"],
+        save_motion_root = save_value["save_motion_root"];
+    assert(save_path_root.isNull() == false);
+    assert(save_motion_root.isNull() == false);
+
+    mSaveInfo.mSaveTrajRoot = save_path_root.asString();
+    mSaveInfo.mSaveMotionRoot = save_motion_root.asString();
+    mSaveInfo.mMotion = new cMotion();
+
+    assert(cFileUtil::ValidateFilePath(mSaveInfo.mSaveTrajRoot));
+    assert(cFileUtil::ValidateFilePath(mSaveInfo.mSaveMotionRoot));
+}
+
+/*
+    "DisplayModeInfo":
+    {
+        "_comment" : "this section focus on the setting of display mode",
+        "display_traj_path" : "data/1209/trajs/traj_0.json",
+        "display_motion_path" : "data/1209/motion/ID_motion_0.txt"
+    },
+*/
+void cOfflineIDSolver::ParseConfigDisplay(const Json::Value & display_value)
+{
+    assert(display_value.isNull() == false);
+    // std::cout <<"void cOfflineIDSolver::ParseConfigDisplay(const Json::Value & save_value)\n";
+    const Json::Value & display_traj_path = display_value["display_traj_path"],
+        display_motion_path = display_value["display_motion_path"];
+
+    // there is only one choice between display_motion_path and display_traj_path
+    bool display_motion_path_isnull = display_motion_path.isNull(),
+        display_traj_path_isnull = display_traj_path.isNull();
+    if(!display_motion_path_isnull || !display_traj_path_isnull)
+    {
+        if(!display_motion_path_isnull && !display_traj_path_isnull)
+        {
+            std::cout <<"[error] cOfflineIDSolver::ParseConfigDisplay: there is only one choice between \
+                loading motions and loading trajectories\n";
+            exit(1);
+        }
+        if(!display_motion_path_isnull)
+        {
+            // choose to load motion from files
+            mLoadInfo.mLoadMode = eLoadMode::LOAD_MOTION;
+            mLoadInfo.mMotion = new cMotion();
+            LoadMotion(display_motion_path.asString(), mLoadInfo.mMotion);
+            // std::cout <<"[log] offlineIDSolver load motion " << display_motion_path<<", the resulted NOF = " << mLoadInfo.mMotion->GetNumFrames() << std::endl;
+        }
+        else // choose to load trajectories from files
+        {
+            mLoadInfo.mLoadMode = eLoadMode::LOAD_TRAJ;
+            LoadTraj(display_traj_path.asString());
+            // std::cout <<"[log] offlineIDSolver load the trajectory " << display_motion_path<<", the resulted NOF = " << mLoadInfo.mTotalFrame << std::endl;
+        }       
+    }
+    else
+    {
+        std::cout <<"[error] cOfflineIDSolver::ParseConfigDisplay: all options are empty\n";
+        exit(1);
+    }
+}
+
+/*
+    "SolveModeInfo":
+    {
+        "_comment" : "this section focus on the setting of solve mode, path means full info trajectory but motion is only motion",
+        "solve_traj_path" : "data/1209/trajs/traj_0.json"
+    }
+*/
+void cOfflineIDSolver::ParseConfigSolve(const Json::Value & solve_value)
+{
+    assert(solve_value.isNull() == false);
+    // std::cout <<"void cOfflineIDSolver::ParseConfigSolve(const Json::Value & save_value)\n";
+    const Json::Value & solve_traj_path = solve_value["solve_traj_path"];
+    assert(solve_traj_path.isNull() == false);
+    LoadTraj(solve_traj_path.asString());
+}
+
+/*
+    @Function: LoadMotion
+    @params: path Type const std::string &, the filename of specified motion
+    @params: motion Type cMotion *, the targeted motion storaged.
+*/
+void cOfflineIDSolver::LoadMotion(const std::string & path, cMotion * motion) const
+{
+    assert(cFileUtil::ExistsFile(path));
+    std::cout <<"[debug] offline load motion from " << path << std::endl;
+    cMotion::tParams params;
+    params.mMotionFile = path;
+    motion->Load(params);
+    
+    std::cout <<"[debug] offline load motion frames = " << motion->GetNumFrames() <<", dof = " <<motion->GetNumDof() << std::endl;
+}
+
+void cOfflineIDSolver::SaveMotion(const std::string & path_root, cMotion * motion) const
+{
+    assert(nullptr != motion);
+    if(false == cFileUtil::ValidateFilePath(path_root))
+    {
+        std::cout <<"[error] cOfflineIDSolver::SaveMotion: path root invalid: " << path_root << std::endl;
+        exit(1);
+    }
+    std::string filename = cFileUtil::RemoveExtension(path_root) + "_" + std::to_string(mSaveInfo.mCurEpoch) + "." + cFileUtil::GetExtension(path_root);
+    std::cout <<"[log] offline solver save motion = " << filename << std::endl;
+    motion->FinishAddFrame();
+    motion->Output(filename);
 }

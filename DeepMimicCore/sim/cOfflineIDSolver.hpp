@@ -3,12 +3,17 @@
 
 class btMultiBodyDynamicsWorld;
 class cSimCharacter;
+class cMotion;
 
 enum eOfflineSolverMode{
     INVALID,
     Save,
     Display,
     Solve
+};
+
+namespace Json{
+    class Value;
 };
 
 // Offline Inverse Dynamics Solver, differ from the online way...
@@ -24,8 +29,6 @@ public:
     // So the resulted file can be used as an input of the ID solving procedure, also can be verified in "display" mode.
     virtual void PreSim() override final;
     virtual void PostSim() override final;
-    void SaveToFile(const std::string & path);
-    void LoadFromFile(const std::string & path);
     virtual void SetTimestep(double deltaTime) override final;
 
     // "solve" mode
@@ -39,7 +42,8 @@ protected:
 
 	struct {
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-		std::string mSavePath = "";
+		std::string mSaveTrajRoot = "";
+        std::string mSaveMotionRoot = "";
         int mCurEpoch = 0;
 		int mCurFrameId = 0;
 		std::vector<tVector> mTruthJointForces[MAX_FRAME_NUM];
@@ -48,14 +52,22 @@ protected:
         std::vector<tMatrix> mLinkRot[MAX_FRAME_NUM];	// local to world rotation mats
 	    std::vector<tVector> mLinkPos[MAX_FRAME_NUM];	// link COM pos in world frame
         double mTimesteps[MAX_FRAME_NUM];   // timesteps
+        cMotion * mMotion;
         std::vector<tForceInfo> mContactForces[MAX_FRAME_NUM];
         std::vector<tVector> mExternalForces[MAX_FRAME_NUM], mExternalTorques[MAX_FRAME_NUM];
 	} mSaveInfo;
 
+    enum eLoadMode{
+        INVALID,
+        LOAD_MOTION,
+        LOAD_TRAJ
+    };
     struct {
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
         std::string mLoadPath = "";
+        eLoadMode mLoadMode = eLoadMode::INVALID;
         Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat;
+        cMotion * mMotion = nullptr;
         tVectorXd mTimesteps;
         std::vector<std::vector<tForceInfo>> mContactForces;
         std::vector<std::vector<tMatrix>> mLinkRot;	// local to world rotation mats
@@ -68,4 +80,13 @@ protected:
 
     // ways
     void ParseConfig(const std::string & path);
+    void ParseConfigSave(const Json::Value & save_value);
+    void ParseConfigSolve(const Json::Value & solve_value);
+    void ParseConfigDisplay(const Json::Value & display_value);
+
+    void LoadTraj(const std::string & path);
+    void LoadMotion(const std::string & path, cMotion * motion) const;
+    void SaveTraj(const std::string & path);
+    void SaveMotion(const std::string & path, cMotion * motion) const;
+
 };

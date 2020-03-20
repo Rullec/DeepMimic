@@ -1188,10 +1188,23 @@ tMatrix cKinTree::JointWorldTrans(const Eigen::MatrixXd& joint_mat, const Eigen:
 	while (curr_id != gInvalidJointID)
 	{
 		tMatrix child_parent_mat = ChildParentTrans(joint_mat, state, curr_id);
+		// if(0 == joint_id)
+		// {
+		// 	std::cout <<"joint id = 0, cur_id = " << curr_id << std::endl;
+		// 	std::cout << "before m = \n" << m << std::endl;
+		// 	std::cout <<"child parent trans = \n" << child_parent_mat << std::endl;
+		// }
 		m = child_parent_mat * m;
+		// if(0 == joint_id)
+		// {
+		// 	std::cout << "after m = \n" << m << std::endl;
+		// }
 		curr_id = GetParent(joint_mat, curr_id);
 	}
-
+	// if(0 == joint_id)
+	// {
+	// 	std::cout <<"root joint final world trans = \n" << m << std::endl;;
+	// }
 	return m;
 }
 
@@ -1920,14 +1933,22 @@ std::string cKinTree::BuildJointJson(int id, const tJointDesc& joint_desc)
 
 tMatrix cKinTree::ChildParentTransRoot(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& state, int joint_id)
 {
+	// std::cout <<"-------------for root joint calculate trans-----------\n";
 	tVector offset = GetRootPos(joint_mat, state);
+	// std::cout <<"offset = " << offset.transpose()<<std::endl;
 	tQuaternion rot = GetRootRot(joint_mat, state);
-
+	// std::cout <<"rot = " << rot.coeffs().transpose()<<std::endl;
+	// std::cout <<"cur pose = " << state.transpose() << std::endl;
+	// std::cout <<"rot = " << rot.coeffs().transpose() << std::endl;
+	// exit(1);
 	tMatrix A = BuildAttachTrans(joint_mat, joint_id);
+	// std::cout <<"A = \n " << A << std::endl;
 	tMatrix R = cMathUtil::RotateMat(rot);
+	// std::cout <<"R = \n " << R << std::endl;
 	tMatrix T = cMathUtil::TranslateMat(offset);
-
+	// std::cout <<"T = \n " << T << std::endl;
 	tMatrix mat = A * T * R;
+	// std::cout <<"final res = \n " << mat << std::endl;
 	return mat;
 }
 
@@ -1998,7 +2019,7 @@ void cKinTree::BuildDefaultPoseRoot(const Eigen::MatrixXd& joint_mat, Eigen::Vec
 {
 	int dim = gRootDim;
 	out_pose = Eigen::VectorXd::Zero(dim);
-	out_pose(gPosDim) = 1;
+	out_pose(gPosDim) = 1;// w, x, y, z
 }
 
 void cKinTree::BuildDefaultPoseRevolute(Eigen::VectorXd& out_pose)

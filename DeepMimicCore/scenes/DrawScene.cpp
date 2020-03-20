@@ -19,16 +19,19 @@ cDrawScene::cDrawScene()
 {
 	mCamTrackMode = eCamTrackModeXZ;
 	mDrawInfo = true;
+	mDrawAxis = true;
 }
 
 cDrawScene::~cDrawScene()
 {
+
 }
 
 void cDrawScene::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 {
 	cScene::ParseArgs(parser);
 	ParseCamTrackMode(parser, mCamTrackMode);
+	parser->ParseBool("draw_axis", mDrawAxis);
 }
 
 void cDrawScene::Init()
@@ -352,6 +355,7 @@ void cDrawScene::DrawScene()
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
+	DrawAxis();
 	DrawGroundMainScene();
 	DrawCharacterMainScene();
 	DrawObjsMainScene();
@@ -428,8 +432,26 @@ void cDrawScene::DrawMiscMainScene()
 	DrawMisc();
 }
 
+void cDrawScene::DrawAxis() const
+{
+	if(!mDrawAxis) return;
+
+	tVector st(0, 0, 0, 1), ed, color;
+	for(int i=0; i<3; i++)
+	{
+		ed = tVector::Zero();
+		ed[i] = 1.0;
+		ed[3] = 1.0;
+		color = ed;
+		color[3] = 0.5;
+		cDrawUtil::SetColor(color);
+		cDrawUtil::DrawArrow3D(st, ed, 0.1);
+	}
+}
+
 void cDrawScene::DrawGround() const
 {
+
 }
 
 void cDrawScene::DrawCharacters() const

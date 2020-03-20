@@ -202,7 +202,7 @@
       "Joints" : [
          {
             "AttachThetaX" : 0,
-            "AttachThetaY" : 1.57,
+            "AttachThetaY" : 0,
             "AttachThetaZ" : 0,
             "AttachX" : 0,
             "AttachY" : 0,

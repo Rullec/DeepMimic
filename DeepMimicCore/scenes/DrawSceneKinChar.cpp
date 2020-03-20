@@ -37,8 +37,7 @@ void cDrawSceneKinChar::Clear()
 	mScene->Clear();
 }
 
-void cDrawSceneKinChar::Update(double time_elapsed)
-{
+void cDrawSceneKinChar::Update(double time_elapsed){	
 	cDrawScene::Update(time_elapsed);
 	UpdateScene(time_elapsed);
 	UpdateCamera();

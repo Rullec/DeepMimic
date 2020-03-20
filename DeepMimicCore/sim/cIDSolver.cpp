@@ -22,7 +22,7 @@ cIDSolver::cIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world,
 
 	// init ID model
 	btInverseDynamicsBullet3::btMultiBodyTreeCreator id_creator;
-	if (-1 == id_creator.createFromBtMultiBody(mMultibody, true))
+	if (-1 == id_creator.createFromBtMultiBody(mMultibody, false))
 	{
 		b3Error("error creating tree\n");
 	}
@@ -455,22 +455,28 @@ void cIDSolver::SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
 	const std::vector<tVector> &external_torques) const
 {
 
+// #define DEBUG_STEP
+#ifdef DEBUG_STEP
 	std::ofstream fout("test3.txt", std::ios::app);
 	fout <<"----------------------------\n";
 	fout <<"solve id for frame " << frame_id << std::endl;
+#endif
 	// it should have only mNumLinks-1 elements.
 	// std::cout << 1 << std::endl;
 	solved_joint_forces.resize(mNumLinks-1);
 	// std::cout << 2 << std::endl;
 	for(auto & x : solved_joint_forces) x.setZero();
+#ifdef DEBUG_STEP
 	// std::cout << 3 << std::endl;
 	fout <<"link pos : ";
+
 	for(auto & x : link_pos) fout << x.transpose() <<" ";
 	fout <<"\nlink rot : " ;
 	for(auto & x : link_rot) fout << x.transpose() << std::endl;
 	fout <<"\n external forces and torques : ";
 	for(int idx = 0; idx < mNumLinks; idx++) fout << external_forces[idx].transpose() <<" " << external_torques[idx].transpose() <<" ";
 	fout << std::endl;
+#endif
 	ApplyContactForcesToID(contact_forces, link_pos, link_rot);
 	// std::cout << 4 << std::endl;
 	ApplyExternalForcesToID(link_pos, link_rot, external_forces, external_torques);
@@ -480,9 +486,11 @@ void cIDSolver::SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
 	// but the reference
 	btInverseDynamicsBullet3::vecx solve_joint_force_bt(mDof);
 
+#ifdef DEBUG_STEP
 	fout <<"q " << frame_id - 1 <<" " << mBuffer_q.transpose() << std::endl;
 	fout <<"u " << frame_id - 1 <<" " << mBuffer_u.transpose() << std::endl;
 	fout <<"u dot " << frame_id - 1 <<" " << mBuffer_u_dot.transpose() << std::endl;
+#endif
 	// std::cout << 6 << std::endl;
 	mInverseModel->calculateInverseDynamics(
 		cBulletUtil::EigenArrayTobtIDArray(mBuffer_q),
@@ -492,8 +500,10 @@ void cIDSolver::SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
 	// std::cout << 7 << std::endl;
 	// convert the solve "solve_joint_force_bt" into individual joint forces for each joint.
 	Eigen::VectorXd solved_joint_force_full_concated = cBulletUtil::btIDArrayToEigenArray(solve_joint_force_bt);
+#ifdef DEBUG_STEP
 	fout <<"result = " << solved_joint_force_full_concated.transpose() << std::endl;
-	
+#endif
+
 	std::vector<double> true_joint_force(0);
 	for (int i = 0; i < mMultibody->getNumLinks(); i++)
 	{

@@ -101,11 +101,30 @@ void cDrawCharacter::DrawCharShapes(const cCharacter& character, const tVector& 
 	size_t num_shapes = shape_defs.rows();
 
 	cDrawUtil::SetLineWidth(1);
+	// std::cout <<"------------draw char shapes------------" << num_shapes << std::endl;;
 	for (int i = 0; i < num_shapes; ++i)
 	{
 		cKinTree::tDrawShapeDef curr_def = shape_defs.row(i);
 		int parent_joint = cKinTree::GetDrawShapeParentJoint(curr_def);
-		tMatrix parent_world_trans = character.BuildJointWorldTrans(parent_joint);
+		tMatrix parent_world_trans;
+		// if(parent_joint == 0)
+		// {
+		// 	parent_world_trans= character.BuildJointWorldTrans(parent_joint);
+		// 	std::cout <<"tMatrix character.character(int joint_id) const " << i << std::endl;
+		// }
+			
+		parent_world_trans= character.BuildJointWorldTrans(parent_joint);
+		// std::cout <<"num shapes = " << num_shapes << std::endl;
+		// if(parent_joint == 0)
+		// {
+		// 	// tMatrix new_mat =  cMathUtil::RotMat(tQuaternion(0.866019, 0.500011, 0, 0));
+		// 	// tMatrix new_mat2 =  cMathUtil::RotateMat(tQuaternion(0.866019, 0.500011, 0, 0));
+			
+		// 	std::cout << "parent world trans = \n" << parent_world_trans << std::endl;
+		// 	// std::cout << "parent world trans new = \n" << new_mat << std::endl;
+		// 	// std::cout << "parent world trans new 2 = \n" << new_mat2 << std::endl;
+		// 	// parent_world_trans.block(0, 0, 3, 3) = new_mat.block(0, 0, 3, 3);
+		// } 
 
 		int mesh_id = cKinTree::GetDrawShapeMeshID(curr_def);
 		if (mesh_id != gInvalidIdx)

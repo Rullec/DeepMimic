@@ -40,7 +40,8 @@ protected:
 	cCamera mShadowCam;
 
 	bool mDrawInfo;
-
+	bool mDrawAxis;
+	
 	// textures
 	std::unique_ptr<cShadowMap> mShadowMap;
 	std::unique_ptr<cTextureDesc> mGridTex;
@@ -90,6 +91,7 @@ protected:
 	virtual void DrawObjsMainScene();
 	virtual void DrawMiscMainScene();
 	virtual void DrawGround() const;
+	virtual void DrawAxis() const;
 	virtual void DrawCharacters() const;
 	virtual void DrawObjs() const;
 	virtual void DrawMisc() const;

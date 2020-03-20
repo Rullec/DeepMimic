@@ -300,6 +300,7 @@ double cCharacter::CalcJointChainLength(int joint_id)
 
 tMatrix cCharacter::BuildJointWorldTrans(int joint_id) const
 {
+	// std::cout <<"tMatrix character::BuildJointWorldTrans(int joint_id) const " << joint_id << std::endl;
 	return cKinTree::JointWorldTrans(mJointMat, mPose, joint_id);
 }
 
