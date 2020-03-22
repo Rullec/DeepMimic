@@ -77,6 +77,7 @@ bool cMotion::Load(const tParams& params)
 		// std::cout <<"[debug] bool cMotion::Load LoadJson end\n";
 		if (succ)
 		{
+			assert(mFrames.rows() > 0);
 			PostProcessFrames(mFrames);
 			UpdateVel();
 		}
@@ -420,6 +421,7 @@ void cMotion::PostProcessFrames(Eigen::MatrixXd& frames) const
 double cMotion::GetDuration() const
 {
 	int num_frames = GetNumFrames();
+	assert(num_frames > 0);
 	double max_time = mFrames(num_frames - 1, eFrameTime);
 	return max_time;
 }

@@ -1,4 +1,4 @@
 --scene kin_char
 
 --character_file data/0114/characters/skeleton_0114.json
---motion_file data/0114/motions/walk_motion.txt
+--motion_file data/0313/motions/ID_motion_0.txt
