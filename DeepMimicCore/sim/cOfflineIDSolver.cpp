@@ -92,6 +92,10 @@ void cOfflineIDSolver::PreSim()
 	    RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame]);
         assert(mSaveInfo.mTimesteps[cur_frame] > 0);
         mSaveInfo.mMotion->AddFrame(mSimChar->GetPose(), mSaveInfo.mTimesteps[cur_frame]);
+        // if(mSaveInfo.mCurEpoch > 0) exit(1);
+        // std::ofstream linea_mom_record("linear_momentum_record_2_obj.txt", std::ios::app);
+        // linea_mom_record << "frame " << cur_frame <<" linear momentum = " << mSimChar->GetLinearMomentum().segment(0,3).transpose() <<", norm = " << mSimChar->GetLinearMomentum().segment(0,3).norm() << std::endl;
+        
         // if(cur_frame > 10.0)
         // {
         //     std::cout <<"frame = 10, begin test\n";

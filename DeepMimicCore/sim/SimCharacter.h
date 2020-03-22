@@ -141,7 +141,8 @@ public:
 	virtual void SetLinearVelocity(const tVector& vel);
 	virtual tVector GetAngularVelocity() const;
 	virtual void SetAngularVelocity(const tVector& vel);
-
+	virtual tVector GetLinearMomentum() const;
+	
 	virtual short GetColGroup() const;
 	virtual void SetColGroup(short col_group);
 	virtual short GetColMask() const;
