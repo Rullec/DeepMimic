@@ -107,6 +107,7 @@ bool cKinCharacter::LoadMotion(const std::string& motion_file)
 			printf("DOF mismatch, char dof: %i, motion dof: %i\n", char_dof, motion_dof);
 			mMotion.Clear();
 			succ = false;
+			exit(1);
 		}
 	}
 

@@ -461,7 +461,7 @@ bool cSceneSimChar::BuildCharacters()
 		cSimCharBuilder::CreateCharacter(char_type, curr_char);
 
 		succ &= curr_char->Init(mWorld, curr_params);
-		std::cout <<"init1 pose = " << curr_char->GetPose().transpose() << std::endl;
+		// std::cout <<"init1 pose = " << curr_char->GetPose().transpose() << std::endl;
 		if (succ)
 		{
 			SetFallContacts(mFallContactBodies, *curr_char);
@@ -473,7 +473,7 @@ bool cSceneSimChar::BuildCharacters()
 			curr_char->RegisterContacts(cWorld::eContactFlagCharacter, cWorld::eContactFlagEnvironment);
 
 			InitCharacterPos(curr_char);
-			std::cout <<"init2 pose = " << curr_char->GetPose().transpose() << std::endl;
+			// std::cout <<"init2 pose = " << curr_char->GetPose().transpose() << std::endl;
 
 			if (i < mCtrlParams.size())
 			{
@@ -897,7 +897,7 @@ void cSceneSimChar::ResetScene()
 	InitCharacterPos();
 	ResolveCharGroundIntersect();
 
-	mIDSolver->Reset();
+	if(mEnableID)mIDSolver->Reset();
 	// mOnlineIDSolver->Reset();
 	// mOfflineIDSolver->Reset();
 }

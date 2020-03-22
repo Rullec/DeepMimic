@@ -44,3 +44,5 @@ DeepMimicCore/DeepMimicCore.py
 DeepMimicCore/Main
 Main
 *trajs/
+
+.DS_Store
