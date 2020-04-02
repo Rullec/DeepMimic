@@ -1,6 +1,7 @@
 #pragma once
 #include <util/MathUtil.h>
 #include <sim/SimCharacter.h>
+typedef std::pair<int, int> idx_pair;
 
 class cReverseController {
 public:
@@ -11,13 +12,15 @@ public:
 
 private:
 	// pipeline control data
-	bool mEnableSolving;
+	bool mEnableSolving, mEnableFastSolving;
 
 	// outsider data
 	//Eigen::VectorXd mKp;
 	//Eigen::VectorXd mKd;
 	double mTimestep;
 	Eigen::DiagonalMatrix<double, Eigen::Dynamic> Kp_mat, Kd_mat;
+	std::vector<idx_pair> mRawIndexLst, mNewIndexLst;	// used for the topo info of system matrix.
+	int mRawMatSize, mNewMatSize;						// The size of new sys mat and raw sys mat
 	Eigen::MatrixXd Kp_dense, Kd_dense;
 
 	cSimCharacter* mChar;
@@ -28,6 +31,11 @@ private:
 	// buffer data
 	Eigen::MatrixXd M_s_inv, A, E, E_sub;
 	Eigen::VectorXd b, f, f_sub;
-
+	
 	void CalcPoseDiffFromTorque(const tVectorXd & input_torque, const tVectorXd & input_pose, const tVectorXd & input_vel, tVectorXd & output_vel_diff);
+	void BuildTopo();
+	void MatrixTransfer(Eigen::MatrixXd & raw_mat, Eigen::MatrixXd & new_mat, int mode)const;
+	void VectorTransfer(tVectorXd & old_vec, tVectorXd & new_vec, int mode) const;
+
+	tVectorXd FastSolve(Eigen::MatrixXd & A, tVectorXd & b) const;
 };

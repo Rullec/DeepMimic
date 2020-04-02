@@ -168,7 +168,7 @@ void cOnlineIDSolver::PostSim()
 				{
 					std::cout << "truth accel =  " << old_accel.transpose() << std::endl;
 					std::cout << "calc accel =  " << mBuffer_u_dot[mFrameId - 1].transpose() << std::endl;
-					std::cout << "solved error = " << diff.transpose() << std::endl;
+					std::cout << "differential error = " << diff.transpose() << std::endl;
 					//exit(1);
 				}
 			}
