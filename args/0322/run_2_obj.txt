@@ -18,6 +18,7 @@
 #-------------------------skeleton------------------------
 --char_types general
 --character_files data/0322/characters/skeleton_120401_2_obj.json
+--enable_joint_force_control false
 --enable_char_soft_contact false
 --fall_contact_bodies 0
 

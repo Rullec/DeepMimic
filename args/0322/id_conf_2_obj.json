@@ -9,6 +9,7 @@
         "SaveModeInfo":
         {
             "_comment" : "this section focus on the setting of save mode",
+            "clear_applied_force" : true,
             "save_traj_root" : "data/0322/trajs/traj_2_obj.json",
             "save_motion_root" :  "data/0322/motions/ID_motion_2_obj.txt"
         },

@@ -147,7 +147,7 @@ public:
 	virtual void SetColGroup(short col_group);
 	virtual short GetColMask() const;
 	virtual void SetColMask(short col_mask);
-
+	virtual void SetEnablejointTorqueControl(bool v_);
 protected:
 	std::shared_ptr<cMultiBody> mMultiBody;
 	std::vector<std::shared_ptr<cSimBodyLink>> mBodyParts;
@@ -159,6 +159,7 @@ protected:
 
 	std::shared_ptr<cCharController> mController;
 	tQuaternion mInvRootAttachRot;
+	bool mEnableJointTorqueControl;
 
 	// scratch buffers for intermediate computation
 	btAlignedObjectArray<btVector3> mVecBuffer0;

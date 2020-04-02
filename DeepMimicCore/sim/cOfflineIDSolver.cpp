@@ -39,8 +39,6 @@ void cOfflineIDSolver::ParseConfig(const std::string & path)
         std::cout <<"[error] cOfflineIDSolver::ParseConfig mode error " << offline_mode << std::endl;
         exit(1);
     }
-
-
 }
 
 void cOfflineIDSolver::Reset()
@@ -54,6 +52,7 @@ void cOfflineIDSolver::Reset()
         std::cout <<"cOfflineIDSolver: saving reset, have a new saving epoch, need more work to set up epoches\n";
         SaveTraj(mSaveInfo.mSaveTrajRoot);
         SaveMotion(mSaveInfo.mSaveMotionRoot, mSaveInfo.mMotion);
+        VerifyMomentum();
         mSaveInfo.mCurEpoch++;
         mSaveInfo.mCurFrameId = 0;
     }
@@ -88,10 +87,22 @@ void cOfflineIDSolver::PreSim()
         for(auto & x : mSaveInfo.mExternalTorques[cur_frame]) x.setZero();
 
         RecordJointForces(mSaveInfo.mTruthJointForces[cur_frame]);
+        // for(auto & x : mSaveInfo.mTruthJointForces[cur_frame]) std::cout << x.transpose() << std::endl;
 	    RecordGeneralizedInfo(mSaveInfo.mBuffer_q[cur_frame], mSaveInfo.mBuffer_u[cur_frame]);
-	    RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame]);
+	    
+
+        // only record momentum in PreSim for the first frame
+        if(0 == cur_frame)
+        {
+            RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame]);
+            RecordMomentum(mSaveInfo.mLinearMomentum[cur_frame], mSaveInfo.mAngularMomentum[cur_frame]);
+        }
+        
+        
         assert(mSaveInfo.mTimesteps[cur_frame] > 0);
         mSaveInfo.mMotion->AddFrame(mSimChar->GetPose(), mSaveInfo.mTimesteps[cur_frame]);
+
+        mSaveInfo.mCharPoses[cur_frame] = mSimChar->GetPose();
         // if(mSaveInfo.mCurEpoch > 0) exit(1);
         // std::ofstream linea_mom_record("linear_momentum_record_2_obj.txt", std::ios::app);
         // linea_mom_record << "frame " << cur_frame <<" linear momentum = " << mSimChar->GetLinearMomentum().segment(0,3).transpose() <<", norm = " << mSimChar->GetLinearMomentum().segment(0,3).norm() << std::endl;
@@ -133,6 +144,13 @@ void cOfflineIDSolver::PostSim()
 	    // record contact forces
 	    RecordContactForces(mSaveInfo.mContactForces[cur_frame], mSaveInfo.mTimesteps[cur_frame - 1], mWorldId2InverseId);
 
+        // record linear momentum
+        RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame]);
+        RecordMomentum(mSaveInfo.mLinearMomentum[cur_frame], mSaveInfo.mAngularMomentum[cur_frame]);
+
+        // character pose
+        mSaveInfo.mCharPoses[cur_frame] = mSimChar->GetPose();
+
         // calculate the relative generalized velocity, take care of the idx... 
         if (cur_frame >= 2)
 		{
@@ -149,6 +167,25 @@ void cOfflineIDSolver::PostSim()
             // fout <<"buffer u " << cur_frame -1 <<" = " << mSaveInfo.mBuffer_u[cur_frame - 1].transpose()<< std::endl;
             // fout <<"buffer u " << cur_frame <<" = " << mSaveInfo.mBuffer_u[cur_frame].transpose()<< std::endl;
             // fout <<"buffer u dot " << cur_frame-1 <<" = " << mSaveInfo.mBuffer_u_dot[cur_frame - 1].transpose()<< std::endl;
+
+            // test discrete vel integration
+            // {
+            //     assert(mSimChar->GetNumBodyParts() == mNumLinks - 1);
+            //     for(int idx = 0; idx< mNumLinks; idx++)
+            //     {   
+            //         // mSimChar->GetBodyPart(0)->GetLinearVelocity
+            //         tVector cur_vel;
+            //         if(idx==0) cur_vel = mSimChar->GetRootVel();
+            //         else cur_vel= mSimChar->GetBodyPartVel(idx - 1);
+            //         tVector pred_vel = (mSaveInfo.mLinkPos[cur_frame][idx] - mSaveInfo.mLinkPos[cur_frame-1][idx])/cur_timestep;
+            //         double diff = (cur_vel - pred_vel).norm();
+            //         if(diff > 1e-5)
+            //         {
+            //             std::cout <<"frame " << cur_frame <<" body " << idx <<" pred vel = " << pred_vel.transpose() <<", tru vel = " << cur_vel.transpose() << std::endl;
+            //         }
+                    
+            //     } 
+            // }
 
 			double threshold = 1e-5;
 			{
@@ -337,12 +374,19 @@ void cOfflineIDSolver::SaveTraj(const std::string & path_raw)
             single_frame["truth_joint_force"].append(mSaveInfo.mTruthJointForces[frame_id][i][j]);
         }
 
+        // set up character poses
+        single_frame["char_pose"] = Json::arrayValue;
+        for(int i=0; i < mSaveInfo.mCharPoses[frame_id].size(); i++)
+        {
+            single_frame["char_pose"].append(mSaveInfo.mCharPoses[frame_id][i]);
+        }
+
         // append to the whole list
         root["list"].append(single_frame);
     }
     std::ofstream fout(final_name);
     writer->write(root, &fout);
-    std::cout <<"[log] cOfflineIDSolver::SaveToFile " << "for epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
+    std::cout <<"[log] cOfflineIDSolver::SaveTraj " << "for epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
 }
 
 void cOfflineIDSolver::DisplaySet()
@@ -642,13 +686,15 @@ void cOfflineIDSolver::ParseConfigSave(const Json::Value & save_value)
     mSaveInfo.mCurFrameId = 0;
     const Json::Value save_path_root = save_value["save_traj_root"],
         save_motion_root = save_value["save_motion_root"];
+
     assert(save_path_root.isNull() == false);
     assert(save_motion_root.isNull() == false);
 
     mSaveInfo.mSaveTrajRoot = save_path_root.asString();
     mSaveInfo.mSaveMotionRoot = save_motion_root.asString();
-    mSaveInfo.mMotion = new cMotion();
 
+    mSaveInfo.mMotion = new cMotion();
+    
     assert(cFileUtil::ValidateFilePath(mSaveInfo.mSaveTrajRoot));
     assert(cFileUtil::ValidateFilePath(mSaveInfo.mSaveMotionRoot));
 }
@@ -742,7 +788,96 @@ void cOfflineIDSolver::SaveMotion(const std::string & path_root, cMotion * motio
         exit(1);
     }
     std::string filename = cFileUtil::RemoveExtension(path_root) + "_" + std::to_string(mSaveInfo.mCurEpoch) + "." + cFileUtil::GetExtension(path_root);
-    std::cout <<"[log] offline solver save motion = " << filename << std::endl;
+    std::cout <<"[log] cOfflineIDSolver::SaveMotion for epoch " << mSaveInfo.mCurEpoch <<" to " << filename << std::endl;
     motion->FinishAddFrame();
     motion->Output(filename);
+    motion->Clear();
+}
+
+// this function is used to verify the "law of conservation of momentum" when OfflineIDSolver works in "Save" mode
+void cOfflineIDSolver::VerifyMomentum()
+{
+    if(mMode!=eOfflineSolverMode::Save)
+    {
+        std::cout <<"[error] this function SHOULD NOT be called in mode " << mMode;
+        exit(1);
+    }
+
+    // std::cout <<"[log] void cOfflineIDSolver::VerifyMomentum begin\n";
+    // verify linear momentum
+    std::ofstream fout_1("./logs/verify_momentum_pos.txt");
+    std::ofstream fout_2("./logs/verify_momentum_vel.txt");
+    {
+        tVector linear_momentum_now = tVector::Zero(),  // for init linear momentum, it's truly zero now.
+                linear_momentum_next = tVector::Zero(),
+                COM_pos_now = tVector::Zero(),
+                COM_pos_next = tVector::Zero();
+
+        tVector linear_momentum_changes = tVector::Zero(), impulse = tVector::Zero();
+        double char_mass = mSimChar->CalcTotalMass(), char_mass_test = 0;
+        std::vector<double> link_mass(0);
+        for(int id = 0; id< mSimChar->GetNumBodyParts(); id++) // including root
+        {
+            link_mass.push_back(mSimChar->GetBodyPart(id)->GetMass());
+            char_mass_test += link_mass[link_mass.size() - 1];
+            COM_pos_now += link_mass[link_mass.size() - 1] * mSaveInfo.mLinkPos[0][id] / char_mass;
+        }
+        assert(std::abs(char_mass - char_mass_test) < 1e-6);
+        
+        
+        // 3. calculate impulse for this frame
+        // 4. compare
+        // 5. give another value
+        for(int i=0; i< mSaveInfo.mCurFrameId-1; i++)
+        {
+            const int & next_frame = i+1, & cur_frame = i;
+            const double & cur_timestep = mSaveInfo.mTimesteps[cur_frame];
+            // 1. calculate momentum for next frame
+            COM_pos_next = tVector::Zero();
+            for(int id = 0; id< mSimChar->GetNumBodyParts(); id++)
+                COM_pos_next += link_mass[id] * mSaveInfo.mLinkPos[next_frame][id] / char_mass;
+            
+            linear_momentum_next = (COM_pos_next - COM_pos_now) / cur_timestep * char_mass;
+
+            // 2. calculate momentum changes for this frame
+            linear_momentum_changes = linear_momentum_next - linear_momentum_now;
+
+            // 3. calculate impulse
+            impulse = tVector::Zero();
+            impulse += char_mass * mSimChar->GetWorld()->GetGravity() * cur_timestep;
+
+            // mContactForces[i+1] is the contact force in i frame, and it will generate vel i+1
+            for(auto & f: mSaveInfo.mContactForces[i+1])
+            {
+                impulse += f.mForce * cur_timestep;
+            }
+
+            // 4. compare
+            fout_1 <<"frame " << i <<" " << (impulse - linear_momentum_changes).transpose() << std::endl;
+
+            // 5. give another value
+            linear_momentum_now = linear_momentum_next;
+            COM_pos_now = COM_pos_next;
+        }
+        
+    }
+    
+    // verify linear momentum from vel
+    {
+        double total_mass = mSimChar->CalcTotalMass();
+        for(int i=0; i<mSaveInfo.mCurFrameId-1; i++)
+        {
+            tVector diff = mSaveInfo.mLinearMomentum[i+1] - mSaveInfo.mLinearMomentum[i] - mSimChar->GetWorld()->GetGravity() * total_mass * mSaveInfo.mTimesteps[i];
+            for(auto & f: mSaveInfo.mContactForces[i+1])
+            {
+                diff -= f.mForce * mSaveInfo.mTimesteps[i];
+            }
+            fout_2 <<"frame " << i <<" " << diff.transpose() << std::endl;
+        }
+
+    }
+    // verify angular momentum
+
+
+    // exit(1);
 }

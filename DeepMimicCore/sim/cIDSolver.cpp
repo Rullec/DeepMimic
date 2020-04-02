@@ -402,6 +402,17 @@ void cIDSolver::RecordContactForces(std::vector<tForceInfo> &mContactForces, dou
 	}
 }
 
+// record linear & ang momentum for current character
+void cIDSolver::RecordMomentum(tVector &linear_momentum, tVector & ang_momentum) const
+{
+	// calculate linear momentum
+	linear_momentum = mSimChar->GetLinearMomentum();
+
+	// calculate ang momentum
+	ang_momentum = tVector::Zero();
+	std::cout <<"[warning] get an momentum zero\n";
+	// exit(1);
+}
 
 void cIDSolver::ApplyContactForcesToID(const std::vector<tForceInfo> &mContactForces, const std::vector<tVector> & mLinkPos, const std::vector<tMatrix> & mLinkRot) const
 {
