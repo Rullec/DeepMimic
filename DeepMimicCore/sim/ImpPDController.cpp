@@ -148,7 +148,7 @@ void cImpPDController::UpdateRBDModel()
 
 void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out_tau)
 {
-	//#define OUTPUT_LOG_CONTROL_FORCE
+	// #define OUTPUT_LOG_CONTROL_FORCE
 
 #ifdef OUTPUT_LOG_CONTROL_FORCE
 	std::cout << "verbose log here\n";
@@ -210,8 +210,9 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 	//std::cout << "bias force = " << C.transpose() << std::endl;
 	M.diagonal() += timestep * mKd;
 
-#ifdef OUTPUT_LOG_CONTROL_FORCE
 	{
+#ifdef OUTPUT_LOG_CONTROL_FORCE
+	
 		fout << "C = \n " << C << std::endl;
 
 #endif
@@ -230,6 +231,7 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 #endif
 
 		pose_inc = pose + timestep * pose_inc;	// pose_cur + timestep * dqdt = pose_next (predicted)
+		// std::cout <<"cImpPDController::CalcControlForces pose next inc = " << pose_inc.transpose() << std::endl;
 		cKinTree::PostProcessPose(joint_mat, pose_inc);	// normalize, quaternions make sense
 		Eigen::VectorXd pose_err;
 
@@ -256,8 +258,8 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 		TIMER_RECORD_END(Solve, mPerfSolveTime, mPerfSolveCount)
 #endif
 
-			// final formular: tau(torque) = kp * pose_err + kd (val - t*acc)
-			out_tau += Kp_mat * pose_err + Kd_mat * (vel_err - timestep * acc);
+	// final formular: tau(torque) = kp * pose_err + kd (val - t*acc)
+	out_tau += Kp_mat * pose_err + Kd_mat * (vel_err - timestep * acc);
 
 #ifdef OUTPUT_LOG_CONTROL_FORCE
 		{
@@ -304,9 +306,11 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 				exit(1);
 			}
 		}
+	}
+	// exit(1);
 }
 
-	void cImpPDController::BuildTargetPose(tVectorXd & out_pose) const
+void cImpPDController::BuildTargetPose(tVectorXd & out_pose) const
 {
 	out_pose = tVectorXd::Zero(GetNumDof());
 

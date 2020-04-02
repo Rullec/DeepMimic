@@ -1,6 +1,7 @@
 #include "cReverseController.h"
 #include <iostream>
 #include <fstream>
+#include <util/cTimeUtil.hpp>
 // #include <windows.h>
 
 void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove);
@@ -15,6 +16,12 @@ cReverseController::cReverseController(cSimCharacter * sim_char)
 	I.resize(mChar->GetNumDof(), mChar->GetNumDof());
 	I.setIdentity();
 	mEnableSolving = false;
+	mEnableFastSolving = true;
+
+	if(mEnableFastSolving)
+	{
+		BuildTopo();
+	}
 }
 
 void cReverseController::CalcPDTarget(const tVectorXd & input_torque, const tVectorXd &input_pose, const tVectorXd & input_cur_vel, tVectorXd & output_pd_target)
@@ -31,6 +38,7 @@ void cReverseController::CalcPDTarget(const tVectorXd & input_torque, const tVec
 		//std::cout << "next pose = " << pose_next.transpose() << std::endl;
 	}
 
+	// std::cout <<"cReverseController::CalcPDTarget pose next = " << pose_next.transpose() << std::endl;
 	// 2. calculate pos diff = PD_target - pose_next
 	tVectorXd pose_diff;
 	// get all joints' pose diff from torque, except root joint.
@@ -111,7 +119,11 @@ void cReverseController::CalcPoseDiffFromTorque(const tVectorXd & input_torque, 
 
 	// 2. calulte A and b
 
-	M_s_inv = (M + mTimestep * Kd_dense).ldlt().solve(I);
+	// M_s_inv = (M + mTimestep * Kd_dense).ldlt().solve(I);
+	// std::ofstream fout_("tmp.txt");
+	// fout_ <<"Ms = \n" << (M + mTimestep * Kd_dense).inverse() << std::endl;
+	// M_s_inv = (M + mTimestep * Kd_dense).ldlt().solve(I);
+	M_s_inv = (M + mTimestep * Kd_dense).inverse();
 	A = M_s_inv * Kp_mat;
 	b = -M_s_inv * (Kd_mat * cur_vel + C);
 
@@ -121,9 +133,41 @@ void cReverseController::CalcPoseDiffFromTorque(const tVectorXd & input_torque, 
 
 	// 4. arrange the matrix and solve final target
 	// it can be more efficient if we delete some "zero" dofs, for example the first 7 nums  and each 4th number for spherial joints
-	output_pos_diff = E.ldlt().solve(f);
+// cTimeUtil::Begin();
+// 	output_pos_diff = E.ldlt().solve(f);
+// cTimeUtil::End();
+// cTimeUtil::Begin();
+// 	auto output_pos_diff_new = FastSolve(E, f);
+// cTimeUtil::End();
+	output_pos_diff = FastSolve(E, f);
+	// std::cout <<"solve diff = " << (output_pos_diff - output_pos_diff_new).norm() << std::endl;
+	// std::cout <<"new res compatibility = " << (E * output_pos_diff_new - f).norm() << std::endl;
+	// std::cout <<"old res compatibility = " << (E * output_pos_diff - f).norm() << std::endl;
+	// exit(1);
+	tVectorXd err = E * output_pos_diff - f;
+	if(err.norm() > 1e-6)
+	{
+		std::cout <<"[error] cReverseController::CalcPoseDiffFromTorque solved err norm = " <<err.norm() <<" = " << err.transpose();
+		exit(1);
+	}
+	
 
-//#define OUTPUT_LOG
+	bool solved_error = false;
+	auto diff = E * output_pos_diff - f;
+	if(diff.norm() > 1e-6)
+	{
+		std::cout <<"cReverseController::CalcPoseDiffFromTorque solved output pose diff error\n";
+		std::cout <<"E size = " << E.rows() << " " << E.cols() << std::endl;
+		std::cout <<"f size = " << f.rows() <<" " << f.cols() << std::endl;
+		std::cout <<"diff = " << diff.transpose() << std::endl;
+		std::cout <<"E = \n" << E << std::endl;
+		solved_error = true;
+	}
+
+	// for debug purpose, calculate "acc"
+	// Eigen::VectorXd acc = Kp_mat * pose_err + Kd_mat * vel_err - C;
+	auto acc = Kp_mat * output_pos_diff + Kd_mat * (- cur_vel) - C;
+// #define OUTPUT_LOG
 #ifdef OUTPUT_LOG
 	std::cout << "verbose log atterntion\n";
 	std::ofstream fout("logs/controller_logs/pd_target_debug.log", std::ios::app);
@@ -132,13 +176,15 @@ void cReverseController::CalcPoseDiffFromTorque(const tVectorXd & input_torque, 
 	fout << "Kd = \n" << Kd_mat.toDenseMatrix() << std::endl;
 	fout << "cur pose = " << cur_pose.transpose() << std::endl;
 	fout << "next pose = " << pose_ref.transpose() << std::endl;
+	fout << "Q = " << acc.transpose() << std::endl;
 	fout << "A = \n" << A << std::endl;
 	fout << "b = " << b.transpose() << std::endl;
 	fout << "E = \n" << E << std::endl;
 	fout << "f = " << f.transpose() << std::endl;
 	fout << "E_sub = \n" << E_sub << std::endl;
 	fout << "f_sub = " << f_sub.transpose() << std::endl;
-	fout << "Err = " << output_pd_target.transpose() << std::endl;
+	fout << "Err = " << output_pos_diff.transpose() << std::endl;
+	if(solved_error) fout <<"solve error = " << diff.transpose() << std::endl;
 #endif
 	
 	mEnableSolving = false;
@@ -148,7 +194,6 @@ void cReverseController::CalcAction(const tVectorXd & input_torque, const tVecto
 {
 	tVectorXd pd_target;
 	CalcPDTarget(input_torque, input_cur_pose, input_cur_vel, pd_target);
-
 }
 
 void cReverseController::SetParams(double timestep_, const Eigen::MatrixXd &M_, const Eigen::MatrixXd &C_, const Eigen::VectorXd & kp_, const Eigen::VectorXd & kd_)
@@ -165,35 +210,210 @@ void cReverseController::SetParams(double timestep_, const Eigen::MatrixXd &M_, 
 }
 
 
-void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
+/*
+	@Function: cReverseController::BuildTopo
+	These equations "acc = M.ldlt().solve(acc)" are sparse according to the structure of multibody,
+	We can extract the non-zero rows and cols for fasting solve. 
+	And this function will get the Topo of these sparse matrix. 
+*/
+void cReverseController::BuildTopo()
 {
-	unsigned int numRows = matrix.rows() - 1;
-	unsigned int numCols = matrix.cols();
 
-	if (rowToRemove < numRows)
-		matrix.block(rowToRemove, 0, numRows - rowToRemove, numCols) = matrix.block(rowToRemove + 1, 0, numRows - rowToRemove, numCols);
+	/* 1. RawIndexList and NewIndexList are 2 list of int pairs.
+		They are 'corosponding to' each other.
+		For example, RawIndexList = {<7, 9>, <10, 10>}
+		and NewINdexList = {<0, 2>, <3, 3>}
+		means that ,the [0-2, 0-2] 3x3 block in new mat 
+				should be set to 
+						[7-9, 7-9] 3x3 block in raw mat
+	*/
+	assert(mChar != nullptr);
+	mRawIndexLst.clear(), mNewIndexLst.clear();
 
-	matrix.conservativeResize(numRows, numCols);
+	int raw_index_offset = 0, new_index_offset = 0;
+	int new_mat_size = 0;
+	std::shared_ptr<cMultiBody> multibody = mChar->GetMultiBody();
+	if(multibody->hasFixedBase() == false) raw_index_offset += 7;
+	for(int id = 0; id < multibody->getNumLinks(); id++) 
+	{
+		auto cur_type = multibody->getLink(id).m_jointType;
+		switch(cur_type)
+		{
+			case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+			{
+				mRawIndexLst.push_back(idx_pair(raw_index_offset, raw_index_offset + 2));
+				mNewIndexLst.push_back(idx_pair(new_index_offset, new_index_offset + 2));
+				new_index_offset+=3, raw_index_offset+=4;
+				new_mat_size+=3; 
+				break;
+			}
+			case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+			{
+				mRawIndexLst.push_back(idx_pair(raw_index_offset, raw_index_offset));
+				mNewIndexLst.push_back(idx_pair(new_index_offset, new_index_offset));
+				new_index_offset+=1, raw_index_offset+=1;
+				new_mat_size+=1;
+			}
+			case btMultibodyLink::eFeatherstoneJointType::eFixed:
+			{
+				continue;
+			}
+			default: std::cout <<"cReverseController::BuildTopo unsupported joint type " << cur_type << std::endl;exit(1);
+		}
+	}
+
+	for(int i=0; i<mRawIndexLst.size(); i++)
+	{
+		auto raw_idx = mRawIndexLst[i], new_idx = mNewIndexLst[i];
+		std::cout <<"[log] topo " << i <<" from raw idx " << raw_idx.first <<" " << raw_idx.second 
+			<<" to new idx " << new_idx.first <<" " << new_idx.second << std::endl;
+	}
+	// exit(1);
+
+	// std::cout << "char dofs = " << mChar->GetNumDof() << std::endl;
+	mRawMatSize = mChar->GetNumDof();
+	mNewMatSize = new_mat_size;	// The size of new sys mat and raw sys mat
 }
 
-void removeColumn(Eigen::MatrixXd& matrix, unsigned int colToRemove)
+enum eTransferMode{
+		squeeze = 0,	// from raw_mat to new_mat
+		expand, 			// from new_mat to raw_mat
+		MAX_MODE_NUM
+}transfer_mode;
+
+
+tVectorXd cReverseController::FastSolve(Eigen::MatrixXd & A, tVectorXd & b) const
 {
-	unsigned int numRows = matrix.rows();
-	unsigned int numCols = matrix.cols() - 1;
+	// std::cout << "[log] cReverseController::FastSolve \n";
+	assert(A.rows() == mRawMatSize && A.cols() == mRawMatSize);
+	assert(b.size() == mRawMatSize);
+	if(mNewMatSize ==0 ) return tVectorXd::Zero(mRawMatSize);
 
-	if (colToRemove < numCols)
-		matrix.block(0, colToRemove, numRows, numCols - colToRemove) = matrix.block(0, colToRemove + 1, numRows, numCols - colToRemove);
+	Eigen::MatrixXd new_A;
+	tVectorXd new_b;
+	MatrixTransfer(A, new_A, eTransferMode::squeeze);
+	VectorTransfer(b, new_b, eTransferMode::squeeze);
+	tVectorXd res_squeeze = new_A.inverse() * new_b, res_expand;
+	VectorTransfer(res_expand, res_squeeze, eTransferMode::expand);
+	assert(res_expand.hasNaN() == false);
+	// std::cout <<" A = " << A << std::endl;
+	// std::cout <<" res = " << res_expand.transpose() << std::endl;
+	// std::cout <<" b = " << b.transpose() << std::endl;
+	// std::cout << (A * res_expand - b).norm() << std::endl;
+	tVectorXd solve_err = A * res_expand - b;
+	if(solve_err.norm() > 1e-6)
+	{
+		std::cout <<"[error] cReverseController::FastSolve solve err = " << solve_err.norm() <<" " << solve_err.transpose() << std::endl;
+		exit(1);
+	}
+	
+	return res_expand;
+	// std::ofstream fout("tmp.txt");
+	// // fout <<"raw A = \n" << A << std::endl;
 
-	matrix.conservativeResize(numRows, numCols);
+	// MatrixTransfer(A, new_A, eTransferMode::squeeze);	// squeeze from sparse A to compact new_A
+	// // fout <<"new A = \b" << new_A << std::endl;
+	// tVectorXd new_b;
+	// fout <<"raw b = " << b.transpose() << std::endl;
+	// VectorTransfer(b, new_b, eTransferMode::squeeze);
+	// fout <<"new b = " << new_b.transpose() << std::endl;
+	// tVectorXd restore_b;
+	// VectorTransfer(restore_b, new_b, eTransferMode::expand);
+	// std::cout <<"restore b diff = " << (restore_b -  b).norm() << std::endl;
+	// exit(1);
+	// return tVector::Zero();
 }
 
-void removeRow(tVectorXd& vec, unsigned int rowToRemove)
+
+
+void cReverseController::MatrixTransfer(Eigen::MatrixXd & raw_mat, Eigen::MatrixXd & new_mat, int mode)const
 {
-	unsigned int numRows = vec.size() - 1;
-	unsigned int numCols = 1;
+	assert(mode < MAX_MODE_NUM && mode >=0);
+	
+	// squeeze, from sparse raw mat to compact new mat
+	// expand, from compant new mat to sparse raw mat
+	if(mode == eTransferMode::squeeze)
+	{
+		assert(raw_mat.rows() == mRawMatSize && raw_mat.cols() == mRawMatSize);
+		new_mat.resize(mNewMatSize, mNewMatSize);
+		new_mat.setZero();
+	}
+	else
+	{
+		assert(new_mat.rows() == mNewMatSize && new_mat.cols() == mNewMatSize);
+		raw_mat.resize(mRawMatSize, mRawMatSize);
+		raw_mat.setZero();
+	}
+	
+	assert(mRawIndexLst.size() == mNewIndexLst.size());
+	int pair_num = mRawIndexLst.size();
+	for(int row_idx = 0; row_idx< pair_num; row_idx++)
+	{
+		int raw_row_st = mRawIndexLst[row_idx].first,
+			new_row_st = mNewIndexLst[row_idx].first;
+		int row_size = mRawIndexLst[row_idx].second - mRawIndexLst[row_idx].first + 1;
+		assert(row_size == (mNewIndexLst[row_idx].second - mNewIndexLst[row_idx].first + 1));
 
-	if (rowToRemove < numRows)
-		vec.block(rowToRemove, 0, numRows - rowToRemove, numCols) = vec.block(rowToRemove + 1, 0, numRows - rowToRemove, numCols);
+		for(int col_idx = 0; col_idx < pair_num; col_idx++)
+		{
+			int raw_col_st = mRawIndexLst[col_idx].first,
+				new_col_st = mNewIndexLst[col_idx].first;
+			int col_size = mRawIndexLst[col_idx].second - mRawIndexLst[col_idx].first + 1;
+			assert(col_size == (mNewIndexLst[col_idx].second - mNewIndexLst[col_idx].first + 1));
 
-	vec.conservativeResize(numRows, numCols);
+			if(mode == eTransferMode::squeeze)
+			{
+				new_mat.block(new_row_st, new_col_st, row_size, col_size)
+					=
+				raw_mat.block(raw_row_st, raw_col_st, row_size, col_size);
+			}
+			else
+			{
+				raw_mat.block(raw_row_st, raw_col_st, row_size, col_size)
+					=
+				new_mat.block(new_row_st, new_col_st, row_size, col_size);
+			}
+			
+		}
+	}
+}
+
+void cReverseController::VectorTransfer(tVectorXd & raw_vec, tVectorXd & new_vec, int mode) const
+{
+	assert(mode < MAX_MODE_NUM && mode >=0);
+	
+	// squeeze, from sparse raw mat to compact new mat
+	// expand, from compant new mat to sparse raw mat
+	if(mode == eTransferMode::squeeze)
+	{
+		assert(raw_vec.size() == mRawMatSize);
+		new_vec.resize(mNewMatSize, 1);
+		new_vec.setZero();
+	}
+	else
+	{
+		assert(new_vec.size() == mNewMatSize);
+		raw_vec.resize(mRawMatSize, 1);
+		raw_vec.setZero();
+	}
+	
+	assert(mRawIndexLst.size() == mNewIndexLst.size());
+	int pair_num = mRawIndexLst.size();
+	for(int idx = 0; idx< pair_num; idx++)
+	{
+		int raw_st = mRawIndexLst[idx].first,
+			new_st = mNewIndexLst[idx].first;
+		int size = mRawIndexLst[idx].second - mRawIndexLst[idx].first + 1;
+		assert(size == (mNewIndexLst[idx].second - mNewIndexLst[idx].first + 1));
+
+
+		if(mode == eTransferMode::squeeze)
+		{
+			new_vec.segment(new_st, size) = raw_vec.segment(raw_st, size);
+		}
+		else
+		{
+			raw_vec.segment(raw_st, size) = new_vec.segment(new_st, size);
+		}
+	}
 }
