@@ -17,15 +17,15 @@
 
 #-------------------------skeleton------------------------
 --char_types general
---character_files data/0322/characters/skeleton_120401_4_obj.json
---enable_joint_force_control true
+--character_files data/0322/characters/skeleton_120401_3_obj.json
+--enable_joint_force_control false
 --enable_char_soft_contact false
 --fall_contact_bodies 0
 
 #----------------PD params and motion data----------------
 --char_ctrls ct_pd
---char_ctrl_files data/0322/controllers/humanoid3d_ctrl_skeleton_120401_4_obj.txt
---motion_file data/0322/motions/120401_motion_4_obj.txt
+--char_ctrl_files data/0322/controllers/humanoid3d_ctrl_skeleton_120401_3_obj.txt
+--motion_file data/0322/motions/120401_motion_3_obj.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
 
@@ -44,4 +44,4 @@
 
 #---------------------- Inverse Dyanmics config-------------------
 --enable_inverse_dynamic_solving true
---inverse_dynamic_config_file args/0322/id_conf_4_obj.json
+--inverse_dynamic_config_file args/0322/id_conf_3_obj.json

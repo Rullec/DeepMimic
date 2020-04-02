@@ -17,16 +17,24 @@
 		{
 			"ID": 1,
 			"Name": "RightUpLeg",
-			"Kp": 0,
-			"Kd": 0,
+			"Kp": 20,
+			"Kd": 2,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 2,
 			"Name": "RightLeg",
-			"Kp": 0,
-			"Kd": 0,
+			"Kp": 10,
+			"Kd": 1,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 3,
+			"Name": "RightFoot",
+			"Kp": 10,
+			"Kd": 1,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		}
