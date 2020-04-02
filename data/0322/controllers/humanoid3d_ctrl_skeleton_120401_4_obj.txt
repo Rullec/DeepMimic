@@ -15,34 +15,34 @@
 			"UseWorldCoord": 0
 		},
 		{
-			"ID": 1,
+			"ID": 10,
 			"Name": "RightUpLeg",
-			"Kp": 20,
-			"Kd": 2,
+			"Kp": 50,
+			"Kd": 10,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
-			"ID": 2,
+			"ID": 10,
 			"Name": "RightLeg",
-			"Kp": 10,
-			"Kd": 1,
+			"Kp": 50,
+			"Kd": 10,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 3,
 			"Name": "RightFoot",
-			"Kp": 10,
-			"Kd": 1,
+			"Kp": 50,
+			"Kd": 10,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 4,
 			"Name": "RFootTongue",
-			"Kp": 0,
-			"Kd": 0,
+			"Kp": 50,
+			"Kd": 10,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		}
