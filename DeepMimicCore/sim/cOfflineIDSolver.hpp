@@ -55,6 +55,8 @@ protected:
         cMotion * mMotion;
         std::vector<tForceInfo> mContactForces[MAX_FRAME_NUM];
         std::vector<tVector> mExternalForces[MAX_FRAME_NUM], mExternalTorques[MAX_FRAME_NUM];
+        tVector mLinearMomentum[MAX_FRAME_NUM], mAngularMomentum[MAX_FRAME_NUM]; // linear, ang momentum for each frame
+        tVectorXd mCharPoses[MAX_FRAME_NUM];
 	} mSaveInfo;
 
     enum eLoadMode{
@@ -89,4 +91,5 @@ protected:
     void SaveTraj(const std::string & path);
     void SaveMotion(const std::string & path, cMotion * motion) const;
 
+    void VerifyMomentum();
 };

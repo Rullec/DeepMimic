@@ -3,8 +3,8 @@
     "IDMode_bak": "Online",
     "Offline":
     {
-        "mode_bak1" : "save",
-        "mode" : "display",
+        "mode" : "save",
+        "mode_bak1" : "display",
         "mode_bak2" : "solve",
         "SaveModeInfo":
         {

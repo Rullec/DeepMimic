@@ -19,6 +19,7 @@ cReverseController::cReverseController(cSimCharacter * sim_char)
 
 void cReverseController::CalcPDTarget(const tVectorXd & input_torque, const tVectorXd &input_pose, const tVectorXd & input_cur_vel, tVectorXd & output_pd_target)
 {
+	
 	// 1. calculate pose_next = input_pose + input_cur_vel
 	tVectorXd pose_next;
 	{
@@ -62,6 +63,8 @@ void cReverseController::CalcPDTarget(const tVectorXd & input_torque, const tVec
 				tQuaternion q1 = cMathUtil::VecToQuat(pose_next.segment(param_offset, param_size));
 				tQuaternion q_diff = cMathUtil::AxisAngleToQuaternion(pose_diff.segment(param_offset, param_size));
 				tQuaternion q2 = q1 * q_diff;
+				
+				if(q2.coeffs()[3] <0) q2 = cMathUtil::MinusQuaternion(q2);
 				output_pd_target.segment(param_offset, param_size) = cMathUtil::QuatToVec(q2);
 				break;
 			}

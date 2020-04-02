@@ -55,6 +55,7 @@ protected:
 	void RecordGeneralizedInfo(tVectorXd & q, tVectorXd & q_dot) const;
 	void RecordJointForces(std::vector<tVector> & mJointForces) const;
 	void RecordContactForces(std::vector<tForceInfo> &mContactForces, double mCurTimestep, std::map<int, int> &mWorldId2InverseId) const;
+	void RecordMomentum(tVector &linear_mometum, tVector & ang_momentum) const;
 	void ApplyContactForcesToID(const std::vector<tForceInfo> &mContactForces, const std::vector<tVector> & mLinkPos, const std::vector<tMatrix> & mLinkRot) const;
 	void ApplyExternalForcesToID(const std::vector<tVector> & link_poses, const std::vector<tMatrix> & link_rot, const std::vector<tVector> & ext_forces, const std::vector<tVector> & ext_torques) const;
 

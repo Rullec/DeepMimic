@@ -27,6 +27,7 @@ cSimCharacter::cSimCharacter()
 {
 	mFriction = 0.9;
 	mEnableContactFall = true;
+	mEnableJointTorqueControl = true;
 }
 
 cSimCharacter::~cSimCharacter()
@@ -1371,11 +1372,12 @@ void cSimCharacter::ClearJointTorques()
 void cSimCharacter::UpdateJoints()
 {
 	// std::cout << "void cSimCharacter::UpdateJoints()" << std::endl;
+	if(mEnableJointTorqueControl == false) std::cout <<"[debug] cSimCharacter::UpdateJoints disable joint forces\n";
 	int num_joints = GetNumJoints();
 	for (int j = 1; j < num_joints; ++j)
 	{
 		cSimBodyJoint& joint = GetJoint(j);
-		if (joint.IsValid())
+		if (joint.IsValid() && mEnableJointTorqueControl)
 		{
 			joint.ApplyTau();
 		}
@@ -1553,6 +1555,7 @@ void cSimCharacter::SetAngularVelocity(const tVector& vel)
 
 tVector cSimCharacter::GetLinearMomentum() const
 {
+	// this function can not be used in fine grained scene
 	tVector com_vel = CalcCOMVel();
 	double total_mass = 0;
 	for(int i=0; i<mBodyParts.size(); i++)
@@ -1592,6 +1595,13 @@ void cSimCharacter::SetColMask(short col_mask)
 			GetBodyPart(i)->SetColMask(col_mask);
 		}
 	}
+}
+
+void cSimCharacter::SetEnablejointTorqueControl(bool v_)
+{
+	mEnableJointTorqueControl = v_;
+	std::cout <<"[debug] cSimCharacter::SetEnablejointTorqueControl " << v_ << std::endl;
+	// exit(1);
 }
 
 const std::shared_ptr<cWorld>& cSimCharacter::GetWorld() const

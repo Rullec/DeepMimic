@@ -62,6 +62,7 @@ cSceneSimChar::cSceneSimChar()
 	mEnableRandCharPlacement = true;
 	mEnableTorqueRecord = false;
 	mTorqueRecordFile = "";
+	mEnableJointTorqueControl = true;
 	//mIDInfo.clear();
 
 	mWorldParams.mNumSubsteps = 1;
@@ -84,7 +85,7 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 	parser->ParseBool("enable_rand_char_placement", mEnableRandCharPlacement);
 	parser->ParseBool("enable_torque_record", mEnableTorqueRecord);
 	parser->ParseString("torque_record_file", mTorqueRecordFile);
-	
+	parser->ParseBool("enable_joint_force_control", mEnableJointTorqueControl);
 
 	succ &= ParseCharTypes(parser, mCharTypes);
 	succ &= ParseCharParams(parser, mCharParams);
@@ -108,6 +109,7 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 	parser->ParseDouble("min_pertrub_duration", mPerturbParams.mMinDuration);
 	parser->ParseDouble("max_perturb_duration", mPerturbParams.mMaxDuration);
 	parser->ParseInts("perturb_part_ids", mPerturbParams.mPerturbPartIDs);
+
 
 	parser->ParseInts("fall_contact_bodies", mFallContactBodies);	// 哪几个link检测掉落?
 
@@ -493,7 +495,8 @@ bool cSceneSimChar::BuildCharacters()
 			mChars.push_back(curr_char);
 		}
 	}
-	// exit(1);
+	
+	mChars[0]->SetEnablejointTorqueControl(mEnableJointTorqueControl);
 	return succ;
 }
 
