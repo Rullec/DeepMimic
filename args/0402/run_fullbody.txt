@@ -25,7 +25,7 @@
 #----------------PD params and motion data----------------
 --char_ctrls ct_pd
 --char_ctrl_files data/0402/controllers/humanoid3d_ctrl_skeleton_120401.txt
---motion_file data/0402/motions/120401_motion_full.txt
+--motion_file data/0402/motions/120401_motion_full_stand.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
 
