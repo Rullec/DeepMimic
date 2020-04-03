@@ -295,7 +295,11 @@ tVectorXd cReverseController::FastSolve(Eigen::MatrixXd & A, tVectorXd & b) cons
 	VectorTransfer(b, new_b, eTransferMode::squeeze);
 	tVectorXd res_squeeze = new_A.inverse() * new_b, res_expand;
 	VectorTransfer(res_expand, res_squeeze, eTransferMode::expand);
-	assert(res_expand.hasNaN() == false);
+	// for(int i=0; i<res_expand.size(); i++)
+	// {
+	// 	if(res_expand.segment(i, 1).hasNaN() == true) res_expand[i] = 0;
+	// }
+	// assert(res_expand.hasNaN() == false);
 	// std::cout <<" A = " << A << std::endl;
 	// std::cout <<" res = " << res_expand.transpose() << std::endl;
 	// std::cout <<" b = " << b.transpose() << std::endl;
