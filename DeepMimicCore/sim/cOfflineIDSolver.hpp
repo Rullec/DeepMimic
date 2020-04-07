@@ -51,6 +51,11 @@ protected:
         tVectorXd mBuffer_q[MAX_FRAME_NUM], mBuffer_u[MAX_FRAME_NUM], mBuffer_u_dot[MAX_FRAME_NUM];
         std::vector<tMatrix> mLinkRot[MAX_FRAME_NUM];	// local to world rotation mats
 	    std::vector<tVector> mLinkPos[MAX_FRAME_NUM];	// link COM pos in world frame
+        std::vector<tVector> mLinkVel[MAX_FRAME_NUM];   // link COM vel in world frame
+        std::vector<tVector> mLinkOmega[MAX_FRAME_NUM]; // link angular momentum in world frame
+        std::vector<tVector> mLinkDiscretVel[MAX_FRAME_NUM];   // link COM vel in world frame calculated from differential of link positions
+        std::vector<tVector> mLinkDiscretOmega[MAX_FRAME_NUM]; // link angular momentum in world frame  from differential of link rotation
+        
         double mTimesteps[MAX_FRAME_NUM];   // timesteps
         cMotion * mMotion;
         std::vector<tForceInfo> mContactForces[MAX_FRAME_NUM];
@@ -90,6 +95,7 @@ protected:
     void LoadMotion(const std::string & path, cMotion * motion) const;
     void SaveTraj(const std::string & path);
     void SaveMotion(const std::string & path, cMotion * motion) const;
-
+    
     void VerifyMomentum();
+
 };

@@ -3,6 +3,7 @@
 #include "BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h"
 #include <util/JsonUtil.h>
 #include <util/FileUtil.h>
+#include <util/BulletUtil.h>
 #include <iostream>
 
 cOfflineIDSolver::cOfflineIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world,\
@@ -46,12 +47,25 @@ void cOfflineIDSolver::Reset()
     if(this->mMode == eOfflineSolverMode::Display)
     {
         std::cout <<"cOfflineIDSolver: displaying reset\n";
+        exit(1);
     }
     else if(mMode == eOfflineSolverMode::Save)
     {
         std::cout <<"cOfflineIDSolver: saving reset, have a new saving epoch, need more work to set up epoches\n";
         SaveTraj(mSaveInfo.mSaveTrajRoot);
         SaveMotion(mSaveInfo.mSaveMotionRoot, mSaveInfo.mMotion);
+
+        // output linera momentum to file "ang_mimic.txt"
+        // assert(cFileUtil::OutputVecList(mSaveInfo.mAngularMomentum, mSaveInfo.mCurFrameId, "ang_mimic.txt", cFileUtil::eFileMode::overwrite));
+        std::ofstream fout("ang_mimic.txt");
+        for(int i=0; i<mSaveInfo.mCurFrameId; i++)
+        {
+            // std::cout << mSaveInfo.mAngularMomentum[i].transpose() << std::endl;
+            fout << mSaveInfo.mAngularMomentum[i].transpose() << std::endl;
+        }
+        fout.close();
+        exit(1);
+        // is impulse-momentum theorem broken? How much? use verify momentum
         VerifyMomentum();
         mSaveInfo.mCurEpoch++;
         mSaveInfo.mCurFrameId = 0;
@@ -94,8 +108,14 @@ void cOfflineIDSolver::PreSim()
         // only record momentum in PreSim for the first frame
         if(0 == cur_frame)
         {
-            RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame]);
-            RecordMomentum(mSaveInfo.mLinearMomentum[cur_frame], mSaveInfo.mAngularMomentum[cur_frame]);
+            RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame], mSaveInfo.mLinkOmega[cur_frame], mSaveInfo.mLinkVel[cur_frame]);
+            // CalcMomentum(mSaveInfo.mLinkPos[cur_frame],
+            //     mSaveInfo.mLinkRot[cur_frame], 
+            //     mSaveInfo.mLinkVel[cur_frame], 
+            //     mSaveInfo.mLinkOmega[cur_frame],
+            //     mSaveInfo.mLinearMomentum[cur_frame],
+            //     mSaveInfo.mAngularMomentum[cur_frame]);
+            // RecordMomentum(mSaveInfo.mLinearMomentum[cur_frame], mSaveInfo.mAngularMomentum[cur_frame]);
         }
         
         
@@ -145,8 +165,36 @@ void cOfflineIDSolver::PostSim()
 	    RecordContactForces(mSaveInfo.mContactForces[cur_frame], mSaveInfo.mTimesteps[cur_frame - 1], mWorldId2InverseId);
 
         // record linear momentum
-        RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame]);
-        RecordMomentum(mSaveInfo.mLinearMomentum[cur_frame], mSaveInfo.mAngularMomentum[cur_frame]);
+        RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame], mSaveInfo.mLinkOmega[cur_frame], mSaveInfo.mLinkVel[cur_frame]);
+
+        // calculate vel and omega from discretion
+        CalcDiscreteVelAndOmega(
+            mSaveInfo.mLinkPos[cur_frame - 1],
+            mSaveInfo.mLinkRot[cur_frame - 1],
+            mSaveInfo.mLinkPos[cur_frame],
+            mSaveInfo.mLinkRot[cur_frame],
+            mSaveInfo.mTimesteps[cur_frame -1],
+            mSaveInfo.mLinkDiscretVel[cur_frame],
+            mSaveInfo.mLinkDiscretOmega[cur_frame]
+            );
+        
+        for(int i=0; i<mNumLinks; i++)
+        {
+            std::cout <<"frame " << cur_frame <<" link " << i << " vel diff = " << \
+            (mSaveInfo.mLinkDiscretVel[cur_frame][i] - mSaveInfo.mLinkVel[cur_frame][i]).transpose() << std::endl;;
+            std::cout <<"frame " << cur_frame <<" link " << i << " omega diff = " << \
+            (mSaveInfo.mLinkDiscretOmega[cur_frame][i] - mSaveInfo.mLinkOmega[cur_frame][i]).transpose() << std::endl;;
+        }
+
+        // exit(1);
+        // calculate momentum by these discreted values
+        CalcMomentum(mSaveInfo.mLinkPos[cur_frame-1],
+            mSaveInfo.mLinkRot[cur_frame-1],
+            mSaveInfo.mLinkDiscretVel[cur_frame],
+            mSaveInfo.mLinkDiscretOmega[cur_frame],
+            mSaveInfo.mLinearMomentum[cur_frame - 1],
+            mSaveInfo.mAngularMomentum[cur_frame - 1]);
+
 
         // character pose
         mSaveInfo.mCharPoses[cur_frame] = mSimChar->GetPose();
@@ -159,8 +207,8 @@ void cOfflineIDSolver::PostSim()
 			tVectorXd old_vel_after = mSaveInfo.mBuffer_u[cur_frame];
 			tVectorXd old_vel_before = mSaveInfo.mBuffer_u[cur_frame - 1];
 			tVectorXd old_accel = (old_vel_after - old_vel_before) / cur_timestep;
-			mSaveInfo.mBuffer_u[cur_frame - 1] = CalculateGeneralizedVel(mSaveInfo.mBuffer_q[cur_frame - 2], mSaveInfo.mBuffer_q[cur_frame - 1], last_timestep);
-			mSaveInfo.mBuffer_u[cur_frame] = CalculateGeneralizedVel(mSaveInfo.mBuffer_q[cur_frame - 1], mSaveInfo.mBuffer_q[cur_frame], cur_timestep);
+			mSaveInfo.mBuffer_u[cur_frame - 1] = CalcGeneralizedVel(mSaveInfo.mBuffer_q[cur_frame - 2], mSaveInfo.mBuffer_q[cur_frame - 1], last_timestep);
+			mSaveInfo.mBuffer_u[cur_frame] = CalcGeneralizedVel(mSaveInfo.mBuffer_q[cur_frame - 1], mSaveInfo.mBuffer_q[cur_frame], cur_timestep);
 			mSaveInfo.mBuffer_u_dot[cur_frame - 1] = (mSaveInfo.mBuffer_u[cur_frame] - mSaveInfo.mBuffer_u[cur_frame - 1]) / cur_timestep;
             // std::ofstream fout("test2.txt", std::ios::app);
             // fout <<"offline buffer u dot calc: \n";
@@ -404,6 +452,28 @@ void cOfflineIDSolver::DisplaySet()
         std::cout <<"[log] cOfflineIDSolver display mode: cur frame = " << cur_frame << std::endl;
         const tVectorXd & q = mLoadInfo.mPoseMat.row(cur_frame);
         SetGeneralizedPos(q);
+
+        // DEBUG: output the link pos to files
+        std::ofstream fout_pos("pos_verify_mimic.txt", std::ios::app);
+        for(int i=0; i<mNumLinks; i++)
+        {
+            tVector pos, rot;
+            if(0 == i)
+            {
+                pos = cBulletUtil::btVectorTotVector1(mMultibody->getBasePos());
+                rot = cBulletUtil::btQuaternionTotQuaternion(mMultibody->getBaseWorldTransform().getRotation()).coeffs();
+            }
+            else
+            {
+                int multibody_link_id = i - 1;
+                auto & cur_trans = mMultibody->getLinkCollider(multibody_link_id)->getWorldTransform();
+                rot = cBulletUtil::btQuaternionTotQuaternion(cur_trans.getRotation()).coeffs();
+                pos = cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
+            }
+            
+            fout_pos <<"link " << i <<" pos = " << pos.segment(0, 3).transpose() << ", rot = " << rot.transpose() << std::endl;
+        }
+	
     }
     else if(mLoadInfo.mLoadMode == eLoadMode::LOAD_MOTION)
     {
@@ -576,7 +646,7 @@ void cOfflineIDSolver::OfflineSolve()
     */
     for(int frame_id =0; frame_id < mLoadInfo.mTotalFrame - 1; frame_id++)
     {
-        tVectorXd cur_vel = CalculateGeneralizedVel(mLoadInfo.mPoseMat.row(frame_id), mLoadInfo.mPoseMat.row(frame_id+1), mLoadInfo.mTimesteps[frame_id]);
+        tVectorXd cur_vel = CalcGeneralizedVel(mLoadInfo.mPoseMat.row(frame_id), mLoadInfo.mPoseMat.row(frame_id+1), mLoadInfo.mTimesteps[frame_id]);
         // std::cout <<"cur vel size = " << cur_vel.size() << std::endl;
         // std::cout <<"com vel size = " << mLoadInfo.mVelMat.row(frame_id + 1).size() << std::endl;
         // std::cout <<" cur vel = " << cur_vel.transpose() << std::endl;
