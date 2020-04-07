@@ -131,8 +131,8 @@ void cOnlineIDSolver::PostSim()
 			tVectorXd old_vel_after = mBuffer_u[mFrameId];
 			tVectorXd old_vel_before = mBuffer_u[mFrameId - 1];
 			tVectorXd old_accel = (old_vel_after - old_vel_before) / mCurTimestep;
-			mBuffer_u[mFrameId - 1] = CalculateGeneralizedVel(mBuffer_q[mFrameId - 2], mBuffer_q[mFrameId - 1], mCurTimestep);
-			mBuffer_u[mFrameId] = CalculateGeneralizedVel(mBuffer_q[mFrameId - 1], mBuffer_q[mFrameId], mCurTimestep);
+			mBuffer_u[mFrameId - 1] = CalcGeneralizedVel(mBuffer_q[mFrameId - 2], mBuffer_q[mFrameId - 1], mCurTimestep);
+			mBuffer_u[mFrameId] = CalcGeneralizedVel(mBuffer_q[mFrameId - 1], mBuffer_q[mFrameId], mCurTimestep);
 			mBuffer_u_dot[mFrameId - 1] = (mBuffer_u[mFrameId] - mBuffer_u[mFrameId - 1]) / mCurTimestep;
             
 			// std::ofstream fout("test1.txt", std::ios::app);

@@ -58,7 +58,16 @@ cIDSolver::cIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world,
 		mInverseId2WorldId[inverse_id] = world_id;
 	}
 
+	omega_buffer = new btVector3[mNumLinks];
+	vel_buffer = new btVector3[mNumLinks];
+
     mType = type;
+}
+
+cIDSolver::~cIDSolver()
+{
+	delete [] omega_buffer;
+	delete [] vel_buffer;
 }
 
 eIDSolverType cIDSolver::GetType()
@@ -68,11 +77,14 @@ eIDSolverType cIDSolver::GetType()
 
 void cIDSolver::RecordMultibodyInfo(std::vector<tMatrix>& local_to_world_rot, std::vector<tVector>& link_pos_world) const
 {
-	local_to_world_rot.resize(mNumLinks);
-	link_pos_world.resize(mNumLinks);
+	// std::cout <<"begin info \n";
+	assert(local_to_world_rot.size() == mNumLinks);
+	assert(link_pos_world.size() == mNumLinks);
 
+	
 	for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
 	{
+		// set up rot & pos
 		if (0 == ID_link_id)
 		{
 			local_to_world_rot[0] = cMathUtil::RotMat(cBulletUtil::btQuaternionTotQuaternion(mMultibody->getWorldToBaseRot().inverse()));
@@ -80,12 +92,47 @@ void cIDSolver::RecordMultibodyInfo(std::vector<tMatrix>& local_to_world_rot, st
 		}
 		else
 		{
-			// frome local to world transformation matrix
 			int multibody_link_id = ID_link_id - 1;
 			auto & cur_trans = mMultibody->getLinkCollider(multibody_link_id)->getWorldTransform();
 			local_to_world_rot[ID_link_id] = cBulletUtil::btMatrixTotMatrix1(cur_trans.getBasis());
 			link_pos_world[ID_link_id] = cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
 		}
+	}
+}
+
+
+void cIDSolver::RecordMultibodyInfo(std::vector<tMatrix>& local_to_world_rot, std::vector<tVector>& link_pos_world,\
+ std::vector<tVector> & link_omega_world, std::vector<tVector> & link_vel_world) const
+{
+	// std::cout <<"begin info \n";
+	local_to_world_rot.resize(mNumLinks);
+	link_pos_world.resize(mNumLinks);
+	link_omega_world.resize(mNumLinks);
+	link_vel_world.resize(mNumLinks);
+
+	// std::cout <<" links num = " << mNumLinks << std::endl;
+			
+	mMultibody->compTreeLinkVelocities(omega_buffer, vel_buffer);
+	for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
+	{
+		// set up rot & pos
+		if (0 == ID_link_id)
+		{
+			local_to_world_rot[0] = cMathUtil::RotMat(cBulletUtil::btQuaternionTotQuaternion(mMultibody->getWorldToBaseRot().inverse()));
+			link_pos_world[0] = cBulletUtil::btVectorTotVector1(mMultibody->getBasePos());
+			link_vel_world[0] = cBulletUtil::btVectorTotVector0(mMultibody->getBaseVel());
+			link_omega_world[0]= cBulletUtil::btVectorTotVector0(mMultibody->getBaseOmega());
+		}
+		else
+		{
+			int multibody_link_id = ID_link_id - 1;
+			auto & cur_trans = mMultibody->getLinkCollider(multibody_link_id)->getWorldTransform();
+			local_to_world_rot[ID_link_id] = cBulletUtil::btMatrixTotMatrix1(cur_trans.getBasis());
+			link_pos_world[ID_link_id] = cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
+			link_vel_world[ID_link_id] = cBulletUtil::btVectorTotVector0(quatRotate(cur_trans.getRotation(), vel_buffer[ID_link_id]));
+			link_omega_world[ID_link_id] = cBulletUtil::btVectorTotVector0(quatRotate(cur_trans.getRotation(), omega_buffer[ID_link_id]));
+		}
+		// std::cout <<"link " << ID_link_id <<" pos  = " << link_pos_world[ID_link_id] .transpose() << std::endl;
 	}
 }
 
@@ -402,18 +449,6 @@ void cIDSolver::RecordContactForces(std::vector<tForceInfo> &mContactForces, dou
 	}
 }
 
-// record linear & ang momentum for current character
-void cIDSolver::RecordMomentum(tVector &linear_momentum, tVector & ang_momentum) const
-{
-	// calculate linear momentum
-	linear_momentum = mSimChar->GetLinearMomentum();
-
-	// calculate ang momentum
-	ang_momentum = tVector::Zero();
-	std::cout <<"[warning] get an momentum zero\n";
-	// exit(1);
-}
-
 void cIDSolver::ApplyContactForcesToID(const std::vector<tForceInfo> &mContactForces, const std::vector<tVector> & mLinkPos, const std::vector<tMatrix> & mLinkRot) const
 {
 	assert(mLinkRot.size() == mNumLinks);
@@ -629,7 +664,7 @@ void cIDSolver::ApplyExternalForcesToID(const std::vector<tVector> & link_poses,
 	}
 }
 
-tVectorXd cIDSolver::CalculateGeneralizedVel(const tVectorXd & q_before, const tVectorXd & q_after, double timestep) const
+tVectorXd cIDSolver::CalcGeneralizedVel(const tVectorXd & q_before, const tVectorXd & q_after, double timestep) const
 {
 	tVectorXd q_dot = tVectorXd::Zero(mDof);
 
@@ -697,4 +732,87 @@ tVectorXd cIDSolver::CalculateGeneralizedVel(const tVectorXd & q_before, const t
 		}
 	}
 	return q_dot;
+}
+
+/*
+	@Function: CalcMomentum
+		Given the current state of multibody including pos, ori, vel, omega,
+		this function can calculate linear momentum and angular momentum of this character
+*/
+void cIDSolver::CalcMomentum(const std::vector<tVector> & mLinkPos, 
+    const std::vector<tMatrix> & mLinkRot,
+    const std::vector<tVector> & mLinkVel, const std::vector<tVector> & mLinkOmega,
+    tVector & mLinearMomentum, tVector & mAngMomentum)const
+{
+    assert(mLinkPos.size() == mNumLinks);
+    assert(mLinkRot.size() == mNumLinks);
+    assert(mLinkVel.size() == mNumLinks);
+    assert(mLinkVel.size() == mNumLinks);
+    mLinearMomentum.setZero();
+    mAngMomentum.setZero();
+    
+    // 1. init all values
+    std::vector<double> mass(mNumLinks);
+    double total_mass = mSimChar->CalcTotalMass();
+    std::vector<tVector> inertia(mNumLinks);
+    tVector COM = tVector::Zero();
+    for(int i=0; i<mNumLinks; i++)
+    {
+        if(0 == i)
+        {
+            mass[i] = mMultibody->getBaseMass();
+            inertia[i] = cBulletUtil::btVectorTotVector0(mMultibody->getBaseInertia());
+        }
+        else
+        {
+            mass[i] = mMultibody->getLinkMass(i-1);
+            inertia[i] = cBulletUtil::btVectorTotVector0(mMultibody->getLinkInertia(i-1));
+        }
+        COM += mLinkPos[i] * mass[i] / total_mass;
+    }
+
+    // 2. calculate linear momentum and angular momentum
+    for(int i=0; i<mNumLinks; i++)
+    {
+        // calculate linear momentum = mv
+        mLinearMomentum += mass[i] * mLinkVel[i];
+
+        // calculate angular momentum = m * (x - COM) + R * Ibody * R.T * w
+        mAngMomentum += mass[i] * (mLinkPos[i] - COM) + 
+            mLinkRot[i] * inertia[i].asDiagonal() * mLinkRot[i].transpose() * mLinkOmega[i];
+    }
+    // std::cout << "linear mome = " << mLinearMomentum.transpose() << std::endl;
+
+}
+
+/*
+    @Function: CalcDiscreteVelAndOmega
+		Given mLinkPosCur, mLinkRotCur, mLinkPosNext and mLinkRotNext, this function will try to calculate
+		the linear velocity and angular vel of each link COM in mLinkDiscreteVel and mLinkDiscreteOmega respectly
+*/
+void cIDSolver::CalcDiscreteVelAndOmega(
+    const std::vector<tVector> & mLinkPosCur, 
+    const std::vector<tMatrix> & mLinkRotCur,
+    const std::vector<tVector> & mLinkPosNext, 
+    const std::vector<tMatrix> & mLinkRotNext,
+	double timestep,
+    std::vector<tVector> & mLinkDiscreteVel,
+    std::vector<tVector> & mLinkDiscreteOmega 
+)const
+{
+	mLinkDiscreteVel.resize(mNumLinks);
+	mLinkDiscreteOmega.resize(mNumLinks);
+	assert(timestep > 1e-6);
+	for(int i=0; i< mNumLinks; i++)
+	{
+		// discrete vel = (p_next - p_cur) / timestep
+		// discrete omega = (rot_next - rot_cur) / timestep, note that this '-' is quaternion minus
+		mLinkDiscreteVel[i] = (mLinkPosNext[i] - mLinkPosCur[i]) / timestep;
+		mLinkDiscreteOmega[i] = cMathUtil::CalcQuaternionVel(
+			cMathUtil::RotMatToQuaternion(mLinkRotCur[i]),
+			cMathUtil::RotMatToQuaternion(mLinkRotNext[i]),
+			timestep
+		);
+	}
+
 }

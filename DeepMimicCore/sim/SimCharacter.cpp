@@ -1553,18 +1553,6 @@ void cSimCharacter::SetAngularVelocity(const tVector& vel)
 	SetRootAngVel(vel);
 }
 
-tVector cSimCharacter::GetLinearMomentum() const
-{
-	// this function can not be used in fine grained scene
-	tVector com_vel = CalcCOMVel();
-	double total_mass = 0;
-	for(int i=0; i<mBodyParts.size(); i++)
-	{
-		total_mass +=mBodyParts[i]->GetMass();
-	}
-	return com_vel * total_mass;
-}
-
 short cSimCharacter::GetColGroup() const
 {
 	return GetRootPart()->GetColGroup();

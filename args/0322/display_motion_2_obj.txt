@@ -1,4 +1,5 @@
 --scene kin_char
 
 --character_file data/0322/characters/skeleton_120401_2_obj.json
---motion_file data/0322/motions/120401_motion_2_obj.txt
+--motion_file_bak data/0322/motions/120401_motion_2_obj.txt
+--motion_file data/0322/motions/ID_motion_2_obj_0.txt
