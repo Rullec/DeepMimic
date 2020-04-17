@@ -2,6 +2,7 @@
 #include "cOfflineIDSolver.hpp"
 #include "cOnlineIDSolver.hpp"
 #include <util/JsonUtil.h>
+#include <memory>
 
 std::shared_ptr<cIDSolver> BuildIDSolver(const std::string & conf, cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world)
 {
