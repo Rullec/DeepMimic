@@ -94,8 +94,8 @@ swig_add_library(DeepMimicCore LANGUAGE python OUTPUT_DIR ${CMAKE_SOURCE_DIR} OU
 swig_link_libraries(DeepMimicCore ${mylibs} ${libs} ${PYTHON_LIB})
 
 # cmake for Main 
-add_executable(Main main.cpp DeepMimicCore.cpp)
-target_link_libraries(Main ${mylibs} ${libs})
+add_executable(Main Main.cpp DeepMimicCore.cpp)
+target_link_libraries(Main ${mylibs} ${libs} m)
 
 INSTALL(FILES cmake-build-release/_DeepMimicCore.so
         DESTINATION ${CMAKE_SOURCE_DIR})
