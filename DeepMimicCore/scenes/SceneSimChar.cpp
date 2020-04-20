@@ -184,6 +184,7 @@ void cSceneSimChar::Clear()
 	ClearObjs();
 }
 
+#include <util/BulletUtil.h>
 void cSceneSimChar::Update(double time_elapsed)
 {
 	// std::cout <<"------------cSceneSimChar::Update------------" << this->GetTime() << std::endl;;
@@ -191,7 +192,15 @@ void cSceneSimChar::Update(double time_elapsed)
 	// std::cout <<"[scene] error root pos = " << sim_char->GetRootPos().transpose() << std::endl;
 	// std::cout <<"[scene] error root rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
 	// std::cout <<"[scene] error pose = " << sim_char->GetPose().transpose() << std::endl;
-
+	auto multibody = sim_char->GetMultiBody();
+	tVector root_omega = cBulletUtil::btVectorTotVector0(multibody->getBaseOmega()),
+			root_vel = cBulletUtil::btVectorTotVector0(multibody->getBaseVel());
+	// tVector root_vel = sim_char->GetRootVel(),
+			
+	// std::cout <<"[debug] time "<< time_elapsed << \
+	" root vel = " << root_vel.transpose() << ", root_omega = " << root_omega.transpose() << std::endl;
+	std::cout <<"[debug] time "<< this->GetTime() << " root_omega = " << root_omega.transpose() << std::endl;
+	// exit(1);
 	cScene::Update(time_elapsed);
 
 	if (time_elapsed < 0)
