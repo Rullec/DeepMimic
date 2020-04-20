@@ -82,6 +82,10 @@ set(mylibs SCENES SIM JSON ANIM RENDER UTIL )
 find_package(SWIG REQUIRED)
 include(${SWIG_USE_FILE})
 
+
+find_package(PythonLibs)
+include_directories(${PYTHON_INCLUDE_PATH})
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${PYTHON_INC})
 
@@ -90,7 +94,6 @@ set_source_files_properties(DeepMimicCore.i PROPERTIES CPLUSPLUS ON)
 
 swig_add_library(DeepMimicCore LANGUAGE python OUTPUT_DIR ${CMAKE_SOURCE_DIR} OUTFILE_DIR ${CMAKE_SOURCE_DIR} SOURCES DeepMimicCore.i DeepMimicCore.cpp)
 
-# swig_link_libraries(DeepMimicCore ${mylibs} ${libs} ${PYTHON_LIBRARIES})
 swig_link_libraries(DeepMimicCore ${mylibs} ${libs} ${PYTHON_LIB})
 
 # cmake for Main 

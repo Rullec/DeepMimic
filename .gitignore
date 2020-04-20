@@ -45,4 +45,5 @@ DeepMimicCore/Main
 Main
 *trajs/
 
-.DS_Store
+*.DS_Store
+*.dylib
