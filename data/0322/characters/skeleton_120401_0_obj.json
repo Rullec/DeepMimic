@@ -1,0 +1,96 @@
+{
+   "BodyDefs" : [
+      {
+         "AttachThetaX" : 0.0,
+         "AttachThetaY" : 0.0,
+         "AttachThetaZ" : 0.0,
+         "AttachX" : 0.0,
+         "AttachY" : 0.0,
+         "AttachZ" : 0.0,
+         "BottomScale" : 1.0,
+         "ColGroup" : 0,
+         "ColorA" : 1.0,
+         "ColorB" : 0.89999997615814209,
+         "ColorG" : 0.89999997615814209,
+         "ColorR" : 0.89999997615814209,
+         "EnableFallContact" : 0,
+         "ID" : 0,
+         "Mass" : 1,
+         "Name" : "root",
+         "Param0" : 0.02,
+         "Param1" : 0.0,
+         "Param2" : 0.02,
+         "Shape" : "box",
+         "TopScale" : 1.0
+      }
+   ],
+   "DrawShapeDefs" : [
+      {
+         "AttachThetaX" : 0.0,
+         "AttachThetaY" : 0.0,
+         "AttachThetaZ" : 0.0,
+         "AttachX" : 0.0,
+         "AttachY" : 0.0,
+         "AttachZ" : 0.0,
+         "BottomScale" : 1.0,
+         "ColorA" : 1.0,
+         "ColorB" : 0.44999998807907104,
+         "ColorG" : 0.89999997615814209,
+         "ColorR" : 0.44999998807907104,
+         "ID" : 0,
+         "Name" : "root_joint",
+         "Param0" : 0.040000000000000001,
+         "Param1" : 0.040000000000000001,
+         "Param2" : 0.040000000000000001,
+         "ParentJoint" : 0,
+         "Shape" : "sphere",
+         "TopScale" : 1.0
+      },
+      {
+         "AttachThetaX" : 0.0,
+         "AttachThetaY" : 0.0,
+         "AttachThetaZ" : 0.0,
+         "AttachX" : 0.0,
+         "AttachY" : 0.0,
+         "AttachZ" : 0.0,
+         "BottomScale" : 1.0,
+         "ColorA" : 1.0,
+         "ColorB" : 0.89999997615814209,
+         "ColorG" : 0.89999997615814209,
+         "ColorR" : 0.89999997615814209,
+         "ID" : 0,
+         "Name" : "root",
+         "Param0" : 0.02,
+         "Param1" : 0.0,
+         "Param2" : 0.02,
+         "ParentJoint" : 0,
+         "Shape" : "box",
+         "TopScale" : 1.0
+      }
+   ],
+   "Skeleton" : {
+      "Joints" : [
+         {
+            "AttachThetaX" : 0.0,
+            "AttachThetaY" : 0.0,
+            "AttachThetaZ" : 0.0,
+            "AttachX" : 0.0,
+            "AttachY" : 0.0,
+            "AttachZ" : 0.0,
+            "DiffWeight" : 0.0,
+            "ID" : 0,
+            "IsEndEffector" : 0.0,
+            "LimHigh0" : 1.57,
+            "LimHigh1" : 1.57,
+            "LimHigh2" : 1.57,
+            "LimLow0" : -1.57,
+            "LimLow1" : -1.57,
+            "LimLow2" : -1.57,
+            "Name" : "root",
+            "Parent" : -1,
+            "TorqueLim" : 100.0,
+            "Type" : "none"
+         }
+      ]
+   }
+}
