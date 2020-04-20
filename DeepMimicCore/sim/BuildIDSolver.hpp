@@ -1,5 +1,6 @@
 #include <iostream>
 #include "cIDSolver.hpp"
+#include <memory>
 
 class cSimCharacter;
 class btMultiBodyDynamicsWorld;
