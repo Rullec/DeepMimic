@@ -73,6 +73,7 @@ void cReverseController::CalcPDTarget(const tVectorXd & input_torque, const tVec
 				tQuaternion q2 = q1 * q_diff;
 				
 				if(q2.coeffs()[3] <0) q2 = cMathUtil::MinusQuaternion(q2);
+				assert(q2.coeffs()[3] > 0);
 				output_pd_target.segment(param_offset, param_size) = cMathUtil::QuatToVec(q2);
 				break;
 			}

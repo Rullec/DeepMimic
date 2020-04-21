@@ -90,8 +90,8 @@ class DeepMimicEnv(Env):
     def record_state(self, agent_id):
         return np.array(self._core.RecordState(agent_id))
 
-    def record_pose(self, agent_id):
-        return np.array(self._core.RecordPose(agent_id))
+    # def record_pose(self, agent_id):
+    #     return np.array(self._core.RecordPose(agent_id))
 
     def record_goal(self, agent_id):
         return np.array(self._core.RecordGoal(agent_id))

@@ -300,10 +300,10 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 			}
 			if (diff.segment(7, diff.size() - 7).norm() > 1e-8)
 			{
-				std::cout << "truth target pose = " << tar_pose.transpose() << std::endl;
-				std::cout << "solve target pose = " << solved_pd_target.transpose() << std::endl;
-				std::cout << "\ndiff = " << diff.transpose() << std::endl;
-				exit(1);
+				std::cout << "[warning] cImpPDController::CalcControlForces: truth target pose = " << tar_pose.transpose() << std::endl;
+				std::cout << "[warning] cImpPDController::CalcControlForces: solve target pose = " << solved_pd_target.transpose() << std::endl;
+				std::cout << "\n[warning] cImpPDController::CalcControlForces: solve pd target diff = " << diff.transpose() << std::endl;
+				// exit(1);
 			}
 		}
 	}

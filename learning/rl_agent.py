@@ -187,7 +187,6 @@ class RLAgent(ABC):
 
             if (self._mode == self.Mode.TRAIN or self._mode == self.Mode.TRAIN_END):
                 if (self.enable_training and self.path.pathlength() > 0):
-
                     self._store_path(self.path)# rl agent里面有一个path的存储，每次在episode结束的时候都会存储起来
             elif (self._mode == self.Mode.TEST):
                 self._update_test_return(self.path)
@@ -350,9 +349,9 @@ class RLAgent(ABC):
         s = self.world.env.record_state(self.id)
         return s
 
-    def _record_pose(self):
-        p = self.world.env.record_pose(self.id)
-        return p
+    # def _record_pose(self):
+    #     p = self.world.env.record_pose(self.id)
+    #     return p
 
     def _record_goal(self):
         g = self.world.env.record_goal(self.id)
@@ -362,9 +361,9 @@ class RLAgent(ABC):
         r = self.world.env.calc_reward(self.id)
         return r
 
-    def _record_contact_info(self):
-        c = self.world.env.record_contact_info(self.id)
-        return c
+    # def _record_contact_info(self):
+    #     c = self.world.env.record_contact_info(self.id)
+    #     return c
 
     def _apply_action(self, a):
         # print("action = " + str(a))
@@ -382,8 +381,8 @@ class RLAgent(ABC):
 
     def _end_path(self):
         s = self._record_state()
-        c = self._record_contact_info()
-        p = self._record_pose()
+        # c = self._record_contact_info()
+        # p = self._record_pose()
         g = self._record_goal()
         r = self._record_reward()
 
@@ -391,10 +390,11 @@ class RLAgent(ABC):
         print("[rl agent] end path, r = {}".format(r))
         self.path.rewards.append(r)
         self.path.states.append(s)
-        self.path.contact_info.append(c)
-        self.path.poses.append(p)
+        # self.path.contact_info.append(c)
+        # self.path.poses.append(p)
 
         assert np.isfinite(s).all() == True # 在end of path的时候，state突然崩了。
+        assert np.isfinite(r).all() == True # all reward need to be valid
         # 其实我还有点好奇: state为什么是275呢?
         self.path.goals.append(g)
         self.path.terminate = self.world.env.check_terminate(self.id)
@@ -418,8 +418,8 @@ class RLAgent(ABC):
         '''
         # 获取新的action
         s = self._record_state()
-        c = self._record_contact_info()
-        p = self._record_pose()
+        # c = self._record_contact_info()
+        # p = self._record_pose()
         g = self._record_goal()
         # print("goal is %s" % str(g))
         # exit()
@@ -428,10 +428,16 @@ class RLAgent(ABC):
             r = self._record_reward()
             # print("reward : " + str(r))
             self.path.rewards.append(r)
+            try:
+                assert np.isfinite(r).all() == True
+            except:
+                print("some reward is Nan!, r = %s" % str(r))
+
         try:
             assert np.isfinite(s).all() == True
         except:
             print("some state is Nan!, s = %s" % str(s))
+
 
         a, logp = self._decide_action(s=s, g=g)
         assert len(np.shape(a)) == 1
@@ -454,8 +460,8 @@ class RLAgent(ABC):
         # path里面有所有信息: state goal actions logps flags，每次就是存进去。
         # 所以现在的问题就是，为什么这些state action goal a logp会是nan?
         self.path.states.append(s)
-        self.path.contact_info.append(c)
-        self.path.poses.append(p)
+        # self.path.contact_info.append(c)
+        # self.path.poses.append(p)
         self.path.goals.append(g)
         self.path.actions.append(a)
         self.path.logps.append(logp)

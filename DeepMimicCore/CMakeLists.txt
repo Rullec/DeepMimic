@@ -56,7 +56,7 @@ include_directories(${include_dir})
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     message(STATUS "Build type: debug")
-    add_definitions("-O0 -Wall -fPIC -ggdb ")
+    add_definitions("-O0 -g -Wall -fPIC -ggdb ")
 elseif("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
     message(STATUS "Build type: release")
     add_definitions("-O3 -fPIC")

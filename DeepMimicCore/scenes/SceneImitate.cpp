@@ -386,10 +386,12 @@ void cSceneImitate::CalcJointWeights(const std::shared_ptr<cSimCharacter>& chara
 	for (int j = 0; j < num_joints; ++j)
 	{
 		double curr_w = character->GetJointDiffWeight(j);
+		assert(std::isnan(curr_w) == false);
 		out_weights[j] = curr_w;
 	}
 
 	double sum = out_weights.lpNorm<1>();
+	assert(sum > 1e-6);
 	out_weights /= sum;
 }
 
