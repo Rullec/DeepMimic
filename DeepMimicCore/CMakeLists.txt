@@ -90,15 +90,39 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${PYTHON_INC})
 
 set(CMAKE_SWIG_FLAGS "")
+set(CMAKE_SHARED_LINKER_FLAGS "-flat_namespace -undefined suppress")
+
+# set up target library
 set_source_files_properties(DeepMimicCore.i PROPERTIES CPLUSPLUS ON)
-
-swig_add_library(DeepMimicCore LANGUAGE python OUTPUT_DIR ${CMAKE_SOURCE_DIR} OUTFILE_DIR ${CMAKE_SOURCE_DIR} SOURCES DeepMimicCore.i DeepMimicCore.cpp)
-
+swig_add_library(DeepMimicCore TYPE SHARED LANGUAGE python OUTPUT_DIR ${CMAKE_SOURCE_DIR} OUTFILE_DIR ${CMAKE_SOURCE_DIR} SOURCES DeepMimicCore.i DeepMimicCore.cpp)
 swig_link_libraries(DeepMimicCore ${mylibs} ${libs} ${PYTHON_LIB})
 
-# cmake for Main 
-add_executable(Main Main.cpp DeepMimicCore.cpp)
+# set up target Main 
+add_executable(Main Main.cpp DeepMimicCore.cpp DeepMimicCore)
 target_link_libraries(Main ${mylibs} ${libs} m)
 
-INSTALL(FILES cmake-build-release/_DeepMimicCore.so
-        DESTINATION ${CMAKE_SOURCE_DIR})
+# move main to its parent folder
+if(EXISTS "../Main")
+    add_custom_command(TARGET Main
+        PRE_BUILD
+        COMMAND rm ../Main
+        )
+endif()
+add_custom_command(TARGET Main
+    POST_BUILD
+    COMMAND mv ./Main ../Main
+    )
+
+# move the .dylib in build folder to .so in the parent folder
+if(APPLE)
+    if(EXISTS "../_DeepMimicCore.so")
+        add_custom_command(TARGET Main
+            PRE_BUILD
+            COMMAND rm ../_DeepMimicCore.so
+            )
+    endif()
+    add_custom_command(TARGET Main
+        POST_BUILD
+        COMMAND mv ./_DeepMimicCore.dylib ../_DeepMimicCore.so
+        )
+endif()
