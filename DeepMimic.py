@@ -5,6 +5,7 @@ import numpy as np
 import os
 import sys
 import random
+import platform as os_pt
 
 from OpenGL.GL import *
 from OpenGL.GLUT import *
@@ -280,12 +281,15 @@ def mouse_move(x, y):
 
 def init_draw():
     glutInit()  
-    
-    glutInitContextVersion(3, 2)
-    glutInitContextFlags(GLUT_FORWARD_COMPATIBLE)
-    glutInitContextProfile(GLUT_CORE_PROFILE)
 
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH)
+    if os_pt.system() == "Darwin":
+        glutInitDisplayMode(GLUT_3_2_CORE_PROFILE| GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+    else:
+        glutInitContextVersion(3, 2)
+        glutInitContextFlags(GLUT_FORWARD_COMPATIBLE)
+        glutInitContextProfile(GLUT_CORE_PROFILE)
+        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH)
+
     glutInitWindowSize(win_width, win_height)
     glutCreateWindow(b'DeepMimic')
     return

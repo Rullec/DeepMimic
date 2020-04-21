@@ -85,11 +85,8 @@ print:
 python: $(OUT_DIRS) $(OBJ)
 	swig -c++ -python DeepMimicCore.i
 	$(CC) -c -g $(CFLAGS) $(MACROS) $(INC) $(LIBS) DeepMimicCore.cpp DeepMimicCore_wrap.cxx -I$(PYTHON_INC)
-	# ifeq ($(OS),Darwin)
-	$(CC) -shared $(CFLAGS) $(MACROS) $(OBJ) $(LIBS) DeepMimicCore_wrap.o -o _DeepMimicCore.dylib -L$(PYTHON_LIB)
-	# else
-		# $(CC) -shared $(CFLAGS) $(MACROS) $(OBJ) $(LIBS) DeepMimicCore_wrap.o -o _DeepMimicCore.so -L$(PYTHON_LIB)
-	# endif
+	$(CC) -dynamiclib -flat_namespace -undefined suppress $(CFLAGS) $(MACROS) $(OBJ) $(LIBS) DeepMimicCore_wrap.o -o _DeepMimicCore.so -L$(PYTHON_LIB)
+
 $(OBJ_DIR)/%.o: %.cpp
 	$(CC) -c -g $(CFLAGS) $(MACROS) $(INC) -o $@ $<
 
