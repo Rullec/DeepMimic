@@ -113,6 +113,7 @@ void Update(double time_elapsed)
 				auto s = gCore->RecordState(id);
 				auto g = gCore->RecordGoal(id);
 				double r = gCore->CalcReward(id);
+				// std::cout <<"debug r = " << r << std::endl;
 				++gSampleCount;
 
 				std::vector<double> action(0);

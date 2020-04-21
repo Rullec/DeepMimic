@@ -37,13 +37,13 @@ class Path(object):
 
     def clear(self):
         self.states = []
-        self.poses = []
+        # self.poses = []
         self.goals = []
         self.actions = []
         self.logps = []
         self.rewards = []
         self.flags = []
-        self.contact_info = []
+        # self.contact_info = []
         self.terminate = Env.Terminate.Null
         return
 
@@ -58,11 +58,11 @@ class Path(object):
             os.remove(filename)
         cont = {
             "states" : [i.tolist() for i in self.states],
-            "poses" : [i.tolist() for i in self.poses],
+            # "poses" : [i.tolist() for i in self.poses],
             "actions" : [i.tolist() for i in self.actions],
             "logps" : [float(i) for i in self.logps],
             "rewards" : [ float(i) for i in self.rewards],
-            "contact_info" : [i.tolist() for i in self.contact_info]
+            # "contact_info" : [i.tolist() for i in self.contact_info]
         }
         with open(filename, "w") as f:
             json.dump(cont, f, indent=4)
