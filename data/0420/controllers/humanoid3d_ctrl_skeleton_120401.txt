@@ -20,24 +20,24 @@
 		{
 			"ID": 1,
 			"Name": "Spine",
-			"Kp": 60,
-			"Kd": 6,
+			"Kp": 100,
+			"Kd": 10,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 2,
 			"Name": "Spine1",
-			"Kp": 40,
-			"Kd": 4,
+			"Kp": 80,
+			"Kd": 8,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 3,
 			"Name": "vneck",
-			"Kp": 30,
-			"Kd": 3,
+			"Kp": 80,
+			"Kd": 8,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
@@ -135,8 +135,8 @@
 		{
 			"ID": 15,
 			"Name": "RFootTongue",
-			"Kp": 30,
-			"Kd": 3,
+			"Kp": 20,
+			"Kd": 2,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
@@ -167,8 +167,8 @@
 		{
 			"ID": 19,
 			"Name": "LFootTongue",
-			"Kp": 30,
-			"Kd": 3,
+			"Kp": 20,
+			"Kd": 2,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		}
