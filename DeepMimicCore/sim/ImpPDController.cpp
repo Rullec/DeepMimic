@@ -296,7 +296,7 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 			tVectorXd diff = (tar_pose - solved_pd_target);
 			for (int i = 0; i < diff.size(); i++)
 			{
-				if (std::abs(diff[i]) < 1e-10) diff[i] = 0;
+				if (std::abs(diff[i]) < 1e-10 || std::abs((tar_pose[i] + solved_pd_target[i])) < 1e-7) diff[i] = 0;
 			}
 			if (diff.segment(7, diff.size() - 7).norm() > 1e-8)
 			{
