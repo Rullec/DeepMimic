@@ -24,12 +24,16 @@ def read_log_file(filename):
         time_exp_buffer = []
         for line in cont:
             if line.find("Train_Ret") != -1:
-                train_return.append(float(line.split()[3]))
+                try:
+                    train_return.append(float(line.split()[3]))
+                except ValueError:
+                    print("[log] line err = " + line)
+                    continue
                 if len(time_buffer) != 0:
                     time_count.append(float(time_buffer[-1]))
                     time_buffer.clear()
                     time_exp_count.append(float(time_exp_buffer[-1]))
-                    time_exp_buffer.clear
+                    time_exp_buffer.clear()
             if line.find("Test_Ret") != -1:
                 test_return.append(float(line.split()[3]))
             if line.find("Timer") != -1: # get timer
