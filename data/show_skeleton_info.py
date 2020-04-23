@@ -4,9 +4,9 @@ import csv
 import sys
 from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
-project_dir = "/home/darknight/Projects/DeepMimic"
-skeleton_path = "data/0917/characters/091702_fix_none_adjust_weight.json"
-pd_path = "data/0917/controllers/humanoid3d_ctrl_fix_none.txt"
+project_dir = "/Users/xudong/Projects/DeepMimic"
+skeleton_path = "data/0420/characters/skeleton_120401.json"
+pd_path = "data/0420/controllers/humanoid3d_ctrl_skeleton_120401.txt"
 #skeleton_path = "data/raw/characters/humanoid3d.txt"
 #pd_path = "data/raw/controllers/humanoid3d_ctrl.txt"
 reduce = lambda f : round(f, 4)
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     verify_drawshapes_and_bodydefs(skeleton_path)
 
     # 验证bodydefs和skeleton是左右对称的
-    verify_symmetric(skeleton_path)
+    # verify_symmetric(skeleton_path)
     
     # 解析skeleton，获取要写入的信息
     ske_info = parse_skeleton(skeleton_path)
