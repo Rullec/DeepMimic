@@ -11,7 +11,7 @@
 
 --num_update_substeps 10
 --num_sim_substeps 2
---world_scale 1
+--world_scale 4
 
 --terrain_file data/terrain/plane.txt
 

@@ -45,6 +45,7 @@ protected:
 	btMultiBody* mMultibody;
 	btMultiBodyDynamicsWorld * mWorld;
 	btInverseDynamicsBullet3::MultiBodyTree * mInverseModel;
+	double mWorldScale;
 	bool mFloatingBase;
 	int mDof;
 	int mNumLinks;		// including root
