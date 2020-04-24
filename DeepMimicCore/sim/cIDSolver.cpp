@@ -10,6 +10,7 @@ cIDSolver::cIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world,
 	assert(world != nullptr);
 	mSimChar = sim_char;
 	mMultibody = sim_char->GetMultiBody().get();
+	mWorldScale = sim_char->GetWorld()->GetScale();
 	mWorld = world;
 	mFloatingBase = !(mMultibody->hasFixedBase());
 	mDof = mMultibody->getNumDofs();
@@ -31,7 +32,7 @@ cIDSolver::cIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world,
 		mInverseModel = btInverseDynamicsBullet3::CreateMultiBodyTree(id_creator);
 		btInverseDynamicsBullet3::vec3 gravity(cBulletUtil::tVectorTobtVector(gGravity));
 
-		mInverseModel->setGravityInWorldFrame(gravity);
+		mInverseModel->setGravityInWorldFrame(gravity * mWorldScale);
 	}
 
 	// init id mapping

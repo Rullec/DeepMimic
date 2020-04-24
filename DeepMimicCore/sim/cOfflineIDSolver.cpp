@@ -56,15 +56,15 @@ void cOfflineIDSolver::Reset()
         SaveMotion(mSaveInfo.mSaveMotionRoot, mSaveInfo.mMotion);
 
         // output linera momentum to file "ang_mimic.txt"
-        // assert(cFileUtil::OutputVecList(mSaveInfo.mAngularMomentum, mSaveInfo.mCurFrameId, "ang_mimic.txt", cFileUtil::eFileMode::overwrite));
-        std::ofstream fout("ang_mimic.txt");
-        for(int i=0; i<mSaveInfo.mCurFrameId; i++)
-        {
-            // std::cout << mSaveInfo.mAngularMomentum[i].transpose() << std::endl;
-            fout << mSaveInfo.mAngularMomentum[i].transpose() << std::endl;
-        }
-        fout.close();
-        exit(1);
+        //  assert(cFileUtil::OutputVecList(mSaveInfo.mAngularMomentum, mSaveInfo.mCurFrameId, "ang_mimic.txt", cFileUtil::eFileMode::overwrite));
+        // std::ofstream fout("ang_mimic.txt");
+        // for(int i=0; i<mSaveInfo.mCurFrameId; i++)
+        // {
+        //     // std::cout << mSaveInfo.mAngularMomentum[i].transpose() << std::endl;
+        //     fout << mSaveInfo.mAngularMomentum[i].transpose() << std::endl;
+        // }
+        // fout.close();
+        // exit(1);
         // is impulse-momentum theorem broken? How much? use verify momentum
         VerifyMomentum();
         mSaveInfo.mCurEpoch++;
@@ -177,14 +177,17 @@ void cOfflineIDSolver::PostSim()
             mSaveInfo.mLinkDiscretVel[cur_frame],
             mSaveInfo.mLinkDiscretOmega[cur_frame]
             );
-        
+        double total_err = 0.0;
         for(int i=0; i<mNumLinks; i++)
         {
-            std::cout <<"frame " << cur_frame <<" link " << i << " vel diff = " << \
-            (mSaveInfo.mLinkDiscretVel[cur_frame][i] - mSaveInfo.mLinkVel[cur_frame][i]).transpose() << std::endl;;
-            std::cout <<"frame " << cur_frame <<" link " << i << " omega diff = " << \
-            (mSaveInfo.mLinkDiscretOmega[cur_frame][i] - mSaveInfo.mLinkOmega[cur_frame][i]).transpose() << std::endl;;
+            total_err += (mSaveInfo.mLinkDiscretVel[cur_frame][i] - mSaveInfo.mLinkVel[cur_frame][i]).norm();
+            total_err += (mSaveInfo.mLinkDiscretOmega[cur_frame][i] - mSaveInfo.mLinkOmega[cur_frame][i]).norm();
+            // std::cout <<"frame " << cur_frame <<" link " << i << " vel diff = " << \
+            // (mSaveInfo.mLinkDiscretVel[cur_frame][i] - mSaveInfo.mLinkVel[cur_frame][i]).transpose() << std::endl;;
+            // std::cout <<"frame " << cur_frame <<" link " << i << " omega diff = " << \
+            // (mSaveInfo.mLinkDiscretOmega[cur_frame][i] - mSaveInfo.mLinkOmega[cur_frame][i]).transpose() << std::endl;;
         }
+        std::cout << "[debug] PostSim: discrete total err = " << total_err << std::endl; 
 
         // exit(1);
         // calculate momentum by these discreted values

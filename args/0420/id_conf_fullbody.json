@@ -10,19 +10,19 @@
         {
             "_comment" : "this section focus on the setting of save mode",
             "clear_applied_force" : true,
-            "save_traj_root" : "data/0322/trajs/traj_1_obj.json",
-            "save_motion_root" :  "data/0322/motions/ID_motion_1_obj.txt"
+            "save_traj_root" : "data/0420/trajs/traj_fullbody.json",
+            "save_motion_root" :  "data/0420/motions/ID_motion_fullbody.txt"
         },
         "DisplayModeInfo":
         {
             "_comment" : "this section focus on the setting of display mode",
-            "display_traj_path" : "data/0322/trajs/1_obj_drop_traj.json",
-            "display_motion_path_bak" : "data/0322/motions/ID_motion_1_obj_0.txt"
+            "display_traj_path" : "data/0420/trajs/traj_fullbody_0.json",
+            "display_motion_path_bak" : "data/0420/motions/ID_motion_fullbody_0.txt"
         },
         "SolveModeInfo":
         {
             "_comment" : "this section focus on the setting of solve mode",
-            "solve_traj_path" : "data/0322/trajs/traj_1_obj_0.json"
+            "solve_traj_path" : "data/0420/trajs/traj_fullbody_0.json"
         }
     }
 }
