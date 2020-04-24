@@ -35,6 +35,7 @@
 --enable_torque_record false
 --torque_record_file logs/controller_logs/torque.record.0920.run
 --reward_file data/0420/rewards/reward_weight.json
+--enable_pdtarget_solve_test false
 
 --agent_files data/0420/agents/agent_512_dont_save_path.txt
 --train_agents true

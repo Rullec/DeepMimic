@@ -21,6 +21,9 @@ public:
 	virtual void SetKp(int joint_id, double kp);
 	virtual void SetKd(int joint_id, double kd);
 
+	virtual void SetEnableSolvePDTargetTest(bool );
+	virtual void SolvePDTargetByTorque(double timestep, const tVectorXd & char_pose,
+		const tVectorXd & char_vel,const tVectorXd & torque, tVectorXd & PDTarget);
 protected:
 	Eigen::VectorXd mKp;
 	Eigen::VectorXd mKd;
@@ -28,9 +31,10 @@ protected:
 
 	tVector mGravity;
 	bool mExternRBDModel;
-	
+	bool mEnableSolvePDTargetTest;
+
 	std::shared_ptr<cRBDModel> mRBDModel;
-	std::shared_ptr<cReverseController> mReverser;
+	std::shared_ptr<cReverseController> mPDTargetSolver;
 
 #if defined(IMP_PD_CTRL_PROFILER)
 	double mPerfSolveTime;

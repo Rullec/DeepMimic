@@ -106,6 +106,7 @@ protected:
 	bool mEnableContactFall;
 	bool mEnableRandCharPlacement;
 	bool mEnableTorqueRecord;
+	bool mEnablePDTargetSolveTest; 
 	std::string mTorqueRecordFile;
 	bool mEnableJointTorqueControl;
 	std::vector<int> mFallContactBodies;	// 这是一个int列表，功能暂时不明。
