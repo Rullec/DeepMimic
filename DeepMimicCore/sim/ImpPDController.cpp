@@ -4,6 +4,7 @@
 #include "sim/SimCharacter.h"
 #include "sim/RBDUtil.h"
 
+#include "util/cTimeUtil.hpp"
 #include "util/FileUtil.h"
 #include "cReverseController.h"
 
@@ -12,7 +13,8 @@
 cImpPDController::cImpPDController()
 {
 	mExternRBDModel = true;
-	
+	mEnableSolvePDTargetTest = false;
+
 #if defined(IMP_PD_CTRL_PROFILER)
 	mPerfSolveTime = 0;
 	mPerfTotalTime = 0;
@@ -32,7 +34,7 @@ void cImpPDController::Init(cSimCharacter* character, const Eigen::MatrixXd& pd_
 	mExternRBDModel = false;
 
 	// init reverse controller
-	mReverser = std::make_shared<cReverseController>(character);
+	mPDTargetSolver = std::make_shared<cReverseController>(character);
 }
 
 void cImpPDController::Init(cSimCharacter* character, const std::shared_ptr<cRBDModel>& model, const Eigen::MatrixXd& pd_params, const tVector& gravity)
@@ -268,7 +270,9 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 		}
 #endif
 		// begin to solve PD target
+		if(true == mEnableSolvePDTargetTest)
 		{
+			cTimeUtil::Begin("solve PD");
 			// check velocity
 			{
 				tVectorXd target_vel;
@@ -284,13 +288,9 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 				}
 			}
 
-			// begin to debug the reverse func
+			// begin to solve pd target
 			tVectorXd solved_pd_target;
-			mReverser->SetParams(timestep, mRBDModel->GetMassMat(), mRBDModel->GetBiasForce(), mKp_v, mKd_v);
-			//std::cout << "input pose = " << pose.transpose() << std::endl;
-			//std::cout << "next pose = " << pose_inc.transpose() << std::endl;
-			//std::cout << "pose diff = " << pose_err.transpose() << std::endl;
-			mReverser->CalcPDTarget(out_tau, pose, vel, solved_pd_target);
+			this->SolvePDTargetByTorque(timestep, pose, vel, out_tau, solved_pd_target);
 			//std::cout << "truth pose = " << tar_pose.transpose() << std::endl;
 			//std::cout << "solved pose = " << wait_pd_target.transpose() << std::endl;
 			tVectorXd diff = (tar_pose - solved_pd_target);
@@ -305,6 +305,8 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 				std::cout << "\n[warning] cImpPDController::CalcControlForces: solve pd target diff = " << diff.transpose() << std::endl;
 				// exit(1);
 			}
+			std::cout <<"[log] cImpPDController solve PD Target accurately\n";
+			cTimeUtil::End("solve PD");
 		}
 	}
 	// exit(1);
@@ -346,4 +348,46 @@ void cImpPDController::BuildTargetVel(tVectorXd & out_vel) const
 			out_vel.segment(param_offset, param_size) = cur_vel;
 		}
 	}
+}
+
+void cImpPDController::SetEnableSolvePDTargetTest(bool enable)
+{
+	std::cout <<"[log] cImpPDController::SetEnableSolvePDTargetTest = " << enable << std::endl;
+	mEnableSolvePDTargetTest = enable;
+}
+
+
+/**
+ * \brief SolvePDTargetByTorque
+ * \param timestep for current frame
+ * \param char_pose, the pose of character in this time
+ * \param char_vel, the pose vel of character
+ * \param torque, torque in each joints
+ * \param PDTarget, solved PDTarget result
+*/
+void cImpPDController::SolvePDTargetByTorque(double timestep, const tVectorXd & char_pose,
+		const tVectorXd & char_vel,const tVectorXd & torque, tVectorXd & PDTarget)
+{
+	Eigen::VectorXd mKp_v = mKp, mKd_v = mKd;
+	
+	for (int j = 0; j < GetNumJoints(); ++j)
+	{
+		const cPDController& pd_ctrl = GetPDCtrl(j);
+
+		// if this joint is invalid, clear it.
+		// NO FORCE can be applied to these joints
+		if (!pd_ctrl.IsValid() || !pd_ctrl.IsActive())
+		{
+			int param_offset = mChar->GetParamOffset(j);
+			int param_size = mChar->GetParamSize(j);
+			mKp_v.segment(param_offset, param_size).setZero();
+			mKd_v.segment(param_offset, param_size).setZero();
+		}
+	}
+
+	mPDTargetSolver->SetParams(timestep, mRBDModel->GetMassMat(), mRBDModel->GetBiasForce(), mKp_v, mKd_v);
+	//std::cout << "input pose = " << pose.transpose() << std::endl;
+	//std::cout << "next pose = " << pose_inc.transpose() << std::endl;
+	//std::cout << "pose diff = " << pose_err.transpose() << std::endl;
+	mPDTargetSolver->CalcPDTarget(torque, char_pose, char_vel, PDTarget);
 }

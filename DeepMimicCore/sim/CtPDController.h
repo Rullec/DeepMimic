@@ -20,6 +20,7 @@ public:
 
 	virtual void CalcPDTarget(const Eigen::VectorXd & torque_, Eigen::VectorXd out_pd_target);
 
+	cImpPDController & GetImpPDController(){return mPDCtrl;}
 protected:
 	cImpPDController mPDCtrl;	// 他才是关键的执行器，所有的ApplyAction都是要向这个里面放东西而已。
 

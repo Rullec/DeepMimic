@@ -61,6 +61,7 @@ cSceneSimChar::cSceneSimChar()
 	mEnableContactFall = true;
 	mEnableRandCharPlacement = true;
 	mEnableTorqueRecord = false;
+	mEnablePDTargetSolveTest = false;
 	mTorqueRecordFile = "";
 	mEnableJointTorqueControl = true;
 	//mIDInfo.clear();
@@ -86,6 +87,9 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 	parser->ParseBool("enable_torque_record", mEnableTorqueRecord);
 	parser->ParseString("torque_record_file", mTorqueRecordFile);
 	parser->ParseBool("enable_joint_force_control", mEnableJointTorqueControl);
+	parser->ParseBool("enable_pdtarget_solve_test", mEnablePDTargetSolveTest);
+	// std::cout <<"mEnablePDTargetSolveTest = " << mEnablePDTargetSolveTest << std::endl;
+	// exit(1);
 
 	succ &= ParseCharTypes(parser, mCharTypes);
 	succ &= ParseCharParams(parser, mCharParams);
@@ -185,9 +189,11 @@ void cSceneSimChar::Clear()
 }
 
 #include <util/BulletUtil.h>
+#include <util/cTimeUtil.hpp>
 void cSceneSimChar::Update(double time_elapsed)
 {
 	// std::cout <<"------------cSceneSimChar::Update------------" << this->GetTime() << std::endl;;
+	// cTimeUtil::Begin("sim update");
 	auto & sim_char = GetCharacter();
 	// std::cout <<"[scene] error root pos = " << sim_char->GetRootPos().transpose() << std::endl;
 	// std::cout <<"[scene] error root rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
@@ -302,7 +308,7 @@ void cSceneSimChar::Update(double time_elapsed)
 		PostUpdate(time_elapsed);
 	
 	}
-	
+	// cTimeUtil::End("sim update");
 	
 }
 
@@ -447,6 +453,7 @@ std::string cSceneSimChar::GetName() const
 	return "Sim Character";
 }
 
+#include "sim/CtPDController.h"
 bool cSceneSimChar::BuildCharacters()
 {
 	/*
@@ -499,6 +506,9 @@ bool cSceneSimChar::BuildCharacters()
 				{
 					// 设置角色的控制器，一共5种，继承关系复杂。
 					curr_char->SetController(ctrl);
+					auto ct_pd_controller = std::dynamic_pointer_cast<cCtPDController>(ctrl);
+					assert(ct_pd_controller != nullptr);
+					ct_pd_controller->GetImpPDController().SetEnableSolvePDTargetTest(mEnablePDTargetSolveTest);
 				}
 			}
 			mChars.push_back(curr_char);
