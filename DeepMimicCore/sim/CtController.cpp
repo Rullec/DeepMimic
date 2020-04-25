@@ -270,7 +270,11 @@ void cCtController::BuildActionOffsetScale(Eigen::VectorXd& out_offset, Eigen::V
 				BuildJointActionOffsetScale(j, curr_offset, curr_scale);
 				assert(curr_offset.size() == param_size);
 				assert(curr_scale.size() == param_size);
-
+				if(curr_scale.allFinite() == false)
+				{
+					std::cout <<"[error] cCtController::BuildActionOffsetScale joint " << j <<" scale illegal = " << curr_scale.transpose() << std::endl;
+					exit(1);
+				}
 				param_offset -= root_size;	//去掉root的
 				param_offset += ctrl_offset;	// 增加ctrl offset的
 				out_offset.segment(param_offset, param_size) = curr_offset;
