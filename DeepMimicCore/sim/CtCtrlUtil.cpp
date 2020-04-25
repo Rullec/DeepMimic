@@ -499,7 +499,9 @@ void cCtCtrlUtil::BuildOffsetScalePDSpherical(const Eigen::MatrixXd& joint_mat, 
 	double curr_scale = 1 / (val_high - val_low);	// 如果high和low是一样的，那么scale 就会变成inf
 	if(false == std::isfinite(curr_scale) || abs(val_high - val_low) < 1e-3)
 	{
-		std::cout <<"[error] joint " << joint_id <<" val_high = " << val_high <<" val_low" <<  val_low<<std::endl;
+		std::cout <<"[error] cCtCtrlUtil::BuildOffsetScalePDSpherical joint " << joint_id <<" val_high = " << val_high <<" val_low" <<  val_low<<std::endl;
+		std::cout <<"it will make training Nan failed(norm_mean)\n";
+		exit(1);
 	}
 	
 	curr_scale *= 0.5;
