@@ -432,12 +432,20 @@ std::vector<double> cDeepMimicCore::BuildActionOffset(int agent_id) const
 		// 去rlsence中要offset
 		rl_scene->BuildActionOffsetScale(agent_id, offset, scale);
 
+		if(offset.hasNaN() == true || offset.allFinite() == false)
+		{
+			std::cout <<"[error] cDeepMimicCore::BuildActionOffset illegal " << offset.transpose() << std::endl;
+			std::cout <<"aborting..\n";
+			exit(1);
+		}
+
 		std::vector<double> out_offset;
 		ConvertVector(offset, out_offset);
 		// std::cout <<"[scale] get offset(mean) from rl_scene:";
 		// for(auto i : out_offset)
 		// 	std::cout << i <<" ";
 		// std::cout << std::endl;
+		// exit(1);
 		return out_offset;
 	}
 	return std::vector<double>(0);
@@ -456,11 +464,17 @@ std::vector<double> cDeepMimicCore::BuildActionScale(int agent_id) const
 
 		std::vector<double> out_scale;
 		ConvertVector(scale, out_scale);
-
+		// std::cout <<"scale = " << scale.transpose() << std::endl;
+		if(scale.hasNaN() == true || scale.allFinite() == false)
+		{
+			std::cout <<"[error] cDeepMimicCore::BuildActionScale illegal " << scale.transpose() << std::endl;
+			std::cout <<"aborting..\n";
+			exit(1);
+		}
 		// std::cout <<"[scale] get scale from rl_scene:";
 		// for(auto i : out_scale)
 		// 	std::cout << i <<" ";
-		
+		// exit(1);
 		return out_scale;
 	}
 	return std::vector<double>(0);
