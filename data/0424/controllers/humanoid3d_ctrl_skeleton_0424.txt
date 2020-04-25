@@ -1,0 +1,151 @@
+{
+	"UpdateRate": 30,
+	"EnablePhaseInput": true,
+	"RecordWorldRootPos": false,
+	"RecordWorldRootRot": true,
+
+	"RightJoints": [3, 4, 5, 11, 12, 13],
+	"LeftJoints": [8, 9, 10, 14, 15, 16],
+
+	"PDControllers": 
+	[
+		{
+			"ID": 0,
+			"Name": "root",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 1,
+			"Name": "Spine1",
+			"Kp": 80,
+			"Kd": 8,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 2,
+			"Name": "vneck",
+			"Kp": 80,
+			"Kd": 8,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 3,
+			"Name": "RightArm",
+			"Kp": 60,
+			"Kd": 6,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 4,
+			"Name": "RightForeArm",
+			"Kp": 40,
+			"Kd": 4,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 5,
+			"Name": "RightHand",
+			"Kp": 20,
+			"Kd": 2,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 6,
+			"Name": "Neck",
+			"Kp": 40,
+			"Kd": 4,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 7,
+			"Name": "Head",
+			"Kp": 40,
+			"Kd": 4,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 8,
+			"Name": "LeftArm",
+			"Kp": 60,
+			"Kd": 6,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+
+		{
+			"ID": 9,
+			"Name": "LeftForeArm",
+			"Kp": 40,
+			"Kd": 4,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+
+		{
+			"ID": 10,
+			"Name": "LeftHand",
+			"Kp": 20,
+			"Kd": 2,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 11,
+			"Name": "RightLeg",
+			"Kp": 80,
+			"Kd": 8,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 12,
+			"Name": "RightFoot",
+			"Kp": 60,
+			"Kd": 6,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 13,
+			"Name": "RFootTongue",
+			"Kp": 40,
+			"Kd": 4,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 14,
+			"Name": "LeftLeg",
+			"Kp": 80,
+			"Kd": 8,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 15,
+			"Name": "LeftFoot",
+			"Kp": 60,
+			"Kd": 6,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 16,
+			"Name": "LFootTongue",
+			"Kp": 40,
+			"Kd": 4,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		}
+	]
+}

@@ -5,11 +5,11 @@ import sys
 from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
 project_dir = "/Users/xudong/Projects/DeepMimic"
-skeleton_path = "data/0420/characters/skeleton_120401.json"
-pd_path = "data/0420/controllers/humanoid3d_ctrl_skeleton_120401.txt"
+skeleton_path = "data/0424/characters/skeleton_042302_revised_leftleg.json"
+pd_path = "data/0424/controllers/humanoid3d_ctrl_skeleton_0424_leftleg.txt"
 #skeleton_path = "data/raw/characters/humanoid3d.txt"
 #pd_path = "data/raw/controllers/humanoid3d_ctrl.txt"
-reduce = lambda f : round(f, 4)
+reduce = lambda f : round(f, 6)
 def parse_pd(file):
     f_pd = open(file, "r")
     value = json.load(f_pd)
@@ -30,6 +30,7 @@ def parse_skeleton(file):
 
     bodydefs_value = value["BodyDefs"]
     info_dict = {}
+    # key_lst = ["Name", "ID", "Mass", "ColGroup"]
     key_lst = ["Name", "ID", "Mass", "ColGroup"]
     # Name, ID, Mass, Param0, Param1, Param2, ColGroup = (None,) * len(key_lst)
     for i in bodydefs_value:
@@ -43,7 +44,8 @@ def parse_skeleton(file):
         Length = Param1
         info["Volume"] = Volume * 1e6 # cm3
         info["Length"] = Length # m
-
+        
+        # info["AttachThetaX"] = 
         # add
         info_dict[Name] = info
 
