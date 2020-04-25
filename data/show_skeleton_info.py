@@ -5,8 +5,8 @@ import sys
 from verify_skeleton import verify_drawshapes_and_bodydefs, verify_symmetric
 
 project_dir = "/Users/xudong/Projects/DeepMimic"
-skeleton_path = "data/0424/characters/skeleton_042302_revised_leftleg.json"
-pd_path = "data/0424/controllers/humanoid3d_ctrl_skeleton_0424_leftleg.txt"
+skeleton_path = "data/0424/characters/skeleton_042302_revised.json"
+pd_path = "data/0424/controllers/humanoid3d_ctrl_skeleton_0424.txt"
 #skeleton_path = "data/raw/characters/humanoid3d.txt"
 #pd_path = "data/raw/controllers/humanoid3d_ctrl.txt"
 reduce = lambda f : round(f, 6)
