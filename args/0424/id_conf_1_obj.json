@@ -1,0 +1,28 @@
+{
+    "IDMode": "Offline",
+    "IDMode_bak": "Online",
+    "Offline":
+    {
+        "mode" : "save",
+        "mode_bak1" : "display",
+        "mode_bak2" : "solve",
+        "SaveModeInfo":
+        {
+            "_comment" : "this section focus on the setting of save mode",
+            "clear_applied_force" : true,
+            "save_traj_root" : "data/0424/trajs/traj_1_obj.json",
+            "save_motion_root" :  "data/0424/motions/ID_motion_1_obj.txt"
+        },
+        "DisplayModeInfo":
+        {
+            "_comment" : "this section focus on the setting of display mode",
+            "display_traj_path" : "data/0424/trajs/traj_1_obj_0.json",
+            "display_motion_path_bak" : "data/0424/motions/ID_motion_1_obj_0.txt"
+        },
+        "SolveModeInfo":
+        {
+            "_comment" : "this section focus on the setting of solve mode",
+            "solve_traj_path" : "data/0424/trajs/traj_1_obj_0.json"
+        }
+    }
+}

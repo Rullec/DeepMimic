@@ -1129,7 +1129,8 @@ bool cSimCharacter::BuildJointLimits(std::shared_ptr<cMultiBody>& out_body)
 					lim_low *= world_scale;
 					lim_high *= world_scale;
 				}
-
+				std::cout <<"[error] cSimCharacter::BuildJointLimits: Adding joint constraints is not allowed because it destroys the inverse dynamics of the solution for joint " << GetBodyName(j) << std::endl;
+				exit(1);
 				auto joint_cons = std::shared_ptr<btMultiBodyJointLimitConstraint>(new btMultiBodyJointLimitConstraint(mMultiBody.get(), j, lim_low[0], lim_high[0]));
 				joint_cons->finalizeMultiDof();
 				mCons.push_back(joint_cons);

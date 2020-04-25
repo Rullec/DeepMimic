@@ -1,0 +1,37 @@
+{
+	"UpdateRate": 30,
+	"EnablePhaseInput": true,
+	"RecordWorldRootPos": false,
+	"RecordWorldRootRot": true,
+
+	"RightJoints": [],
+	"LeftJoints": [],
+
+	"PDControllers": 
+	[
+		{
+			"ID": 0,
+			"Name": "root",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 1,
+			"Name": "LeftLeg",
+			"Kp": 80,
+			"Kd": 8,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 2,
+			"Name": "LeftFoot",
+			"Kp": 60,
+			"Kd": 6,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		}
+	]
+}
