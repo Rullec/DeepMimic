@@ -102,31 +102,31 @@
 		{
 			"ID": 11,
 			"Name": "RightLeg",
-			"Kp": 200,
-			"Kd": 20,
+			"Kp": 250,
+			"Kd": 25,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 12,
 			"Name": "RightFoot",
-			"Kp": 150,
-			"Kd": 15,
+			"Kp": 200,
+			"Kd": 20,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 13,
 			"Name": "RFootTongue",
-			"Kp": 150,
-			"Kd": 15,
+			"Kp": 200,
+			"Kd": 20,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 14,
 			"Name": "LeftLeg",
-			"Kp": 200,
+			"Kp": 250,
 			"Kd": 20,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
@@ -134,16 +134,16 @@
 		{
 			"ID": 15,
 			"Name": "LeftFoot",
-			"Kp": 150,
-			"Kd": 15,
+			"Kp": 200,
+			"Kd": 20,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 16,
 			"Name": "LFootTongue",
-			"Kp": 150,
-			"Kd": 15,
+			"Kp": 200,
+			"Kd": 20,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		}
