@@ -90,8 +90,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${PYTHON_INC})
 
 set(CMAKE_SWIG_FLAGS "")
-set(CMAKE_SHARED_LINKER_FLAGS "-flat_namespace -undefined suppress")
-
+if(APPLE)
+    set(CMAKE_SHARED_LINKER_FLAGS "-flat_namespace -undefined suppress")
+endif()
 # set up target library
 set_source_files_properties(DeepMimicCore.i PROPERTIES CPLUSPLUS ON)
 swig_add_library(DeepMimicCore TYPE SHARED LANGUAGE python OUTPUT_DIR ${CMAKE_SOURCE_DIR} OUTFILE_DIR ${CMAKE_SOURCE_DIR} SOURCES DeepMimicCore.i DeepMimicCore.cpp)
