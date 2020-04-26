@@ -1149,7 +1149,7 @@
             "LimLow2" : -3.14,
             "Name" : "Spine1",
             "Parent" : 0,
-            "TorqueLim" : 400.0,
+            "TorqueLim" : 500.0,
             "Type" : "spherical"
          },
          {
@@ -1170,7 +1170,7 @@
             "LimLow2" : -3.14,
             "Name" : "vneck",
             "Parent" : 1,
-            "TorqueLim" : 400.0,
+            "TorqueLim" : 500.0,
             "Type" : "spherical"
          },
          {
@@ -1359,7 +1359,7 @@
             "LimLow2" : -3.14,
             "Name" : "RightLeg",
             "Parent" : 0,
-            "TorqueLim" : 400.0,
+            "TorqueLim" : 600.0,
             "Type" : "spherical"
          },
          {
@@ -1380,7 +1380,7 @@
             "LimLow2" : -3.14,
             "Name" : "RightFoot",
             "Parent" : 11,
-            "TorqueLim" : 350.0,
+            "TorqueLim" : 550.0,
             "Type" : "revolute"
          },
          {
@@ -1401,7 +1401,7 @@
             "LimLow2" : -3.14,
             "Name" : "RFootTongue",
             "Parent" : 12,
-            "TorqueLim" : 300.0,
+            "TorqueLim" : 500.0,
             "Type" : "spherical"
          },
          {
@@ -1422,7 +1422,7 @@
             "LimLow2" : -3.14,
             "Name" : "LeftLeg",
             "Parent" : 0,
-            "TorqueLim" : 400.0,
+            "TorqueLim" : 600.0,
             "Type" : "spherical"
          },
          {
@@ -1443,7 +1443,7 @@
             "LimLow2" : -3.14,
             "Name" : "LeftFoot",
             "Parent" : 14,
-            "TorqueLim" : 350.0,
+            "TorqueLim" : 550.0,
             "Type" : "revolute"
          },
          {
@@ -1464,7 +1464,7 @@
             "LimLow2" : -3.14,
             "Name" : "LFootTongue",
             "Parent" : 15,
-            "TorqueLim" : 300.0,
+            "TorqueLim" : 500.0,
             "Type" : "spherical"
          }
       ]
