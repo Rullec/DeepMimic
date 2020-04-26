@@ -41,7 +41,7 @@
 --train_agents false
 
 --output_path output/0424
-# --model_files output/0424/agent0_model_2020_04_25_08_45_22_409.92.ckpt
+--model_files output/0424/agent0_model_2020_04_26_08_50_43_384.60.ckpt
 
 #---------------------- Inverse Dyanmics config-------------------
 --enable_inverse_dynamic_solving true
