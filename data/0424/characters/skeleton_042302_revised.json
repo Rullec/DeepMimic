@@ -1149,7 +1149,7 @@
             "LimLow2" : -3.14,
             "Name" : "Spine1",
             "Parent" : 0,
-            "TorqueLim" : 300.0,
+            "TorqueLim" : 400.0,
             "Type" : "spherical"
          },
          {
@@ -1170,7 +1170,7 @@
             "LimLow2" : -3.14,
             "Name" : "vneck",
             "Parent" : 1,
-            "TorqueLim" : 300.0,
+            "TorqueLim" : 400.0,
             "Type" : "spherical"
          },
          {
