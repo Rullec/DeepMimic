@@ -37,12 +37,12 @@
 --reward_file data/0420/rewards/reward_weight.json
 --enable_pdtarget_solve_test true
 
---agent_files data/0420/agents/agent_512_dont_save_path.txt
+--agent_files data/0420/agents/agent_1024_ppo.txt
 --train_agents false
 
---output_path output/0424
---model_files output/0424/agent0_model_2020_04_26_08_50_43_384.60.ckpt
+--output_path output/0426
+# --model_files output/0426/agent0_model_2020_04_26_08_50_43_384.60.ckpt
 
 #---------------------- Inverse Dyanmics config-------------------
 --enable_inverse_dynamic_solving true
---inverse_dynamic_config_file args/0424/id_conf_fullbody.json
+--inverse_dynamic_config_file args/0426/id_conf_fullbody.json
