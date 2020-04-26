@@ -1191,7 +1191,7 @@
             "LimLow2" : -3.14,
             "Name" : "RightArm",
             "Parent" : 2,
-            "TorqueLim" : 250.0,
+            "TorqueLim" : 350.0,
             "Type" : "spherical"
          },
          {
@@ -1212,7 +1212,7 @@
             "LimLow2" : -3.14,
             "Name" : "RightForeArm",
             "Parent" : 3,
-            "TorqueLim" : 200.0,
+            "TorqueLim" : 300.0,
             "Type" : "spherical"
          },
          {
@@ -1233,7 +1233,7 @@
             "LimLow2" : -3.14,
             "Name" : "RightHand",
             "Parent" : 4,
-            "TorqueLim" : 200.0,
+            "TorqueLim" : 300.0,
             "Type" : "spherical"
          },
          {
@@ -1254,7 +1254,7 @@
             "LimLow2" : -3.14,
             "Name" : "Neck",
             "Parent" : 2,
-            "TorqueLim" : 200.0,
+            "TorqueLim" : 400.0,
             "Type" : "spherical"
          },
          {
@@ -1275,7 +1275,7 @@
             "LimLow2" : -3.14,
             "Name" : "Head",
             "Parent" : 6,
-            "TorqueLim" : 150.0,
+            "TorqueLim" : 250.0,
             "Type" : "spherical"
          },
          {
@@ -1296,7 +1296,7 @@
             "LimLow2" : -3.14,
             "Name" : "LeftArm",
             "Parent" : 2,
-            "TorqueLim" : 250.0,
+            "TorqueLim" : 350.0,
             "Type" : "spherical"
          },
          {
@@ -1317,7 +1317,7 @@
             "LimLow2" : -3.14,
             "Name" : "LeftForeArm",
             "Parent" : 8,
-            "TorqueLim" : 200.0,
+            "TorqueLim" : 300.0,
             "Type" : "spherical"
          },
          {
@@ -1338,7 +1338,7 @@
             "LimLow2" : -3.14,
             "Name" : "LeftHand",
             "Parent" : 9,
-            "TorqueLim" : 200.0,
+            "TorqueLim" : 300.0,
             "Type" : "spherical"
          },
          {
