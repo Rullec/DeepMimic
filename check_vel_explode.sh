@@ -10,4 +10,4 @@ echo "expolode percent:0"$exp_percent%
 
 echo "---------show torque lim number--------"
 echo "num  joint"
-cat $1 | grep -i lim | awk '{print $4}' | sort -n| uniq -c | sort
+cat $1 | grep -i lim | awk '{print $4}' | sort -n| uniq -c | sort -n
