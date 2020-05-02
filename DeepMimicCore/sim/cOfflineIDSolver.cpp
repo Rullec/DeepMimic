@@ -91,9 +91,16 @@ void cOfflineIDSolver::PreSim()
 {
     if(this->mMode == eOfflineSolverMode::Save)
     {
+        
         mInverseModel->clearAllUserForcesAndMoments();
         const int & cur_frame = mSaveInfo.mCurFrameId;
         // std::cout <<"frame id " << cur_frame  << std::endl;
+        // if(0 == cur_frame)
+        // {
+        //     mMultibody->setBaseVel(btVector3(3, -3, 3));
+        //     mMultibody->setBaseOmega(btVector3(10, -10, 10));
+        // }
+
         // clear external force
         mSaveInfo.mExternalForces[cur_frame].resize(mNumLinks);
         for(auto & x : mSaveInfo.mExternalForces[cur_frame]) x.setZero();
@@ -451,31 +458,35 @@ void cOfflineIDSolver::DisplaySet()
     else if(mLoadInfo.mLoadMode == eLoadMode::LOAD_TRAJ)
     {
         mLoadInfo.mCurFrame++;
+        mLoadInfo.mCurFrame %= mLoadInfo.mTotalFrame;
         const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPoseMat.rows();
         std::cout <<"[log] cOfflineIDSolver display mode: cur frame = " << cur_frame << std::endl;
         const tVectorXd & q = mLoadInfo.mPoseMat.row(cur_frame);
         SetGeneralizedPos(q);
+        RecordMultibodyInfo(mLoadInfo.mLinkRot[cur_frame], mLoadInfo.mLinkPos[cur_frame]);
 
+        if(mLoadInfo.mEnableOutputMotionInfo == true)
+            PrintLoadInfo(mLoadInfo.mOutputMotionInfoPath, true);
         // DEBUG: output the link pos to files
-        std::ofstream fout_pos("pos_verify_mimic.txt", std::ios::app);
-        for(int i=0; i<mNumLinks; i++)
-        {
-            tVector pos, rot;
-            if(0 == i)
-            {
-                pos = cBulletUtil::btVectorTotVector1(mMultibody->getBasePos());
-                rot = cBulletUtil::btQuaternionTotQuaternion(mMultibody->getBaseWorldTransform().getRotation()).coeffs();
-            }
-            else
-            {
-                int multibody_link_id = i - 1;
-                auto & cur_trans = mMultibody->getLinkCollider(multibody_link_id)->getWorldTransform();
-                rot = cBulletUtil::btQuaternionTotQuaternion(cur_trans.getRotation()).coeffs();
-                pos = cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
-            }
+        // std::ofstream fout_pos("pos_verify_mimic.txt", std::ios::app);
+        // for(int i=0; i<mNumLinks; i++)
+        // {
+        //     tVector pos, rot;
+        //     if(0 == i)
+        //     {
+        //         pos = cBulletUtil::btVectorTotVector1(mMultibody->getBasePos());
+        //         rot = cBulletUtil::btQuaternionTotQuaternion(mMultibody->getBaseWorldTransform().getRotation()).coeffs();
+        //     }
+        //     else
+        //     {
+        //         int multibody_link_id = i - 1;
+        //         auto & cur_trans = mMultibody->getLinkCollider(multibody_link_id)->getWorldTransform();
+        //         rot = cBulletUtil::btQuaternionTotQuaternion(cur_trans.getRotation()).coeffs();
+        //         pos = cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
+        //     }
             
-            fout_pos <<"link " << i <<" pos = " << pos.segment(0, 3).transpose() << ", rot = " << rot.transpose() << std::endl;
-        }
+        //     fout_pos <<"link " << i <<" pos = " << pos.segment(0, 3).transpose() << ", rot = " << rot.transpose() << std::endl;
+        // }
 	
     }
     else if(mLoadInfo.mLoadMode == eLoadMode::LOAD_MOTION)
@@ -638,7 +649,7 @@ void cOfflineIDSolver::OfflineSolve()
     // 1. calc vel and accel from pos
     /*
     double cur_timestep = mSaveInfo.mTimesteps[cur_frame - 1],
-                    last_timestep = mSaveInfo.mTimesteps[cur_frame - 2];
+            last_timestep = mSaveInfo.mTimesteps[cur_frame - 2];
 			tVectorXd old_vel_after = mSaveInfo.mBuffer_u[cur_frame];
 			tVectorXd old_vel_before = mSaveInfo.mBuffer_u[cur_frame - 1];
 			tVectorXd old_accel = (old_vel_after - old_vel_before) / cur_timestep;
@@ -785,7 +796,18 @@ void cOfflineIDSolver::ParseConfigDisplay(const Json::Value & display_value)
     assert(display_value.isNull() == false);
     // std::cout <<"void cOfflineIDSolver::ParseConfigDisplay(const Json::Value & save_value)\n";
     const Json::Value & display_traj_path = display_value["display_traj_path"],
-        display_motion_path = display_value["display_motion_path"];
+        display_motion_path = display_value["display_motion_path"],
+        enable_output_motion_info = display_value["enable_output_motion_info"],
+        output_motion_info_path = display_value["output_motion_info_path"];
+
+    assert(enable_output_motion_info.isNull() == false);
+    assert(output_motion_info_path.isNull() == false);
+
+    mLoadInfo.mEnableOutputMotionInfo = enable_output_motion_info.asBool();
+    mLoadInfo.mOutputMotionInfoPath = output_motion_info_path.asString();
+
+    if(mLoadInfo.mEnableOutputMotionInfo)
+        cFileUtil::ClearFile(mLoadInfo.mOutputMotionInfoPath);
 
     // there is only one choice between display_motion_path and display_traj_path
     bool display_motion_path_isnull = display_motion_path.isNull(),
@@ -818,6 +840,13 @@ void cOfflineIDSolver::ParseConfigDisplay(const Json::Value & display_value)
         std::cout <<"[error] cOfflineIDSolver::ParseConfigDisplay: all options are empty\n";
         exit(1);
     }
+
+    // init load info character pose
+    const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPoseMat.rows();
+    std::cout <<"[log] cOfflineIDSolver display mode: cur frame = " << cur_frame << std::endl;
+    const tVectorXd & q = mLoadInfo.mPoseMat.row(cur_frame);
+    SetGeneralizedPos(q);
+    RecordMultibodyInfo(mLoadInfo.mLinkRot[cur_frame], mLoadInfo.mLinkPos[cur_frame]);
 }
 
 /*
@@ -953,4 +982,99 @@ void cOfflineIDSolver::VerifyMomentum()
 
 
     // exit(1);
+}
+
+void cOfflineIDSolver::PrintLoadInfo(const std::string & filename, bool disable_root /*= true*/)
+{
+    std::ofstream fout(filename, std::ios::app);
+    if(mLoadInfo.mCurFrame == 0) return;
+
+    if(disable_root == false)
+    {
+        // fetch mass
+        std::vector<double> mk_lst(0);
+        double total_mass = 0;
+        mk_lst.resize(mNumLinks);
+        for(int i=0; i<mNumLinks; i++)
+        {
+            if(i ==0 )
+                mk_lst[i] = mMultibody->getBaseMass();
+            else
+                mk_lst[i] = mMultibody->getLinkMass(i - 1);
+            total_mass += mk_lst[i];
+        }
+
+        // output to file
+        fout << "---------- frame " << mLoadInfo.mCurFrame << " -----------\n";
+        fout << "num_of_links = " << mNumLinks << std::endl;
+        fout << "timestep = " << mLoadInfo.mTimesteps[mLoadInfo.mCurFrame] << std::endl;
+        fout << "total_mass = " << total_mass << std::endl;
+
+        for(int i=0; i < mNumLinks; i++)
+        {
+            tVector vel = (mLoadInfo.mLinkPos[mLoadInfo.mCurFrame][i] - mLoadInfo.mLinkPos[mLoadInfo.mCurFrame-1][i]) / mLoadInfo.mTimesteps[mLoadInfo.mCurFrame];
+            tVector omega = cMathUtil::CalcQuaternionVel(
+                cMathUtil::RotMatToQuaternion(mLoadInfo.mLinkRot[mLoadInfo.mCurFrame-1][i]),
+                cMathUtil::RotMatToQuaternion(mLoadInfo.mLinkRot[mLoadInfo.mCurFrame][i]),
+                mLoadInfo.mTimesteps[mLoadInfo.mCurFrame]);
+            fout << "--- link " << i <<" ---\n";
+            fout << "mass = " << mk_lst[i] << std::endl;
+            fout << "pos = " << mLoadInfo.mLinkPos[mLoadInfo.mCurFrame][i].transpose().segment(0, 3) << std::endl;
+            fout << "rot = " << cMathUtil::RotMatToQuaternion(mLoadInfo.mLinkRot[mLoadInfo.mCurFrame][i]).coeffs().transpose() << std::endl;
+            fout << "vel = " << vel.transpose().segment(0, 3) << std::endl;
+            fout << "omega = " << omega.transpose().segment(0, 3) << std::endl;
+            // fout << "COM cur = " << COM_cur.transpose() << std::endl;
+        }
+    }
+    else
+    {
+        // disable the root link for DeepMimic, mass is zero and inertia is zero fetch mass
+        std::vector<double> mk_lst(0);
+        double total_mass = 0;
+        tVector COM_cur = tVector::Zero();
+        mk_lst.resize(mNumLinks - 1);
+        for(int i=0; i<mNumLinks - 1; i++)
+        {
+            mk_lst[i] = mMultibody->getLinkMass(i);
+            total_mass += mk_lst[i];
+            COM_cur += mk_lst[i] * mLoadInfo.mLinkPos[mLoadInfo.mCurFrame][i + 1];
+        }
+        COM_cur /= total_mass;
+        
+        // output to file
+        fout << "---------- frame " << mLoadInfo.mCurFrame << " -----------\n";
+        fout << "num_of_links = " << mNumLinks-1 << std::endl;
+        fout << "timestep = " << mLoadInfo.mTimesteps[mLoadInfo.mCurFrame] << std::endl;
+        fout << "total_mass = " << total_mass << std::endl;
+        tVector lin_mom = tVector::Zero(), ang_mom = tVector::Zero();
+
+        for(int i=1; i < mNumLinks; i++)
+        {
+            tVector vel = (mLoadInfo.mLinkPos[mLoadInfo.mCurFrame][i] - mLoadInfo.mLinkPos[mLoadInfo.mCurFrame-1][i]) / mLoadInfo.mTimesteps[mLoadInfo.mCurFrame];
+            tVector omega = cMathUtil::CalcQuaternionVel(
+                cMathUtil::RotMatToQuaternion(mLoadInfo.mLinkRot[mLoadInfo.mCurFrame-1][i]),
+                cMathUtil::RotMatToQuaternion(mLoadInfo.mLinkRot[mLoadInfo.mCurFrame][i]),
+                mLoadInfo.mTimesteps[mLoadInfo.mCurFrame]);
+            fout << "--- link " << i-1 <<" ---\n";
+            fout << "mass = " << mk_lst[i-1] << std::endl;
+            fout << "pos = " << mLoadInfo.mLinkPos[mLoadInfo.mCurFrame][i].transpose().segment(0, 3) << std::endl;
+            fout << "rot = " << cMathUtil::RotMatToQuaternion(mLoadInfo.mLinkRot[mLoadInfo.mCurFrame][i]).coeffs().transpose() << std::endl;
+            fout << "rotmat = \n" << mLoadInfo.mLinkRot[mLoadInfo.mCurFrame][i].block(0, 0, 3, 3) << std::endl;
+            fout << "vel = " << vel.transpose().segment(0, 3) << std::endl;
+            fout << "omega = " << omega.transpose().segment(0, 3) << std::endl;
+            fout << "inertia = " << cBulletUtil::btVectorTotVector0(mMultibody->getLinkInertia(i-1)).transpose().segment(0, 3) << std::endl;
+            lin_mom += mk_lst[i-1] * vel;
+            ang_mom += mk_lst[i-1] * (mLoadInfo.mLinkPos[mLoadInfo.mCurFrame][i] - COM_cur).cross3(vel)
+                        + mLoadInfo.mLinkRot[mLoadInfo.mCurFrame][i] 
+                            * 
+                        cBulletUtil::btVectorTotVector0(mMultibody->getLinkInertia(i-1)).asDiagonal()
+                        *mLoadInfo.mLinkRot[mLoadInfo.mCurFrame][i].transpose()
+                        * omega;
+            
+        }
+        fout << "COM cur = " << COM_cur.transpose().segment(0, 3) << std::endl;
+        fout << "linear momentum = " << lin_mom.transpose().segment(0, 3) << std::endl;
+        fout << "angular momentum = " << ang_mom.transpose().segment(0, 3) << std::endl;
+    }
+    
 }

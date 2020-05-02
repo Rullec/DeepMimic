@@ -941,6 +941,8 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 	// build class MultiBody inherited from btMultiBody
 	bool succ = true;
 
+	// base is always identity and the mass/ inertia is zero.
+	// the normal "root" is the child of base
 	double world_scale = mWorld->GetScale();
 	int num_joints = GetNumJoints();
 	bool fixed_base = FixedBase();
