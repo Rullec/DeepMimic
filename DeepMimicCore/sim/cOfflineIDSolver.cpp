@@ -467,6 +467,22 @@ void cOfflineIDSolver::DisplaySet()
 
         if(mLoadInfo.mEnableOutputMotionInfo == true)
             PrintLoadInfo(mLoadInfo.mOutputMotionInfoPath, true);
+        
+        // DEBUG: output the contact info
+        
+        // std::ofstream fout_pt("contact_pt_mimic.txt", std::ios::app);
+        // auto contact_pts = mLoadInfo.mContactForces[mLoadInfo.mCurFrame];
+        // fout_pt <<"frame " << mLoadInfo.mCurFrame << " contact pts num = " << contact_pts.size() << std::endl;
+        // for(auto &x : contact_pts)
+        // {
+        //     std::string name = "";
+        //     if(x.mId == 0) name = mMultibody->getBaseName();
+        //     else name = std::string(mMultibody->getLink(x.mId -1).m_linkName);
+        //     std::cout <<"name = " << name << std::endl;
+        //     fout_pt << "link name : " << mSimChar->GetBodyName(x.mId - 1)\
+        //      << ", contact pt pos = " << x.mPos.transpose().segment(0, 3) << std::endl;
+        // }
+        
         // DEBUG: output the link pos to files
         // std::ofstream fout_pos("pos_verify_mimic.txt", std::ios::app);
         // for(int i=0; i<mNumLinks; i++)
