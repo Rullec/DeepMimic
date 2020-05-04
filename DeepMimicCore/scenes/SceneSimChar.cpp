@@ -513,9 +513,12 @@ bool cSceneSimChar::BuildCharacters()
 			}
 			mChars.push_back(curr_char);
 		}
+
+		// set up other setting
+		curr_char->SetEnablejointTorqueControl(mEnableJointTorqueControl);
 	}
 	
-	mChars[0]->SetEnablejointTorqueControl(mEnableJointTorqueControl);
+	
 	return succ;
 }
 

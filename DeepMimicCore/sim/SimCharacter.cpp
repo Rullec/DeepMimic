@@ -949,6 +949,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 	btVector3 base_intertia = btVector3(0, 0, 0);
 	btScalar base_mass = 0;
 	mMultiBody = std::shared_ptr<cMultiBody>(new cMultiBody(num_joints, base_mass, base_intertia, fixed_base, false));
+	mMultiBody->setBaseName("root_bullet");
 
 	btTransform base_trans;
 	base_trans.setIdentity();
@@ -1088,6 +1089,10 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 				break;
 			}
 		}
+
+		// set up link name
+		mMultiBody->getLink(j).m_linkName = mBodyDefsName[j].c_str();
+		mMultiBody->getLink(j).m_jointName = mSkeletonJointsName[j].c_str();
 
 		// 从这里开始，添加碰撞。
 		// 如果有问题，只有可能是添加的时候初始化有问题，就从这里排查，把log打出来，然后看他们究竟有什么不一样的地方。
