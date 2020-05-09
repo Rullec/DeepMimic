@@ -1,0 +1,4 @@
+--scene kin_char
+
+--character_file data/0424/characters/skeleton_042302_revised.json
+--motion_file data/0509/motions/cartwheel_motion_050901_opt.txt
