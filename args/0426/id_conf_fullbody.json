@@ -3,8 +3,8 @@
     "IDMode_bak": "Online",
     "Offline":
     {
-        "mode" : "save",
-        "mode_bak1" : "display",
+        "mode_bak1" : "save",
+        "mode" : "display",
         "mode_bak2" : "solve",
         "SaveModeInfo":
         {
@@ -16,7 +16,8 @@
         "DisplayModeInfo":
         {
             "_comment" : "this section focus on the setting of display mode",
-            "display_traj_path" : "data/0426/trajs/traj_fullbody_0.json",
+            "display_traj_path" : "data/0426/trajs/traj_fullbody_drop.json",
+            "display_traj_path_bak" : "data/0426/trajs/traj_fullbody_0.json",
             "display_motion_path_bak" : "data/0426/motions/ID_motion_fullbody_0.txt"
         },
         "SolveModeInfo":

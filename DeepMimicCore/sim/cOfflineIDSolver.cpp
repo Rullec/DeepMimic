@@ -5,6 +5,7 @@
 #include <util/FileUtil.h>
 #include <util/BulletUtil.h>
 #include <iostream>
+#include <fstream>
 
 cOfflineIDSolver::cOfflineIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world,\
     const std::string & config):cIDSolver(sim_char, world, eIDSolverType::Offline)
@@ -442,6 +443,28 @@ void cOfflineIDSolver::SaveTraj(const std::string & path_raw)
 
 void cOfflineIDSolver::DisplaySet()
 {
+    // if(mLoadInfo.mCurFrame >=1)
+    // {
+    //     int frame = mLoadInfo.mCurFrame;
+    //     std::ofstream fout("linear_momentum_mimic.txt", std::ios::app);
+    //     tVector linear_mom = tVector::Zero(), linear_impulse = tVector::Zero();
+
+    //     for(int i=0; i<mNumLinks - 1; i++)
+    //     {
+    //         auto cur_link = mMultibody->getLink(i);
+    //         linear_mom += cur_link.m_mass * (mLoadInfo.mLinkPos[frame][i+1] - mLoadInfo.mLinkPos[frame-1][i+1]) / mLoadInfo.mTimesteps[frame];
+    //         linear_impulse += cur_link.m_mass * cBulletUtil::btVectorTotVector0( mWorld->getGravity()) *  mLoadInfo.mTimesteps[frame];
+    //         // std::cout << mLoadInfo.mLinkPos[frame][i+1] .transpose()  << std::endl;
+    //     }
+
+    //     for(auto & cur : mLoadInfo.mContactForces[frame])
+    //     {
+    //         linear_impulse+= cur.mForce * mLoadInfo.mTimesteps[frame];
+    //     }
+    //     fout <<"frame " << frame <<" linear momentum = " << linear_mom.segment(0, 3).transpose() << std::endl;
+    //     fout <<"frame " << frame <<" linear impulse = " << linear_impulse.segment(0, 3).transpose() << std::endl;
+    // }
+
     // select and set value for it
     if(mLoadInfo.mLoadMode == eLoadMode::INVALID)
     {
@@ -570,6 +593,9 @@ void cOfflineIDSolver::LoadTraj(const std::string & path)
 
         // 1. pos, vel, accel
         for(int j=0; j<mDof; j++) mLoadInfo.mPoseMat(frame_id, j) = cur_pose[j].asDouble();
+        // std::cout <<cur_pose.size() <<" " << mSimChar->GetNumDof() << std::endl;
+        SetGeneralizedPos(mLoadInfo.mPoseMat.row(frame_id));
+        RecordMultibodyInfo(mLoadInfo.mLinkRot[frame_id], mLoadInfo.mLinkPos[frame_id]);
         for(int j=0; j<mDof && frame_id>=1; j++) mLoadInfo.mVelMat(frame_id, j) = cur_vel[j].asDouble();
         for(int j=0; j<mDof && frame_id>=1; j++) mLoadInfo.mAccelMat(frame_id, j) = cur_accel[j].asDouble();
 
