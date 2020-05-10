@@ -170,7 +170,7 @@ void cOfflineIDSolver::PostSim()
 	    RecordGeneralizedInfo(mSaveInfo.mBuffer_q[cur_frame], mSaveInfo.mBuffer_u[cur_frame]);
 
 	    // record contact forces
-	    RecordContactForces(mSaveInfo.mContactForces[cur_frame], mSaveInfo.mTimesteps[cur_frame - 1], mWorldId2InverseId);
+	    RecordContactForces(mSaveInfo.mContactForces[cur_frame-1], mSaveInfo.mTimesteps[cur_frame - 1], mWorldId2InverseId);
 
         // record linear momentum
         RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame], mSaveInfo.mLinkOmega[cur_frame], mSaveInfo.mLinkVel[cur_frame]);
@@ -284,7 +284,7 @@ void cOfflineIDSolver::PostSim()
                 // std::ofstream fout("test2.txt", std::ios::app);
                 // fout <<"post sim frame id = " << cur_frame;
                 // fout << "\n contact forces: ";
-                // for(auto & x : mSaveInfo.mContactForces[cur_frame]) fout << x.mForce.transpose() <<" ";
+                // for(auto & x : mSaveInfo.mContactForces[cur_frame-1]) fout << x.mForce.transpose() <<" ";
                 // fout << "\n buffer q : ";
                 // fout << mSaveInfo.mBuffer_q[cur_frame].transpose() <<" ";
                 // fout << "\n buffer u : ";
@@ -293,7 +293,7 @@ void cOfflineIDSolver::PostSim()
 
                 cIDSolver::SolveIDSingleStep(
                     mSaveInfo.mSolvedJointForces[cur_frame], 
-                    mSaveInfo.mContactForces[cur_frame], 
+                    mSaveInfo.mContactForces[cur_frame-1], 
                     mSaveInfo.mLinkPos[cur_frame-1], 
                     mSaveInfo.mLinkRot[cur_frame-1], 
                     mSaveInfo.mBuffer_q[cur_frame-1], 
@@ -766,7 +766,7 @@ void cOfflineIDSolver::OfflineSolve()
         // std::cout <<"log frame = " << cur_frame << std::endl;
         cIDSolver::SolveIDSingleStep(
             result, 
-            mLoadInfo.mContactForces[cur_frame], 
+            mLoadInfo.mContactForces[cur_frame-1], 
             mLoadInfo.mLinkPos[cur_frame-1], 
             mLoadInfo.mLinkRot[cur_frame-1], 
             mLoadInfo.mPoseMat.row(cur_frame-1), 
@@ -990,8 +990,8 @@ void cOfflineIDSolver::VerifyMomentum()
             impulse = tVector::Zero();
             impulse += char_mass * mSimChar->GetWorld()->GetGravity() * cur_timestep;
 
-            // mContactForces[i+1] is the contact force in i frame, and it will generate vel i+1
-            for(auto & f: mSaveInfo.mContactForces[i+1])
+            // mContactForces[i] is the contact force in i frame, and it will generate vel i+1
+            for(auto & f: mSaveInfo.mContactForces[i])
             {
                 impulse += f.mForce * cur_timestep;
             }
@@ -1012,7 +1012,7 @@ void cOfflineIDSolver::VerifyMomentum()
         for(int i=0; i<mSaveInfo.mCurFrameId-1; i++)
         {
             tVector diff = mSaveInfo.mLinearMomentum[i+1] - mSaveInfo.mLinearMomentum[i] - mSimChar->GetWorld()->GetGravity() * total_mass * mSaveInfo.mTimesteps[i];
-            for(auto & f: mSaveInfo.mContactForces[i+1])
+            for(auto & f: mSaveInfo.mContactForces[i])
             {
                 diff -= f.mForce * mSaveInfo.mTimesteps[i];
             }
