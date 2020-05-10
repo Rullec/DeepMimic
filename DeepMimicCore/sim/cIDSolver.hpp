@@ -14,7 +14,7 @@ enum eIDSolverType{
 };
 
 struct tForceInfo {
-	int mId;
+	int mId;		// applied link id in Inverse Dynamics order but not deepmimic order
 	tVector mPos, mForce;
 	tForceInfo()
 	{

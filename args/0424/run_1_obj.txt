@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 15
---time_lim_max 15
+--time_lim_min 1
+--time_lim_max 1
 --time_lim_exp 0.2
 
 --time_end_lim_min 20
@@ -20,7 +20,7 @@
 --character_files data/0424/characters/skeleton_042302_revised_1_obj.json
 --enable_joint_force_control true
 --enable_char_soft_contact false
---fall_contact_bodies 0
+--fall_contact_bodies 
 
 #----------------PD params and motion data----------------
 --char_ctrls ct_pd
