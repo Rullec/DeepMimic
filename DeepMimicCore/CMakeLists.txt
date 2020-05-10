@@ -115,7 +115,7 @@ add_custom_command(TARGET Main
     )
 
 # move the .dylib in build folder to .so in the parent folder
-if(APPLE)
+if(UNIX)
     if(EXISTS "../_DeepMimicCore.so")
         add_custom_command(TARGET Main
             PRE_BUILD
@@ -124,6 +124,6 @@ if(APPLE)
     endif()
     add_custom_command(TARGET Main
         POST_BUILD
-        COMMAND mv ./_DeepMimicCore.dylib ../_DeepMimicCore.so
+        COMMAND mv ./_DeepMimicCore.* ../_DeepMimicCore.so
         )
 endif()
