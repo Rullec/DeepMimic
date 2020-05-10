@@ -83,9 +83,11 @@ protected:
         std::vector<std::vector<tVector>> mTruthJointForces;
         int mTotalFrame = 0;
         int mCurFrame = 0;
+        bool mEnableOutputMotionInfo = false;
+        std::string mOutputMotionInfoPath = "";
     } mLoadInfo;    // work for display and solve
 
-    // ways
+    // tools
     void ParseConfig(const std::string & path);
     void ParseConfigSave(const Json::Value & save_value);
     void ParseConfigSolve(const Json::Value & solve_value);
@@ -97,5 +99,6 @@ protected:
     void SaveMotion(const std::string & path, cMotion * motion) const;
     
     void VerifyMomentum();
+    void PrintLoadInfo(const std::string &, bool disable_root = true);
 
 };
