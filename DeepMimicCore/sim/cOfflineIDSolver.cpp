@@ -1114,8 +1114,16 @@ void cOfflineIDSolver::PrintLoadInfo(const std::string & filename, bool disable_
                         * omega;
             
         }
+
+        tVector contact_force_impulse = tVector::Zero();
+        for(auto & pt : mLoadInfo.mContactForces[mLoadInfo.mCurFrame])
+        {
+            contact_force_impulse += pt.mForce * mLoadInfo.mTimesteps[mLoadInfo.mCurFrame];
+        }
         fout << "COM cur = " << COM_cur.transpose().segment(0, 3) << std::endl;
         fout << "linear momentum = " << lin_mom.transpose().segment(0, 3) << std::endl;
+        fout << "contact pt num = " << mLoadInfo.mContactForces[mLoadInfo.mCurFrame].size() << std::endl;
+        fout << "contact pt impulse = " << contact_force_impulse.transpose() << std::endl;
         fout << "angular momentum = " << ang_mom.transpose().segment(0, 3) << std::endl;
     }
     
