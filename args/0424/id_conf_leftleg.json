@@ -1,11 +1,11 @@
 {
-    "IDMode": "Offline",
-    "IDMode_bak": "Online",
+    "IDMode_bak": "Offline",
+    "IDMode": "Online",
     "Offline":
     {
-        "mode_bak1" : "save",
-        "mode" : "display",
-        "mode_bak2" : "solve",
+        "mode" : "save",
+        "mode_bak2" : "display",
+        "mode_bak1" : "solve",
         "SaveModeInfo":
         {
             "_comment" : "this section focus on the setting of save mode",
