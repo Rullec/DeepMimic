@@ -100,7 +100,8 @@ protected:
 	std::vector<std::string> mSkeletonJointsName;
 	std::vector<std::string> mDrawShapeDefsName;
 	std::vector<std::string> mBodyDefsName;
-
+	std::string mCharFilename;
+	
 	cCharacter();
 
 	virtual void ResetParams();

@@ -82,7 +82,7 @@ bool cCharacter::Init(const std::string& char_file, bool load_draw_shapes)
 	{
 		printf("Failed to parse character from file %s.\n", char_file.c_str());
 	}
-
+	mCharFilename = char_file;
 	return succ;
 }
 

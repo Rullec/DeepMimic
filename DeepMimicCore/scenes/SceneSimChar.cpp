@@ -7,8 +7,8 @@
 #include "sim/GroundBuilder.h"
 #include "sim/DeepMimicCharController.h"
 #include "sim/BuildIDSolver.hpp"
-#include "sim/cOnlineIDSolver.hpp"
-#include "sim/cOfflineIDSolver.hpp"
+#include "sim/OnlineIDSolver.hpp"
+#include "sim/OfflineIDSolver.hpp"
 #include "util/FileUtil.h"
 #include <iostream>
 #include <fstream>
@@ -251,7 +251,8 @@ void cSceneSimChar::Update(double time_elapsed)
 			// mIDInfo->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
 			auto offline_solver = std::dynamic_pointer_cast<cOfflineIDSolver>(mIDSolver);
 			// calc & apply torque in this function
-			if(eOfflineSolverMode::Save == offline_solver->GetOfflineSolverMode())
+			auto mode = offline_solver->GetOfflineSolverMode() ;
+			if(eOfflineSolverMode::Save == mode || eOfflineSolverMode::Sample == mode)
 			{
 				offline_solver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
 				UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
@@ -267,7 +268,7 @@ void cSceneSimChar::Update(double time_elapsed)
 
 				mIDSolver->PostSim();	
 			}
-			else if(eOfflineSolverMode::Display == offline_solver->GetOfflineSolverMode())
+			else if(eOfflineSolverMode::Display == mode)
 			{
 				// std::cout <<"display!\n";
 				offline_solver->DisplaySet();
@@ -277,7 +278,7 @@ void cSceneSimChar::Update(double time_elapsed)
 
 				// mIDSolver->PostSim();	
 			}
-			else if(eOfflineSolverMode::Solve == offline_solver->GetOfflineSolverMode())
+			else if(eOfflineSolverMode::Solve == mode)
 			{
 				offline_solver->OfflineSolve();
 			}
@@ -477,7 +478,7 @@ bool cSceneSimChar::BuildCharacters()
 			char_type = mCharTypes[i];
 		}
 		cSimCharBuilder::CreateCharacter(char_type, curr_char);
-
+		
 		succ &= curr_char->Init(mWorld, curr_params);
 		// std::cout <<"init1 pose = " << curr_char->GetPose().transpose() << std::endl;
 		if (succ)

@@ -4,6 +4,8 @@
 #include <memory>
 #include <iostream>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 FILE* cFileUtil::OpenFile(const std::string& file_name, const char* mode)
 {
@@ -155,6 +157,14 @@ bool cFileUtil::ExistsFile(const std::string& file_name)
 		return true;
 	}
 	return false;
+}
+
+bool cFileUtil::ExistsDir(const std::string& dir_name)
+{
+	struct stat info;
+	stat(dir_name.c_str(), &info);
+	if( info.st_mode & S_IFDIR ) return true;
+	else return false;
 }
 
 bool cFileUtil::ValidateFilePath(const std::string& file_name)

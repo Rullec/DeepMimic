@@ -1,12 +1,14 @@
-#include "cReverseController.h"
+#include "ReverseController.h"
 #include <iostream>
 #include <fstream>
 #include <util/cTimeUtil.hpp>
 // #include <windows.h>
-
+// #define OUTPUT_LOG
 void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove);
 void removeColumn(Eigen::MatrixXd& matrix, unsigned int colToRemove);
 void removeRow(tVectorXd& vec, unsigned int rowToRemove);
+
+extern std::string controller_details_path;
 
 cReverseController::cReverseController(cSimCharacter * sim_char)
 {
@@ -44,6 +46,9 @@ void cReverseController::CalcPDTarget(const tVectorXd & input_torque, const tVec
 	// get all joints' pose diff from torque, except root joint.
 	// there is no active for ce on root joint, so resolve the root joint's pose_diff is impossible
 	CalcPoseDiffFromTorque(input_torque, input_pose, input_cur_vel, pose_diff);
+#ifdef OUTPUT_LOG
+	std::ofstream fout(controller_details_path, std::ios::app);
+#endif
 	//std::cout << "pose diff = " << pose_diff.transpose() << std::endl;
 	// 3. integrate the pos diff then get the PD target, PD target = pose_next + diff
 	{
@@ -81,8 +86,12 @@ void cReverseController::CalcPDTarget(const tVectorXd & input_torque, const tVec
 				output_pd_target.segment(param_offset, param_size) = pose_next.segment(param_offset, param_size) + pose_diff.segment(param_offset, param_size);
 				break;
 			}
+#ifdef OUTPUT_LOG
+			fout <<" joint " << id << " pd component = " << output_pd_target.segment(param_offset, param_size).transpose() << std::endl;
+#endif
 		}
 	}
+	// std::cout <<"now pd target = " << output_pd_target.transpose() << std::endl;
 }
 
 /*
@@ -130,6 +139,8 @@ void cReverseController::CalcPoseDiffFromTorque(const tVectorXd & input_torque, 
 
 	// 3. calculate E and f
 	E = Kp_dense - mTimestep * Kd_mat * A;
+	// std::cout <<"input torque size = " << input_torque.size() << std::endl;
+	// std::cout <<"res size = " << (Kd_mat * (cur_vel + mTimestep * b)).size() << std::endl;
 	f = input_torque + Kd_mat * (cur_vel + mTimestep * b);
 
 	// 4. arrange the matrix and solve final target
@@ -168,15 +179,18 @@ void cReverseController::CalcPoseDiffFromTorque(const tVectorXd & input_torque, 
 	// for debug purpose, calculate "acc"
 	// Eigen::VectorXd acc = Kp_mat * pose_err + Kd_mat * vel_err - C;
 	auto acc = Kp_mat * output_pos_diff + Kd_mat * (- cur_vel) - C;
-// #define OUTPUT_LOG
+
 #ifdef OUTPUT_LOG
-	std::cout << "verbose log atterntion\n";
-	std::ofstream fout("logs/controller_logs/pd_target_debug.log", std::ios::app);
+	std::cout << "verbose log attention! to " << controller_details_path << std::endl;
+	std::ofstream fout(controller_details_path, std::ios::app);
 	fout << "-----------------------------\n";
 	fout << "Kp = \n" << Kp_mat.toDenseMatrix() << std::endl;
 	fout << "Kd = \n" << Kd_mat.toDenseMatrix() << std::endl;
 	fout << "cur pose = " << cur_pose.transpose() << std::endl;
 	fout << "next pose = " << pose_ref.transpose() << std::endl;
+	fout << "cur vel = " << cur_vel.transpose() << std::endl;
+	fout << "input torque = " << input_torque.transpose() << std::endl;
+	fout << "input torque norm = " << input_torque.norm() << std::endl;
 	fout << "Q = " << acc.transpose() << std::endl;
 	fout << "A = \n" << A << std::endl;
 	fout << "b = " << b.transpose() << std::endl;
@@ -185,7 +199,10 @@ void cReverseController::CalcPoseDiffFromTorque(const tVectorXd & input_torque, 
 	fout << "E_sub = \n" << E_sub << std::endl;
 	fout << "f_sub = " << f_sub.transpose() << std::endl;
 	fout << "Err = " << output_pos_diff.transpose() << std::endl;
+	fout <<"M = \n" << M << std::endl;
+	fout <<"C = \n" << C << std::endl;
 	if(solved_error) fout <<"solve error = " << diff.transpose() << std::endl;
+	// exit(1);
 #endif
 	
 	mEnableSolving = false;
@@ -263,12 +280,12 @@ void cReverseController::BuildTopo()
 		}
 	}
 
-	for(int i=0; i<mRawIndexLst.size(); i++)
-	{
-		auto raw_idx = mRawIndexLst[i], new_idx = mNewIndexLst[i];
-		std::cout <<"[log] topo " << i <<" from raw idx " << raw_idx.first <<" " << raw_idx.second 
-			<<" to new idx " << new_idx.first <<" " << new_idx.second << std::endl;
-	}
+	// for(int i=0; i<mRawIndexLst.size(); i++)
+	// {
+	// 	auto raw_idx = mRawIndexLst[i], new_idx = mNewIndexLst[i];
+	// 	std::cout <<"[log] topo " << i <<" from raw idx " << raw_idx.first <<" " << raw_idx.second 
+	// 		<<" to new idx " << new_idx.first <<" " << new_idx.second << std::endl;
+	// }
 	// exit(1);
 
 	// std::cout << "char dofs = " << mChar->GetNumDof() << std::endl;
