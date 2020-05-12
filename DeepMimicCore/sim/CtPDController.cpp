@@ -102,6 +102,44 @@ void cCtPDController::BuildJointActionOffsetScale(int joint_id, Eigen::VectorXd&
 	cCtCtrlUtil::BuildOffsetScalePD(joint_mat, joint_id, out_offset, out_scale);
 }
 
+/**
+ * \brief				convert PD target pose to action which is truly used in training
+ * \param				the ref of given PD target. It will be revised in this function!
+ * 
+ * The only difference between action and PD target is their representation.
+ * For ball joints, their pd targets are quaternion; but their actions are axis angle
+ * We need to convert it in Inverse Dynamics
+*/
+void cCtPDController::ConvertTargetPoseToActionFullsize(tVectorXd & pd_target)
+{
+	assert(pd_target.size() == this->GetActionSize());
+	int root_id = mChar->GetRootID();
+	int root_size = mChar->GetParamSize(root_id);
+	int num_joints = mChar->GetNumJoints();
+	int ctrl_offset = GetActionCtrlOffset();
+	
+	for (int j = root_id + 1; j < num_joints; ++j)
+	{
+		if (mPDCtrl.IsValidPDCtrl(j))
+		{
+			int retarget_joint = RetargetJointID(j);
+			// for this joint
+			int param_offset = mChar->GetParamOffset(retarget_joint);
+			int param_size = mChar->GetParamSize(retarget_joint);
+
+			param_offset -= root_size;
+			param_offset += ctrl_offset;
+
+			// convert quaternion to axis angle
+			Eigen::VectorXd theta = pd_target.segment(param_offset, param_size);
+			// std::cout <<"for joint " << j << " tar pose = " << theta.transpose() << std::endl;
+			ConvertTargetPoseToAction(j, theta);
+			// std::cout <<"for joint " << j << " action = " << theta.transpose() << std::endl;
+			pd_target.segment(param_offset, param_size) = theta;
+		}
+	}
+}
+
 void cCtPDController::ConvertActionToTargetPose(int joint_id, Eigen::VectorXd& out_theta) const
 {
 #if defined(ENABLE_PD_SPHERE_AXIS)
@@ -138,8 +176,12 @@ void cCtPDController::ConvertTargetPoseToAction(int joint_id, Eigen::VectorXd& o
 	cKinTree::eJointType joint_type = GetJointType(joint_id);
 	if (joint_type == cKinTree::eJointTypeSpherical)
 	{
-		// input quaternion = [x, y, z, w]
-		tQuaternion quater = tQuaternion(out_theta[3], out_theta[0], out_theta[1], out_theta[2]);
+		// raw input quaternion = [x, y, z, w]
+		// tQuaternion quater = tQuaternion(out_theta[3], out_theta[0], out_theta[1], out_theta[2]);
+
+		// 2020/05/12 revised by Xudong: now input quaternion should be [w, x, y, z]
+		tQuaternion quater = cMathUtil::VecToQuat(out_theta);
+		
 		quater.normalize();
 		tVector axis_angle = cMathUtil::QuaternionToAxisAngle(quater);	//[theta, ax, ay, az]
 		out_theta[0] = axis_angle.norm();
@@ -159,15 +201,26 @@ cKinTree::eJointType cCtPDController::GetJointType(int joint_id) const
 	return joint_type;
 }
 
+const tVectorXd & cCtPDController::GetCurAction()
+{
+	return mCurAction;
+}
+
+const tVectorXd & cCtPDController::GetCurPDTargetPose()
+{
+	return mCurPDTargetPose;
+}
+
 void cCtPDController::SetPDTargets(const Eigen::VectorXd& targets)
 {
-	// std::cout << "cCtPDController::SetPDTargets(const Eigen::VectorXd& targets)" << std::endl;
+	// std::cout << "[log] cCtPDController::SetPDTargets cur action = " << targets.transpose() << std::endl;
+	mCurAction = targets;
 	int root_id = mChar->GetRootID();
 	int root_size = mChar->GetParamSize(root_id);
 	int num_joints = mChar->GetNumJoints();
 	int ctrl_offset = GetActionCtrlOffset();
-
 	
+	mCurPDTargetPose = tVectorXd::Zero(GetActionSize());
 	for (int j = root_id + 1; j < num_joints; ++j)
 	{
 		//　对于后面的每一个joint，都来逐个设置其theta到真正的controller (ImplicitPD::mPDCtrl中)
@@ -183,11 +236,18 @@ void cCtPDController::SetPDTargets(const Eigen::VectorXd& targets)
 			param_offset -= root_size;
 			param_offset += ctrl_offset;
 			// 这里调用了Eigen的segment方法，把他切开了：得到offset起始的segment个元素
+			// 这里输入的targets其实是action; action中spherical joint是axis angle，我们现在要把所有aa转化为四元数
+			// 四元数才是真正的PD target
 			Eigen::VectorXd theta = targets.segment(param_offset, param_size);
 			ConvertActionToTargetPose(j, theta);
+			mCurPDTargetPose.segment(param_offset, param_size) = theta;
 			mPDCtrl.SetTargetTheta(j, theta);	// 设置targettheta
 		}
 	}
+	// std::cout <<"[log] cCtPDController::SetPDTargets cur pd target pose = " << mCurPDTarget.transpose() << std::endl;
+	// ConvertTargetPoseToActionFullsize(mCurPDTarget);
+	// std::cout <<"[log] cCtPDController::SetPDTargets restored action = " << mCurPDTarget.transpose() << std::endl;
+	// exit(1);
 }
 
 void cCtPDController::CalcPDTarget(const Eigen::VectorXd & torque_, Eigen::VectorXd out_pd_target)

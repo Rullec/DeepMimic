@@ -1,12 +1,15 @@
-#include "cOfflineIDSolver.hpp"
+#include "OfflineIDSolver.hpp"
 #include <sim/SimCharacter.h>
+#include "sim/CtPDController.h"
 #include "BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h"
+#include "BulletDynamics/Featherstone/btMultiBodyLink.h"
 #include <util/JsonUtil.h>
 #include <util/FileUtil.h>
 #include <util/BulletUtil.h>
 #include <iostream>
 #include <fstream>
 
+std::string controller_details_path;
 cOfflineIDSolver::cOfflineIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world,\
     const std::string & config):cIDSolver(sim_char, world, eIDSolverType::Offline)
 {
@@ -22,25 +25,37 @@ void cOfflineIDSolver::ParseConfig(const std::string & path)
     const std::string offline_mode = offline_config["mode"].asString();
     if("save" == offline_mode)
     {
+        controller_details_path = "logs/controller_logs/controller_details_save.txt";
         mMode = eOfflineSolverMode::Save;
         ParseConfigSave(offline_config["SaveModeInfo"]);
     }
     else if("display" == offline_mode)
     {
+        controller_details_path = "logs/controller_logs/controller_details_display.txt";
         mMode = eOfflineSolverMode::Display;
         ParseConfigDisplay(offline_config["DisplayModeInfo"]);
 
     }
     else if("solve" == offline_mode)
     {
+        controller_details_path = "logs/controller_logs/controller_details_solve.txt";
         mMode = eOfflineSolverMode::Solve;
         ParseConfigSolve(offline_config["SolveModeInfo"]);
+    }
+    else if("sample" == offline_mode)
+    {
+        controller_details_path = "logs/controller_logs/controller_details_sample.txt";
+        mMode = eOfflineSolverMode::Sample;
+        ParseConfigSample(offline_config["SampleModeInfo"]);
     }
     else
     {
         std::cout <<"[error] cOfflineIDSolver::ParseConfig mode error " << offline_mode << std::endl;
         exit(1);
     }
+    cFileUtil::ClearFile(controller_details_path);
+    // std::cout <<"controller details path = " << controller_details_path << std::endl;
+    
 }
 
 void cOfflineIDSolver::Reset()
@@ -52,7 +67,7 @@ void cOfflineIDSolver::Reset()
     }
     else if(mMode == eOfflineSolverMode::Save)
     {
-        std::cout <<"cOfflineIDSolver: saving reset, have a new saving epoch, need more work to set up epoches\n";
+        std::cout <<"[log] cOfflineIDSolver works in save mode, done\n";
         SaveTraj(mSaveInfo.mSaveTrajRoot);
         SaveMotion(mSaveInfo.mSaveMotionRoot, mSaveInfo.mMotion);
 
@@ -67,9 +82,35 @@ void cOfflineIDSolver::Reset()
         // fout.close();
         // exit(1);
         // is impulse-momentum theorem broken? How much? use verify momentum
-        VerifyMomentum();
+        // VerifyMomentum();
         mSaveInfo.mCurEpoch++;
         mSaveInfo.mCurFrameId = 0;
+        exit(0);
+    }
+    else if(mMode == eOfflineSolverMode::Sample)
+    {
+        // output trajs, update summary table info
+        tSummaryTable::tSingleEpochInfo a;
+        a.length_second = mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId-1] * mSaveInfo.mCurFrameId;
+        a.frame_num = mSaveInfo.mCurFrameId;
+        a.traj_filename = SaveTraj(mSampleInfo.mSampleTrajsRootName);
+
+        mSummaryTable.mTotalEpochNum++;
+        mSummaryTable.mTotalLengthTime += a.length_second;
+        mSummaryTable.mTotalLengthFrame += a.frame_num;
+        mSummaryTable.mEpochInfos.push_back(a);
+        mSummaryTable.WriteToDisk(mSampleInfo.mSummaryTableFilename);
+
+        // clear frame id
+        mSaveInfo.mCurEpoch++;
+        mSaveInfo.mCurFrameId = 0;
+
+        // judge terminate
+        if(mSummaryTable.mTotalEpochNum >= mSampleInfo.mSampleEpoches)
+        {
+            std::cout <<"[log] cOfflineIDSolver::Reset sample finished\n";
+            exit(0);
+        }
     }
     else if(mMode == eOfflineSolverMode::Solve)
     {
@@ -90,9 +131,8 @@ eOfflineSolverMode cOfflineIDSolver::GetOfflineSolverMode()
 
 void cOfflineIDSolver::PreSim()
 {
-    if(this->mMode == eOfflineSolverMode::Save)
+    if(mMode == eOfflineSolverMode::Save || mMode == eOfflineSolverMode::Sample)
     {
-        
         mInverseModel->clearAllUserForcesAndMoments();
         const int & cur_frame = mSaveInfo.mCurFrameId;
         // std::cout <<"frame id " << cur_frame  << std::endl;
@@ -109,6 +149,9 @@ void cOfflineIDSolver::PreSim()
         for(auto & x : mSaveInfo.mExternalTorques[cur_frame]) x.setZero();
 
         RecordJointForces(mSaveInfo.mTruthJointForces[cur_frame]);
+        RecordAction(mSaveInfo.mTruthAction[cur_frame]);
+        RecordPDTarget(mSaveInfo.mTruthPDTarget[cur_frame]);
+
         // for(auto & x : mSaveInfo.mTruthJointForces[cur_frame]) std::cout << x.transpose() << std::endl;
 	    RecordGeneralizedInfo(mSaveInfo.mBuffer_q[cur_frame], mSaveInfo.mBuffer_u[cur_frame]);
 	    
@@ -160,8 +203,9 @@ void cOfflineIDSolver::PreSim()
 
 void cOfflineIDSolver::PostSim()
 {
-    if(this->mMode == eOfflineSolverMode::Save)
+    if(this->mMode == eOfflineSolverMode::Save || mMode == eOfflineSolverMode::Sample)
     {
+        // if(mSaveInfo.mCurFrameId > 2) exit(1);
         // std::cout <<"offline post sim frame = " << mSaveInfo.mCurFrameId<<std::endl;
         mSaveInfo.mCurFrameId++;
         const int cur_frame = mSaveInfo.mCurFrameId;
@@ -346,8 +390,9 @@ void cOfflineIDSolver::PostSim()
 void cOfflineIDSolver::SetTimestep(double timestep)
 {
     assert(timestep > 0);
-    if(mMode == eOfflineSolverMode::Save)
+    if(mMode == eOfflineSolverMode::Save || mMode == eOfflineSolverMode::Sample )
     {
+        // std::cout <<"set timestep " << mSaveInfo.mCurFrameId <<" " << timestep << std::endl;
         mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId] = timestep;
     }
     else
@@ -357,7 +402,7 @@ void cOfflineIDSolver::SetTimestep(double timestep)
     }
 }
 
-void cOfflineIDSolver::SaveTraj(const std::string & path_raw)
+std::string cOfflineIDSolver::SaveTraj(const std::string & path_raw)
 {
     assert(cFileUtil::ValidateFilePath(path_raw));
     std::string path_root = cFileUtil::RemoveExtension(path_raw);
@@ -433,6 +478,20 @@ void cOfflineIDSolver::SaveTraj(const std::string & path_raw)
             single_frame["truth_joint_force"].append(mSaveInfo.mTruthJointForces[frame_id][i][j]);
         }
 
+        // set up truth action
+        single_frame["truth_action"] = Json::arrayValue;
+        for(int i=0; i<mSaveInfo.mTruthAction[frame_id].size(); i++)
+        {
+            single_frame["truth_action"].append(mSaveInfo.mTruthAction[frame_id][i]);
+        }
+
+        // set up truth pd target
+        single_frame["truth_pd_target"] = Json::arrayValue;
+        for(int i=0; i<mSaveInfo.mTruthPDTarget[frame_id].size(); i++)
+        {
+            single_frame["truth_pd_target"].append(mSaveInfo.mTruthPDTarget[frame_id][i]);
+        }
+
         // set up character poses
         single_frame["char_pose"] = Json::arrayValue;
         for(int i=0; i < mSaveInfo.mCharPoses[frame_id].size(); i++)
@@ -446,6 +505,7 @@ void cOfflineIDSolver::SaveTraj(const std::string & path_raw)
     std::ofstream fout(final_name);
     writer->write(root, &fout);
     std::cout <<"[log] cOfflineIDSolver::SaveTraj " << "for epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
+    return final_name;
 }
 
 void cOfflineIDSolver::DisplaySet()
@@ -590,6 +650,8 @@ void cOfflineIDSolver::LoadTraj(const std::string & path)
         mLoadInfo.mPoseMat.resize(num_of_frames, mDof), mLoadInfo.mPoseMat.setZero();
         mLoadInfo.mVelMat.resize(num_of_frames, mDof), mLoadInfo.mVelMat.setZero();
         mLoadInfo.mAccelMat.resize(num_of_frames, mDof), mLoadInfo.mAccelMat.setZero();
+        mLoadInfo.mActionMat.resize(num_of_frames, mCharController->GetActionSize()), mLoadInfo.mActionMat.setZero();
+        mLoadInfo.mPDTargetMat.resize(num_of_frames, mCharController->GetActionSize()), mLoadInfo.mPDTargetMat.setZero();
         mLoadInfo.mContactForces.resize(num_of_frames); for(auto & x : mLoadInfo.mContactForces) x.clear();
         mLoadInfo.mLinkRot.resize(num_of_frames); for(auto & x : mLoadInfo.mLinkRot) x.resize(mNumLinks);
         mLoadInfo.mLinkPos.resize(num_of_frames); for(auto & x : mLoadInfo.mLinkPos) x.resize(mNumLinks);
@@ -611,12 +673,18 @@ void cOfflineIDSolver::LoadTraj(const std::string & path)
         auto & cur_ext_force = cur_frame["external_force"];
         auto & cur_ext_torque = cur_frame["external_torque"];
         auto & cur_truth_joint_force = cur_frame["truth_joint_force"];
+        auto & cur_truth_action = cur_frame["truth_action"];
+        auto & cur_truth_pd_target = cur_frame["truth_pd_target"];
         assert(cur_pose.isNull() == false && cur_pose.size() == mDof);
         assert(cur_vel.isNull() == false); if(frame_id>=1) assert(cur_vel.size() == mDof);
         assert(cur_accel.isNull() == false);if(frame_id>=2) assert(cur_accel.size() == mDof);
         assert(cur_timestep.isNull() == false && cur_timestep.asDouble() > 0);
         assert(cur_contact_info.size() == cur_contact_num.asInt());
         assert(cur_truth_joint_force.isNull() == false && cur_truth_joint_force.size() == (mNumLinks-1) * 4);
+        // std::cout <<"load pd target size = " << cur_truth_action.size() << std::endl;
+        // std::cout <<"action space size = " << mCharController->GetActionSize() << std::endl;
+        assert(cur_truth_action.isNull() == false && cur_truth_action.size() == mCharController->GetActionSize());
+        assert(cur_truth_pd_target.isNull() == false && cur_truth_pd_target.size() == mCharController->GetActionSize());
 
         // 1. pos, vel, accel
         for(int j=0; j<mDof; j++) mLoadInfo.mPoseMat(frame_id, j) = cur_pose[j].asDouble();
@@ -675,16 +743,26 @@ void cOfflineIDSolver::LoadTraj(const std::string & path)
             for(int j=0; j<4; j++)
             mLoadInfo.mTruthJointForces[frame_id][idx][j] = cur_truth_joint_force[idx * 4 + j].asDouble();
         }
+
+        // 6. truth actions and pd targes
+        for(int idx = 0; idx < mCharController->GetActionSize(); idx++)
+        {
+            mLoadInfo.mActionMat(frame_id, idx) = cur_truth_action[idx].asDouble();
+            mLoadInfo.mPDTargetMat(frame_id, idx) = cur_truth_pd_target[idx].asDouble();
+        }
+
     }
     std::cout <<"[debug] cOfflineIDSolver::LoadTraj " << path <<", number of frames = " << num_of_frames << std::endl;
     // exit(1);
 }
 
+#include "util/cTimeUtil.hpp"
 void cOfflineIDSolver::OfflineSolve()
 {
-    std::cout <<"cOfflineIDSolver::OfflineSolve begin\n";
+    std::cout <<"[log] cOfflineIDSolver::OfflineSolve: begin\n";
+    cTimeUtil::Begin("OfflineSolve");
     assert(mLoadInfo.mTotalFrame > 0);
-    std::cout <<"[debug] total frame = " << mLoadInfo.mTotalFrame << std::endl;
+    std::cout <<"[debug] cOfflineIDSolver::OfflineSolve: motion total frame = " << mLoadInfo.mTotalFrame << std::endl;
     tVectorXd old_q, old_u;
     RecordGeneralizedInfo(old_q, old_u);
 
@@ -716,14 +794,14 @@ void cOfflineIDSolver::OfflineSolve()
     for(int frame_id = 1; frame_id < mLoadInfo.mTotalFrame - 1; frame_id++)
     {
         tVectorXd cur_accel = (mLoadInfo.mVelMat.row(frame_id + 1)- mLoadInfo.mVelMat.row(frame_id))/ mLoadInfo.mTimesteps[frame_id];
-        // std::cout <<"cur vel size = " << cur_vel.size() << std::endl;
-        // std::cout <<"com vel size = " << mLoadInfo.mVelMat.row(frame_id + 1).size() << std::endl;
-        // std::cout <<" cur vel = " << cur_vel.transpose() << std::endl;
-        // std::cout <<"vel comp = " << mLoadInfo.mVelMat.row(frame_id + 1) << std::endl;
+        // std::cout <<"cur accel size = " << cur_accel.size() << std::endl;
+        // std::cout <<"com accel size = " << mLoadInfo.mAccelMat.row(frame_id).size() << std::endl;
+        // std::cout <<"cur accel = " << cur_accel.transpose() << std::endl;
+        // std::cout <<"accel comp = " << mLoadInfo.mAccelMat.row(frame_id) << std::endl;
         tVectorXd diff = mLoadInfo.mAccelMat.row(frame_id).transpose() - cur_accel;
         mLoadInfo.mAccelMat.row(frame_id) = cur_accel;
         // std::cout <<"frame id " << frame_id << " accel diff = " << diff.norm() << std::endl;
-        assert(diff.norm() < 1e-10);
+        assert(diff.norm() < 1e-7);
     }
     
     // 2. calculate link pos and link rot from generalized info
@@ -739,12 +817,17 @@ void cOfflineIDSolver::OfflineSolve()
     //     std::cout <<"frame " << cur_frame <<" link pos : " << mLoadInfo.mLinkPos[cur_frame][0].transpose() << std::endl;
     // }
     // exit(1);
-    double err = 0;
-    for(int cur_frame = 2; cur_frame < mLoadInfo.mTotalFrame - 1; cur_frame++)
+    double ID_torque_err = 0, ID_action_err = 0;
+    tVectorXd torque = tVectorXd::Zero(mSimChar->GetPose().size()), pd_target = tVectorXd::Zero(mSimChar->GetPose().size());
+    for(int cur_frame = 1; cur_frame < mLoadInfo.mTotalFrame - 1; cur_frame++)
     {
+        // if(cur_frame > 10) break;
+        // std::cout <<"---------frame " << cur_frame <<"--------------\n";
         mInverseModel->clearAllUserForcesAndMoments();
         SetGeneralizedPos(mLoadInfo.mPoseMat.row(cur_frame));
         SetGeneralizedVel(mLoadInfo.mVelMat.row(cur_frame));
+        mSimChar->PostUpdate(0);
+
         std::vector<tVector> result;
         // SetGeneralizedInfo(mLoadInfo.mPoseMat.row(frame_id));
         /*
@@ -766,34 +849,153 @@ void cOfflineIDSolver::OfflineSolve()
         // std::cout <<"log frame = " << cur_frame << std::endl;
         cIDSolver::SolveIDSingleStep(
             result, 
-            mLoadInfo.mContactForces[cur_frame-1], 
-            mLoadInfo.mLinkPos[cur_frame-1], 
-            mLoadInfo.mLinkRot[cur_frame-1], 
-            mLoadInfo.mPoseMat.row(cur_frame-1), 
-            mLoadInfo.mVelMat.row(cur_frame-1), 
-            mLoadInfo.mAccelMat.row(cur_frame-1), 
+            mLoadInfo.mContactForces[cur_frame], 
+            mLoadInfo.mLinkPos[cur_frame], 
+            mLoadInfo.mLinkRot[cur_frame], 
+            mLoadInfo.mPoseMat.row(cur_frame), 
+            mLoadInfo.mVelMat.row(cur_frame), 
+            mLoadInfo.mAccelMat.row(cur_frame), 
             cur_frame, 
-            mLoadInfo.mExternalForces[cur_frame-1], 
-            mLoadInfo.mExternalTorques[cur_frame-1]
+            mLoadInfo.mExternalForces[cur_frame], 
+            mLoadInfo.mExternalTorques[cur_frame]
             );
 
+        int f_cnt = 7;
+        torque.segment(0, 7).setZero();
         for(int j=0; j<mNumLinks-1; j++)
         {
-            double single_error = (result[j] - mLoadInfo.mTruthJointForces[cur_frame-1][j]).norm();
+            switch (this->mMultibody->getLink(j).m_jointType)
+            {
+            case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+                torque[f_cnt++] = result[j].dot(cBulletUtil::btVectorTotVector0(mMultibody->getLink(j).getAxisTop(0)));
+                // std::cout <<"revolute " << j << "force = " << result[j].transpose() << std::endl;
+                /* code */
+                break;
+            case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+            {
+                // attention: we need to convert this result torque into child space.
+                // For more details, see void cSimBodyJoint::ApplyTauSpherical()
+                tVector local_torque, local_torque_child;
+                local_torque = result[j];
+                // std::cout << "spherical joint " << j <<" local torque = " << local_torque.transpose() << std::endl;
+                local_torque_child = cMathUtil::QuatRotVec(mSimChar->GetJoint(j).GetChildRot().conjugate(), local_torque);
+                torque.segment(f_cnt, 4) = local_torque_child;
+                f_cnt+=4;
+                // std::cout << "spherical joint " << j <<" local torque child = " << local_torque_child.transpose() << std::endl;
+                // std::cout <<"spherical " << j << "force = " << result[j].transpose() << std::endl;
+                break;
+            }
+                
+            case btMultibodyLink::eFeatherstoneJointType::eFixed:
+                break;
+            default:
+                std::cout <<"cOfflineIDSolver::OfflineSolve joint " << j <<" type " << mMultibody->getLink(j).m_jointType << std::endl;
+                exit(1);
+                break;
+            }
+            double single_error = (result[j] - mLoadInfo.mTruthJointForces[cur_frame][j]).norm();
             if(single_error > 1e-6)
             {
                 std::cout <<"[error] cOfflineIDSolver::OfflineSolve for frame " << cur_frame <<" link " << j << ":\n";
                 std::cout <<"offline solved = " << result[j].transpose() << std::endl;
-                std::cout <<"standard = " << mLoadInfo.mTruthJointForces[cur_frame-1][j].transpose() << std::endl;
+                std::cout <<"standard = " << mLoadInfo.mTruthJointForces[cur_frame][j].transpose() << std::endl;
                 std::cout <<"error = " << single_error << std::endl;
                 assert(0);
             }
-            err += single_error;
+            ID_torque_err += single_error;
         }
         // std::cout <<"done\n";
         // exit(1);
+
+        // 4. solve PD target
+        // the vector "torque" has the same shape as pose and vel
+        /*
+            root joint: occupy the first 7 DOF in the vector, all are set to zero
+            revolute: occupy 1 DOF in the vector, the value of torque
+            spherical: occupy 4 DOF in the vector, [torque_x, torque_y, torque_z, 0]
+            fixed: No sapce 
+        */
+        
+        // std::cout <<"dof = " << mSimChar->GetNumDof() << std::endl;
+        // std::cout <<"pose size = " << mSimChar->GetPose().size() << std::endl;
+        // std::cout <<"vel size = " << mSimChar->GetVel().size() << std::endl;
+        double timestep = mLoadInfo.mTimesteps[cur_frame];
+        auto & imp_controller = mCharController->GetImpPDController();
+        imp_controller.SolvePDTargetByTorque(timestep,
+            mSimChar->GetPose(), mSimChar->GetVel(),
+            torque, pd_target);
+        // std::cout <<"now pd target before clip = " << pd_target.transpose() << std::endl;
+        if(mMultibody->hasFixedBase() == false)
+        {
+            assert((pd_target.size() - 7) == mCharController->GetActionSize());
+            // cut the first 7 DOF of root. They are outside of action space and should not be counted in PD target.
+            const tVectorXd short_pd_target = pd_target.segment(7, pd_target.size() - 7);
+            pd_target = short_pd_target;
+        }
+        // std::cout <<"now pd target after clip = " << pd_target.transpose() << std::endl;
+
+        // std::cout << "load pd = " << mLoadInfo.mPDTargetMat.row(cur_frame) << std::endl;
+        // std::cout << "solved pd = " << pd_target.transpose() << std::endl;
+        // exit(1);
+        
+
+        // 5. restore action from pd target pose
+        // action is different from fetched pd_target! 
+        // For ball joints, their action is represented in axis angle; but their pd_Target is quaternion
+        // we still need to have a convert here. pd_target = [x, y, z, w], axis angle = [angle, ax, ay, az]
+        tVectorXd action = pd_target;
+        mCharController->ConvertTargetPoseToActionFullsize(action);
+        
+        // 6. the loaded action hasn't been normalized, we need to preprocess it before comparing...
+        tVectorXd truth_action = mLoadInfo.mActionMat.row(cur_frame);
+        assert(truth_action.size() == mCharController->GetActionSize());
+        f_cnt = 0;
+        for(int j=0; j<mNumLinks-1; j++)
+        {           
+            switch (this->mMultibody->getLink(j).m_jointType)
+            {
+            case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+                f_cnt++;
+                break;
+            case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+            {
+                truth_action.segment(f_cnt + 1, 3).normalize();
+                if(std::fabs(truth_action[f_cnt]) <1e-10) truth_action.segment(f_cnt, 4).setZero();
+                f_cnt+=4;
+                break;
+            }
+            case btMultibodyLink::eFeatherstoneJointType::eFixed:
+                break;
+            default:
+                std::cout <<"cOfflineIDSolver::OfflineSolve joint " << j <<" type " << mMultibody->getLink(j).m_jointType << std::endl;
+                exit(1);
+                break;
+            }
+        }
+
+        tVectorXd diff = (action - truth_action);
+        if(diff.norm() > 1e-7)
+        {
+            cMathUtil::ThresholdOp(diff, 1e-6);
+            std::cout <<"truth action = " << truth_action.transpose() << std::endl;
+            std::cout <<"solved action = " << action.transpose() << std::endl;
+            std::cout << "[log] cOFFlineSolve::OfflineSolve: solving PD target frame " << cur_frame << " error norm = " << diff.norm() << std::endl;
+            std::cout << "[log] cOFFlineSolve::OfflineSolve: solving PD target frame " << cur_frame << " error = " << diff.transpose() << std::endl;
+            exit(1);
+        }
+        ID_action_err += diff.norm();
     }
-    std::cout <<"[log] offline id solver solved succ, total error = " << err << std::endl;
+    if(ID_torque_err < 1e-6 && ID_action_err < 1e-6)
+    {
+        std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID torque error = " << ID_torque_err << std::endl;
+        std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID Action error = " << ID_action_err << std::endl;
+    }
+    else
+    {
+        std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID torque error = " << ID_torque_err << std::endl;
+        std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID Action error = " << ID_action_err << std::endl;
+    }
+    cTimeUtil::End("OfflineSolve");
     exit(1);
 }
 
@@ -907,6 +1109,46 @@ void cOfflineIDSolver::ParseConfigSolve(const Json::Value & solve_value)
     LoadTraj(solve_traj_path.asString());
 }
 
+/**
+ * \brief                   Load Sample Config in id_conf_*.json
+ * This part of conf tries to control the behavior of generating & sampling batch of trajectoris now
+ * 
+ * Example:
+ *      "SampleModeInfo":
+        {
+            "sample_epoch" : 100,
+            "sample_length": 1,
+            "sample_trajs_dir" : "data/batch_data/0424/1_obj",
+            "sample_trajs_rootname" : "traj_1_obj.json",
+            "summary_table_filename" : "summary_table.json"
+        },
+*/
+void cOfflineIDSolver::ParseConfigSample(const Json::Value & sample_value)
+{
+    assert(sample_value.isNull() == false);
+    auto & sample_epoch_json = sample_value["sample_epoch"];
+    auto & sample_trajs_dir_json = sample_value["sample_trajs_dir"];
+    auto & sample_root_json = sample_value["sample_trajs_rootname"];
+    auto & summary_table_file = sample_value["summary_table_filename"];
+    assert(sample_epoch_json.isNull() == false);
+    assert(sample_trajs_dir_json.isNull() == false);
+    assert(sample_root_json.isNull() == false);
+    assert(summary_table_file.isNull() == false);
+
+    mSampleInfo.mSampleEpoches = sample_epoch_json.asInt();
+    mSampleInfo.mSampleTrajsDir = sample_trajs_dir_json.asString();
+    assert(cFileUtil::ExistsDir(mSampleInfo.mSampleTrajsDir));
+    mSampleInfo.mSampleTrajsRootName = mSampleInfo.mSampleTrajsDir + "/" + sample_root_json.asString();
+    mSampleInfo.mSummaryTableFilename = mSampleInfo.mSampleTrajsDir + "/" + summary_table_file.asString();
+    assert(cFileUtil::ValidateFilePath(mSampleInfo.mSampleTrajsRootName));
+    assert(cFileUtil::ValidateFilePath(mSampleInfo.mSummaryTableFilename));
+    
+    std::cout <<"[log] Inverse Dynamic plugin running in sample mode\n";
+    mSaveInfo.mMotion = new cMotion();
+    PrintSampleInfo();
+    InitSampleSummaryTable();
+}
+
 /*
     @Function: LoadMotion
     @params: path Type const std::string &, the filename of specified motion
@@ -936,6 +1178,32 @@ void cOfflineIDSolver::SaveMotion(const std::string & path_root, cMotion * motio
     motion->FinishAddFrame();
     motion->Output(filename);
     motion->Clear();
+}
+
+/**
+ * \brief               Init the summary table format when ID solver working in "sample" mode
+ *  We need to record:
+ *  1. current skeleton info
+ *  2. current PD control info
+ *  3. current ref motion file
+*/
+void cOfflineIDSolver::InitSampleSummaryTable()
+{
+    mSummaryTable.mSampleCharFile = mSimChar->GetCharFilename();
+    mSummaryTable.mSampleControllerFile = mCharController->GetControllerFile();
+    mSummaryTable.mTotalEpochNum = 0;
+    mSummaryTable.mTotalLengthTime = 0;
+    mSummaryTable.mTotalLengthFrame = 0;
+    mSummaryTable.mEpochInfos.clear();
+    mSummaryTable.mTimeStamp = cTimeUtil::GetSystemTime();
+    std::cout <<"[log] cOfflineIDSolver::InitSampleSummaryTable: set timestamp = " << mSummaryTable.mTimeStamp << std::endl;
+}
+
+/**
+ * \brief               Update Summary table info after one epoch
+*/
+void cOfflineIDSolver::UpdateSummaryTable()
+{
 }
 
 // this function is used to verify the "law of conservation of momentum" when OfflineIDSolver works in "Save" mode
@@ -1127,4 +1395,55 @@ void cOfflineIDSolver::PrintLoadInfo(const std::string & filename, bool disable_
         fout << "angular momentum = " << ang_mom.transpose().segment(0, 3) << std::endl;
     }
     
+}
+
+void cOfflineIDSolver::PrintSampleInfo()
+{
+    std::cout <<"[log] sample epoches = " << mSampleInfo.mSampleEpoches << std::endl;
+    std::cout <<"[log] sample trajs dir = " << mSampleInfo.mSampleTrajsDir << std::endl;
+    std::cout <<"[log] sample root name  = " << mSampleInfo.mSampleTrajsRootName << std::endl;
+    std::cout <<"[log] sample summart table filename  = " << mSampleInfo.mSummaryTableFilename << std::endl;
+}
+
+void cOfflineIDSolver::tSummaryTable::WriteToDisk(const std::string & path)
+{
+    cFileUtil::ValidateFilePath(path);
+    std::cout <<"[log] write table to " << path << std::endl;
+    Json::StreamWriterBuilder builder;
+    builder.settings_["indentation"] = "\t";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+    Json::Value root;
+
+/*
+
+ std::string mSampleCharFile, mSampleControllerFile; // the character filepath and the controller filepath. They ares recorded in the summary table for clearity
+        std::string mTimeStamp;         // the year-month-date timestamp recorded in the summary table
+        int mTotalEpochNum;             // The number of individual trajectory files this summary table managed
+        double mTotalLengthTime;        // The total time length for trajs recorded in this file. the unit is second.
+        int mTotalLengthFrame;          // The total frame number for trajs recorded in this file. the unit is second.
+
+        struct tSingleEpochInfo{        // This struct records info about a single traj
+            int frame_num;              // the frame number it contains
+            double length_second;       // the length of this trajs, recorded in seconds
+            std::string traj_filename;   // the filepath of this traj files
+        };
+*/
+    root["char_file"] = mSampleCharFile;
+    root["controller_file"] = mSampleControllerFile;
+    root["num_of_trajs"] = mTotalEpochNum;
+    root["total_second"] = mTotalLengthTime;
+    root["total_frame"] = mTotalLengthFrame;
+    root["single_trajs_lst"] = Json::arrayValue;
+    Json::Value single_epoch;
+    for(auto & x: mEpochInfos)
+    {
+        single_epoch["num_of_frame"] = x.frame_num;
+        single_epoch["length_second"] = x.length_second;
+        single_epoch["filename"] = x.traj_filename;
+        root["single_trajs_lst"].append(single_epoch);
+    }
+
+    std::ofstream fout(path);
+    writer->write(root, &fout);
+    std::cout <<"[log] tSummaryTable::WriteToDisk " << path << std::endl;
 }

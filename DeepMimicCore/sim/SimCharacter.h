@@ -147,6 +147,8 @@ public:
 	virtual short GetColMask() const;
 	virtual void SetColMask(short col_mask);
 	virtual void SetEnablejointTorqueControl(bool v_);
+	virtual std::string GetCharFilename();
+	
 protected:
 	std::shared_ptr<cMultiBody> mMultiBody;
 	std::vector<std::shared_ptr<cSimBodyLink>> mBodyParts;

@@ -3,9 +3,18 @@
     "IDMode_bak": "Online",
     "Offline":
     {
-        "mode" : "save",
+        "mode_bak2" : "save",
         "mode_bak1" : "display",
-        "mode_bak2" : "solve",
+        "mode_bak3" : "solve",
+        "mode" : "sample",
+        "SampleModeInfo":
+        {
+            "sample_epoch" : 100,
+            "sample_length": 1,
+            "sample_trajs_dir" : "data/0424/trajs/",
+            "sample_trajs_rootname" : "traj_1_obj.json",
+            "summary_table_filename" : "summary_table.json"
+        },
         "SaveModeInfo":
         {
             "_comment" : "this section focus on the setting of save mode",

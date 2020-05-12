@@ -46,6 +46,7 @@ bool cController::IsValid() const
 
 bool cController::LoadParams(const std::string& param_file)
 {
+	mControllerFile = param_file;
 	std::ifstream f_stream(param_file);
 	Json::Reader reader;
 	Json::Value root;
@@ -126,6 +127,11 @@ void cController::SetMode(eMode mode)
 const cSimCharacter* cController::GetChar() const
 {
 	return mChar;
+}
+
+std::string cController::GetControllerFile() const
+{
+	return mControllerFile;
 }
 
 bool cController::ParseParams(const Json::Value& json)

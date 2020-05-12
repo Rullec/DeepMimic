@@ -40,11 +40,13 @@ public:
 	virtual void SetMode(eMode mode);
 
 	virtual const cSimCharacter* GetChar() const;
+	std::string GetControllerFile() const;
 
 protected:
 	cSimCharacter* mChar;
 	eMode mMode;
 	bool mValid;
+	std::string mControllerFile;
 
 	cController();
 	virtual bool ParseParams(const Json::Value& json);
