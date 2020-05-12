@@ -1,6 +1,7 @@
 #include "cIDSolver.hpp"
 #include "SimCharacter.h"
 #include "../Extras/InverseDynamics/btMultiBodyTreeCreator.hpp"
+#include "sim/CtPDController.h"
 #include <util/BulletUtil.h>
 #include <iostream>
 
@@ -9,6 +10,8 @@ cIDSolver::cIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world,
 	assert(sim_char != nullptr);
 	assert(world != nullptr);
 	mSimChar = sim_char;
+	mCharController = std::dynamic_pointer_cast<cCtPDController>(sim_char->GetController()).get();
+	assert(mCharController!=nullptr && mCharController->IsValid());
 	mMultibody = sim_char->GetMultiBody().get();
 	mWorldScale = sim_char->GetWorld()->GetScale();
 	mWorld = world;
@@ -385,6 +388,29 @@ void cIDSolver::RecordJointForces(std::vector<tVector> & mJointForces) const
 	}
 }
 
+/**
+ * \brief					Record current action of the character
+ * \param					the ref of action which will be revised then
+*/
+void cIDSolver::RecordAction(tVectorXd & action) const
+{
+	assert(mCharController != nullptr);
+	action = mCharController->GetCurAction();
+	// std::cout << "void cIDSolver::RecordAction get pd target: " << pd_target.transpose() << std::endl;
+	// exit(1);
+}
+
+/**
+ * \brief					Record current pd target pose of the character
+ * \param					the ref of pd target in this time
+*/
+void cIDSolver::RecordPDTarget(tVectorXd & pd_target) const	
+{
+	// ball joints are in quaternions in pd target 
+	assert(mCharController != nullptr);
+	pd_target = mCharController->GetCurPDTargetPose();
+}
+
 void cIDSolver::RecordContactForces(std::vector<tForceInfo> &mContactForces, double mCurTimestep, std::map<int, int> &mWorldId2InverseId) const
 {
     mContactForces.clear();
@@ -691,6 +717,10 @@ tVectorXd cIDSolver::CalcGeneralizedVel(const tVectorXd & q_before, const tVecto
 					quater_after = cMathUtil::EulerAnglesToQuaternion(euler_angle_after, eRotationOrder::XYZ).inverse();
 
 				tVector omega_after = cMathUtil::CalcAngularVelocity(quater_before, quater_after, timestep);
+				// std::cout <<"omega after = " << omega_after.transpose() << std::endl;
+				// std::cout <<"quater before = " << quater_before.coeffs().transpose() << std::endl;
+				// std::cout <<"quater after = " << quater_after.coeffs().transpose() << std::endl;
+				// exit(1);
 				q_dot.segment(0, 3) = omega_after.segment(0, 3);
 				q_dot.segment(3, 3) = vel_after.segment(0, 3);
 				dof_offset += 6;

@@ -26,6 +26,7 @@ struct tForceInfo {
 class btMultiBody;
 class btMultiBodyDynamicsWorld;
 class cSimCharacter;
+class cCtPDController;
 
 class cIDSolver{
 public:
@@ -41,6 +42,7 @@ protected:
 	eIDSolverType mType;
 
 	// skeleton profile
+	cCtPDController * mCharController;
 	cSimCharacter * mSimChar;
 	btMultiBody* mMultibody;
 	btMultiBodyDynamicsWorld * mWorld;
@@ -60,6 +62,8 @@ protected:
 	void RecordMultibodyInfo(std::vector<tMatrix> & local_to_world_rot, std::vector<tVector> & link_pos_world, std::vector<tVector> & link_omega_world, std::vector<tVector> & link_vel_world) const;
 	void RecordGeneralizedInfo(tVectorXd & q, tVectorXd & q_dot) const;
 	void RecordJointForces(std::vector<tVector> & mJointForces) const;
+	void RecordAction(tVectorXd & action) const;	// ball joints are in aas
+	void RecordPDTarget(tVectorXd & pd_target) const;	// ball joints are in quaternions
 	void RecordContactForces(std::vector<tForceInfo> &mContactForces, double mCurTimestep, std::map<int, int> &mWorldId2InverseId) const;
 	void ApplyContactForcesToID(const std::vector<tForceInfo> &mContactForces, const std::vector<tVector> & mLinkPos, const std::vector<tMatrix> & mLinkRot) const;
 	void ApplyExternalForcesToID(const std::vector<tVector> & link_poses, const std::vector<tMatrix> & link_rot, const std::vector<tVector> & ext_forces, const std::vector<tVector> & ext_torques) const;

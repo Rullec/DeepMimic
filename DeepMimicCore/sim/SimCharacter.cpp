@@ -1137,7 +1137,7 @@ bool cSimCharacter::BuildJointLimits(std::shared_ptr<cMultiBody>& out_body)
 					lim_high *= world_scale;
 				}
 				std::cout <<"[warning] cSimCharacter::BuildJointLimits: Adding joint constraints is not allowed because it destroys the inverse dynamics of the solution for joint " << GetBodyName(j) << std::endl;
-				std::cout <<"continuring\n";
+				std::cout <<"continuing\n";
 				continue;
 				auto joint_cons = std::shared_ptr<btMultiBodyJointLimitConstraint>(new btMultiBodyJointLimitConstraint(mMultiBody.get(), j, lim_low[0], lim_high[0]));
 				joint_cons->finalizeMultiDof();
@@ -1597,7 +1597,7 @@ void cSimCharacter::SetColMask(short col_mask)
 void cSimCharacter::SetEnablejointTorqueControl(bool v_)
 {
 	mEnableJointTorqueControl = v_;
-	std::cout <<"[debug] cSimCharacter::SetEnablejointTorqueControl " << v_ << std::endl;
+	// std::cout <<"[debug] cSimCharacter::SetEnablejointTorqueControl " << v_ << std::endl;
 	// exit(1);
 }
 

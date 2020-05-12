@@ -3,9 +3,9 @@
     "IDMode_bak": "Online",
     "Offline":
     {
-        "mode" : "save",
+        "mode_bak1" : "save",
         "mode_bak2" : "display",
-        "mode_bak1" : "solve",
+        "mode" : "solve",
         "SaveModeInfo":
         {
             "_comment" : "this section focus on the setting of save mode",

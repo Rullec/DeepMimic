@@ -1120,6 +1120,8 @@ tVector cMathUtil::CalcAngularVelocity(const tQuaternion & old_rot, \
 {
 	tQuaternion trans = new_rot * old_rot.conjugate();
 	double theta = std::acos(trans.w()) * 2;	// std::acos() output range [0, pi]
+	if(true == std::isnan(theta)) return tVector::Zero();	// theta = nan, when w = 1. Omega = 0, 0, 0
+
 	if (theta > 2 * M_PI - theta)
 	{
 		// theta = theta - 2*pi
@@ -1366,6 +1368,12 @@ bool cMathUtil::IsSame(const tVector & v1, const tVector & v2, const double eps)
 	for(int i=0; i<v1.size(); i++) if(std::fabs(v1[i] - v2[i])>eps) return false;
 	return true;
 }
+
+void cMathUtil::ThresholdOp(tVectorXd & v, double threshold)
+{
+	v = (threshold < v.array().abs()).select(v, 0.0f);
+}
+
 
 tMatrix xconventionRotation(double x)
 {

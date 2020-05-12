@@ -306,6 +306,8 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 				// exit(1);
 			}
 			std::cout <<"[log] cImpPDController solve PD Target accurately\n";
+			// std::cout <<"[log] cImpPDController solved PD target = " << solved_pd_target.transpose() << std::endl; 
+			// std::cout <<"[log] cImpPDController truth PD target = " << solved_pd_target.transpose() << std::endl; 
 			cTimeUtil::End("solve PD");
 		}
 	}
@@ -384,6 +386,9 @@ void cImpPDController::SolvePDTargetByTorque(double timestep, const tVectorXd & 
 			mKd_v.segment(param_offset, param_size).setZero();
 		}
 	}
+	mChar->SetPose(char_pose);
+	mChar->SetVel(char_vel)	;
+	UpdateRBDModel();
 
 	mPDTargetSolver->SetParams(timestep, mRBDModel->GetMassMat(), mRBDModel->GetBiasForce(), mKp_v, mKd_v);
 	//std::cout << "input pose = " << pose.transpose() << std::endl;

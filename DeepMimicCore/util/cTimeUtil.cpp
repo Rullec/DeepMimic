@@ -24,7 +24,7 @@ void cTimeUtil::End(const std::string & name)
         exit(1);
     }
 
-    std::cout <<"[log]" << name << " cost time = " << \
+    std::cout <<"[log] " << name << " cost time = " << \
     (high_resolution_clock::now() - time_it->second).count() * 1e-6 <<" ms\n";
     mTimeTable.erase(time_it);
 }

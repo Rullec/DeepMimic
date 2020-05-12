@@ -196,6 +196,7 @@ public:
 	static tMatrix VectorToSkewMat(const tVector &);
 	static tVector SkewMatToVector(const tMatrix &);
 	static bool IsSame(const tVector & v1, const tVector & v2, const double eps);
+	static void ThresholdOp(tVectorXd & v, double threshold = 1e-6);
 private:
 	static cRand gRand;
 
