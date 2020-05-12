@@ -55,7 +55,9 @@ protected:
         std::vector<tVector> mLinkOmega[MAX_FRAME_NUM]; // link angular momentum in world frame
         std::vector<tVector> mLinkDiscretVel[MAX_FRAME_NUM];   // link COM vel in world frame calculated from differential of link positions
         std::vector<tVector> mLinkDiscretOmega[MAX_FRAME_NUM]; // link angular momentum in world frame  from differential of link rotation
-        
+        tVectorXd mTruthAction[MAX_FRAME_NUM];        // the current action recorded from the controller of this char
+        tVectorXd mTruthPDTarget[MAX_FRAME_NUM];        // the current action recorded from the controller of this char
+
         double mTimesteps[MAX_FRAME_NUM];   // timesteps
         cMotion * mMotion;
         std::vector<tForceInfo> mContactForces[MAX_FRAME_NUM];
@@ -73,7 +75,7 @@ protected:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
         std::string mLoadPath = "";
         eLoadMode mLoadMode = eLoadMode::INVALID;
-        Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat;
+        Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat, mActionMat, mPDTargetMat;
         cMotion * mMotion = nullptr;
         tVectorXd mTimesteps;
         std::vector<std::vector<tForceInfo>> mContactForces;
