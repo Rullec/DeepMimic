@@ -1,6 +1,6 @@
 #include "BuildIDSolver.hpp"
-#include "cOfflineIDSolver.hpp"
-#include "cOnlineIDSolver.hpp"
+#include "OfflineIDSolver.hpp"
+#include "OnlineIDSolver.hpp"
 #include <util/JsonUtil.h>
 #include <memory>
 

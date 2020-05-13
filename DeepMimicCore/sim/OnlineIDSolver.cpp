@@ -13,7 +13,7 @@
 #include "BulletDynamics/Featherstone/btMultiBodySliderConstraint.h"
 #include "BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h"
 
-#include "cOnlineIDSolver.hpp"
+#include "OnlineIDSolver.hpp"
 #include <BulletDynamics/Featherstone/cCollisionWorld.h>
 #include <util/BulletUtil.h>
 #include "SimCharacter.h"

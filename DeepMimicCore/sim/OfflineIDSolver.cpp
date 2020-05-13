@@ -1,4 +1,4 @@
-#include "cOfflineIDSolver.hpp"
+#include "OfflineIDSolver.hpp"
 #include <sim/SimCharacter.h>
 #include "sim/CtPDController.h"
 #include "BulletDynamics/Featherstone/btMultiBodyDynamicsWorld.h"
@@ -42,6 +42,12 @@ void cOfflineIDSolver::ParseConfig(const std::string & path)
         mMode = eOfflineSolverMode::Solve;
         ParseConfigSolve(offline_config["SolveModeInfo"]);
     }
+    else if("sample" == offline_mode)
+    {
+        controller_details_path = "logs/controller_logs/controller_details_sample.txt";
+        mMode = eOfflineSolverMode::Sample;
+        ParseConfigSample(offline_config["SampleModeInfo"]);
+    }
     else
     {
         std::cout <<"[error] cOfflineIDSolver::ParseConfig mode error " << offline_mode << std::endl;
@@ -61,7 +67,7 @@ void cOfflineIDSolver::Reset()
     }
     else if(mMode == eOfflineSolverMode::Save)
     {
-        std::cout <<"cOfflineIDSolver: saving reset, have a new saving epoch, need more work to set up epoches\n";
+        std::cout <<"[log] cOfflineIDSolver works in save mode, done\n";
         SaveTraj(mSaveInfo.mSaveTrajRoot);
         SaveMotion(mSaveInfo.mSaveMotionRoot, mSaveInfo.mMotion);
 
@@ -76,10 +82,35 @@ void cOfflineIDSolver::Reset()
         // fout.close();
         // exit(1);
         // is impulse-momentum theorem broken? How much? use verify momentum
-        VerifyMomentum();
+        // VerifyMomentum();
         mSaveInfo.mCurEpoch++;
         mSaveInfo.mCurFrameId = 0;
-        exit(1);
+        exit(0);
+    }
+    else if(mMode == eOfflineSolverMode::Sample)
+    {
+        // output trajs, update summary table info
+        tSummaryTable::tSingleEpochInfo a;
+        a.length_second = mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId-1] * mSaveInfo.mCurFrameId;
+        a.frame_num = mSaveInfo.mCurFrameId;
+        a.traj_filename = SaveTraj(mSampleInfo.mSampleTrajsRootName);
+
+        mSummaryTable.mTotalEpochNum++;
+        mSummaryTable.mTotalLengthTime += a.length_second;
+        mSummaryTable.mTotalLengthFrame += a.frame_num;
+        mSummaryTable.mEpochInfos.push_back(a);
+        mSummaryTable.WriteToDisk(mSampleInfo.mSummaryTableFilename);
+
+        // clear frame id
+        mSaveInfo.mCurEpoch++;
+        mSaveInfo.mCurFrameId = 0;
+
+        // judge terminate
+        if(mSummaryTable.mTotalEpochNum >= mSampleInfo.mSampleEpoches)
+        {
+            std::cout <<"[log] cOfflineIDSolver::Reset sample finished\n";
+            exit(0);
+        }
     }
     else if(mMode == eOfflineSolverMode::Solve)
     {
@@ -100,9 +131,8 @@ eOfflineSolverMode cOfflineIDSolver::GetOfflineSolverMode()
 
 void cOfflineIDSolver::PreSim()
 {
-    if(this->mMode == eOfflineSolverMode::Save)
+    if(mMode == eOfflineSolverMode::Save || mMode == eOfflineSolverMode::Sample)
     {
-        
         mInverseModel->clearAllUserForcesAndMoments();
         const int & cur_frame = mSaveInfo.mCurFrameId;
         // std::cout <<"frame id " << cur_frame  << std::endl;
@@ -173,7 +203,7 @@ void cOfflineIDSolver::PreSim()
 
 void cOfflineIDSolver::PostSim()
 {
-    if(this->mMode == eOfflineSolverMode::Save)
+    if(this->mMode == eOfflineSolverMode::Save || mMode == eOfflineSolverMode::Sample)
     {
         // if(mSaveInfo.mCurFrameId > 2) exit(1);
         // std::cout <<"offline post sim frame = " << mSaveInfo.mCurFrameId<<std::endl;
@@ -360,8 +390,9 @@ void cOfflineIDSolver::PostSim()
 void cOfflineIDSolver::SetTimestep(double timestep)
 {
     assert(timestep > 0);
-    if(mMode == eOfflineSolverMode::Save)
+    if(mMode == eOfflineSolverMode::Save || mMode == eOfflineSolverMode::Sample )
     {
+        // std::cout <<"set timestep " << mSaveInfo.mCurFrameId <<" " << timestep << std::endl;
         mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId] = timestep;
     }
     else
@@ -371,7 +402,7 @@ void cOfflineIDSolver::SetTimestep(double timestep)
     }
 }
 
-void cOfflineIDSolver::SaveTraj(const std::string & path_raw)
+std::string cOfflineIDSolver::SaveTraj(const std::string & path_raw)
 {
     assert(cFileUtil::ValidateFilePath(path_raw));
     std::string path_root = cFileUtil::RemoveExtension(path_raw);
@@ -474,6 +505,7 @@ void cOfflineIDSolver::SaveTraj(const std::string & path_raw)
     std::ofstream fout(final_name);
     writer->write(root, &fout);
     std::cout <<"[log] cOfflineIDSolver::SaveTraj " << "for epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
+    return final_name;
 }
 
 void cOfflineIDSolver::DisplaySet()
@@ -1077,6 +1109,46 @@ void cOfflineIDSolver::ParseConfigSolve(const Json::Value & solve_value)
     LoadTraj(solve_traj_path.asString());
 }
 
+/**
+ * \brief                   Load Sample Config in id_conf_*.json
+ * This part of conf tries to control the behavior of generating & sampling batch of trajectoris now
+ * 
+ * Example:
+ *      "SampleModeInfo":
+        {
+            "sample_epoch" : 100,
+            "sample_length": 1,
+            "sample_trajs_dir" : "data/batch_data/0424/1_obj",
+            "sample_trajs_rootname" : "traj_1_obj.json",
+            "summary_table_filename" : "summary_table.json"
+        },
+*/
+void cOfflineIDSolver::ParseConfigSample(const Json::Value & sample_value)
+{
+    assert(sample_value.isNull() == false);
+    auto & sample_epoch_json = sample_value["sample_epoch"];
+    auto & sample_trajs_dir_json = sample_value["sample_trajs_dir"];
+    auto & sample_root_json = sample_value["sample_trajs_rootname"];
+    auto & summary_table_file = sample_value["summary_table_filename"];
+    assert(sample_epoch_json.isNull() == false);
+    assert(sample_trajs_dir_json.isNull() == false);
+    assert(sample_root_json.isNull() == false);
+    assert(summary_table_file.isNull() == false);
+
+    mSampleInfo.mSampleEpoches = sample_epoch_json.asInt();
+    mSampleInfo.mSampleTrajsDir = sample_trajs_dir_json.asString();
+    assert(cFileUtil::ExistsDir(mSampleInfo.mSampleTrajsDir));
+    mSampleInfo.mSampleTrajsRootName = mSampleInfo.mSampleTrajsDir + "/" + sample_root_json.asString();
+    mSampleInfo.mSummaryTableFilename = mSampleInfo.mSampleTrajsDir + "/" + summary_table_file.asString();
+    assert(cFileUtil::ValidateFilePath(mSampleInfo.mSampleTrajsRootName));
+    assert(cFileUtil::ValidateFilePath(mSampleInfo.mSummaryTableFilename));
+    
+    std::cout <<"[log] Inverse Dynamic plugin running in sample mode\n";
+    mSaveInfo.mMotion = new cMotion();
+    PrintSampleInfo();
+    InitSampleSummaryTable();
+}
+
 /*
     @Function: LoadMotion
     @params: path Type const std::string &, the filename of specified motion
@@ -1106,6 +1178,32 @@ void cOfflineIDSolver::SaveMotion(const std::string & path_root, cMotion * motio
     motion->FinishAddFrame();
     motion->Output(filename);
     motion->Clear();
+}
+
+/**
+ * \brief               Init the summary table format when ID solver working in "sample" mode
+ *  We need to record:
+ *  1. current skeleton info
+ *  2. current PD control info
+ *  3. current ref motion file
+*/
+void cOfflineIDSolver::InitSampleSummaryTable()
+{
+    mSummaryTable.mSampleCharFile = mSimChar->GetCharFilename();
+    mSummaryTable.mSampleControllerFile = mCharController->GetControllerFile();
+    mSummaryTable.mTotalEpochNum = 0;
+    mSummaryTable.mTotalLengthTime = 0;
+    mSummaryTable.mTotalLengthFrame = 0;
+    mSummaryTable.mEpochInfos.clear();
+    mSummaryTable.mTimeStamp = cTimeUtil::GetSystemTime();
+    std::cout <<"[log] cOfflineIDSolver::InitSampleSummaryTable: set timestamp = " << mSummaryTable.mTimeStamp << std::endl;
+}
+
+/**
+ * \brief               Update Summary table info after one epoch
+*/
+void cOfflineIDSolver::UpdateSummaryTable()
+{
 }
 
 // this function is used to verify the "law of conservation of momentum" when OfflineIDSolver works in "Save" mode
@@ -1297,4 +1395,55 @@ void cOfflineIDSolver::PrintLoadInfo(const std::string & filename, bool disable_
         fout << "angular momentum = " << ang_mom.transpose().segment(0, 3) << std::endl;
     }
     
+}
+
+void cOfflineIDSolver::PrintSampleInfo()
+{
+    std::cout <<"[log] sample epoches = " << mSampleInfo.mSampleEpoches << std::endl;
+    std::cout <<"[log] sample trajs dir = " << mSampleInfo.mSampleTrajsDir << std::endl;
+    std::cout <<"[log] sample root name  = " << mSampleInfo.mSampleTrajsRootName << std::endl;
+    std::cout <<"[log] sample summart table filename  = " << mSampleInfo.mSummaryTableFilename << std::endl;
+}
+
+void cOfflineIDSolver::tSummaryTable::WriteToDisk(const std::string & path)
+{
+    cFileUtil::ValidateFilePath(path);
+    std::cout <<"[log] write table to " << path << std::endl;
+    Json::StreamWriterBuilder builder;
+    builder.settings_["indentation"] = "\t";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+    Json::Value root;
+
+/*
+
+ std::string mSampleCharFile, mSampleControllerFile; // the character filepath and the controller filepath. They ares recorded in the summary table for clearity
+        std::string mTimeStamp;         // the year-month-date timestamp recorded in the summary table
+        int mTotalEpochNum;             // The number of individual trajectory files this summary table managed
+        double mTotalLengthTime;        // The total time length for trajs recorded in this file. the unit is second.
+        int mTotalLengthFrame;          // The total frame number for trajs recorded in this file. the unit is second.
+
+        struct tSingleEpochInfo{        // This struct records info about a single traj
+            int frame_num;              // the frame number it contains
+            double length_second;       // the length of this trajs, recorded in seconds
+            std::string traj_filename;   // the filepath of this traj files
+        };
+*/
+    root["char_file"] = mSampleCharFile;
+    root["controller_file"] = mSampleControllerFile;
+    root["num_of_trajs"] = mTotalEpochNum;
+    root["total_second"] = mTotalLengthTime;
+    root["total_frame"] = mTotalLengthFrame;
+    root["single_trajs_lst"] = Json::arrayValue;
+    Json::Value single_epoch;
+    for(auto & x: mEpochInfos)
+    {
+        single_epoch["num_of_frame"] = x.frame_num;
+        single_epoch["length_second"] = x.length_second;
+        single_epoch["filename"] = x.traj_filename;
+        root["single_trajs_lst"].append(single_epoch);
+    }
+
+    std::ofstream fout(path);
+    writer->write(root, &fout);
+    std::cout <<"[log] tSummaryTable::WriteToDisk " << path << std::endl;
 }
