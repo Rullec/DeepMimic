@@ -28,3 +28,12 @@ void cTimeUtil::End(const std::string & name)
     (high_resolution_clock::now() - time_it->second).count() * 1e-6 <<" ms\n";
     mTimeTable.erase(time_it);
 }
+
+std::string cTimeUtil::GetSystemTime()
+{
+    // not thread safe
+    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::string s(30, '\0');
+    std::strftime(&s[0], s.size(), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    return s;
+}

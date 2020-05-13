@@ -1,4 +1,4 @@
-#include "cIDSolver.hpp"
+#include "IDSolver.hpp"
 #include "SimCharacter.h"
 #include "../Extras/InverseDynamics/btMultiBodyTreeCreator.hpp"
 #include "sim/CtPDController.h"
@@ -767,8 +767,8 @@ tVectorXd cIDSolver::CalcGeneralizedVel(const tVectorXd & q_before, const tVecto
 
 /*
 	@Function: CalcMomentum
-		Given the current state of multibody including pos, ori, vel, omega,
-		this function can calculate linear momentum and angular momentum of this character
+		Given the current state of multibody including pos, orientation, vel, omega,
+		this function can calculate linear momentum and angular momentum for this character
 */
 void cIDSolver::CalcMomentum(const std::vector<tVector> & mLinkPos, 
     const std::vector<tMatrix> & mLinkRot,

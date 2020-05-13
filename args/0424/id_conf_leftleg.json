@@ -13,7 +13,7 @@
         "mode_bak1" : "sample",
         "mode_bak3" : "save",
         "mode_bak2" : "display",
-        "mode" : "solve",
+        "mode" : "sample",
         "SampleModeInfo":
         {
             "sample_num" : 100,

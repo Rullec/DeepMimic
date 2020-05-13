@@ -340,7 +340,7 @@ void InitFrameBuffers(void)
 
 void InitDraw(int argc, char** argv)
 {
-	std::cout << "[debug] Init Draw begin" << std::endl;
+	// std::cout << "[debug] Init Draw begin" << std::endl;
 	glutInit(&argc, argv);
 	// std::cout << "[debug] Init Draw begin 2" << std::endl;
 #ifdef	__APPLE__
@@ -355,7 +355,7 @@ void InitDraw(int argc, char** argv)
 
 	glutInitWindowSize(gWinWidth, gWinHeight);
 	glutCreateWindow("DeepMimic");
-	std::cout << "Init Draw succ" << std::endl;
+	// std::cout << "Init Draw succ" << std::endl;
 }
 
 void SetupDraw()

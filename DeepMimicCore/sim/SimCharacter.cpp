@@ -5,7 +5,7 @@
 #include "SimCapsule.h"
 #include "SimSphere.h"
 #include "RBDUtil.h"
-#include "RigidSystem/MultiRigidBodyModel.h"
+// #include "RigidSystem/MultiRigidBodyModel.h"
 
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
@@ -64,7 +64,7 @@ bool cSimCharacter::Init(const std::shared_ptr<cWorld>& world, const tParams& pa
 	RemoveFromWorld();
 	mWorld = world;
 	mEnableContactFall = params.mEnableContactFall;
-
+	
 	if (succ_skeleton)
 	{
 		// build simbody, load bodydefs
@@ -567,7 +567,7 @@ cSimBodyJoint& cSimCharacter::GetJoint(int joint_id)
 	return mJoints[joint_id];
 }
 
-void cSimCharacter::GetChildJoint(int joint_id, VectorXd & out_child_id)
+void cSimCharacter::GetChildJoint(int joint_id, tVectorXd & out_child_id)
 {
 	cKinTree::GetChild(mJointMat, joint_id, out_child_id);
 }
@@ -747,7 +747,7 @@ const void cSimCharacter::GetTotalContactPts(Eigen::VectorXd & out_contact) cons
 		for (auto &cur_pt : p)
 		{
 			int link_id = i;
-			Vector3d contact_point_world = cur_pt.mPos.segment(0, 3),
+			tVector3 contact_point_world = cur_pt.mPos.segment(0, 3),
 				contact_force_world = cur_pt.mForce.segment(0, 3);
 
 			// format: body_id(1) + pt_pos(3) + pt_force(3) = 7
@@ -1599,6 +1599,11 @@ void cSimCharacter::SetEnablejointTorqueControl(bool v_)
 	mEnableJointTorqueControl = v_;
 	// std::cout <<"[debug] cSimCharacter::SetEnablejointTorqueControl " << v_ << std::endl;
 	// exit(1);
+}
+
+std::string cSimCharacter::GetCharFilename()
+{
+	return mCharFilename;
 }
 
 const std::shared_ptr<cWorld>& cSimCharacter::GetWorld() const
