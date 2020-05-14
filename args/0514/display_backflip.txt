@@ -1,0 +1,4 @@
+--scene kin_char
+
+--character_file data/0424/characters/skeleton_042302_revised.json
+--motion_file data/0514/motions/backflip_0514.txt
