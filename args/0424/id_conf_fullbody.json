@@ -1,37 +1,31 @@
 {
-    "IDMode": "Offline",
-    "IDMode_bak": "Online",
-    "Offline":
+    "IDMode": "Online",
+    "IDMode_bak1" : "Display",
+    "IDMode_bak2" : "Sample",
+    "IDMode_bak3": "OfflineSolve",
+    "SampleModeInfo":
     {
-        "mode_bak2" : "save",
-        "mode_bak1" : "display",
-        "mode_bak" : "solve",
-        "mode" : "sample",
-        "SampleModeInfo":
-        {
-            "sample_epoch" : 10,
-            "sample_length": 1,
-            "sample_trajs_dir" : "data/0424/trajs/",
-            "sample_trajs_rootname" : "traj_fullbody.json",
-            "summary_table_filename" : "summary_table_fullbody.json"
-        },
-        "SaveModeInfo":
-        {
-            "_comment" : "this section focus on the setting of save mode",
-            "clear_applied_force" : true,
-            "save_traj_root" : "data/0424/trajs/traj_fullbody.json",
-            "save_motion_root" :  "data/0424/motions/ID_motion_fullbody.txt"
-        },
-        "DisplayModeInfo":
-        {
-            "_comment" : "this section focus on the setting of display mode",
-            "display_traj_path" : "data/0424/trajs/traj_fullbody_0.json",
-            "display_motion_path_bak" : "data/0424/motions/ID_motion_fullbody_0.txt"
-        },
-        "SolveModeInfo":
-        {
-            "_comment" : "this section focus on the setting of solve mode",
-            "solve_traj_path" : "data/0424/trajs/traj_fullbody_0.json"
-        }
+        "sample_num" : 3,
+        "sample_trajs_dir" : "data/0424/trajs/",
+        "sample_trajs_rootname" : "traj_fullbody.json",
+        "summary_table_filename" : "summary_table_fullbody.json"
+    },
+    "SaveModeInfo":
+    {
+        "_comment" : "this section focus on the setting of save mode",
+        "clear_applied_force" : true,
+        "save_traj_root" : "data/0424/trajs/traj_fullbody.json",
+        "save_motion_root" :  "data/0424/motions/ID_motion_fullbody.txt"
+    },
+    "DisplayModeInfo":
+    {
+        "_comment" : "this section focus on the setting of display mode",
+        "display_traj_path" : "data/0424/trajs/traj_fullbody_0.json",
+        "display_motion_path_bak" : "data/0424/motions/ID_motion_fullbody_0.txt"
+    },
+    "SolveModeInfo":
+    {
+        "_comment" : "this section focus on the setting of solve mode",
+        "solve_traj_path" : "data/0424/trajs/traj_fullbody_0.json"
     }
 }
