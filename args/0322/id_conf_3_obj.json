@@ -1,28 +1,25 @@
 {
-    "IDMode": "Offline",
-    "IDMode_bak": "Online",
-    "Offline":
+    "IDMode_bak1": "Online",
+    "IDMode_bak2" : "OfflineSolve",
+    "IDMode_bak4" : "Display",
+    "IDMode_bak3" : "Sample",
+    "IDMode": "OfflineSolve",
+    "SaveModeInfo":
     {
-        "mode" : "save",
-        "mode_bak1" : "display",
-        "mode_bak2" : "solve",
-        "SaveModeInfo":
-        {
-            "_comment" : "this section focus on the setting of save mode",
-            "clear_applied_force" : true,
-            "save_traj_root" : "data/0322/trajs/traj_3_obj.json",
-            "save_motion_root" :  "data/0322/motions/ID_motion_3_obj.txt"
-        },
-        "DisplayModeInfo":
-        {
-            "_comment" : "this section focus on the setting of display mode",
-            "display_traj_path" : "data/0322/trajs/traj_3_obj_0.json",
-            "display_motion_path_bak" : "data/0322/motions/ID_motion_3_obj_0.txt"
-        },
-        "SolveModeInfo":
-        {
-            "_comment" : "this section focus on the setting of solve mode",
-            "solve_traj_path" : "data/0322/trajs/traj_3_obj_0.json"
-        }
+        "_comment" : "this section focus on the setting of save mode",
+        "clear_applied_force" : true,
+        "save_traj_root" : "data/0322/trajs/traj_3_obj.json",
+        "save_motion_root" :  "data/0322/motions/ID_motion_3_obj.txt"
+    },
+    "DisplayModeInfo":
+    {
+        "_comment" : "this section focus on the setting of display mode",
+        "display_traj_path" : "data/0322/trajs/traj_3_obj_0.json",
+        "display_motion_path_bak" : "data/0322/motions/ID_motion_3_obj_0.txt"
+    },
+    "SolveModeInfo":
+    {
+        "_comment" : "this section focus on the setting of solve mode",
+        "solve_traj_path" : "data/0322/trajs/traj_3_obj_0.json"
     }
 }

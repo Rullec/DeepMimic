@@ -1,46 +1,34 @@
 {
-    "IDMode": "Offline",
-    "IDMode_bak": "Online",
-    "Offline":
+    "IDMode_bak1": "Online",
+    "IDMode_bak2" : "OfflineSolve",
+    "IDMode_bak4" : "Display",
+    "IDMode_bak3" : "Sample",
+    "IDMode": "OfflineSolve",
+    "comment" :[
+        "Offline的ID solver有四种模式：sample, save, display, solve.",
+        "sample模式: 是批量采样、保存轨迹(trajectory)信息、生成数据信息记录表；对应的配置卸载SampleModeInfo中",
+        "save模式: 单个、离散的保存轨迹, 对应的配置写在SaveModeInfo中",
+        "display模式: 播放某个轨迹，对应的配置写在DisplayModeInfo中",
+        "solve模式: 对某个轨迹进行求解, 对应的配置写在SolveModeInfo中"
+    ],
+    "DisplayModeInfo":
     {
-        "comment" :[
-                "Offline的ID solver有四种模式：sample, save, display, solve.",
-                "sample模式: 是批量采样、保存轨迹(trajectory)信息、生成数据信息记录表；对应的配置卸载SampleModeInfo中",
-                "save模式: 单个、离散的保存轨迹, 对应的配置写在SaveModeInfo中",
-                "display模式: 播放某个轨迹，对应的配置写在DisplayModeInfo中",
-                "solve模式: 对某个轨迹进行求解, 对应的配置写在SolveModeInfo中"
-            ],
-        "mode_bak1" : "sample",
-        "mode_bak3" : "save",
-        "mode_bak2" : "display",
-        "mode" : "sample",
-        "SampleModeInfo":
-        {
-            "sample_num" : 100,
-            "sample_length": 1,
-            "sample_trajs_dir" : "data/batch_data/0424",
-            "sample_trajs_rootname" : "traj_leftleg.json",
-            "summary_table_filename" : "summary_table.json"
-        },
-        "SaveModeInfo":
-        {
-            "_comment" : "this section focus on the setting of save mode",
-            "clear_applied_force" : true,
-            "save_traj_root" : "data/0424/trajs/traj_leftleg.json",
-            "save_motion_root" :  "data/0424/motions/ID_motion_leftleg.txt"
-        },
-        "DisplayModeInfo":
-        {
-            "_comment" : "this section focus on the setting of display mode",
-            "display_traj_path" : "data/0424/trajs/traj_leftleg_0.json",
-            "display_motion_path_bak" : "data/0424/motions/ID_motion_leftleg_0.txt",
-            "enable_output_motion_info" : false,
-            "output_motion_info_path" : "angmom_buffer_details.log"
-        },
-        "SolveModeInfo":
-        {
-            "_comment" : "this section focus on the setting of solve mode",
-            "solve_traj_path" : "data/0424/trajs/traj_leftleg_0.json"
-        }
+        "_comment" : "this section focus on the setting of display mode",
+        "display_traj_path" : "data/0424/trajs/traj_leftleg_0.json",
+        "display_motion_path_bak" : "data/0424/motions/ID_motion_leftleg_0.txt",
+        "enable_output_motion_info" : false,
+        "output_motion_info_path" : "angmom_buffer_details.log"
+    },
+    "SampleModeInfo":
+    {
+        "sample_num" : 3,
+        "sample_trajs_dir" : "data/batch_data/0424",
+        "sample_trajs_rootname" : "traj_leftleg.json",
+        "summary_table_filename" : "summary_table.json"
+    },
+    "SolveModeInfo":
+    {
+        "_comment" : "this section focus on the setting of solve mode",
+        "solve_traj_path" : "data/0424/trajs/traj_leftleg_0.json"
     }
 }

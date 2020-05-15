@@ -7,8 +7,6 @@
 #include "sim/GroundBuilder.h"
 #include "sim/DeepMimicCharController.h"
 #include "sim/BuildIDSolver.hpp"
-#include "sim/OnlineIDSolver.hpp"
-#include "sim/OfflineIDSolver.hpp"
 #include "util/FileUtil.h"
 #include <iostream>
 #include <fstream>
@@ -223,94 +221,25 @@ void cSceneSimChar::Update(double time_elapsed)
 	PreUpdate(time_elapsed);		// clear joint torque
 	// 显示一下速度：是不是最开始的时候设置的速度太大了?
 
-	
-	// order matters!
-	if(true == mEnableID && mIDSolver!=nullptr)
+	UpdateCharacters(time_elapsed);
+
+	if(mEnableID)
 	{
-		if(eIDSolverType::Online == mIDSolver->GetType())
-		{
-			auto online_solver = std::dynamic_pointer_cast<cOnlineIDSolver>(mIDSolver);
-			online_solver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
-
-			// calc & apply torque in this function
-			UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
-			online_solver->PreSim();
-
-			UpdateWorld(time_elapsed);
-			UpdateGround(time_elapsed);
-			UpdateObjs(time_elapsed);
-			UpdateJoints(time_elapsed);
-
-			PostUpdateCharacters(time_elapsed);
-			PostUpdate(time_elapsed);
-
-			online_solver->PostSim();
-		}
-		else if(eIDSolverType::Offline == mIDSolver->GetType())
-		{
-			// mIDInfo->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
-			auto offline_solver = std::dynamic_pointer_cast<cOfflineIDSolver>(mIDSolver);
-			// calc & apply torque in this function
-			auto mode = offline_solver->GetOfflineSolverMode() ;
-			if(eOfflineSolverMode::Save == mode || eOfflineSolverMode::Sample == mode)
-			{
-				offline_solver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
-				UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
-				mIDSolver->PreSim();
-
-				UpdateWorld(time_elapsed);
-				UpdateGround(time_elapsed);
-				UpdateObjs(time_elapsed);
-				UpdateJoints(time_elapsed);
-
-				PostUpdateCharacters(time_elapsed);
-				PostUpdate(time_elapsed);
-
-				mIDSolver->PostSim();	
-			}
-			else if(eOfflineSolverMode::Display == mode)
-			{
-				// std::cout <<"display!\n";
-				offline_solver->DisplaySet();
-				// auto & sim_char = GetCharacter(0);
-				// std::cout <<"error rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
-
-
-				// mIDSolver->PostSim();	
-			}
-			else if(eOfflineSolverMode::Solve == mode)
-			{
-				offline_solver->OfflineSolve();
-			}
-			else
-			{
-				std::cout <<"[error] cSceneSimChar::Update IDSolver error mode = " << offline_solver->GetOfflineSolverMode();
-				exit(1);
-			}
-		}
-		else
-		{
-			std::cout <<"[error] cSceneSimChar::Update IDSolver Type illegal = " << mIDSolver->GetType() << std::endl;
-		}
-
+		mIDSolver->SetTimestep(time_elapsed);
+		mIDSolver->PreSim();
 	}
-	else
-	{
-		// calc & apply torque in this function
-		UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
 
+	UpdateWorld(time_elapsed);
+	UpdateGround(time_elapsed);
+	UpdateObjs(time_elapsed);
+	UpdateJoints(time_elapsed);
 
-		UpdateWorld(time_elapsed);
-		UpdateGround(time_elapsed);
-		UpdateObjs(time_elapsed);
-		UpdateJoints(time_elapsed);
-
-		PostUpdateCharacters(time_elapsed);
-		PostUpdate(time_elapsed);
+	PostUpdateCharacters(time_elapsed);
+	PostUpdate(time_elapsed);
 	
-	}
+	if(mEnableID)	mIDSolver->PostSim();
+
 	// cTimeUtil::End("sim update");
-	
 }
 
 int cSceneSimChar::GetNumChars() const
@@ -712,10 +641,12 @@ void cSceneSimChar::BuildInverseDynamic()
 	// offline mode: read trajectory from files, then solve it.
 	// online mode for debug: start with the simulation at the same time, record each state and solve them at onece
 	// then compare the desired ID result and the ideal one. It will be very easy to debug.
-	if(eIDSolverType::Offline == mIDSolver->GetType())
-		std::cout << "[log] Inverse Dynamics runs in offline mode." << std::endl;
+	if(eIDSolverType::OfflineSolve == mIDSolver->GetType())
+		std::cout << "[log] Inverse Dynamics runs in offlineSolve mode." << std::endl;
 	else if(eIDSolverType::Online == mIDSolver->GetType())
 		std::cout << "[log] Inverse Dynamics runs in online mode." << std::endl;
+	else if(eIDSolverType::Display == mIDSolver->GetType())
+		std::cout << "[log] Inverse Dynamics runs in display mode." << std::endl;
 	else
 	{
 		std::cout <<"unrecognized ID solver mode = " << mIDSolver->GetType() << std::endl;

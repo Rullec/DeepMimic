@@ -8,9 +8,20 @@
 #define MAX_FRAME_NUM 10000
 
 enum eIDSolverType{
+	INVALID,
 	Online,
-	Offline,
+	Display,
+	OfflineSolve,
+	Sample,
 	SOLVER_TYPE_NUM
+};
+
+const std::string gIDSolverTypeStr [] = {
+	"Invalid",
+	"Online",
+	"Display",
+	"OfflineSolve",
+	"Sample",
 };
 
 struct tForceInfo {
