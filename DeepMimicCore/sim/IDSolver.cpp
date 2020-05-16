@@ -9,7 +9,9 @@
 cIDSolver::cIDSolver(cSceneImitate * imitate_scene, eIDSolverType type)
 {
 	assert(imitate_scene != nullptr);
+	mScene = imitate_scene;
 	mSimChar = imitate_scene->GetCharacter(0).get();
+	mKinChar = imitate_scene->GetKinChar().get();
 	mWorld = imitate_scene->GetWorld()->GetInternalWorld().get();
 	assert(mSimChar != nullptr);
 	assert(mWorld != nullptr);
@@ -212,6 +214,16 @@ void cIDSolver::RecordGeneralizedInfo(tVectorXd & q, tVectorXd & q_dot) const
             }
         }
 	}
+}
+
+void cIDSolver::RecordReward(double & reward) const
+{
+	reward = mScene->CalcReward(0);
+}
+
+void cIDSolver::RecordRefTime(double & time) const
+{
+	time = mKinChar->GetTime();
 }
 
 void cIDSolver::SetGeneralizedPos(const tVectorXd & q)

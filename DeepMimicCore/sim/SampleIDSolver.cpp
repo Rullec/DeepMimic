@@ -1,4 +1,5 @@
 #include "SampleIDSolver.hpp"
+#include <scenes/SceneImitate.h>
 #include "sim/CtPDController.h"
 #include <sim/SimCharacter.h>
 #include "../util/JsonUtil.h"
@@ -42,12 +43,16 @@ void cSampleIDSolver::PreSim()
 
     // for(auto & x : mSaveInfo.mTruthJointForces[cur_frame]) std::cout << x.transpose() << std::endl;
     RecordGeneralizedInfo(mSaveInfo.mBuffer_q[cur_frame], mSaveInfo.mBuffer_u[cur_frame]);
-    
+
+    double reward = mScene->CalcReward(0);
+    std::cout << "frame " << cur_frame <<" reward = " << reward << std::endl;
 
     // only record momentum in PreSim for the first frame
     if(0 == cur_frame)
     {
         RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame], mSaveInfo.mLinkOmega[cur_frame], mSaveInfo.mLinkVel[cur_frame]);
+        RecordReward(mSaveInfo.mRewards[cur_frame]);
+        RecordRefTime(mSaveInfo.mRefTime[cur_frame]);
         // CalcMomentum(mSaveInfo.mLinkPos[cur_frame],
         //     mSaveInfo.mLinkRot[cur_frame], 
         //     mSaveInfo.mLinkVel[cur_frame], 
@@ -58,6 +63,19 @@ void cSampleIDSolver::PreSim()
     }
     
     
+    if(cur_frame == 200)
+    {
+        double now_time = mKinChar->GetTime();
+        mKinChar->Pose(0.5);
+        
+        std::cout <<"online kinchar 0.5s pose = " << mKinChar->GetPose().transpose() << std::endl;
+        // exit(1);
+        std::cout <<"epoch = " << mSaveInfo.mCurEpoch << std::endl;
+        mKinChar->Pose(now_time);
+        // double a;
+        // std::cin >> a;
+    }
+
     assert(mSaveInfo.mTimesteps[cur_frame] > 0);
     mSaveInfo.mMotion->AddFrame(mSimChar->GetPose(), mSaveInfo.mTimesteps[cur_frame]);
 
@@ -96,8 +114,14 @@ void cSampleIDSolver::PostSim()
     // record contact forces
     RecordContactForces(mSaveInfo.mContactForces[cur_frame-1], mSaveInfo.mTimesteps[cur_frame - 1], mWorldId2InverseId);
 
-    // record linear momentum
+    // record multibody info
     RecordMultibodyInfo(mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame], mSaveInfo.mLinkOmega[cur_frame], mSaveInfo.mLinkVel[cur_frame]);
+
+    // record rewards for this frame
+    RecordReward(mSaveInfo.mRewards[cur_frame]);
+    
+    // record reference time now
+    RecordRefTime(mSaveInfo.mRefTime[cur_frame]);
 
     // calculate vel and omega from discretion
     CalcDiscreteVelAndOmega(

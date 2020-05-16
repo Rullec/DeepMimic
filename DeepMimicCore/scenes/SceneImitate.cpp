@@ -473,14 +473,24 @@ void cSceneImitate::ResetCharacters()
 	}
 }
 
+/*
+	Reset Kinchar
+	1. set pose and vel to pose0 and vel0
+	2. set origin rotation is identity
+	3. set origin position is the same as simchar init pos
+	4. set current time is random time
+	5. calculating current pose and vel according to current time
+	6. 
+*/
 void cSceneImitate::ResetKinChar()
 {
+	// double rand_time = 0;
 	double rand_time = CalcRandKinResetTime();
 
 	const cSimCharacter::tParams& char_params = mCharParams[0];
 	const auto& kin_char = GetKinChar();
 
-	kin_char->Reset();
+	kin_char->Reset();	// write mPose = mPose0, mVel = mVel0
 	kin_char->SetOriginRot(tQuaternion::Identity());
 	kin_char->SetOriginPos(char_params.mInitPos); // reset origin
 	kin_char->SetTime(rand_time);
@@ -488,6 +498,8 @@ void cSceneImitate::ResetKinChar()
 
 	if (EnabledRandRotReset())
 	{
+		std::cout <<"it will break ID! disabled!\n";
+		exit(1);
 		double rand_theta = mRand.RandDouble(-M_PI, M_PI);
 		kin_char->RotateOrigin(cMathUtil::EulerToQuaternion(tVector(0, rand_theta, 0, 0), eRotationOrder::XYZ));
 	}
@@ -585,11 +597,12 @@ void cSceneImitate::InitJointWeights()
 {
 	CalcJointWeights(GetCharacter(), mJointWeights);
 }
-
+// To avoid Char Ground Intersect, You must shift the whole character 
 void cSceneImitate::ResolveCharGroundIntersect()
 {
 	cRLSceneSimChar::ResolveCharGroundIntersect();
 
+	// after solving the intersect, we need to update kinchar value again.
 	if (EnableSyncChar())
 	{
 		SyncKinCharRoot();

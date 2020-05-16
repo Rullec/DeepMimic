@@ -54,6 +54,8 @@ void cInteractiveIDSolver::LoadTraj(tLoadInfo & load_info, const std::string & p
         load_info.mExternalTorques.resize(num_of_frames); for(auto & x : load_info.mExternalTorques) x.resize(mNumLinks);
         load_info.mTruthJointForces.resize(num_of_frames); for(auto & x : load_info.mTruthJointForces) x.resize(mNumLinks - 1);
         load_info.mTimesteps.resize(num_of_frames), load_info.mTimesteps.setZero();
+        load_info.mRewards.resize(num_of_frames), load_info.mRewards.setZero();
+        load_info.mMotionRefTime.resize(num_of_frames), load_info.mMotionRefTime.setZero();
     }
 
     for(int frame_id = 0; frame_id<num_of_frames; frame_id++)
@@ -63,6 +65,8 @@ void cInteractiveIDSolver::LoadTraj(tLoadInfo & load_info, const std::string & p
         auto & cur_vel = cur_frame["vel"];
         auto & cur_accel = cur_frame["accel"];
         auto & cur_timestep = cur_frame["timestep"];
+        auto & cur_ref_time = cur_frame["motion_ref_time"];
+        auto & cur_reward = cur_frame["reward"];
         auto & cur_contact_num = cur_frame["contact_num"];
         auto & cur_contact_info = cur_frame["contact_info"];
         auto & cur_ext_force = cur_frame["external_force"];
@@ -74,6 +78,7 @@ void cInteractiveIDSolver::LoadTraj(tLoadInfo & load_info, const std::string & p
         assert(cur_vel.isNull() == false); if(frame_id>=1) assert(cur_vel.size() == mDof);
         assert(cur_accel.isNull() == false);if(frame_id>=2) assert(cur_accel.size() == mDof);
         assert(cur_timestep.isNull() == false && cur_timestep.asDouble() > 0);
+        assert(cur_ref_time.isNull() == false);
         assert(cur_contact_info.size() == cur_contact_num.asInt());
         assert(cur_truth_joint_force.isNull() == false && cur_truth_joint_force.size() == (mNumLinks-1) * 4);
         // std::cout <<"load pd target size = " << cur_truth_action.size() << std::endl;
@@ -89,8 +94,10 @@ void cInteractiveIDSolver::LoadTraj(tLoadInfo & load_info, const std::string & p
         for(int j=0; j<mDof && frame_id>=1; j++) load_info.mVelMat(frame_id, j) = cur_vel[j].asDouble();
         for(int j=0; j<mDof && frame_id>=1; j++) load_info.mAccelMat(frame_id, j) = cur_accel[j].asDouble();
 
-        // 2. timestep
+        // 2. timestep and reward
         load_info.mTimesteps[frame_id] = cur_timestep.asDouble();
+        load_info.mRewards[frame_id] = cur_reward.asDouble();
+        load_info.mMotionRefTime[frame_id] = cur_ref_time.asDouble();
 
         // 3. contact info
         // load_info.mContactForces
@@ -314,6 +321,8 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
         */
         single_frame["frame_id"] = frame_id;
         single_frame["timestep"] = mSaveInfo.mTimesteps[frame_id];
+        single_frame["motion_ref_time"] = mSaveInfo.mRefTime[frame_id];
+        single_frame["reward"] = mSaveInfo.mRewards[frame_id];
         single_frame["pos"] = Json::Value(Json::arrayValue);
         single_frame["vel"] = Json::Value(Json::arrayValue);
         single_frame["accel"] = Json::Value(Json::arrayValue);
@@ -392,9 +401,14 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
         // append to the whole list
         root["list"].append(single_frame);
     }
+    if(false == cFileUtil::ValidateFilePath(final_name))
+    {
+        std::cout <<"[error] cOfflineIDSolver::SaveTraj path " << final_name <<" illegal\n";
+        exit(1);
+    }
     std::ofstream fout(final_name);
     writer->write(root, &fout);
-    std::cout <<"[log] cOfflineIDSolver::SaveTraj " << "for epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
+    std::cout <<"[log] cOfflineIDSolver::SaveTraj or epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
     return final_name;
 }
 

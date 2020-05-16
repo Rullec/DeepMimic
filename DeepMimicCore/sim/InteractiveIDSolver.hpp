@@ -39,6 +39,8 @@ protected:
         tVectorXd mTruthPDTarget[MAX_FRAME_NUM];        // the current action recorded from the controller of this char
 
         double mTimesteps[MAX_FRAME_NUM];   // timesteps
+        double mRewards[MAX_FRAME_NUM];    // rewards
+        double mRefTime[MAX_FRAME_NUM];     // current time in kinchar reference motion
         cMotion * mMotion;
         std::vector<tForceInfo> mContactForces[MAX_FRAME_NUM];
         std::vector<tVector> mExternalForces[MAX_FRAME_NUM], mExternalTorques[MAX_FRAME_NUM];
@@ -60,7 +62,7 @@ protected:
         eLoadMode mLoadMode = eLoadMode::INVALID;
         Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat, mActionMat, mPDTargetMat;
         cMotion * mMotion = nullptr;
-        tVectorXd mTimesteps;
+        tVectorXd mTimesteps, mRewards, mMotionRefTime;
         std::vector<std::vector<tForceInfo>> mContactForces;
         std::vector<std::vector<tMatrix>> mLinkRot;	// local to world rotation mats
         std::vector<std::vector<tVector>> mLinkPos;	// link COM pos in world frame
