@@ -7,8 +7,8 @@
 #include <iostream>
 
 std::string controller_details_path;
-cInteractiveIDSolver::cInteractiveIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, eIDSolverType type)
-    :cIDSolver(sim_char, world, type)
+cInteractiveIDSolver::cInteractiveIDSolver(cSceneImitate * imitate_scene, eIDSolverType type)
+    :cIDSolver(imitate_scene, type)
 {
 
 }

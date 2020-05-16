@@ -1,9 +1,10 @@
 #include "InteractiveIDSolver.hpp"
 
+class cSceneImitate;
 class cDisplayIDSolver : public cInteractiveIDSolver
 {
 public:
-    explicit cDisplayIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, const std::string & config);
+    explicit cDisplayIDSolver(cSceneImitate * sim_char, const std::string & config);
     ~cDisplayIDSolver();
     virtual void PreSim() override final;
     virtual void PostSim() override final;

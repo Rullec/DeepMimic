@@ -7,8 +7,8 @@
 #include <iostream>
 
 extern std::string controller_details_path;
-cSampleIDSolver::cSampleIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, const std::string & config)
-:cInteractiveIDSolver(sim_char, world , eIDSolverType::Display)
+cSampleIDSolver::cSampleIDSolver(cSceneImitate * imitate_scene, const std::string & config)
+:cInteractiveIDSolver(imitate_scene, eIDSolverType::Display)
 {
     controller_details_path = "logs/controller_logs/controller_details_sample.txt";
     Parseconfig(config);
