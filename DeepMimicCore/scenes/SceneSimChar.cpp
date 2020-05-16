@@ -726,6 +726,7 @@ void cSceneSimChar::CalcCharRandPlacement(const std::shared_ptr<cSimCharacter>& 
 
 void cSceneSimChar::ResolveCharGroundIntersect()
 {
+	// for characters
 	int num_chars = GetNumChars();
 	for (int i = 0; i < num_chars; ++i)
 	{
@@ -742,37 +743,40 @@ void cSceneSimChar::ResolveCharGroundIntersect(const std::shared_ptr<cSimCharact
 	double min_violation = 0;
 	for (int b = 0; b < num_parts; ++b)
 	{
+		// if this body part is valid
 		if (out_char->IsValidBodyPart(b))
 		{
-			tVector aabb_min;
-			tVector aabb_max;
+			tVector aabb_min;	// smallest values
+			tVector aabb_max;	// biggest values
 			const auto& part = out_char->GetBodyPart(b);
-			part->CalcAABB(aabb_min, aabb_max);
+			part->CalcAABB(aabb_min, aabb_max);	// calculate the AABB at this momentum (reply on bullet API)
 
-			tVector mid = 0.5 * (aabb_min + aabb_max);
-			tVector sw = tVector(aabb_min[0], 0, aabb_min[2], 0);
+			tVector mid = 0.5 * (aabb_min + aabb_max);	// find the center of this box
+			tVector sw = tVector(aabb_min[0], 0, aabb_min[2], 0);	// ignore y axis, find 4 corner points in XOZ plane
 			tVector nw = tVector(aabb_min[0], 0, aabb_max[2], 0);
 			tVector ne = tVector(aabb_max[0], 0, aabb_max[2], 0);
 			tVector se = tVector(aabb_max[0], 0, aabb_min[2], 0);
 
 			double max_ground_height = 0;
-			max_ground_height = mGround->SampleHeight(aabb_min);
+			max_ground_height = mGround->SampleHeight(aabb_min);	// find the max ground height
 			max_ground_height = std::max(max_ground_height, mGround->SampleHeight(mid));
 			max_ground_height = std::max(max_ground_height, mGround->SampleHeight(sw));
 			max_ground_height = std::max(max_ground_height, mGround->SampleHeight(nw));
 			max_ground_height = std::max(max_ground_height, mGround->SampleHeight(ne));
 			max_ground_height = std::max(max_ground_height, mGround->SampleHeight(se));
-			max_ground_height += pad;
+			max_ground_height += pad;	// avoid collision gap
 
-			double min_height = aabb_min[1];
-			min_violation = std::min(min_violation, min_height - max_ground_height);
+			double min_height = aabb_min[1];	// it is the lowest height for character bodies
+			min_violation = std::min(min_violation, min_height - max_ground_height);	// get a "minus" biggest value for violation. -999
 		}
 	}
 
+	// it violation occurs
 	if (min_violation < 0)
 	{
+		// here is a root pos, uplift our body
 		tVector root_pos = out_char->GetRootPos();
-		root_pos[1] += -min_violation;
+		root_pos[1] += -min_violation;	
 		out_char->SetRootPos(root_pos);
 	}
 }

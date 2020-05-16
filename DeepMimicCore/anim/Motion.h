@@ -85,6 +85,7 @@ public:
 
 	virtual void Output(const std::string& out_filepath) const;
 
+	std::string GetMotionFile()const{return mParams.mMotionFile;} 
 protected:
 	eLoop mLoop;
 	double mVelFilterCutoff;

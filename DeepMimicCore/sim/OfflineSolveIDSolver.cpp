@@ -1,4 +1,7 @@
 #include "OfflineSolveIDSolver.hpp"
+#include <anim/KinCharacter.h>
+#include <scenes/SceneImitate.h>
+#include <anim/Motion.h>
 #include "util/cTimeUtil.hpp"
 #include "../util/JsonUtil.h"
 #include "../util/BulletUtil.h"
@@ -13,7 +16,6 @@ cOfflineSolveIDSolver::cOfflineSolveIDSolver(cSceneImitate * imi, const std::str
 {
     controller_details_path = "logs/controller_logs/controller_details_offlinesolve.txt";
     Parseconfig(config);
-    OfflineSolve();
 }
 
 cOfflineSolveIDSolver::~cOfflineSolveIDSolver()
@@ -23,7 +25,8 @@ cOfflineSolveIDSolver::~cOfflineSolveIDSolver()
 
 void cOfflineSolveIDSolver::PreSim()
 {
-    
+    std::vector<tSingleFrameIDResult> mResult;
+    OfflineSolve(mResult);
 }
 
 void cOfflineSolveIDSolver::PostSim()
@@ -52,17 +55,67 @@ void cOfflineSolveIDSolver::Parseconfig(const std::string & conf)
     const Json::Value & solve_traj_path = solve_value["solve_traj_path"];
     assert(solve_traj_path.isNull() == false);
     LoadTraj(mLoadInfo, solve_traj_path.asString());
+/*
+    "export_train_data_path_meaning" : "训练数据的输出路径，后缀名为.train，里面存放了state, action, reward三个键值",
+    "export_train_data_path" : "data/batch_train_data/0424/leftleg_0.train",
+    "ref_motion_meaning" : "重新计算reward所使用到的motion",
+    "ref_motion" : "data/0424/motions/walk_motion_042401_leftleg.txt"
+*/
+    const Json::Value   &   export_train_data_path = solve_value["export_train_data_path"],
+                        &   ref_motion_path = solve_value["ref_motion_path"],
+                        &   retargeted_char_path = solve_value["retargeted_char_path"];
+    assert(export_train_data_path.isNull() == false);
+    assert(ref_motion_path.isNull() == false);
+    assert(retargeted_char_path.isNull() == false);
+    mExportDataPath = export_train_data_path.asString();
+    mRefMotionPath = ref_motion_path.asString();
+    mRetargetCharPath = retargeted_char_path.asString();
+
+    if(false == cFileUtil::ExistsFile(mRefMotionPath))
+    {
+        std::cout << "[error] cOfflineSolveIDSolver::Parseconfig ref motion doesn't exists: " << mRefMotionPath << std::endl;
+        exit(0);
+    }
+    if(false == cFileUtil::ValidateFilePath(mExportDataPath))
+    {
+        std::cout << "[error] cOfflineSolveIDSolver::Parseconfig export train data path illegal: " << mExportDataPath << std::endl;
+        exit(0);
+    }
+    if(false == cFileUtil::ValidateFilePath(mRetargetCharPath))
+    {
+        std::cout << "[error] cOfflineSolveIDSolver::Parseconfig retarget char path illegal: " << mRetargetCharPath << std::endl;
+        exit(0);
+    }
+
+    // verify that the retarget char path is the same as the simchar skeleton path
+    if(mRetargetCharPath != mSimChar->GetCharFilename())
+    {
+        std::cout <<"[error] cOfflineSolveIDSolver::Parseconfig retarget path " << mRetargetCharPath <<" != loaded simchar path " << mSimChar->GetCharFilename() << std::endl;
+        std::cout <<"it will make the state which we will get in OfflineSolve error\n";
+        exit(0);
+    }
+
+    // verify that the ref motion is the same as kinchar motion
+    if(mRefMotionPath != mKinChar->GetMotion().GetMotionFile())
+    {
+        std::cout <<"[error] cOfflineSolveIDSolver::Parseconfig ref motion file " << mRefMotionPath <<" != loaded kinchar motion path " << mKinChar->GetMotion().GetMotionFile() << std::endl;
+        std::cout <<"it will make the state which we will get in OfflineSolve error\n";
+        exit(0);
+    }
 }
 
-void cOfflineSolveIDSolver::OfflineSolve()
+
+void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDResults)
 {
     std::cout <<"[log] cOfflineIDSolver::OfflineSolve: begin\n";
     cTimeUtil::Begin("OfflineSolve");
     assert(mLoadInfo.mTotalFrame > 0);
+    IDResults.resize(mLoadInfo.mTotalFrame);
     std::cout <<"[debug] cOfflineIDSolver::OfflineSolve: motion total frame = " << mLoadInfo.mTotalFrame << std::endl;
     tVectorXd old_q, old_u;
     RecordGeneralizedInfo(old_q, old_u);
 
+    mCharController->SetInitTime(mLoadInfo.mMotionRefTime[0] - mLoadInfo.mTimesteps[0]);
     // 1. calc vel and accel from pos
     /*
     double cur_timestep = mSaveInfo.mTimesteps[cur_frame - 1],
@@ -114,17 +167,32 @@ void cOfflineSolveIDSolver::OfflineSolve()
     //     std::cout <<"frame " << cur_frame <<" link pos : " << mLoadInfo.mLinkPos[cur_frame][0].transpose() << std::endl;
     // }
     // exit(1);
-    double ID_torque_err = 0, ID_action_err = 0;
+
+    double ID_torque_err = 0, ID_action_err = 0, reward_err = 0;
     tVectorXd torque = tVectorXd::Zero(mSimChar->GetPose().size()), pd_target = tVectorXd::Zero(mSimChar->GetPose().size());
     for(int cur_frame = 1; cur_frame < mLoadInfo.mTotalFrame - 1; cur_frame++)
     {
+        auto & cur_ID_res = IDResults[cur_frame];
         // if(cur_frame > 10) break;
         // std::cout <<"---------frame " << cur_frame <<"--------------\n";
+        
+        // 1. set the sim character pose
         mInverseModel->clearAllUserForcesAndMoments();
         SetGeneralizedPos(mLoadInfo.mPoseMat.row(cur_frame));
         SetGeneralizedVel(mLoadInfo.mVelMat.row(cur_frame));
         mSimChar->PostUpdate(0);
 
+        // set the kin char pose
+        mKinChar->SetTime(mLoadInfo.mMotionRefTime[cur_frame]);
+        mKinChar->Pose(mLoadInfo.mMotionRefTime[cur_frame]);
+
+        // record state at this moment
+        mCharController->RecordState(cur_ID_res.state);
+        // if(cur_frame == 200)
+        // {
+        //     std::cout <<"offline kinchar 200 pose = " << mKinChar->GetPose().transpose() << std::endl;
+        //     exit(1);
+        // }
         std::vector<tVector> result;
         // SetGeneralizedInfo(mLoadInfo.mPoseMat.row(frame_id));
         /*
@@ -281,6 +349,16 @@ void cOfflineSolveIDSolver::OfflineSolve()
             exit(1);
         }
         ID_action_err += diff.norm();
+
+        // 2. record action into ID Result
+        cur_ID_res.action = action;
+
+        // 3. recalculate the reward according to current motion
+        // you must confirm that the simchar skeleton file is the same as trajectories skeleton file accordly (Now it has been guranteed in ParseConfig)
+        cur_ID_res.reward = mScene->CalcReward(0);
+        reward_err += std::fabs(cur_ID_res.reward - mLoadInfo.mRewards[cur_frame]);
+        std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
+
     }
     if(ID_torque_err < 1e-6 && ID_action_err < 1e-6)
     {
@@ -292,6 +370,7 @@ void cOfflineSolveIDSolver::OfflineSolve()
         std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID torque error = " << ID_torque_err << std::endl;
         std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID Action error = " << ID_action_err << std::endl;
     }
+    std::cout <<"[log] cOfflineIDSolver::OfflineSolve: total reward error = " << reward_err << std::endl;
     cTimeUtil::End("OfflineSolve");
     exit(1);
 }
