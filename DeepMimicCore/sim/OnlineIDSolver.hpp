@@ -1,13 +1,14 @@
 #include "IDSolver.hpp"
 #include <map>
 
+class cSceneImitate;
 class cOnlineIDSolver:public cIDSolver {
 public:
 	enum eSolvingMode {
 		VEL = 0,
 		POS,
 	};
-	cOnlineIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world);
+	cOnlineIDSolver(cSceneImitate * scene);
 	void ClearID();
 	virtual void SetTimestep(double deltaTime) override final;
 	virtual void PreSim() override final;

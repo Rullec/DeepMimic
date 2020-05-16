@@ -10,12 +10,12 @@ namespace Json{
     class Value;
 };
 class cMotion;
-
+class cSceneImitate;
 class cInteractiveIDSolver : public cIDSolver
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    explicit cInteractiveIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, eIDSolverType type);
+    explicit cInteractiveIDSolver(cSceneImitate * imitate_scene, eIDSolverType type);
     ~cInteractiveIDSolver();
     
 protected:

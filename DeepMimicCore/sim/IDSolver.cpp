@@ -1,20 +1,23 @@
 #include "IDSolver.hpp"
 #include "SimCharacter.h"
+#include "../scenes/SceneImitate.h"
 #include "../Extras/InverseDynamics/btMultiBodyTreeCreator.hpp"
 #include "sim/CtPDController.h"
 #include <util/BulletUtil.h>
 #include <iostream>
 
-cIDSolver::cIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, eIDSolverType type)
+cIDSolver::cIDSolver(cSceneImitate * imitate_scene, eIDSolverType type)
 {
-	assert(sim_char != nullptr);
-	assert(world != nullptr);
-	mSimChar = sim_char;
-	mCharController = std::dynamic_pointer_cast<cCtPDController>(sim_char->GetController()).get();
+	assert(imitate_scene != nullptr);
+	mSimChar = imitate_scene->GetCharacter(0).get();
+	mWorld = imitate_scene->GetWorld()->GetInternalWorld().get();
+	assert(mSimChar != nullptr);
+	assert(mWorld != nullptr);
+
+	mCharController = std::dynamic_pointer_cast<cCtPDController>(mSimChar->GetController()).get();
 	assert(mCharController!=nullptr && mCharController->IsValid());
-	mMultibody = sim_char->GetMultiBody().get();
-	mWorldScale = sim_char->GetWorld()->GetScale();
-	mWorld = world;
+	mMultibody = mSimChar->GetMultiBody().get();
+	mWorldScale = mSimChar->GetWorld()->GetScale();
 	mFloatingBase = !(mMultibody->hasFixedBase());
 	mDof = mMultibody->getNumDofs();
 	if (mFloatingBase == true)

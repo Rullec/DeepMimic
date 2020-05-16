@@ -1,10 +1,11 @@
 #include "InteractiveIDSolver.hpp"
 
-class cOfflineSolverIDSolver : public cInteractiveIDSolver
+class cSceneImitate;
+class cOfflineSolveIDSolver : public cInteractiveIDSolver
 {
 public:
-    explicit cOfflineSolverIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, const std::string & config);
-    ~cOfflineSolverIDSolver();
+    explicit cOfflineSolveIDSolver(cSceneImitate * imitate, const std::string & config);
+    ~cOfflineSolveIDSolver();
     virtual void PreSim() override final;
     virtual void PostSim() override final;
     virtual void Reset() override final;

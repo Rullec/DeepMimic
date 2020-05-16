@@ -1,5 +1,5 @@
 ﻿#include "SceneSimChar.h"
-
+#include "SceneImitate.h"
 #include <memory>
 #include <ctime>
 #include "sim/SimBox.h"
@@ -117,7 +117,6 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 
 	ParseGroundParams(parser, mGroundParams);
 
-	// parse inverse dynamics
 	mEnableID = false;
 	mIDInfoPath = "";
 	mArgParser->ParseBool("enable_inverse_dynamic_solving", mEnableID);
@@ -127,6 +126,7 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 		std::cout <<"[error] cSceneSimChar::ParseArgs failed for enable id but conf path is illegal: " << mIDInfoPath << std::endl;;
 		exit(1); 
 	}
+
 	
 }
 
@@ -202,7 +202,7 @@ void cSceneSimChar::Update(double time_elapsed)
 	// tVector root_vel = sim_char->GetRootVel(),
 			
 	// std::cout <<"[debug] time "<< time_elapsed << \
-	" root vel = " << root_vel.transpose() << ", root_omega = " << root_omega.transpose() << std::endl;
+	// " root vel = " << root_vel.transpose() << ", root_omega = " << root_omega.transpose() << std::endl;
 	// std::cout <<"[debug] time "<< this->GetTime() << " root_omega = " << root_omega.transpose() << std::endl;
 	// exit(1);
 	cScene::Update(time_elapsed);
@@ -625,7 +625,16 @@ void cSceneSimChar::BuildInverseDynamic()
 	// build inverse dynamics
 	auto sim_char = this->GetCharacter(0);
 	
-	mIDSolver = BuildIDSolver(mIDInfoPath, sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get());
+	auto scene_imitate_ptr = dynamic_cast<cSceneImitate * >(this);
+	if(scene_imitate_ptr == nullptr)
+	{
+		std::cout <<"[error] cSceneSimChar::BuildInverseDynamic can only be finished when cSceneImitate is instanced\n";
+		exit(1);
+	}
+	auto kin_char = scene_imitate_ptr->GetKinChar();
+	// std::cout <<"get kin char succ = " << kin_char->GetID() << std::endl;
+	// exit(0);
+	mIDSolver = BuildIDSolver(mIDInfoPath, scene_imitate_ptr);
 	// mOnlineIDSolver = std::shared_ptr<cOnlineIDSolver>(new cOnlineIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get()));
 	// mOfflineIDSolver = std::shared_ptr<cOfflineIDSolver>(new cOfflineIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get(), "./args/0311/id_conf_offline.json"));
 	// std::shared_ptr<cOnlineIDSolver>(new cOnlineIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get()));

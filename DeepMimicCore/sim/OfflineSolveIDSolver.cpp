@@ -8,41 +8,41 @@
 #include <iostream>
 
 extern std::string controller_details_path;
-cOfflineSolverIDSolver::cOfflineSolverIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, const std::string & config)
-:cInteractiveIDSolver(sim_char, world, eIDSolverType::OfflineSolve)
+cOfflineSolveIDSolver::cOfflineSolveIDSolver(cSceneImitate * imi, const std::string & config)
+:cInteractiveIDSolver(imi, eIDSolverType::OfflineSolve)
 {
     controller_details_path = "logs/controller_logs/controller_details_offlinesolve.txt";
     Parseconfig(config);
     OfflineSolve();
 }
 
-cOfflineSolverIDSolver::~cOfflineSolverIDSolver()
+cOfflineSolveIDSolver::~cOfflineSolveIDSolver()
 {
 
 }
 
-void cOfflineSolverIDSolver::PreSim()
+void cOfflineSolveIDSolver::PreSim()
 {
     
 }
 
-void cOfflineSolverIDSolver::PostSim()
+void cOfflineSolveIDSolver::PostSim()
 {
    
 }
 
-void cOfflineSolverIDSolver::Reset()
+void cOfflineSolveIDSolver::Reset()
 {
     std::cout << "void cOfflineIDSolver::Reset() solve mode solve\n";
     exit(0);
 }
 
-void cOfflineSolverIDSolver::SetTimestep(double)
+void cOfflineSolveIDSolver::SetTimestep(double)
 {
 
 }
 
-void cOfflineSolverIDSolver::Parseconfig(const std::string & conf)
+void cOfflineSolveIDSolver::Parseconfig(const std::string & conf)
 {
     Json::Value root;
     cJsonUtil::ParseJson(conf, root);
@@ -54,7 +54,7 @@ void cOfflineSolverIDSolver::Parseconfig(const std::string & conf)
     LoadTraj(mLoadInfo, solve_traj_path.asString());
 }
 
-void cOfflineSolverIDSolver::OfflineSolve()
+void cOfflineSolveIDSolver::OfflineSolve()
 {
     std::cout <<"[log] cOfflineIDSolver::OfflineSolve: begin\n";
     cTimeUtil::Begin("OfflineSolve");

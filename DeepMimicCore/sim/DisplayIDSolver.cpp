@@ -1,12 +1,13 @@
 #include "DisplayIDSolver.hpp"
+#include "../scenes/SceneImitate.h"
 #include "../util/JsonUtil.h"
 #include <sim/SimCharacter.h>
 #include "../util/FileUtil.h"
 #include <iostream>
 
 extern std::string controller_details_path;
-cDisplayIDSolver::cDisplayIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, const std::string & config)
-:cInteractiveIDSolver(sim_char, world , eIDSolverType::Display)
+cDisplayIDSolver::cDisplayIDSolver(cSceneImitate * scene, const std::string & config)
+:cInteractiveIDSolver(scene, eIDSolverType::Display)
 {
     controller_details_path = "logs/controller_logs/controller_details_display.txt";
     Parseconfig(config);

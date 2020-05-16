@@ -38,10 +38,11 @@ class btMultiBody;
 class btMultiBodyDynamicsWorld;
 class cSimCharacter;
 class cCtPDController;
+class cSceneImitate;
 
 class cIDSolver{
 public:
-	cIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, eIDSolverType type);
+	cIDSolver(cSceneImitate * imitate_scene, eIDSolverType type);
 	~cIDSolver();
 	eIDSolverType GetType();
 	virtual void Reset() = 0;
