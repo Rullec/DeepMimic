@@ -44,8 +44,8 @@ void cSampleIDSolver::PreSim()
     // for(auto & x : mSaveInfo.mTruthJointForces[cur_frame]) std::cout << x.transpose() << std::endl;
     RecordGeneralizedInfo(mSaveInfo.mBuffer_q[cur_frame], mSaveInfo.mBuffer_u[cur_frame]);
 
-    double reward = mScene->CalcReward(0);
-    std::cout << "frame " << cur_frame <<" reward = " << reward << std::endl;
+    // double reward = mScene->CalcReward(0);
+    // std::cout << "frame " << cur_frame <<" reward = " << reward << std::endl;
 
     // only record momentum in PreSim for the first frame
     if(0 == cur_frame)

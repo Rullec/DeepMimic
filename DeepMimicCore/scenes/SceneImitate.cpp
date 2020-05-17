@@ -6,6 +6,7 @@
 #include <iostream>
 using namespace std;
 
+std::string gRewardInfopath;
 cSceneImitate::RewardParams::RewardParams()
 {
 	pose_w = 0;
@@ -146,6 +147,10 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	tVector root_ang_vel0 = cKinTree::GetRootAngVel(joint_mat, vel0);
 	tVector root_ang_vel1 = cKinTree::GetRootAngVel(joint_mat, vel1);
 
+	std::ofstream fout(gRewardInfopath, std::ios::app);
+	fout << "---------------\n";
+	fout <<"pose1 = " << pose1.transpose() << std::endl;
+	// fout <<"root_pos1 = " << root_pos1.transpose() << std::endl;
 	double pose_err = 0;
 	double vel_err = 0;
 	double end_eff_err = 0;
@@ -226,7 +231,8 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	root_pos0[1] -= root_ground_h0;
 	root_pos1[1] -= root_ground_h1;
 	double root_pos_err = (root_pos0 - root_pos1).squaredNorm();
-	
+	// fout <<"root_pos 0 " << root_pos0.transpose() <<" ";
+	// fout <<"root_pos 1 " << root_pos1.transpose() <<" ";
 	double root_rot_err = cMathUtil::QuatDiffTheta(root_rot0, root_rot1);
 	root_rot_err *= root_rot_err;
 
@@ -261,7 +267,24 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	*/
 	reward = pose_w * pose_reward + vel_w * vel_reward + end_eff_w * end_eff_reward
 		+ root_w * root_reward + com_w * com_reward;
+	// fout << "pose reward = " << pose_reward << " ";
+	// fout << "vel reward = " << vel_reward << " ";
+	// fout << "end eff reward = " << end_eff_reward << " ";
+	/*
+			root_pos_err
+			+ RewParams.root_rot_w * root_rot_err
+			+ RewParams.root_vel_w * root_vel_err
+			+ RewParams.root_angle_vel_w * root_ang_vel_err;
+	*/
+	fout << "root pos err = " << root_pos_err << " ";
+	// fout << "root rot err = " << root_rot_err << " ";
+	// fout << "root vel err = " << root_vel_err << " ";
+	// fout << "root ang vel err = " << root_ang_vel_err << " ";
+	fout << "root reward = " << root_reward << " ";
 
+	// fout << "com reward = " << com_reward << " ";
+	// fout << "final reward = " << reward << " ";
+	fout << std::endl;
 	return reward;
 }
 
@@ -276,6 +299,9 @@ cSceneImitate::cSceneImitate()
 	mEnableAngleDiffLog = false;
 	mEnableRootRotFail = false;
 	mHoldEndFrame = 0;
+
+	gRewardInfopath = "reward_info_sample.txt";
+	// cFileUtil::ClearFile(gRewardInfopath);
 }
 
 cSceneImitate::~cSceneImitate()
@@ -387,6 +413,11 @@ std::string cSceneImitate::GetName() const
 	return "Imitate";
 }
 
+void cSceneImitate::SyncKinCharNewCycleInverseDynamic(const cSimCharacter& sim_char, cKinCharacter& out_kin_char) const
+{
+	SyncKinCharNewCycle(sim_char, out_kin_char);
+}
+
 bool cSceneImitate::BuildCharacters()
 {
 	bool succ = cRLSceneSimChar::BuildCharacters();
@@ -469,15 +500,27 @@ void cSceneImitate::UpdateKinChar(double timestep)
 {
 	const auto& kin_char = GetKinChar();
 	double prev_phase = kin_char->GetPhase();
+	
 	kin_char->Update(timestep);
-	double curr_phase = kin_char->GetPhase();
 
+	// auto before_pose = kin_char->GetPose();
+
+	double curr_phase = kin_char->GetPhase();
 	// 如果之前阶段比当前阶段大，代表进入新循环了
 	if (curr_phase < prev_phase)
 	{
 		const auto& sim_char = GetCharacter();
 		SyncKinCharNewCycle(*sim_char, *kin_char);
 	}
+
+	// if(std::fabs(kin_char->GetPose()[0]) > 1e-7)
+	// {
+	// 	std::cout << "time = " << kin_char->GetTime() <<" frame " << int(kin_char->GetTime() / timestep)\
+	// 		<<" kinchar pose[0] > 1e-7\n";
+	// 	std::cout << "before pose = " << before_pose.transpose() << std::endl;
+	// 	std::cout <<"after pose = " << kin_char->GetPose().transpose() << std::endl;
+	// 	exit(1);
+	// }
 }
 
 void cSceneImitate::ResetCharacters()
@@ -502,6 +545,8 @@ void cSceneImitate::ResetCharacters()
 */
 void cSceneImitate::ResetKinChar()
 {
+	// cFileUtil::ClearFile(gRewardInfopath);
+
 	// 1. get a random time
 	double rand_time = CalcRandKinResetTime();
 
@@ -663,18 +708,23 @@ void cSceneImitate::SyncKinCharRoot()
 	kin_char->SetRootPos(sim_root_pos);
 }
 
+// When the simulation step into a new cycle of given motion, we need to 
 void cSceneImitate::SyncKinCharNewCycle(const cSimCharacter& sim_char, cKinCharacter& out_kin_char) const
 {
-	// 这些同步，都只对rot进行了操作...
-	// 这说明: 任意时刻下动作都是从root中重新推导的
+	// Do we sync the rotation of rot? It is an option which is avaliable in config arg_file
+	// It is usually closed, because the orientation of the character are important to its motion in most cases.
+	// We always want to keep the character running in the same direction or at least, do not have a big bias
 	if (mSyncCharRootRot)
 	{
 		double sim_heading = sim_char.CalcHeading();
 		double kin_heading = out_kin_char.CalcHeading();
+		// rotate the kin_char heading the same as the simulated one
 		tQuaternion drot = cMathUtil::AxisAngleToQuaternion(tVector(0, 1, 0, 0), sim_heading - kin_heading);
 		out_kin_char.RotateRoot(drot);
 	}
 
+	// Do we sync the position of root? It is in arg_file as well
+	// It is usually opened. The given motion can have a shift in root pos between the first & the end frame of it.
 	if (mSyncCharRootPos)
 	{
 		tVector sim_root_pos = sim_char.GetRootPos();
