@@ -76,7 +76,7 @@ if __name__ =="__main__":
         train, test, time, time_exp= read_log_file(filename)
         plt.subplot(1, 2, 1)
         plt.plot(train, label = filename + " train_ret")
-        # plt.plot(test, label = filename + " test_ret")
+        plt.plot(test, label = filename + " test_ret")
         plt.legend()
         plt.subplot(1, 2, 2)
         plt.plot(time, label = filename + " timer")
