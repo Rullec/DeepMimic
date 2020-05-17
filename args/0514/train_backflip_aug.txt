@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 0.5
---time_lim_max 0.5
+--time_lim_min 0.3
+--time_lim_max 0.3
 --time_lim_exp 0.2
 
 --time_end_lim_min 20
@@ -42,7 +42,7 @@
 --train_agents true
 
 --output_path output/0514
-# --model_files output/0514/agent0_model_2020_05_17_00_22_31_11.34.ckpt
+--model_files output/0514/agent0_model_2020_05_17_13_24_34_7.17.ckpt
 
 #---------------------- Inverse Dyanmics config-------------------
 --enable_inverse_dynamic_solving false
