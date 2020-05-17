@@ -47,6 +47,7 @@ public:
 	virtual eTerminate CheckTerminate(int agent_id) const;
 
 	virtual std::string GetName() const;
+	virtual void SyncKinCharNewCycleInverseDynamic(const cSimCharacter& sim_char, cKinCharacter& out_kin_char) const;
 protected:
 
 	std::string mMotionFile;

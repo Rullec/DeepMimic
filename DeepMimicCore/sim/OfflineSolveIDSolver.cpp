@@ -11,10 +11,12 @@
 #include <iostream>
 
 extern std::string controller_details_path;
+extern std::string gRewardInfopath;
 cOfflineSolveIDSolver::cOfflineSolveIDSolver(cSceneImitate * imi, const std::string & config)
 :cInteractiveIDSolver(imi, eIDSolverType::OfflineSolve)
 {
     controller_details_path = "logs/controller_logs/controller_details_offlinesolve.txt";
+    gRewardInfopath = "reward_info_solve.txt";
     Parseconfig(config);
 }
 
@@ -170,6 +172,8 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
 
     double ID_torque_err = 0, ID_action_err = 0, reward_err = 0;
     tVectorXd torque = tVectorXd::Zero(mSimChar->GetPose().size()), pd_target = tVectorXd::Zero(mSimChar->GetPose().size());
+    mKinChar->SetTime(mLoadInfo.mTimesteps[0]);
+    mKinChar->Update(0);
     for(int cur_frame = 1; cur_frame < mLoadInfo.mTotalFrame - 1; cur_frame++)
     {
         auto & cur_ID_res = IDResults[cur_frame];
@@ -183,8 +187,11 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
         mSimChar->PostUpdate(0);
 
         // set the kin char pose
-        mKinChar->SetTime(mLoadInfo.mMotionRefTime[cur_frame]);
-        mKinChar->Pose(mLoadInfo.mMotionRefTime[cur_frame]);
+        // mKinChar->SetTime();
+        // mKinChar->Pose(mLoadInfo.mMotionRefTime[cur_frame]);
+        
+        
+
 
         // record state at this moment
         mCharController->RecordState(cur_ID_res.state);
@@ -355,9 +362,26 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
 
         // 3. recalculate the reward according to current motion
         // you must confirm that the simchar skeleton file is the same as trajectories skeleton file accordly (Now it has been guranteed in ParseConfig)
+          
+        double prev_phase = mKinChar->GetPhase();
+            
+        mKinChar->Update(mLoadInfo.mTimesteps[cur_frame]);
         cur_ID_res.reward = mScene->CalcReward(0);
+
+        double curr_phase = mKinChar->GetPhase();
+            // 如果之前阶段比当前阶段大，代表进入新循环了
+            if (curr_phase < prev_phase)
+            {
+                // std::cout<<"it updates! now time = " << mKinChar->GetTime() << std::endl;
+                // exit(1);
+                (dynamic_cast<cSceneImitate *>(mScene))->SyncKinCharNewCycleInverseDynamic(*mSimChar, *mKinChar);
+            }
+            
+        // std::cout <<"Verbose calculated reward here\n";
+        // cur_ID_res.reward = mScene->CalcReward(0);
         reward_err += std::fabs(cur_ID_res.reward - mLoadInfo.mRewards[cur_frame]);
         std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
+        // std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
 
     }
     if(ID_torque_err < 1e-6 && ID_action_err < 1e-6)

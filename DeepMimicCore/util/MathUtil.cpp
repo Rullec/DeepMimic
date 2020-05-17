@@ -605,7 +605,7 @@ tQuaternion cMathUtil::VecDiffQuat(const tVector& v0, const tVector& v1)
 	return tQuaternion::FromTwoVectors(v0.segment(0, 3), v1.segment(0, 3));
 }
 
-tVector cMathUtil::ZQuatRotVec(const tQuaternion& q, const tVector& dir)
+tVector cMathUtil::QuatRotVec(const tQuaternion& q, const tVector& dir)
 {
 	tVector rot_dir = tVector::Zero();
 	rot_dir.segment(0, 3)  = q * dir.segment(0, 3);

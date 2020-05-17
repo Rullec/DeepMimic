@@ -168,6 +168,7 @@ int cKinCharacter::GetCycle() const
 	return cycle;
 }
 
+// the concept of "phase" means how many cycle has this character achieved acoording to the ref motion.
 double cKinCharacter::GetPhase() const
 {
 	double phase = mTime / mMotion.GetDuration();
@@ -344,7 +345,7 @@ tVector cKinCharacter::CalcCycleRootDelta() const
 
 void cKinCharacter::CalcPose(double time, Eigen::VectorXd& out_pose) const
 {
-	std::cout <<"------------begin to calculate pose for time " << time << std::endl;
+	// std::cout <<"------------begin to calculate pose for time " << time << std::endl;
 	// given a time, how to compute the pose accordly
 	tVector root_delta = tVector::Zero();	// root delta translation is zero
 	tQuaternion root_delta_rot = tQuaternion::Identity();	// root delta rotation is identity
@@ -370,30 +371,30 @@ void cKinCharacter::CalcPose(double time, Eigen::VectorXd& out_pose) const
 	// 2. fetch the root_pos and root_rot in out_pose, which is purely ref motion
 	tVector root_pos = cKinTree::GetRootPos(mJointMat, out_pose);
 	tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, out_pose);	// then find out current root_rot in the ref motion
-	std::cout <<"root pos from motion data = " << root_pos.transpose() << std::endl;
+	// std::cout <<"root pos from motion data = " << root_pos.transpose() << std::endl;
 
 	// 3. root_rot = mOriginRot * root_ref_rot
 	root_delta_rot = mOriginRot * root_delta_rot;
 	root_rot = root_delta_rot * root_rot;
 	root_pos += root_delta;
-	std::cout <<"root delta = " << root_delta.transpose() << std::endl;
-	std::cout <<"root pos after root delta = " << root_pos.transpose() << std::endl;
-	std::cout <<"root delta rot = " << root_delta_rot.coeffs().transpose() << std::endl;
+	// std::cout <<"root delta = " << root_delta.transpose() << std::endl;
+	// std::cout <<"root pos after root delta = " << root_pos.transpose() << std::endl;
+	// std::cout <<"root delta rot = " << root_delta_rot.coeffs().transpose() << std::endl;
 
 	// 4. rotate root_pos with mOriginRot, strange?
 	root_pos = cMathUtil::QuatRotVec(root_delta_rot, root_pos);
-	std::cout <<"root pos after root_delta rot = " << root_pos.transpose() << std::endl;
-	std::cout <<"mOrigin = " << mOrigin.transpose() << std::endl;
+	// std::cout <<"root pos after root_delta rot = " << root_pos.transpose() << std::endl;
+	// std::cout <<"mOrigin = " << mOrigin.transpose() << std::endl;
 
 	// 5. move root_pos with mOrigin? stange...
 	root_pos += mOrigin;
-	std::cout <<"root pos after mOrigin = " << root_pos.transpose() << std::endl;
+	// std::cout <<"root pos after mOrigin = " << root_pos.transpose() << std::endl;
 
 	// 6. write new root_pos and root_rot to out_pose
 	// final_root_pos = mOriginRot * root_ref_pos  + mOrigin
 	cKinTree::SetRootPos(mJointMat, root_pos, out_pose);
 	cKinTree::SetRootRot(mJointMat, root_rot, out_pose);
-	std::cout <<"------------end to calculate pose for time " << time << std::endl;
+	// std::cout <<"------------end to calculate pose for time " << time << std::endl;
 }
 
 void cKinCharacter::CalcVel(double time, Eigen::VectorXd& out_vel) const
