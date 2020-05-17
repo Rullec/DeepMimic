@@ -580,6 +580,7 @@ double cMathUtil::QuatDiffTheta(const tQuaternion& q0, const tQuaternion& q1)
 	return QuatTheta(dq);
 }
 
+// given a 
 double cMathUtil::QuatTheta(const tQuaternion& dq)
 {
 	double theta = 0;
@@ -589,11 +590,12 @@ double cMathUtil::QuatTheta(const tQuaternion& dq)
 		q1.normalize();
 	}
 
+	// theta = angle / 2
 	double sin_theta = std::sqrt(1 - q1.w() * q1.w());// sin(theta) which "theta" is the rotation angle/2 in dq
 	if (sin_theta > 0.0001)
 	{
-		theta = 2 * std::acos(q1.w());
-		theta = cMathUtil::NormalizeAngle(theta);
+		theta = 2 * std::acos(q1.w());	// this is angle now
+		theta = cMathUtil::NormalizeAngle(theta);	// noramlize angle
 	}
 	return theta;
 }
@@ -603,7 +605,7 @@ tQuaternion cMathUtil::VecDiffQuat(const tVector& v0, const tVector& v1)
 	return tQuaternion::FromTwoVectors(v0.segment(0, 3), v1.segment(0, 3));
 }
 
-tVector cMathUtil::QuatRotVec(const tQuaternion& q, const tVector& dir)
+tVector cMathUtil::ZQuatRotVec(const tQuaternion& q, const tVector& dir)
 {
 	tVector rot_dir = tVector::Zero();
 	rot_dir.segment(0, 3)  = q * dir.segment(0, 3);

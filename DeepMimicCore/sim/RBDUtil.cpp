@@ -31,11 +31,11 @@ void cRBDUtil::SolveInvDyna(const cRBDModel& model, const Eigen::VectorXd& acc, 
 			cSpAlg::tSpTrans parent_child_trans = model.GetSpParentChildTrans(j);
 			cSpAlg::tSpTrans world_child_trans = model.GetSpWorldJointTrans(j);
 
-			const auto S = model.GetJointSubspace(j);	// »ñÈ¡joint×Ó¿Õ¼ä?joint»¹ÓÐ×Ó¿Õ¼ä?
+			const auto S = model.GetJointSubspace(j);	// ï¿½ï¿½È¡jointï¿½Ó¿Õ¼ï¿½?jointï¿½ï¿½ï¿½ï¿½ï¿½Ó¿Õ¼ï¿½?
 			Eigen::VectorXd q;
 			Eigen::VectorXd dq;
 			Eigen::VectorXd ddq;
-			// ¶ÔJoint j ÄÃÈ¡µ±Ç°Ê±¿Ì pose, vel, accel
+			// ï¿½ï¿½Joint j ï¿½ï¿½È¡ï¿½ï¿½Ç°Ê±ï¿½ï¿½ pose, vel, accel
 			cKinTree::GetJointParams(joint_mat, pose, j, q);
 			cKinTree::GetJointParams(joint_mat, vel, j, dq);
 			cKinTree::GetJointParams(joint_mat, acc, j, ddq);
@@ -280,27 +280,27 @@ Eigen::MatrixXd cRBDUtil::MultJacobianEndEff(const Eigen::MatrixXd& joint_mat, c
 
 void cRBDUtil::BuildJacobian(const cRBDModel& model, Eigen::MatrixXd& out_J)
 {
-	//¸ø¶¨RBD model ¼ÆËãjacobian...
+	//ï¿½ï¿½ï¿½ï¿½RBD model ï¿½ï¿½ï¿½ï¿½jacobian...
 	const Eigen::MatrixXd& joint_mat = model.GetJointMat();
 	const Eigen::VectorXd& pose = model.GetPose();
 
 	int num_dofs = model.GetNumDof();
-	out_J = Eigen::MatrixXd::Zero(cSpAlg::gSpVecSize, num_dofs);	// 6 * n£¬È·ÊµÊÇ[Jv, Jw]µÄÐÎÊ½
+	out_J = Eigen::MatrixXd::Zero(cSpAlg::gSpVecSize, num_dofs);	// 6 * nï¿½ï¿½È·Êµï¿½ï¿½[Jv, Jw]ï¿½ï¿½ï¿½ï¿½Ê½
 
 	int num_joints = cKinTree::GetNumJoints(joint_mat);
 	for (int j = 0; j < num_joints; ++j)
 	{
-		// ¶ÔÓÚÃ¿Ò»¸öJoint
-		// cSpAlg::¿Õ¼ä´úÊý¿â
-		// ×ÖÃæÒâË¼ ´ó¸ÅÊÇ´ÓÊÀ½ç×ø±êÏµµ½localµÄ±ä»»(3, 4)
+		// ï¿½ï¿½ï¿½ï¿½Ã¿Ò»ï¿½ï¿½Joint
+		// cSpAlg::ï¿½Õ¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë¼ ï¿½ï¿½ï¿½ï¿½Ç´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½localï¿½Ä±ä»»(3, 4)
 		cSpAlg::tSpTrans world_joint_trans = model.GetSpWorldJointTrans(j);	
 
 		int offset = cKinTree::GetParamOffset(joint_mat, j);
 		int size = cKinTree::GetParamSize(joint_mat, j);
 		const Eigen::MatrixXd S = model.GetJointSubspace(j);
 
-		// ½øÈëÒ»¸ö 6 * DOFµÄ¿é, Èç¹ûDOFÒ»Ö±ÊÇ3µÄ»°£¬¾ÍÃ»ÎÊÌâ¡£
-		// ¿ÉÄÜ»¹ÊÇµÃÅÜÒ»ÏÂ²âÒ»ÏÂ
+		// ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ 6 * DOFï¿½Ä¿ï¿½, ï¿½ï¿½ï¿½DOFÒ»Ö±ï¿½ï¿½3ï¿½Ä»ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½â¡£
+		// ï¿½ï¿½ï¿½Ü»ï¿½ï¿½Çµï¿½ï¿½ï¿½Ò»ï¿½Â²ï¿½Ò»ï¿½ï¿½
 		out_J.block(0, offset, cSpAlg::gSpVecSize, size) = cSpAlg::ApplyInvTransM(world_joint_trans, S);
 	}
 }
@@ -586,6 +586,7 @@ void cRBDUtil::CalcCoM(const cRBDModel& model, tVector& out_com, tVector& out_ve
 	out_vel /= total_mass;
 }
 
+// given pose and vel, calculate COM and its vel in world frame
 void cRBDUtil::CalcCoM(const Eigen::MatrixXd& joint_mat, const Eigen::MatrixXd& body_defs, const Eigen::VectorXd& pose, const Eigen::VectorXd& vel,
 						tVector& out_com, tVector& out_vel)
 {
@@ -925,7 +926,7 @@ Eigen::MatrixXd cRBDUtil::BuildJointSubspaceSpherical(const Eigen::MatrixXd& joi
 
 cSpAlg::tSpVec cRBDUtil::BuildCj(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& q, const Eigen::VectorXd& q_dot, int j)
 {
-	// buildCjÊÇÊ²Ã´?
+	// buildCjï¿½ï¿½Ê²Ã´?
 	cKinTree::eJointType j_type = cKinTree::GetJointType(joint_mat, j);
 	bool is_root = cKinTree::IsRoot(joint_mat, j);
 	cSpAlg::tSpVec cj;

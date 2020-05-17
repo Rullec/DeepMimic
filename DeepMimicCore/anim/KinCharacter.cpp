@@ -349,6 +349,7 @@ void cKinCharacter::CalcPose(double time, Eigen::VectorXd& out_pose) const
 	tVector root_delta = tVector::Zero();	// root delta translation is zero
 	tQuaternion root_delta_rot = tQuaternion::Identity();	// root delta rotation is identity
 
+	// 1. get a purely ref motion from mMotion 
 	if (HasMotion())
 	{
 		// if motion exists
@@ -366,24 +367,30 @@ void cKinCharacter::CalcPose(double time, Eigen::VectorXd& out_pose) const
 		out_pose = mPose0;
 	}
 	
-	// given a time, try to calculate the current Pose. It first, find out current root_pos in the ref motion
+	// 2. fetch the root_pos and root_rot in out_pose, which is purely ref motion
 	tVector root_pos = cKinTree::GetRootPos(mJointMat, out_pose);
 	tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, out_pose);	// then find out current root_rot in the ref motion
 	std::cout <<"root pos from motion data = " << root_pos.transpose() << std::endl;
 
-	// it will not set up the mPose according to the motion directly. Instead, it has a mOriginRot and mOrigin to move the root_pos and root_rot
+	// 3. root_rot = mOriginRot * root_ref_rot
 	root_delta_rot = mOriginRot * root_delta_rot;
 	root_rot = root_delta_rot * root_rot;
 	root_pos += root_delta;
 	std::cout <<"root delta = " << root_delta.transpose() << std::endl;
 	std::cout <<"root pos after root delta = " << root_pos.transpose() << std::endl;
 	std::cout <<"root delta rot = " << root_delta_rot.coeffs().transpose() << std::endl;
+
+	// 4. rotate root_pos with mOriginRot, strange?
 	root_pos = cMathUtil::QuatRotVec(root_delta_rot, root_pos);
 	std::cout <<"root pos after root_delta rot = " << root_pos.transpose() << std::endl;
 	std::cout <<"mOrigin = " << mOrigin.transpose() << std::endl;
+
+	// 5. move root_pos with mOrigin? stange...
 	root_pos += mOrigin;
 	std::cout <<"root pos after mOrigin = " << root_pos.transpose() << std::endl;
 
+	// 6. write new root_pos and root_rot to out_pose
+	// final_root_pos = mOriginRot * root_ref_pos  + mOrigin
 	cKinTree::SetRootPos(mJointMat, root_pos, out_pose);
 	cKinTree::SetRootRot(mJointMat, root_rot, out_pose);
 	std::cout <<"------------end to calculate pose for time " << time << std::endl;
