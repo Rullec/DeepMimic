@@ -272,7 +272,7 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 		// begin to solve PD target
 		if(true == mEnableSolvePDTargetTest)
 		{
-			cTimeUtil::Begin("solve PD");
+			// cTimeUtil::Begin("solve PD");
 			// check velocity
 			{
 				tVectorXd target_vel;
@@ -305,10 +305,10 @@ void cImpPDController::CalcControlForces(double time_step, Eigen::VectorXd & out
 				std::cout << "\n[warning] cImpPDController::CalcControlForces: solve pd target diff = " << diff.transpose() << std::endl;
 				// exit(1);
 			}
-			std::cout <<"[log] cImpPDController solve PD Target accurately\n";
+			// std::cout <<"[log] cImpPDController solve PD Target accurately\n";
 			// std::cout <<"[log] cImpPDController solved PD target = " << solved_pd_target.transpose() << std::endl; 
 			// std::cout <<"[log] cImpPDController truth PD target = " << solved_pd_target.transpose() << std::endl; 
-			cTimeUtil::End("solve PD");
+			// cTimeUtil::End("solve PD");
 		}
 	}
 	// exit(1);

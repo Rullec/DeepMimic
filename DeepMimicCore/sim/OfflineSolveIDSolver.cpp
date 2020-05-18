@@ -289,6 +289,7 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
         
         // 4.6 the loaded action hasn't been normalized, we need to preprocess it before comparing...
         tVectorXd truth_action = mLoadInfo.mActionMat.row(cur_frame);
+        double total_action_err = 0, single_action_err = 0;
         assert(truth_action.size() == mCharController->GetActionSize());
         f_cnt = 0;
         for(int j=0; j<mNumLinks-1; j++)
@@ -296,12 +297,36 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
             switch (this->mMultibody->getLink(j).m_jointType)
             {
             case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+            {
+                // 6.1 compare the ideal action and solved action
+                single_action_err = std::fabs( truth_action[f_cnt] - action[f_cnt]);
+                if(single_action_err > 1e-7)
+                {
+                    std::cout <<"joint " << j << " type eRevolute, truth joint force " <<\
+                        truth_action[f_cnt] <<", solved joint force = " << action[f_cnt] <<", diff = "\
+                        << single_action_err << std::endl;
+                    total_action_err += single_action_err;
+                }
                 f_cnt++;
                 break;
+            }
             case btMultibodyLink::eFeatherstoneJointType::eSpherical:
             {
                 truth_action.segment(f_cnt + 1, 3).normalize();
                 if(std::fabs(truth_action[f_cnt]) <1e-10) truth_action.segment(f_cnt, 4).setZero();
+
+                // it is because that, the axis angle represention is ambiguous
+                single_action_err = std::min(
+                    (truth_action.segment(f_cnt, 4) + action.segment(f_cnt, 4)).norm(),
+                    (truth_action.segment(f_cnt, 4) - action.segment(f_cnt, 4)).norm()
+                    );
+                if(single_action_err > 1e-7)
+                {
+                    std::cout <<"joint " << j << " type eSpherical, truth joint force " << \
+                    truth_action.segment(f_cnt, 4).transpose() <<", solved joint force = " \
+                    << action.segment(f_cnt, 4).transpose() <<", diff = " << single_action_err << std::endl;
+                    total_action_err += single_action_err;
+                }
                 f_cnt+=4;
                 break;
             }
@@ -314,17 +339,12 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
             }
         }
 
-        tVectorXd diff = (action - truth_action);
-        if(diff.norm() > 1e-7)
+        if(total_action_err > 1e-7)
         {
-            cMathUtil::ThresholdOp(diff, 1e-6);
-            std::cout <<"truth action = " << truth_action.transpose() << std::endl;
-            std::cout <<"solved action = " << action.transpose() << std::endl;
-            std::cout << "[log] cOFFlineSolve::OfflineSolve: solving PD target frame " << cur_frame << " error norm = " << diff.norm() << std::endl;
-            std::cout << "[log] cOFFlineSolve::OfflineSolve: solving PD target frame " << cur_frame << " error = " << diff.transpose() << std::endl;
+            std::cout <<"[error] OfflineSolveIDSolver: frame " << cur_frame <<" action err = " << total_action_err << std::endl;
             exit(1);
         }
-        ID_action_err += diff.norm();
+        ID_action_err += total_action_err;
 
         cur_ID_res.action = action;
 

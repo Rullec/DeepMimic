@@ -4,6 +4,13 @@
     "IDMode_bak4" : "Display",
     "IDMode_bak3" : "Sample",
     "IDMode": "OfflineSolve",
+    "SampleModeInfo":
+    {
+        "sample_num" : 20,
+        "sample_trajs_dir" : "data/batch_trajs/0426/",
+        "sample_trajs_rootname" : "traj_fullbody.json",
+        "summary_table_filename" : "summary_table_fullbody.json"
+    },
     "SaveModeInfo":
     {
         "_comment" : "this section focus on the setting of save mode",
@@ -20,6 +27,9 @@
     "SolveModeInfo":
     {
         "_comment" : "this section focus on the setting of solve mode",
-        "solve_traj_path" : "data/0426/trajs/traj_fullbody_0.json"
+        "solve_traj_path" : "data/batch_trajs/0426/traj_fullbody_0.json",
+        "export_train_data_path" : "data/batch_train_data/0426/fullbody_0.train",
+        "ref_motion_path" : "data/0424/motions/walk_motion_042601.txt",
+        "retargeted_char_path" : "data/0424/characters/skeleton_042302_revised.json"
     }
 }
