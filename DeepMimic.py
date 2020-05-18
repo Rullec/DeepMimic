@@ -130,7 +130,7 @@ def reload():
 
     # 在这里build了world, 必然绘制
     world = build_world(args, enable_draw=True)
-    print("build world succ")
+    # print("build world succ")
     return
 
 def reset():
