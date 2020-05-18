@@ -74,7 +74,6 @@ void cKinCharacter::Update(double time_step)
 {
 	cCharacter::Update(time_step);
 	mTime += time_step;
-	std::cout << "[debug] cKinChar update time = " << mTime << std::endl;
 	Pose(mTime);
 }
 
@@ -235,18 +234,12 @@ const tVector& cKinCharacter::GetOriginPos() const
 	return mOrigin;
 }
 
+// set mOrigin position. mOrigin is the root point of this motion. It will not change during simulating, but only changed by set value directly or Reset...etc
 void cKinCharacter::SetOriginPos(const tVector& origin)
 {
-	// input origin: 0, 0, 0, 相当于mOrigin变成了0, 0,0，但是mPose0和mPose都相应的移动了一个位移
-	// after the first epoch, the mOrigin has became to 
-	// std::cout <<"kinchar set origin pose = " << origin.transpose() << std::endl;
-	// std::cout <<"cur ideal origin = " << origin.transpose() << std::endl;
-	// std::cout <<"cur true mOrigin = " << mOrigin.transpose() << std::endl;
 	tVector delta = origin - mOrigin;
-	// std::cout <<"delta = " << delta.transpose() << std::endl;
 	MoveOrigin(delta);
 	mOrigin = origin; // this is needed in canse of NaNs
-	// std::cout <<"final mOrigin = " << mOrigin.transpose() << std::endl;
 }
 
 /**

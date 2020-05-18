@@ -1,8 +1,8 @@
 {
     "IDMode_bak1": "Online",
-    "IDMode_bak2" : "OfflineSolve",
+    "IDMode" : "OfflineSolve",
     "IDMode_bak4" : "Display",
-    "IDMode" : "Sample",
+    "IDMode_bak2" : "Sample",
     "comment" :[
         "Offline的ID solver有四种模式：sample, save, display, solve.",
         "sample模式: 是批量采样、保存轨迹(trajectory)信息、生成数据信息记录表；对应的配置卸载SampleModeInfo中",
@@ -20,7 +20,7 @@
     },
     "SampleModeInfo":
     {
-        "sample_num" : 1,
+        "sample_num" : 5,
         "sample_trajs_dir" : "data/batch_trajs/0424",
         "sample_trajs_rootname" : "traj_leftleg.json",
         "summary_table_filename" : "summary_table.json"
@@ -31,9 +31,10 @@
         "solve_traj_path_meaning" : "指定要求解ID的trajectory的path",
         "export_train_data_path_meaning" : "训练数据的输出路径，后缀名为.train，里面存放了state, action, reward三个键值",
         "ref_motion_meaning" : "重新计算reward所使用到的motion",
-        "solve_traj_path" : "data/batch_trajs/0424/traj_leftleg_0.json",
-        "export_train_data_path" : "data/batch_train_data/0424/leftleg_0.train",
-        "ref_motion_path" : "data/0424/motions/walk_motion_042401_leftleg.txt",
+        "solve_traj_path" : "data/batch_trajs/0424/traj_leftleg_4.json",
+        "export_train_data_path" : "data/batch_train_data/0424/leftleg_2.train",
+        "ref_motion_path_bak" : "data/0424/motions/walk_motion_042401_leftleg.txt",
+        "ref_motion_path" : "data/0424/motions/walk_motion_042401_leftleg_dynamic.txt",
         "retargeted_char_path" : "data/0424/characters/skeleton_042302_revised_leftleg.json"
     }
 }

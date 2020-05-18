@@ -850,24 +850,32 @@ void cSceneSimChar::UpdateRandPerturb(double time_step)
 	}
 }
 
+// extern int reset_cnt;
 void cSceneSimChar::ResetScene()
 {
 	cScene::ResetScene();
-
+	// auto imitate_scene = dynamic_cast<cSceneImitate *>(this);
+	// auto kin_char = imitate_scene->GetKinChar();
 	if (mPerturbParams.mEnableRandPerturbs)
 	{
 		ResetRandPertrub();
 	}
-	
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 1 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	ResetWorld();
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 2 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	ResetCharacters();
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 3 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	ResetGround();
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 4 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	CleanObjs();
-
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 5 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	InitCharacterPos();
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 6 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	ResolveCharGroundIntersect();
-
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 7 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	if(mEnableID)mIDSolver->Reset();
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 8 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
+	// exit(0);
 	// mOnlineIDSolver->Reset();
 	// mOfflineIDSolver->Reset();
 }

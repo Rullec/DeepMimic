@@ -6,7 +6,7 @@
 #include <iostream>
 using namespace std;
 
-std::string gRewardInfopath;
+// std::string gRewardInfopath;
 cSceneImitate::RewardParams::RewardParams()
 {
 	pose_w = 0;
@@ -147,9 +147,9 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	tVector root_ang_vel0 = cKinTree::GetRootAngVel(joint_mat, vel0);
 	tVector root_ang_vel1 = cKinTree::GetRootAngVel(joint_mat, vel1);
 
-	std::ofstream fout(gRewardInfopath, std::ios::app);
-	fout << "---------------\n";
-	fout <<"pose1 = " << pose1.transpose() << std::endl;
+	// std::ofstream fout(gRewardInfopath, std::ios::app);
+	// fout << "---------------\n";
+	// fout <<"pose1 = " << pose1.transpose() << std::endl;
 	// fout <<"root_pos1 = " << root_pos1.transpose() << std::endl;
 	double pose_err = 0;
 	double vel_err = 0;
@@ -231,8 +231,10 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 	root_pos0[1] -= root_ground_h0;
 	root_pos1[1] -= root_ground_h1;
 	double root_pos_err = (root_pos0 - root_pos1).squaredNorm();
-	// fout <<"root_pos 0 " << root_pos0.transpose() <<" ";
-	// fout <<"root_pos 1 " << root_pos1.transpose() <<" ";
+	// fout <<"root_pos 0 " << root_pos0.transpose() <<"\n ";
+	// fout <<"kin char time " << kin_char.GetTime() <<"\n";
+	// fout <<"kin char mOrigin " << kin_char.GetOriginPos().transpose() <<"\n";
+	// fout <<"root_pos 1 " << root_pos1.transpose() <<"\n";
 	double root_rot_err = cMathUtil::QuatDiffTheta(root_rot0, root_rot1);
 	root_rot_err *= root_rot_err;
 
@@ -276,15 +278,15 @@ double cSceneImitate::CalcRewardImitate(const cSimCharacter& sim_char, const cKi
 			+ RewParams.root_vel_w * root_vel_err
 			+ RewParams.root_angle_vel_w * root_ang_vel_err;
 	*/
-	fout << "root pos err = " << root_pos_err << " ";
+	// fout << "root pos err = " << root_pos_err << " ";
 	// fout << "root rot err = " << root_rot_err << " ";
 	// fout << "root vel err = " << root_vel_err << " ";
 	// fout << "root ang vel err = " << root_ang_vel_err << " ";
-	fout << "root reward = " << root_reward << " ";
+	// fout << "root reward = " << root_reward << " ";
 
 	// fout << "com reward = " << com_reward << " ";
 	// fout << "final reward = " << reward << " ";
-	fout << std::endl;
+	// fout << std::endl;
 	return reward;
 }
 
@@ -300,7 +302,7 @@ cSceneImitate::cSceneImitate()
 	mEnableRootRotFail = false;
 	mHoldEndFrame = 0;
 
-	gRewardInfopath = "reward_info_sample.txt";
+	// gRewardInfopath = "reward_info_sample.txt";
 	// cFileUtil::ClearFile(gRewardInfopath);
 }
 
@@ -416,6 +418,11 @@ std::string cSceneImitate::GetName() const
 void cSceneImitate::SyncKinCharNewCycleInverseDynamic(const cSimCharacter& sim_char, cKinCharacter& out_kin_char) const
 {
 	SyncKinCharNewCycle(sim_char, out_kin_char);
+}
+
+void cSceneImitate::ResolveCharGroundIntersectInverseDynamic()
+{
+	ResolveCharGroundIntersect();
 }
 
 bool cSceneImitate::BuildCharacters()
@@ -546,9 +553,10 @@ void cSceneImitate::ResetCharacters()
 void cSceneImitate::ResetKinChar()
 {
 	// cFileUtil::ClearFile(gRewardInfopath);
-
+	// std::cout <<"-----------------reset begin-------------------\n";
 	// 1. get a random time
 	double rand_time = CalcRandKinResetTime();
+	// double rand_time = 0.00186;
 
 	// 2. get simchar init params (usually 0, 0, 0)
 	const cSimCharacter::tParams& char_params = mCharParams[0];
@@ -557,19 +565,41 @@ void cSceneImitate::ResetKinChar()
 	// 3. kinchar reset. mPose = mPose0, mVel = mVel0
 	kin_char->Reset();	// write mPose = mPose0, mVel = mVel0
 
-	// 4. set origin rot and origin pos.
-	// here the mOrigin should be always the same as the init param. so it should have no effect on both mPose and mOrigin.
+	// 4. set origin rot and origin pos to init params
+	// ATTENTION: after this "SetOriginPos", the kin char's status was set back to the init status. 
+	// mOrigin = 0, 0, 0 (init value), and mPose = mPose0 = character pose in time 0.
 	kin_char->SetOriginRot(tQuaternion::Identity());
+	// auto before_set_origin_pose = kin_char->GetPose();
+	// std::cout <<"[debug] before set origin pose = " << before_set_origin_pose.transpose() << std::endl;
 	kin_char->SetOriginPos(char_params.mInitPos);
+	// if(kin_char->GetOriginPos().norm() > 1e-10)
+	// {
+	// 	std::cout <<"[error] cSceneImitate::ResetKinChar origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
+	// 	exit(0);
+	// }
 
+	// auto after_set_origin_pose = kin_char->GetPose();
+	// std::cout <<"[debug] after set origin pose = " << after_set_origin_pose.transpose() << std::endl;
+	// auto diff = (after_set_origin_pose - init_pose0_debug);
+	// std::cout <<"[debug] diff = " << diff.transpose() << std::endl;
+	// std::cout <<"diff norm = " << diff.norm() << std::endl;
+	// if(diff.norm() > 1e-10)
+	// {
+	// 	exit(0);
+	// }
+	
+	// std::cout <<"[debug] before set time mOrigin = " << kin_char->GetOriginPos().transpose() << std::endl;
+	// std::cout <<"[debug] set rand time = " << rand_time << std::endl;
 	// 5. just set time varible. do not update or change any value
 	kin_char->SetTime(rand_time);
-
 	// 6. extract a ref motion from mMotion, here record the root pos as "root_ref_pos" and root rotation "root_ref_rot"
 	// then we calculate root_final_pos = mOriginRot * root_ref_pos + mOrigin
 	// root_final_rot = mOriginRot * root_ref_root
 	// From then on, the mPose's root pos and root rot will be overwritten
 	kin_char->Pose(rand_time);
+	// std::cout <<"[debug] after Pose(rand_time) pose = " << kin_char->GetPose().transpose() << std::endl;
+	// std::cout <<"[debug] after set time mOrigin = " << kin_char->GetOriginPos().transpose() << std::endl;
+	// std::cout <<"[debug] after set time pose = " << kin_char->GetPose().transpose() << std::endl;
 
 	if (EnabledRandRotReset())
 	{
@@ -578,6 +608,8 @@ void cSceneImitate::ResetKinChar()
 		double rand_theta = mRand.RandDouble(-M_PI, M_PI);
 		kin_char->RotateOrigin(cMathUtil::EulerToQuaternion(tVector(0, rand_theta, 0, 0), eRotationOrder::XYZ));
 	}
+
+	// std::cout <<"-----------------reset end-------------------\n";
 }
 
 void cSceneImitate::SyncCharacters()
