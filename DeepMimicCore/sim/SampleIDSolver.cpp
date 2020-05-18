@@ -63,18 +63,18 @@ void cSampleIDSolver::PreSim()
     }
     
     
-    if(cur_frame == 200)
-    {
-        double now_time = mKinChar->GetTime();
-        mKinChar->Pose(0.5);
+    // if(cur_frame == 200)
+    // {
+    //     double now_time = mKinChar->GetTime();
+    //     mKinChar->Pose(0.5);
         
-        std::cout <<"online kinchar 0.5s pose = " << mKinChar->GetPose().transpose() << std::endl;
-        // exit(1);
-        std::cout <<"epoch = " << mSaveInfo.mCurEpoch << std::endl;
-        mKinChar->Pose(now_time);
-        // double a;
-        // std::cin >> a;
-    }
+    //     std::cout <<"online kinchar 0.5s pose = " << mKinChar->GetPose().transpose() << std::endl;
+    //     // exit(1);
+    //     std::cout <<"epoch = " << mSaveInfo.mCurEpoch << std::endl;
+    //     mKinChar->Pose(now_time);
+    //     // double a;
+    //     // std::cin >> a;
+    // }
 
     assert(mSaveInfo.mTimesteps[cur_frame] > 0);
     mSaveInfo.mMotion->AddFrame(mSimChar->GetPose(), mSaveInfo.mTimesteps[cur_frame]);
@@ -143,7 +143,7 @@ void cSampleIDSolver::PostSim()
         // std::cout <<"frame " << cur_frame <<" link " << i << " omega diff = " << \
         // (mSaveInfo.mLinkDiscretOmega[cur_frame][i] - mSaveInfo.mLinkOmega[cur_frame][i]).transpose() << std::endl;;
     }
-    std::cout << "[debug] PostSim: discrete total err = " << total_err << std::endl; 
+    // if(std::rand() % 100 < 1) std::cout << "[debug] SampleIDSolver PostSim: discrete total err = " << total_err << std::endl; 
 
     // exit(1);
     // calculate momentum by these discreted values
@@ -274,11 +274,17 @@ void cSampleIDSolver::PostSim()
                     if(cMathUtil::IsSame(mSaveInfo.mSolvedJointForces[cur_frame][id], mSaveInfo.mTruthJointForces[cur_frame-1][id], 1e-5) == false)
                     {
                         err += (mSaveInfo.mSolvedJointForces[cur_frame][id]- mSaveInfo.mTruthJointForces[cur_frame-1][id]).norm();
-                        std::cout <<"[error] offline ID solved error: for joint " << id <<" diff : solved = " << mSaveInfo.mSolvedJointForces[cur_frame][id].transpose() <<", truth = " << mSaveInfo.mTruthJointForces[cur_frame-1][id].transpose() << std::endl;
+                        std::cout <<"[error] SampleIDSolver: ID solved error for joint " << id <<" diff : solved = " << mSaveInfo.mSolvedJointForces[cur_frame][id].transpose() <<", truth = " << mSaveInfo.mTruthJointForces[cur_frame-1][id].transpose() << std::endl;
                     }
                 }
-                if(err < 1e-5) std::cout << "[log] frame " << cur_frame <<" offline ID solved accurately\n";
-                else std::cout << "[error] frame " << cur_frame <<" offline ID solved error\n";
+                // if(err < 1e-5) std::cout << "[log] frame " << cur_frame <<" offline ID solved accurately\n";
+                // else std::cout << "[error] frame " << cur_frame <<" offline ID solved error\n";
+                if(err > 1e-5) 
+                {
+                    std::cout <<"[error] SampleIDSolver: ID solved error for frame " << cur_frame << \
+                        ", err = " << err << std::endl;
+                    // exit(0);
+                }
             }
         }
     }

@@ -74,7 +74,7 @@ void cKinCharacter::Update(double time_step)
 {
 	cCharacter::Update(time_step);
 	mTime += time_step;
-	std::cout << "[debug] cKinChar update time = " << mTime << std::endl;
+	// std::cout << "[debug] cKinChar update time = " << mTime << std::endl;
 	Pose(mTime);
 }
 
