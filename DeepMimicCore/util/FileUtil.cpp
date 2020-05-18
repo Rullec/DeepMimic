@@ -386,6 +386,14 @@ bool cFileUtil::AppendText(const std::string& str, const std::string& out_filena
 	return succ;
 }
 
+
+std::string cFileUtil::GenerateSerialFilename(const std::string & root, int id)
+{
+    std::string path = cFileUtil::RemoveExtension(root);
+    path = path + "_" + std::to_string(id) + "." + cFileUtil::GetExtension(root);
+	return path;
+}
+
 std::string cFileUtil::ReadTextFile(FILE* f)
 {
 	if (!f)

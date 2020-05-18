@@ -1,4 +1,5 @@
 #include "JsonUtil.h"
+#include "FileUtil.h"
 #include <iostream>
 #include <fstream>
 
@@ -99,5 +100,14 @@ bool cJsonUtil::ParseJson(const std::string & path, Json::Value & value)
                return false;
     }
     return true;
+}
 
+bool cJsonUtil::WriteJson(const std::string & path, Json::Value & value, bool indent/* = true*/)
+{
+    Json::StreamWriterBuilder builder;
+	if(indent == false) builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+	std::ofstream fout(path);
+    writer->write(value, &fout);
+	return fout.fail() == false;
 }

@@ -295,13 +295,43 @@ void cInteractiveIDSolver::SaveMotion(const std::string & path_root, cMotion * m
     motion->Clear();
 }
 
+/**
+ * \brief                   Save Train Data "*.train"
+ * \param path              target filename
+ * \param info              a info struct for what we need to save.
+*/
+void cInteractiveIDSolver::SaveTrainData(const std::string & path, std::vector<tSingleFrameIDResult> & info) const
+{
+    if(cFileUtil::ValidateFilePath(path) == false)
+    {
+        std::cout <<"[error]  cInteractiveIDSolver::SaveTrainData path " << path <<" invalid\n";
+        exit(0);
+    }
+    Json::Value root;
+    root["num_of_frames"] = static_cast<int>(info.size());
+    root["data_list"] = Json::arrayValue;
+    int num_of_frame = info.size();
+    Json::Value single_frame;
+    for(int i=0; i<num_of_frame; i++)
+    {
+        single_frame["frame_id"] = i;
+        single_frame["state"] = Json::arrayValue;
+        single_frame["action"] = Json::arrayValue;
+        for(int j = 0; j < info[i].state.size(); j++) single_frame["state"].append(info[i].state[j]);
+        for(int j = 0; j < info[i].action.size(); j++) single_frame["action"].append(info[i].action[j]);
+        single_frame["reward"] = info[i].reward;
+        root["data_list"].append(single_frame);
+    }
+    cJsonUtil::WriteJson(path, root, false);
+    std::cout <<"[log] cInteractiveIDSolver::SaveTrainData to " << path << std::endl;
+}
 
 /**
  * \brief                   Save trajectories to disk
 */
 std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::string & path_raw) const
 {
-    assert(cFileUtil::ValidateFilePath(path_raw));
+    if(cFileUtil::ValidateFilePath(path_raw) == false) std::cout << "[error] cInteractiveIDSolver::SaveTraj path " << path_raw <<" invalid\n", exit(0);
     std::string path_root = cFileUtil::RemoveExtension(path_raw);
     std::string final_name = path_root + "_" + std::to_string(mSaveInfo.mCurEpoch) + ".json";
     Json::StreamWriterBuilder builder;
@@ -408,14 +438,18 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
     }
     std::ofstream fout(final_name);
     writer->write(root, &fout);
-    std::cout <<"[log] cOfflineIDSolver::SaveTraj or epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
+    std::cout <<"[log] cOfflineIDSolver::SaveTraj for epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
     return final_name;
 }
 
 
 void cInteractiveIDSolver::tSummaryTable::WriteToDisk(const std::string & path)
 {
-    cFileUtil::ValidateFilePath(path);
+    if(cFileUtil::ValidateFilePath(path) == false)
+    {
+        std::cout <<"[error] tSummaryTable::WriteToDisk path invalid " << path << std::endl;
+        exit(0);
+    }
     std::cout <<"[log] write table to " << path << std::endl;
     Json::StreamWriterBuilder builder;
     builder.settings_["indentation"] = "\t";
@@ -451,4 +485,39 @@ void cInteractiveIDSolver::tSummaryTable::WriteToDisk(const std::string & path)
     std::ofstream fout(path);
     writer->write(root, &fout);
     std::cout <<"[log] tSummaryTable::WriteToDisk " << path << std::endl;
+}
+
+void cInteractiveIDSolver::tSummaryTable::LoadFromDisk(const std::string & path)
+{
+     if(cFileUtil::ValidateFilePath(path) == false)
+    {
+        std::cout <<"[error] tSummaryTable::LoadFromDisk path invalid " << path << std::endl;
+        exit(0);
+    }
+    
+    Json::Value root;
+    cJsonUtil::ParseJson(path, root);
+
+    // overview infos
+    mSampleCharFile = root["char_file"].asString();
+    mSampleControllerFile = root["controller_file"].asString();
+    mTotalEpochNum = root["num_of_trajs"].asInt();
+    mTotalLengthTime = root["total_second"].asDouble();
+    mTotalLengthFrame = root["total_frame"].asInt();
+    auto & trajs_lst = root["single_trajs_lst"];
+    if(mTotalEpochNum != trajs_lst.size())
+    {
+        std::cout << "[log] tSummaryTable::LoadFromDisk trajs num doesn't match\n";
+        exit(0);
+    }
+
+    // resize and load all trajs info
+    mEpochInfos.resize(mTotalEpochNum);
+    for(int i=0; i<mTotalEpochNum; i++)
+    {
+        mEpochInfos[i].frame_num = trajs_lst[i]["num_of_frame"].asInt();
+        mEpochInfos[i].length_second = trajs_lst[i]["length_second"].asDouble();
+        mEpochInfos[i].traj_filename = trajs_lst[i]["filename"].asString();
+    }
+    std::cout <<"[log] tSummaryTable::LoadFromDisk " << path << std::endl;
 }
