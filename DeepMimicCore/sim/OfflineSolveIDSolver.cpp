@@ -11,12 +11,12 @@
 #include <iostream>
 
 extern std::string controller_details_path;
-extern std::string gRewardInfopath;
+// extern std::string gRewardInfopath;
 cOfflineSolveIDSolver::cOfflineSolveIDSolver(cSceneImitate * imi, const std::string & config)
 :cInteractiveIDSolver(imi, eIDSolverType::OfflineSolve)
 {
     controller_details_path = "logs/controller_logs/controller_details_offlinesolve.txt";
-    gRewardInfopath = "reward_info_solve.txt";
+    // gRewardInfopath = "reward_info_solve.txt";
     Parseconfig(config);
 }
 
@@ -163,61 +163,35 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
         RecordMultibodyInfo(mLoadInfo.mLinkRot[frame_id], mLoadInfo.mLinkPos[frame_id]);
     }
 
-    // 2. solve ID
-    // for(int cur_frame = 0; cur_frame < 5; cur_frame++)
-    // {
-    //     std::cout <<"frame " << cur_frame <<" link pos : " << mLoadInfo.mLinkPos[cur_frame][0].transpose() << std::endl;
-    // }
-    // exit(1);
+    // 3. Init the status for mKinChar and mSimChar according to mLoadInfo
+    // ATTENTION: most of these codes are used to gurantee the validity of reward we get from the following Inverse Dynamics procedure.
+    mKinChar->SetTime(mLoadInfo.mMotionRefTime[0] - mLoadInfo.mTimesteps[0]);   // training policy: random init
+    mKinChar->Update(0);                                                        // update mKinChar inner status by Update(0)
+    SetGeneralizedPos(mLoadInfo.mPoseMat.row(0));                               // set up the sim char pos from mLoadInfo
+    mSimChar->PostUpdate(0);
+    mScene->ResolveCharGroundIntersectInverseDynamic();                         // Resolve intersection between char and the ground. Sync to KinChar is also included.
+    mKinChar->Update(mLoadInfo.mTimesteps[0]);                                  // Go for another timestep
 
+    // 4. solve ID for each frame
     double ID_torque_err = 0, ID_action_err = 0, reward_err = 0;
     tVectorXd torque = tVectorXd::Zero(mSimChar->GetPose().size()), pd_target = tVectorXd::Zero(mSimChar->GetPose().size());
-    mKinChar->SetTime(mLoadInfo.mTimesteps[0]);
-    mKinChar->Update(0);
-    for(int cur_frame = 1; cur_frame < mLoadInfo.mTotalFrame - 1; cur_frame++)
+    
+    for(int cur_frame = 1; cur_frame < mLoadInfo.mTotalFrame; cur_frame++)
     {
         auto & cur_ID_res = IDResults[cur_frame];
-        // if(cur_frame > 10) break;
-        // std::cout <<"---------frame " << cur_frame <<"--------------\n";
-        
-        // 1. set the sim character pose
+
+        // 4.1 update the sim char
         mInverseModel->clearAllUserForcesAndMoments();
         SetGeneralizedPos(mLoadInfo.mPoseMat.row(cur_frame));
         SetGeneralizedVel(mLoadInfo.mVelMat.row(cur_frame));
         mSimChar->PostUpdate(0);
 
-        // set the kin char pose
-        // mKinChar->SetTime();
-        // mKinChar->Pose(mLoadInfo.mMotionRefTime[cur_frame]);
-        
-        
-
-
-        // record state at this moment
+        // 4.2 record state at this moment
         mCharController->RecordState(cur_ID_res.state);
-        // if(cur_frame == 200)
-        // {
-        //     std::cout <<"offline kinchar 200 pose = " << mKinChar->GetPose().transpose() << std::endl;
-        //     exit(1);
-        // }
+
+        // 4.3 solve Inverse Dynamic for joint torques
         std::vector<tVector> result;
         // SetGeneralizedInfo(mLoadInfo.mPoseMat.row(frame_id));
-        /*
-        
-        
-                cIDSolver::SolveIDSingleStep(
-                    mSaveInfo.mSolvedJointForces[cur_frame], 
-                    mSaveInfo.mContactForces[cur_frame], 
-                    mSaveInfo.mLinkPos[cur_frame-1], 
-                    mSaveInfo.mLinkRot[cur_frame-1], 
-                    mSaveInfo.mBuffer_q[cur_frame-1], 
-                    mSaveInfo.mBuffer_u[cur_frame-1], 
-                    mSaveInfo.mBuffer_u_dot[cur_frame-1],
-                    cur_frame, 
-                    mSaveInfo.mExternalForces[cur_frame-1], 
-                    mSaveInfo.mExternalTorques[cur_frame-1]
-                );
-        */
         // std::cout <<"log frame = " << cur_frame << std::endl;
         cIDSolver::SolveIDSingleStep(
             result, 
@@ -276,10 +250,8 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
             }
             ID_torque_err += single_error;
         }
-        // std::cout <<"done\n";
-        // exit(1);
 
-        // 4. solve PD target
+        // 4.4 convert the result joint torques into PD Target
         // the vector "torque" has the same shape as pose and vel
         /*
             root joint: occupy the first 7 DOF in the vector, all are set to zero
@@ -288,9 +260,6 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
             fixed: No sapce 
         */
         
-        // std::cout <<"dof = " << mSimChar->GetNumDof() << std::endl;
-        // std::cout <<"pose size = " << mSimChar->GetPose().size() << std::endl;
-        // std::cout <<"vel size = " << mSimChar->GetVel().size() << std::endl;
         double timestep = mLoadInfo.mTimesteps[cur_frame];
         auto & imp_controller = mCharController->GetImpPDController();
         imp_controller.SolvePDTargetByTorque(timestep,
@@ -311,14 +280,14 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
         // exit(1);
         
 
-        // 5. restore action from pd target pose
+        // 4.5 convert PD target to Neural Network action
         // action is different from fetched pd_target! 
         // For ball joints, their action is represented in axis angle; but their pd_Target is quaternion
         // we still need to have a convert here. pd_target = [x, y, z, w], axis angle = [angle, ax, ay, az]
         tVectorXd action = pd_target;
         mCharController->ConvertTargetPoseToActionFullsize(action);
         
-        // 6. the loaded action hasn't been normalized, we need to preprocess it before comparing...
+        // 4.6 the loaded action hasn't been normalized, we need to preprocess it before comparing...
         tVectorXd truth_action = mLoadInfo.mActionMat.row(cur_frame);
         assert(truth_action.size() == mCharController->GetActionSize());
         f_cnt = 0;
@@ -357,44 +326,39 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
         }
         ID_action_err += diff.norm();
 
-        // 2. record action into ID Result
         cur_ID_res.action = action;
 
-        // 3. recalculate the reward according to current motion
+        // 4.8 recalculate the reward according to current motion
         // you must confirm that the simchar skeleton file is the same as trajectories skeleton file accordly (Now it has been guranteed in ParseConfig)
-          
-        double prev_phase = mKinChar->GetPhase();
-            
-        mKinChar->Update(mLoadInfo.mTimesteps[cur_frame]);
         cur_ID_res.reward = mScene->CalcReward(0);
-
+        
+        // 4.9 judging whether we should jump to the next cycle and update/sync the kinChar according to the simchar.
+        double prev_phase = mKinChar->GetPhase();
+        mKinChar->Update(mLoadInfo.mTimesteps[cur_frame]);
         double curr_phase = mKinChar->GetPhase();
-            // 如果之前阶段比当前阶段大，代表进入新循环了
-            if (curr_phase < prev_phase)
-            {
-                // std::cout<<"it updates! now time = " << mKinChar->GetTime() << std::endl;
-                // exit(1);
-                (dynamic_cast<cSceneImitate *>(mScene))->SyncKinCharNewCycleInverseDynamic(*mSimChar, *mKinChar);
-            }
-            
-        // std::cout <<"Verbose calculated reward here\n";
-        // cur_ID_res.reward = mScene->CalcReward(0);
+
+        if (curr_phase < prev_phase)
+        {
+            (dynamic_cast<cSceneImitate *>(mScene))->SyncKinCharNewCycleInverseDynamic(*mSimChar, *mKinChar);
+        }
+        
         reward_err += std::fabs(cur_ID_res.reward - mLoadInfo.mRewards[cur_frame]);
-        std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
+        // std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
         // std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
 
     }
-    if(ID_torque_err < 1e-6 && ID_action_err < 1e-6)
+    if(ID_torque_err < 1e-6 && ID_action_err < 1e-6 && reward_err < 1e-6)
     {
         std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID torque error = " << ID_torque_err << std::endl;
         std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID Action error = " << ID_action_err << std::endl;
+        std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID reward error = " << reward_err << std::endl;
     }
     else
     {
         std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID torque error = " << ID_torque_err << std::endl;
         std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID Action error = " << ID_action_err << std::endl;
+        std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID reward error = " << reward_err << std::endl;
     }
-    std::cout <<"[log] cOfflineIDSolver::OfflineSolve: total reward error = " << reward_err << std::endl;
     cTimeUtil::End("OfflineSolve");
     exit(1);
 }

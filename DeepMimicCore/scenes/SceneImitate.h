@@ -48,6 +48,7 @@ public:
 
 	virtual std::string GetName() const;
 	virtual void SyncKinCharNewCycleInverseDynamic(const cSimCharacter& sim_char, cKinCharacter& out_kin_char) const;
+	virtual void ResolveCharGroundIntersectInverseDynamic();
 protected:
 
 	std::string mMotionFile;
@@ -63,7 +64,6 @@ protected:
 	bool mEnableRootRotFail;
 	bool mEnableAngleDiffLog;
 	double mHoldEndFrame;
-
 	virtual bool BuildCharacters();
 
 	virtual void CalcJointWeights(const std::shared_ptr<cSimCharacter>& character, Eigen::VectorXd& out_weights) const;
