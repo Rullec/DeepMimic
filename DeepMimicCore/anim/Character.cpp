@@ -241,9 +241,9 @@ double cCharacter::CalcHeading() const
 	return cKinTree::CalcHeading(mJointMat, mPose);
 }
 
+// return a transformation matrix which can convert points in world frame to root local frame
 tMatrix cCharacter::BuildOriginTrans() const
 {
-	// 建立origin trans: 旋转 * 位移
 	return cKinTree::BuildOriginTrans(mJointMat, mPose);
 }
 

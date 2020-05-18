@@ -238,7 +238,7 @@ void cSimObj::CalcAABB(tVector& out_min, tVector& out_max) const
 
 	btVector3 bt_min;
 	btVector3 bt_max;
-	shape->getAabb(obj->getWorldTransform(), bt_min, bt_max);
+	shape->getAabb(obj->getWorldTransform(), bt_min, bt_max);	// bullet method: get AABB
 	double scale = mWorld->GetScale();
 
 	out_min = tVector(bt_min[0], bt_min[1], bt_min[2], 0) / scale;

@@ -1730,6 +1730,23 @@ void cKinTree::VelToPoseDiff(const Eigen::MatrixXd& joint_mat, const Eigen::Vect
 	}
 }
 
+/*
+	world frame XOZ, root frame x'oz'
+
+	return theta =arctan(-z/x). If we rotate the world frame theta angle along with its own Y axis, we will get root frame. 
+	this angle means: a rotation that can convert vecs in root local frame to world frame
+	  O-------------------------X
+	/ |\ (theta)
+   /  | \				  
+  z'  |  \				 
+	  |  _\|			
+	  |	 x'			
+	  |
+	  |
+	  |
+	  Z
+		
+*/
 double cKinTree::CalcHeading(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& pose)
 {
 	// heading is the direction of the root in the xz plane: 其实就是root坐标系转动多少能够在xoz上和世界坐标系平齐
@@ -1760,6 +1777,10 @@ tMatrix cKinTree::BuildHeadingTrans(const Eigen::MatrixXd& joint_mat, const Eige
 	return mat;
 }
 
+/**
+ * \brief				BuildOriginTrans	
+ * This function will return a transform matrix 4x4. It can convert a point in world frame into root local frame
+*/
 tMatrix cKinTree::BuildOriginTrans(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& pose)
 {
 	// world to origin transform

@@ -1,47 +1,26 @@
+#pragma once
 #include "IDSolver.hpp"
-#include <string>
 
-class btMultiBodyDynamicsWorld;
-class cSimCharacter;
-class cMotion;
-
-enum eOfflineSolverMode{
-    INVALID,
-    Save,       // run the simulation and save a single trajectory for this character.
-    Display,    // display a motion or trajectory kinematically.
-    Solve,      // given a single trajectory, solve the Inverse Dynamic Offline. Output the result.
-    Sample      // sample a batch of trajectories and save all of them on the disk.
-};
+/*  Interactive Inverse Dynamic Solver is inherited from the functional IDSolver
+    It offers IO operation, such as loading / exporting trajectories or train data,
+    and create an uniform data storage for its subclass.
+*/
 
 namespace Json{
     class Value;
 };
-
-// Offline Inverse Dynamics Solver, differ from the online way...
-class cOfflineIDSolver:public cIDSolver{
+class cMotion;
+class cSceneImitate;
+class cInteractiveIDSolver : public cIDSolver
+{
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    cOfflineIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, const std::string & config);
-    virtual void Reset() override final;
-    eOfflineSolverMode GetOfflineSolverMode();
+    explicit cInteractiveIDSolver(cSceneImitate * imitate_scene, eIDSolverType type);
+    ~cInteractiveIDSolver();
     
-    // "save" mode APIs
-    // "save" mode means that, this solver is focus on recording the running trajectories and save it to a specified file.
-    // So the resulted file can be used as an input of the ID solving procedure, also can be verified in "display" mode.
-    virtual void PreSim() override final;
-    virtual void PostSim() override final;
-    virtual void SetTimestep(double deltaTime) override final;
-
-    // "solve" mode
-    void OfflineSolve();
-
-    // "display mode"
-    void DisplaySet();
-
 protected:
-    eOfflineSolverMode mMode;
 
-	struct {
+	struct tSaveInfo{
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 		std::string mSaveTrajRoot = "";
         std::string mSaveMotionRoot = "";
@@ -60,25 +39,30 @@ protected:
         tVectorXd mTruthPDTarget[MAX_FRAME_NUM];        // the current action recorded from the controller of this char
 
         double mTimesteps[MAX_FRAME_NUM];   // timesteps
+        double mRewards[MAX_FRAME_NUM];    // rewards
+        double mRefTime[MAX_FRAME_NUM];     // current time in kinchar reference motion
         cMotion * mMotion;
         std::vector<tForceInfo> mContactForces[MAX_FRAME_NUM];
         std::vector<tVector> mExternalForces[MAX_FRAME_NUM], mExternalTorques[MAX_FRAME_NUM];
         tVector mLinearMomentum[MAX_FRAME_NUM], mAngularMomentum[MAX_FRAME_NUM]; // linear, ang momentum for each frame
         tVectorXd mCharPoses[MAX_FRAME_NUM];
-	} mSaveInfo;    // work for save mode
+	};
+    tSaveInfo mSaveInfo;    // work for save mode
+
 
     enum eLoadMode{
         INVALID,
         LOAD_MOTION,
         LOAD_TRAJ
     };
-    struct {
+
+    struct tLoadInfo{
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
         std::string mLoadPath = "";
         eLoadMode mLoadMode = eLoadMode::INVALID;
         Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat, mActionMat, mPDTargetMat;
         cMotion * mMotion = nullptr;
-        tVectorXd mTimesteps;
+        tVectorXd mTimesteps, mRewards, mMotionRefTime;
         std::vector<std::vector<tForceInfo>> mContactForces;
         std::vector<std::vector<tMatrix>> mLinkRot;	// local to world rotation mats
         std::vector<std::vector<tVector>> mLinkPos;	// link COM pos in world frame
@@ -88,7 +72,8 @@ protected:
         int mCurFrame = 0;
         bool mEnableOutputMotionInfo = false;
         std::string mOutputMotionInfoPath = "";
-    } mLoadInfo;    // work for display and solve mode
+    };
+    struct tLoadInfo mLoadInfo;    // work for display and solve mode
 
     struct {
         int mSampleEpoches;         // the epoche number of trajectoris we want.
@@ -114,21 +99,11 @@ protected:
     };
     tSummaryTable mSummaryTable;
 
-    // tools
-    void ParseConfig(const std::string & path);
-    void ParseConfigSave(const Json::Value & save_value);
-    void ParseConfigSolve(const Json::Value & solve_value);
-    void ParseConfigSample(const Json::Value & sample_value);
-    void ParseConfigDisplay(const Json::Value & display_value);
-
-    void LoadTraj(const std::string & path);
+    // IO tools
+    // load methods
+    void LoadTraj(tLoadInfo & load_info, const std::string & path);
+    std::string SaveTraj(tSaveInfo & mSaveInfo, const std::string & path) const;
+    void PrintLoadInfo(tLoadInfo & load_info, const std::string &, bool disable_root = true) const;
     void LoadMotion(const std::string & path, cMotion * motion) const;
-    std::string SaveTraj(const std::string & path);
     void SaveMotion(const std::string & path, cMotion * motion) const;
-    void InitSampleSummaryTable();
-    void UpdateSummaryTable();
-
-    void VerifyMomentum();
-    void PrintLoadInfo(const std::string &, bool disable_root = true);
-    void PrintSampleInfo();
 };
