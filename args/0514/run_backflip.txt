@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 15
---time_lim_max 15
+--time_lim_min 5
+--time_lim_max 5
 --time_lim_exp 0.2
 
 --time_end_lim_min 20
@@ -11,7 +11,7 @@
 
 --num_update_substeps 10
 --num_sim_substeps 2
---world_scale 1
+--world_scale 4
 
 --terrain_file data/terrain/plane.txt
 
@@ -41,7 +41,7 @@
 --train_agents false
 
 --output_path output/0514
---model_files output/0514/agent0_model_2020_05_17_12_49_47_313.91.ckpt
+--model_files output/0514/agent0_model_2020_05_18_09_30_55_138.32.ckpt
 
 #---------------------- Inverse Dyanmics config-------------------
 --enable_inverse_dynamic_solving false
