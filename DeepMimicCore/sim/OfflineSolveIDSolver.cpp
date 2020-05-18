@@ -17,7 +17,7 @@ cOfflineSolveIDSolver::cOfflineSolveIDSolver(cSceneImitate * imi, const std::str
 {
     controller_details_path = "logs/controller_logs/controller_details_offlinesolve.txt";
     // gRewardInfopath = "reward_info_solve.txt";
-    Parseconfig(config);
+    ParseConfig(config);
 }
 
 cOfflineSolveIDSolver::~cOfflineSolveIDSolver()
@@ -27,8 +27,26 @@ cOfflineSolveIDSolver::~cOfflineSolveIDSolver()
 
 void cOfflineSolveIDSolver::PreSim()
 {
-    std::vector<tSingleFrameIDResult> mResult;
-    OfflineSolve(mResult);
+    if(mOfflineSolveMode == eOfflineSolveMode::SingleTrajSolveMode)
+    {
+        std::vector<tSingleFrameIDResult> mResult;
+        std::cout <<"[log] cOfflineIDSolver::OfflineSolve: begin to solve traj : " << mSingleTrajSolveConfig.mSolveTrajPath << "\n";
+        SingleTrajSolve(mResult);
+        SaveTrainData(mSingleTrajSolveConfig.mExportDataPath, mResult);
+    }
+    else if (mOfflineSolveMode == eOfflineSolveMode::BatchTrajSolveMode)
+    {
+        std::cout <<"Batch solve, summary table = " << mBatchTrajSolveConfig.mSummaryTableFile << std::endl;
+        mSummaryTable.LoadFromDisk(mBatchTrajSolveConfig.mSummaryTableFile);
+        BatchTrajsSolve(mSummaryTable);
+    }
+    else
+    {
+        std::cout <<"[error] cOfflineSolveIDSolver::PreSim invalid mode " << mOfflineSolveMode << std::endl;
+        exit(0);
+    }
+
+    exit(0);
 }
 
 void cOfflineSolveIDSolver::PostSim()
@@ -47,47 +65,44 @@ void cOfflineSolveIDSolver::SetTimestep(double)
 
 }
 
-void cOfflineSolveIDSolver::Parseconfig(const std::string & conf)
+void cOfflineSolveIDSolver::ParseConfig(const std::string & conf)
 {
-    Json::Value root;
-    cJsonUtil::ParseJson(conf, root);
-    auto solve_value = root["SolveModeInfo"];
-    assert(solve_value.isNull() == false);
-    // std::cout <<"void cOfflineIDSolver::ParseConfigSolve(const Json::Value & save_value)\n";
-    const Json::Value & solve_traj_path = solve_value["solve_traj_path"];
-    assert(solve_traj_path.isNull() == false);
-    mSolveTrajPath = solve_traj_path.asString();
-    LoadTraj(mLoadInfo, solve_traj_path.asString());
-/*
-    "export_train_data_path_meaning" : "训练数据的输出路径，后缀名为.train，里面存放了state, action, reward三个键值",
-    "export_train_data_path" : "data/batch_train_data/0424/leftleg_0.train",
-    "ref_motion_meaning" : "重新计算reward所使用到的motion",
-    "ref_motion" : "data/0424/motions/walk_motion_042401_leftleg.txt"
-*/
-    const Json::Value   &   export_train_data_path = solve_value["export_train_data_path"],
-                        &   ref_motion_path = solve_value["ref_motion_path"],
-                        &   retargeted_char_path = solve_value["retargeted_char_path"];
-    assert(export_train_data_path.isNull() == false);
-    assert(ref_motion_path.isNull() == false);
-    assert(retargeted_char_path.isNull() == false);
-    mExportDataPath = export_train_data_path.asString();
+    Json::Value root_;
+    if(false == cJsonUtil::ParseJson(conf, root_))
+    {
+        std::cout <<"[error] cOfflineSolveIDSolver::ParseConfig " << conf <<"failed\n";
+        exit(1);
+    }
+    Json::Value root = root_["SolveModeInfo"];
+
+    // 1. load shared config
+    const Json::Value   &   ref_motion_path = root["ref_motion_path"],
+                        &   retargeted_char_path = root["retargeted_char_path"];
     mRefMotionPath = ref_motion_path.asString();
     mRetargetCharPath = retargeted_char_path.asString();
 
-    if(false == cFileUtil::ExistsFile(mRefMotionPath))
+    // 2. load solving mode
+    const Json::Value & solve_mode_json = root["solve_mode"];
+    mOfflineSolveMode = eOfflineSolveMode::INVALID;
+    for(int i=0; i<eOfflineSolveMode::OfflineSolveModeNum; i++)
     {
-        std::cout << "[error] cOfflineSolveIDSolver::Parseconfig ref motion doesn't exists: " << mRefMotionPath << std::endl;
+        if(mConfPath[i] == solve_mode_json.asString())
+        {
+            mOfflineSolveMode = static_cast<eOfflineSolveMode>(i);
+            break;
+        }
+    }
+    if(mOfflineSolveMode == eOfflineSolveMode::INVALID)
+    {
+        std::cout <<"[error] cOfflineSolveIDSolver::ParseConfig parse solve mode failed: " << solve_mode_json.asString() << std::endl;
         exit(0);
     }
-    if(false == cFileUtil::ValidateFilePath(mExportDataPath))
+
+    switch (mOfflineSolveMode)
     {
-        std::cout << "[error] cOfflineSolveIDSolver::Parseconfig export train data path illegal: " << mExportDataPath << std::endl;
-        exit(0);
-    }
-    if(false == cFileUtil::ValidateFilePath(mRetargetCharPath))
-    {
-        std::cout << "[error] cOfflineSolveIDSolver::Parseconfig retarget char path illegal: " << mRetargetCharPath << std::endl;
-        exit(0);
+    case eOfflineSolveMode::SingleTrajSolveMode: ParseSingleTrajConfig(root["SingleTrajSolveInfo"]); break;
+    case eOfflineSolveMode::BatchTrajSolveMode: ParseBatchTrajConfig(root["BatchTrajSolveInfo"]); break;
+    default: exit(0); break;
     }
 
     // verify that the retarget char path is the same as the simchar skeleton path
@@ -107,10 +122,48 @@ void cOfflineSolveIDSolver::Parseconfig(const std::string & conf)
     }
 }
 
-
-void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDResults)
+void cOfflineSolveIDSolver::ParseSingleTrajConfig(const Json::Value & single_traj_config)
 {
-    std::cout <<"[log] cOfflineIDSolver::OfflineSolve: begin to solve traj : " << mSolveTrajPath << "\n";
+    assert(single_traj_config.isNull() == false);
+    // std::cout <<"void cOfflineIDSolver::ParseConfigSolve(const Json::Value & save_value)\n";
+    const Json::Value & solve_traj_path = single_traj_config["solve_traj_path"];
+    assert(solve_traj_path.isNull() == false);
+    mSingleTrajSolveConfig.mSolveTrajPath = solve_traj_path.asString();
+    LoadTraj(mLoadInfo, mSingleTrajSolveConfig.mSolveTrajPath);
+/*
+    "export_train_data_path_meaning" : "训练数据的输出路径，后缀名为.train，里面存放了state, action, reward三个键值",
+    "export_train_data_path" : "data/batch_train_data/0424/leftleg_0.train",
+    "ref_motion_meaning" : "重新计算reward所使用到的motion",
+    "ref_motion" : "data/0424/motions/walk_motion_042401_leftleg.txt"
+*/
+    const Json::Value   &   export_train_data_path = single_traj_config["export_train_data_path"];
+    assert(export_train_data_path.isNull() == false);
+
+    mSingleTrajSolveConfig.mExportDataPath = export_train_data_path.asString();
+
+    if(false == cFileUtil::ValidateFilePath(mSingleTrajSolveConfig.mExportDataPath))
+    {
+        std::cout << "[error] cOfflineSolveIDSolver::ParseSingleTrajConfig export train data path illegal: " << mSingleTrajSolveConfig.mExportDataPath << std::endl;
+        exit(0);
+    }
+    std::cout <<"[log] mOfflineSolveIDSolver work in SingleTrajSolve mode\n";
+}
+
+void cOfflineSolveIDSolver::ParseBatchTrajConfig(const Json::Value & batch_traj_config)
+{
+    assert(batch_traj_config.isNull() == false);
+    mBatchTrajSolveConfig.mSummaryTableFile = batch_traj_config["summary_table_filename"].asString();
+    if(false == cFileUtil::ExistsFile(mBatchTrajSolveConfig.mSummaryTableFile))
+    {
+        std::cout << "[error] cOfflineSolveIDSolver::ParseBatchTrajConfig summary table doesn't exist: " << mBatchTrajSolveConfig.mSummaryTableFile << std::endl;
+        exit(0);
+    }
+    std::cout <<"[log] mOfflineSolveIDSolver work in BatchTrajSolve mode\n";
+
+}
+
+void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDResults)
+{
     cTimeUtil::Begin("OfflineSolve");
     assert(mLoadInfo.mTotalFrame > 0);
     IDResults.resize(mLoadInfo.mTotalFrame);
@@ -131,7 +184,7 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
 			mSaveInfo.mBuffer_u_dot[cur_frame - 1] = (mSaveInfo.mBuffer_u[cur_frame] - mSaveInfo.mBuffer_u[cur_frame - 1]) / cur_timestep;
 
     */
-    for(int frame_id =0; frame_id < mLoadInfo.mTotalFrame - 1; frame_id++)
+    for(int frame_id = 0; frame_id < mLoadInfo.mTotalFrame - 1; frame_id++)
     {
         tVectorXd cur_vel = CalcGeneralizedVel(mLoadInfo.mPoseMat.row(frame_id), mLoadInfo.mPoseMat.row(frame_id+1), mLoadInfo.mTimesteps[frame_id]);
         // std::cout <<"cur vel size = " << cur_vel.size() << std::endl;
@@ -381,5 +434,9 @@ void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDR
         std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID reward error = " << reward_err << std::endl;
     }
     cTimeUtil::End("OfflineSolve");
-    exit(1);
+}
+
+void cOfflineSolveIDSolver::BatchTrajsSolve(const tSummaryTable & summary_table)
+{
+    std::cout <<"Batch solve for "<< summary_table.mTimeStamp << std::endl;
 }

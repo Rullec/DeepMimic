@@ -33,6 +33,7 @@ public:
 	static bool WriteMatrix(const Eigen::MatrixXd& mat, const std::string& out_filename);
 
 	static bool AppendText(const std::string& str, const std::string& out_filename);
+	static std::string GenerateSerialFilename(const std::string & root, int id);
 
 private:
 	static std::string ReadTextFile(FILE* f);

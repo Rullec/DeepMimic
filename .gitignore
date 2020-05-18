@@ -47,3 +47,4 @@ Main
 
 *.DS_Store
 *.dylib
+*.train
