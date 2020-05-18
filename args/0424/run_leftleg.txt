@@ -27,7 +27,8 @@
 #----------------PD params and motion data----------------
 --char_ctrls ct_pd
 --char_ctrl_files data/0424/controllers/humanoid3d_ctrl_skeleton_0424_leftleg.txt
---motion_file data/0424/motions/walk_motion_042401_leftleg.txt
+--motion_file data/0424/motions/walk_motion_042401_leftleg_dynamic.txt
+# --motion_file data/0424/motions/walk_motion_042401_leftleg.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
 
@@ -37,7 +38,7 @@
 --enable_torque_record false
 --torque_record_file logs/controller_logs/torque.record.0920.run
 --reward_file data/0420/rewards/reward_weight.json
---enable_pdtarget_solve_test true
+--enable_pdtarget_solve_test false
 
 --agent_files data/0420/agents/agent_512_dont_save_path.txt
 --train_agents false

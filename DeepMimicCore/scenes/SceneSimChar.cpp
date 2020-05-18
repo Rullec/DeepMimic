@@ -1,5 +1,5 @@
 ﻿#include "SceneSimChar.h"
-
+#include "SceneImitate.h"
 #include <memory>
 #include <ctime>
 #include "sim/SimBox.h"
@@ -7,8 +7,6 @@
 #include "sim/GroundBuilder.h"
 #include "sim/DeepMimicCharController.h"
 #include "sim/BuildIDSolver.hpp"
-#include "sim/OnlineIDSolver.hpp"
-#include "sim/OfflineIDSolver.hpp"
 #include "util/FileUtil.h"
 #include <iostream>
 #include <fstream>
@@ -119,7 +117,6 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 
 	ParseGroundParams(parser, mGroundParams);
 
-	// parse inverse dynamics
 	mEnableID = false;
 	mIDInfoPath = "";
 	mArgParser->ParseBool("enable_inverse_dynamic_solving", mEnableID);
@@ -129,6 +126,7 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser>& parser)
 		std::cout <<"[error] cSceneSimChar::ParseArgs failed for enable id but conf path is illegal: " << mIDInfoPath << std::endl;;
 		exit(1); 
 	}
+
 	
 }
 
@@ -204,7 +202,7 @@ void cSceneSimChar::Update(double time_elapsed)
 	// tVector root_vel = sim_char->GetRootVel(),
 			
 	// std::cout <<"[debug] time "<< time_elapsed << \
-	" root vel = " << root_vel.transpose() << ", root_omega = " << root_omega.transpose() << std::endl;
+	// " root vel = " << root_vel.transpose() << ", root_omega = " << root_omega.transpose() << std::endl;
 	// std::cout <<"[debug] time "<< this->GetTime() << " root_omega = " << root_omega.transpose() << std::endl;
 	// exit(1);
 	cScene::Update(time_elapsed);
@@ -223,94 +221,25 @@ void cSceneSimChar::Update(double time_elapsed)
 	PreUpdate(time_elapsed);		// clear joint torque
 	// 显示一下速度：是不是最开始的时候设置的速度太大了?
 
-	
-	// order matters!
-	if(true == mEnableID && mIDSolver!=nullptr)
+	UpdateCharacters(time_elapsed);
+
+	if(mEnableID)
 	{
-		if(eIDSolverType::Online == mIDSolver->GetType())
-		{
-			auto online_solver = std::dynamic_pointer_cast<cOnlineIDSolver>(mIDSolver);
-			online_solver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
-
-			// calc & apply torque in this function
-			UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
-			online_solver->PreSim();
-
-			UpdateWorld(time_elapsed);
-			UpdateGround(time_elapsed);
-			UpdateObjs(time_elapsed);
-			UpdateJoints(time_elapsed);
-
-			PostUpdateCharacters(time_elapsed);
-			PostUpdate(time_elapsed);
-
-			online_solver->PostSim();
-		}
-		else if(eIDSolverType::Offline == mIDSolver->GetType())
-		{
-			// mIDInfo->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
-			auto offline_solver = std::dynamic_pointer_cast<cOfflineIDSolver>(mIDSolver);
-			// calc & apply torque in this function
-			auto mode = offline_solver->GetOfflineSolverMode() ;
-			if(eOfflineSolverMode::Save == mode || eOfflineSolverMode::Sample == mode)
-			{
-				offline_solver->SetTimestep(time_elapsed);	// record new frame，在重新计算torque以后，更新位移和速度之前...
-				UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
-				mIDSolver->PreSim();
-
-				UpdateWorld(time_elapsed);
-				UpdateGround(time_elapsed);
-				UpdateObjs(time_elapsed);
-				UpdateJoints(time_elapsed);
-
-				PostUpdateCharacters(time_elapsed);
-				PostUpdate(time_elapsed);
-
-				mIDSolver->PostSim();	
-			}
-			else if(eOfflineSolverMode::Display == mode)
-			{
-				// std::cout <<"display!\n";
-				offline_solver->DisplaySet();
-				// auto & sim_char = GetCharacter(0);
-				// std::cout <<"error rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
-
-
-				// mIDSolver->PostSim();	
-			}
-			else if(eOfflineSolverMode::Solve == mode)
-			{
-				offline_solver->OfflineSolve();
-			}
-			else
-			{
-				std::cout <<"[error] cSceneSimChar::Update IDSolver error mode = " << offline_solver->GetOfflineSolverMode();
-				exit(1);
-			}
-		}
-		else
-		{
-			std::cout <<"[error] cSceneSimChar::Update IDSolver Type illegal = " << mIDSolver->GetType() << std::endl;
-		}
-
+		mIDSolver->SetTimestep(time_elapsed);
+		mIDSolver->PreSim();
 	}
-	else
-	{
-		// calc & apply torque in this function
-		UpdateCharacters(time_elapsed);	// calculate all joint torques, then apply them in bullet
 
+	UpdateWorld(time_elapsed);
+	UpdateGround(time_elapsed);
+	UpdateObjs(time_elapsed);
+	UpdateJoints(time_elapsed);
 
-		UpdateWorld(time_elapsed);
-		UpdateGround(time_elapsed);
-		UpdateObjs(time_elapsed);
-		UpdateJoints(time_elapsed);
-
-		PostUpdateCharacters(time_elapsed);
-		PostUpdate(time_elapsed);
+	PostUpdateCharacters(time_elapsed);
+	PostUpdate(time_elapsed);
 	
-	}
+	if(mEnableID)	mIDSolver->PostSim();
+
 	// cTimeUtil::End("sim update");
-	
 }
 
 int cSceneSimChar::GetNumChars() const
@@ -696,7 +625,16 @@ void cSceneSimChar::BuildInverseDynamic()
 	// build inverse dynamics
 	auto sim_char = this->GetCharacter(0);
 	
-	mIDSolver = BuildIDSolver(mIDInfoPath, sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get());
+	auto scene_imitate_ptr = dynamic_cast<cSceneImitate * >(this);
+	if(scene_imitate_ptr == nullptr)
+	{
+		std::cout <<"[error] cSceneSimChar::BuildInverseDynamic can only be finished when cSceneImitate is instanced\n";
+		exit(1);
+	}
+	auto kin_char = scene_imitate_ptr->GetKinChar();
+	// std::cout <<"get kin char succ = " << kin_char->GetID() << std::endl;
+	// exit(0);
+	mIDSolver = BuildIDSolver(mIDInfoPath, scene_imitate_ptr);
 	// mOnlineIDSolver = std::shared_ptr<cOnlineIDSolver>(new cOnlineIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get()));
 	// mOfflineIDSolver = std::shared_ptr<cOfflineIDSolver>(new cOfflineIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get(), "./args/0311/id_conf_offline.json"));
 	// std::shared_ptr<cOnlineIDSolver>(new cOnlineIDSolver(sim_char.get(), sim_char->GetWorld()->GetInternalWorld().get()));
@@ -712,10 +650,12 @@ void cSceneSimChar::BuildInverseDynamic()
 	// offline mode: read trajectory from files, then solve it.
 	// online mode for debug: start with the simulation at the same time, record each state and solve them at onece
 	// then compare the desired ID result and the ideal one. It will be very easy to debug.
-	if(eIDSolverType::Offline == mIDSolver->GetType())
-		std::cout << "[log] Inverse Dynamics runs in offline mode." << std::endl;
+	if(eIDSolverType::OfflineSolve == mIDSolver->GetType())
+		std::cout << "[log] Inverse Dynamics runs in offlineSolve mode." << std::endl;
 	else if(eIDSolverType::Online == mIDSolver->GetType())
 		std::cout << "[log] Inverse Dynamics runs in online mode." << std::endl;
+	else if(eIDSolverType::Display == mIDSolver->GetType())
+		std::cout << "[log] Inverse Dynamics runs in display mode." << std::endl;
 	else
 	{
 		std::cout <<"unrecognized ID solver mode = " << mIDSolver->GetType() << std::endl;
@@ -786,6 +726,7 @@ void cSceneSimChar::CalcCharRandPlacement(const std::shared_ptr<cSimCharacter>& 
 
 void cSceneSimChar::ResolveCharGroundIntersect()
 {
+	// for characters
 	int num_chars = GetNumChars();
 	for (int i = 0; i < num_chars; ++i)
 	{
@@ -802,37 +743,40 @@ void cSceneSimChar::ResolveCharGroundIntersect(const std::shared_ptr<cSimCharact
 	double min_violation = 0;
 	for (int b = 0; b < num_parts; ++b)
 	{
+		// if this body part is valid
 		if (out_char->IsValidBodyPart(b))
 		{
-			tVector aabb_min;
-			tVector aabb_max;
+			tVector aabb_min;	// smallest values
+			tVector aabb_max;	// biggest values
 			const auto& part = out_char->GetBodyPart(b);
-			part->CalcAABB(aabb_min, aabb_max);
+			part->CalcAABB(aabb_min, aabb_max);	// calculate the AABB at this momentum (reply on bullet API)
 
-			tVector mid = 0.5 * (aabb_min + aabb_max);
-			tVector sw = tVector(aabb_min[0], 0, aabb_min[2], 0);
+			tVector mid = 0.5 * (aabb_min + aabb_max);	// find the center of this box
+			tVector sw = tVector(aabb_min[0], 0, aabb_min[2], 0);	// ignore y axis, find 4 corner points in XOZ plane
 			tVector nw = tVector(aabb_min[0], 0, aabb_max[2], 0);
 			tVector ne = tVector(aabb_max[0], 0, aabb_max[2], 0);
 			tVector se = tVector(aabb_max[0], 0, aabb_min[2], 0);
 
 			double max_ground_height = 0;
-			max_ground_height = mGround->SampleHeight(aabb_min);
+			max_ground_height = mGround->SampleHeight(aabb_min);	// find the max ground height
 			max_ground_height = std::max(max_ground_height, mGround->SampleHeight(mid));
 			max_ground_height = std::max(max_ground_height, mGround->SampleHeight(sw));
 			max_ground_height = std::max(max_ground_height, mGround->SampleHeight(nw));
 			max_ground_height = std::max(max_ground_height, mGround->SampleHeight(ne));
 			max_ground_height = std::max(max_ground_height, mGround->SampleHeight(se));
-			max_ground_height += pad;
+			max_ground_height += pad;	// avoid collision gap
 
-			double min_height = aabb_min[1];
-			min_violation = std::min(min_violation, min_height - max_ground_height);
+			double min_height = aabb_min[1];	// it is the lowest height for character bodies
+			min_violation = std::min(min_violation, min_height - max_ground_height);	// get a "minus" biggest value for violation. -999
 		}
 	}
 
+	// it violation occurs
 	if (min_violation < 0)
 	{
+		// here is a root pos, uplift our body
 		tVector root_pos = out_char->GetRootPos();
-		root_pos[1] += -min_violation;
+		root_pos[1] += -min_violation;	
 		out_char->SetRootPos(root_pos);
 	}
 }
@@ -906,24 +850,32 @@ void cSceneSimChar::UpdateRandPerturb(double time_step)
 	}
 }
 
+// extern int reset_cnt;
 void cSceneSimChar::ResetScene()
 {
 	cScene::ResetScene();
-
+	// auto imitate_scene = dynamic_cast<cSceneImitate *>(this);
+	// auto kin_char = imitate_scene->GetKinChar();
 	if (mPerturbParams.mEnableRandPerturbs)
 	{
 		ResetRandPertrub();
 	}
-	
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 1 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	ResetWorld();
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 2 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	ResetCharacters();
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 3 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	ResetGround();
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 4 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	CleanObjs();
-
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 5 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	InitCharacterPos();
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 6 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	ResolveCharGroundIntersect();
-
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 7 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
 	if(mEnableID)mIDSolver->Reset();
+	// if(1 == reset_cnt) std::cout <<"cSceneSimChar Reset Scene 8 origin pos = " << kin_char->GetOriginPos().transpose() << std::endl;
+	// exit(0);
 	// mOnlineIDSolver->Reset();
 	// mOfflineIDSolver->Reset();
 }

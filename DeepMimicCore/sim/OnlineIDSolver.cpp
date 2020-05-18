@@ -18,7 +18,7 @@
 #include <util/BulletUtil.h>
 #include "SimCharacter.h"
 
-cOnlineIDSolver::cOnlineIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world):cIDSolver(sim_char, world, eIDSolverType::Online)
+cOnlineIDSolver::cOnlineIDSolver(cSceneImitate * scene):cIDSolver(scene, eIDSolverType::Online)
 {
 	// clear buffer
 	for (auto & x : mBuffer_q) x.resize(mDof), x.setZero();

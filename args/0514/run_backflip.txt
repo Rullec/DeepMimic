@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 5
---time_lim_max 5
+--time_lim_min 15
+--time_lim_max 15
 --time_lim_exp 0.2
 
 --time_end_lim_min 20
@@ -24,7 +24,7 @@
 
 #----------------PD params and motion data----------------
 --char_ctrls ct_pd
---char_ctrl_files data/0514/controllers/humanoid3d_ctrl_skeleton_0424_aug.txt
+--char_ctrl_files data/0424/controllers/humanoid3d_ctrl_skeleton_0424.txt
 --motion_file data/0514/motions/backflip_0514.txt
 --sync_char_root_pos true
 --sync_char_root_rot false

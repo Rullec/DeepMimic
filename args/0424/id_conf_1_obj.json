@@ -1,39 +1,34 @@
 {
-    "IDMode": "Offline",
-    "IDMode_bak": "Online",
-    "Offline":
-    {
-        "mode_bak2" : "save",
-        "mode_bak1" : "display",
-        "mode_bak3" : "solve",
-        "mode" : "sample",
-        "SampleModeInfo":
+    "IDMode_bak1": "Online",
+    "IDMode_bak2" : "OfflineSolve",
+    "IDMode_bak4" : "Display",
+    "IDMode_bak3" : "Sample",
+    "IDMode": "OfflineSolve",
+    "SampleModeInfo":
         {
-            "sample_epoch" : 100,
-            "sample_length": 1,
+            "sample_num" : 100,
             "sample_trajs_dir" : "data/0424/trajs/",
             "sample_trajs_rootname" : "traj_1_obj.json",
             "summary_table_filename" : "summary_table.json"
         },
-        "SaveModeInfo":
-        {
-            "_comment" : "this section focus on the setting of save mode",
-            "clear_applied_force" : true,
-            "save_traj_root" : "data/0424/trajs/traj_1_obj.json",
-            "save_motion_root" :  "data/0424/motions/ID_motion_1_obj.txt"
-        },
-        "DisplayModeInfo":
-        {
-            "_comment" : "this section focus on the setting of display mode",
-            "display_traj_path" : "data/0424/trajs/traj_1_obj_1.json",
-            "display_motion_path_bak" : "data/0424/motions/ID_motion_1_obj_0.txt",
-            "enable_output_motion_info" : true,
-            "output_motion_info_path" : "angmom_buffer_details.log"
-        },
-        "SolveModeInfo":
-        {
-            "_comment" : "this section focus on the setting of solve mode",
-            "solve_traj_path" : "data/0424/trajs/traj_1_obj_0.json"
-        }
+    "SaveModeInfo":
+    {
+        "_comment" : "this section focus on the setting of save mode",
+        "clear_applied_force" : true,
+        "save_traj_root" : "data/0424/trajs/traj_1_obj.json",
+        "save_motion_root" :  "data/0424/motions/ID_motion_1_obj.txt"
+    },
+    "DisplayModeInfo":
+    {
+        "_comment" : "this section focus on the setting of display mode",
+        "display_traj_path" : "data/0424/trajs/traj_1_obj_1.json",
+        "display_motion_path_bak" : "data/0424/motions/ID_motion_1_obj_0.txt",
+        "enable_output_motion_info" : true,
+        "output_motion_info_path" : "angmom_buffer_details.log"
+    },
+    "SolveModeInfo":
+    {
+        "_comment" : "this section focus on the setting of solve mode",
+        "solve_traj_path" : "data/0424/trajs/traj_1_obj_0.json"
     }
 }

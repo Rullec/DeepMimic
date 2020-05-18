@@ -8,9 +8,20 @@
 #define MAX_FRAME_NUM 10000
 
 enum eIDSolverType{
+	INVALID,
 	Online,
-	Offline,
+	Display,
+	OfflineSolve,
+	Sample,
 	SOLVER_TYPE_NUM
+};
+
+const std::string gIDSolverTypeStr [] = {
+	"Invalid",
+	"Online",
+	"Display",
+	"OfflineSolve",
+	"Sample",
 };
 
 struct tForceInfo {
@@ -27,10 +38,12 @@ class btMultiBody;
 class btMultiBodyDynamicsWorld;
 class cSimCharacter;
 class cCtPDController;
+class cSceneImitate;
+class cKinCharacter;
 
 class cIDSolver{
 public:
-	cIDSolver(cSimCharacter * sim_char, btMultiBodyDynamicsWorld * world, eIDSolverType type);
+	cIDSolver(cSceneImitate * imitate_scene, eIDSolverType type);
 	~cIDSolver();
 	eIDSolverType GetType();
 	virtual void Reset() = 0;
@@ -41,9 +54,10 @@ public:
 protected:
 	eIDSolverType mType;
 
-	// skeleton profile
-	cCtPDController * mCharController;
+	cSceneImitate * mScene;
 	cSimCharacter * mSimChar;
+	cCtPDController * mCharController;
+	cKinCharacter * mKinChar;
 	btMultiBody* mMultibody;
 	btMultiBodyDynamicsWorld * mWorld;
 	btInverseDynamicsBullet3::MultiBodyTree * mInverseModel;
@@ -61,6 +75,8 @@ protected:
 	void RecordMultibodyInfo(std::vector<tMatrix> & local_to_world_rot, std::vector<tVector> & link_pos_world) const;
 	void RecordMultibodyInfo(std::vector<tMatrix> & local_to_world_rot, std::vector<tVector> & link_pos_world, std::vector<tVector> & link_omega_world, std::vector<tVector> & link_vel_world) const;
 	void RecordGeneralizedInfo(tVectorXd & q, tVectorXd & q_dot) const;
+	void RecordReward(double & reward) const;
+	void RecordRefTime(double & time) const;
 	void RecordJointForces(std::vector<tVector> & mJointForces) const;
 	void RecordAction(tVectorXd & action) const;	// ball joints are in aas
 	void RecordPDTarget(tVectorXd & pd_target) const;	// ball joints are in quaternions
