@@ -56,6 +56,7 @@ void cOfflineSolveIDSolver::Parseconfig(const std::string & conf)
     // std::cout <<"void cOfflineIDSolver::ParseConfigSolve(const Json::Value & save_value)\n";
     const Json::Value & solve_traj_path = solve_value["solve_traj_path"];
     assert(solve_traj_path.isNull() == false);
+    mSolveTrajPath = solve_traj_path.asString();
     LoadTraj(mLoadInfo, solve_traj_path.asString());
 /*
     "export_train_data_path_meaning" : "训练数据的输出路径，后缀名为.train，里面存放了state, action, reward三个键值",
@@ -109,7 +110,7 @@ void cOfflineSolveIDSolver::Parseconfig(const std::string & conf)
 
 void cOfflineSolveIDSolver::OfflineSolve(std::vector<tSingleFrameIDResult> & IDResults)
 {
-    std::cout <<"[log] cOfflineIDSolver::OfflineSolve: begin\n";
+    std::cout <<"[log] cOfflineIDSolver::OfflineSolve: begin to solve traj : " << mSolveTrajPath << "\n";
     cTimeUtil::Begin("OfflineSolve");
     assert(mLoadInfo.mTotalFrame > 0);
     IDResults.resize(mLoadInfo.mTotalFrame);
