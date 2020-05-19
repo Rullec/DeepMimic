@@ -39,4 +39,4 @@
 --train_agents false
 
 --output_path output/0920
---model_files output/0920/agent0_model_2019_09_21_10_26_21_575.30.ckpt
+# --model_files output/0920/agent0_model_2019_09_21_10_26_21_575.30.ckpt

@@ -74,6 +74,9 @@ class RLWorld(object):
         # model的输出path
         output_path = self.arg_parser.parse_string('output_path')
         int_output_path = self.arg_parser.parse_string('int_output_path')
+        buffer_path = self.arg_parser.parse_string('buffer_save_path')
+        buffer_type = self.arg_parser.parse_string('buffer_save_type')
+        buffer_keys_save_path = self.arg_parser.parse_string('buffer_keys_save_path')
 
         # agent只有一个, worker可以有很多个。多个worker只是用来充分利用资源扩大采样而已。
         for i in range(num_agents):
@@ -85,6 +88,14 @@ class RLWorld(object):
             if curr_agent is not None:
                 curr_agent.output_dir = output_path
                 curr_agent.int_output_dir = int_output_path
+
+                if buffer_path != '':
+                    curr_agent.buffer_output_path = buffer_path
+                    if buffer_type != '':
+                        curr_agent.buffer_save_type = buffer_type
+                    if buffer_keys_save_path != '':
+                        curr_agent.buffer_keys_save_path = buffer_keys_save_path
+
                 Logger.print(str(curr_agent))
 
                 if (len(model_files) > 0):
@@ -147,6 +158,5 @@ class RLWorld(object):
         else:
             agent = AgentBuilder.build_agent(self, id, agent_file)
             assert (agent != None), 'Failed to build agent {:d} from: {}'.format(id, agent_file)
-        
+
         return agent
-        

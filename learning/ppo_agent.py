@@ -78,7 +78,7 @@ class PPOAgent(PGAgent):
         # setup input tensors
         self.s_tf = tf.placeholder(tf.float32, shape=[None, s_size], name="s")  # 输入state
         self.a_tf = tf.placeholder(tf.float32, shape=[None, a_size], name="a")  # 输入action
-        self.tar_val_tf = tf.placeholder(tf.float32, shape=[None], name="tar_val")  # 输入:target value，从MC方法来的，外部计算输入，用于监督训练critic net
+        self.tar_val_tf = tf.placeholder(tf.float32, shape=[None], name="tar_val")  # 输入:target value，从MC方法来的，外部计算输入，用于监督训练critic sa
         self.adv_tf = tf.placeholder(tf.float32, shape=[None], name="adv")  # advantage function
         self.g_tf = tf.placeholder(tf.float32, shape=([None, g_size] if self.has_goal() else None), name="g")   # goal
         self.old_logp_tf = tf.placeholder(tf.float32, shape=[None], name="old_logp")    # old logp，用来做重要性采样
@@ -94,10 +94,10 @@ class PPOAgent(PGAgent):
                 self.critic_tf = self._build_net_critic(critic_net_name)
                
         if (self.a_mean_tf != None):
-            Logger.print('Built actor net: ' + actor_net_name)
+            Logger.print('Built actor sa: ' + actor_net_name)
 
         if (self.critic_tf != None):
-            Logger.print('Built critic net: ' + critic_net_name)
+            Logger.print('Built critic sa: ' + critic_net_name)
         
         # 本网络输出的action所服从的高斯分布的标准差在这里: 是一个噪音乘以全１向量(只是为了扩展维度)
         self.norm_a_std_tf = self.exp_params_curr.noise * tf.ones(a_size)
@@ -187,8 +187,8 @@ class PPOAgent(PGAgent):
 
         with self.sess.as_default(), self.graph.as_default():
             self._exp_action = self._enable_stoch_policy() and MathUtil.flip_coin(self.exp_params_curr.rate)
-            a, logp = self._eval_actor(s, g, self._exp_action)
-        return a[0], logp[0]
+            a, logp, a_mean = self._eval_actor(s, g, self._exp_action)
+        return a[0], logp[0], a_mean[0]
 
     def _eval_actor(self, s, g, enable_exp):
         s = np.reshape(s, [-1, self.get_state_size()])
@@ -200,7 +200,7 @@ class PPOAgent(PGAgent):
             self.exp_mask_tf: np.array([1 if enable_exp else 0])
         }
 
-        a, logp = self.sess.run([self.sample_a_tf, self.sample_a_logp_tf], feed_dict=feed)
+        a, logp, a_mean = self.sess.run([self.sample_a_tf, self.sample_a_logp_tf, self.a_mean_tf], feed_dict=feed)
 
         # if np.random.rand() < 1e-3:
         #     v1, v2, v3, v4 = self.sess.run([self.norm_a_std_tf, self.norm_a_noise_tf, self.a_mean_tf, self.a_norm.std_tf], feed)
@@ -208,7 +208,7 @@ class PPOAgent(PGAgent):
         #     print("[var] self.norm_a_noise_tf = %s" % str(v2.transpose()))
         #     print("[var] self.a_mean_tf = %s" % str(v3.transpose()))
         #     print("[var] self.a_norm_std_tf = %s" % str(v4.transpose()))
-        return a, logp
+        return a, logp, a_mean
 
     def _train_step(self):
         '''
@@ -326,6 +326,12 @@ class PPOAgent(PGAgent):
         self.logger.log_tabular('Clip_Frac', actor_clip_frac)
         self.logger.log_tabular('Adv_Mean', adv_mean)
         self.logger.log_tabular('Adv_Std', adv_std)
+
+        # if we want to save buffer in TRAIN mode
+        # then we will save buffer to disk at here,
+        # just before clearing the buffer
+        if self.buffer_save_type == self.BufferSaveType.TRAIN:
+            self.replay_buffer.save()
 
         self.replay_buffer.clear()
 

@@ -48,3 +48,4 @@ Main
 *.DS_Store
 *.dylib
 *.train
+cmake-build*

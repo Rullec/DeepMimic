@@ -21,7 +21,8 @@ class Path(object):
         valid &= len(self.logps) == l
         valid &= len(self.rewards) == l
         valid &= len(self.flags) == l
-
+        valid &= len(self.return_) == l
+        valid &= len(self.action_mean) == l
         return valid
 
     def check_vals(self):
@@ -43,8 +44,9 @@ class Path(object):
         self.logps = []
         self.rewards = []
         self.flags = []
-        # self.contact_info = []
+        self.return_ = []
         self.terminate = Env.Terminate.Null
+        self.action_mean = []
         return
 
     def get_pathlen(self):
@@ -54,6 +56,7 @@ class Path(object):
         return sum(self.rewards)
 
     def save(self, filename):
+        pass
         if os.path.exists(filename):
             os.remove(filename)
         cont = {

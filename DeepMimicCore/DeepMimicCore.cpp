@@ -246,7 +246,7 @@ std::vector<double> cDeepMimicCore::RecordGoal(int agent_id) const
 std::vector<double> cDeepMimicCore::RecordContactInfo(int agent_id) const
 {
 	// align the size of out_goal to 6*7 = 42
-	const int contact_size = 42;
+	const int contact_size = 84;
 	const int INVALID_ID = -1;
 	Eigen::VectorXd contact(contact_size);
 	contact.setConstant(INVALID_ID);
@@ -548,7 +548,7 @@ double cDeepMimicCore::CalcReward(int agent_id) const
 	if (rl_scene != nullptr)
 	{
 		double r = rl_scene->CalcReward(agent_id);
-		// std::cout <<"[get reward] reward = " << r << std::endl;
+//        std::cout <<"[get reward] reward = " << r << std::endl;
 		return r;
 	}
 	return 0;
@@ -645,6 +645,7 @@ void cDeepMimicCore::SetupScene()
 
 	mScene = nullptr;
 	mRLScene = nullptr;
+	// 根据是否绘制，创建不同的Scene子类对象
 	if (EnableDraw())
 	{
 		cSceneBuilder::BuildDrawScene(scene_name, mScene);
