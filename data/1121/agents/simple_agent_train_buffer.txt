@@ -1,0 +1,70 @@
+{
+	"AgentType": "SA",
+
+	"ActorNet": "fc_2layers_512_256",
+	"ActorStepsize": 0.0000025,
+	"ActorMomentum": 0.9,
+	"ActorWeightDecay": 0.0015,
+	"ActorInitOutputScale": 0.01,
+
+	"CriticNet": "fc_2layers_512_256",
+	"CriticStepsize": 0.01,
+	"CriticMomentum": 0.9,
+	"CriticWeightDecay": 0,
+
+	"UpdatePeriod": 1,
+	"ItersPerUpdate": 1,
+	"Discount": 0.95,
+	"BatchSize": 4096,
+	"MiniBatchSize": 256,
+	"Epochs": 1,
+	"ReplayBufferSize": 500000,
+	"InitSamples": 1,
+	"NormalizerSamples": 1000000,
+
+	"RatioClip": 0.2,
+	"NormAdvClip": 4,
+	"TDLambda": 0.95,
+	
+	"OutputIters": 10,
+	"IntOutputIters": 400,
+	"TestEpisodes": 1,
+
+	"ExpAnnealSamples": 64000000,
+	
+	"EnableSavePath": false,
+	"PathSaveDir": "./logs/paths/",
+
+	"ExpParamsBeg":
+	{
+		"Rate": 1,
+		"InitActionRate": 1,
+		"Noise": 0.05,
+		"NoiseInternal": 0,
+		"Temp": 0.1
+	},
+
+	"ExpParamsEnd":
+	{
+		"Rate": 0.2,
+		"InitActionRate": 0.01,
+		"Noise": 0.05,
+		"NoiseInternal": 0,
+		"Temp": 0.001
+	},
+
+	"buffer_path": "/data/ubuntu_data/DeepMimic/output/1121/buffer_raw",
+	"std_path": "/data/ubuntu_data/DeepMimic/output/1118/111801_norm/std.npz",
+	"mean_path": "/data/ubuntu_data/DeepMimic/output/1118/111801_norm/mean.npz",
+	"net_save_path": "/home/ljf/playground/TF/sa/output/exp-1/model/sa_net.ckpt-1000",
+    "batch_size": 2000,
+    "l2_coeff": 1e-3,
+    "lr": 1e-3,
+    "n_epoch": 1000,
+    "output_path": "./output/exp-1/",
+    "layers": [1024, 512, 256, 128],
+    "feature_path": "/data/ubuntu_data/DeepMimic/output/1120/states.npz",
+    "label_path": "/data/ubuntu_data/DeepMimic/output/1120/action.npz",
+    "save_step": 100
+
+}

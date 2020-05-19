@@ -80,10 +80,10 @@ class PGAgent(TFAgent):
                 self.critic_tf = self._build_net_critic(critic_net_name)
 
         if (self.actor_tf != None):
-            Logger.print('Built actor net: ' + actor_net_name)
+            Logger.print('Built actor sa: ' + actor_net_name)
 
         if (self.critic_tf != None):
-            Logger.print('Built critic net: ' + critic_net_name)
+            Logger.print('Built critic sa: ' + critic_net_name)
 
         return
 
@@ -227,12 +227,12 @@ class PGAgent(TFAgent):
                     norm_exp_noise = np.random.randn(*a.shape)
                     norm_exp_noise *= self.exp_params_curr.noise
                     exp_noise = norm_exp_noise * self.a_norm.std
-                    a += exp_noise
+                    a_out = a + exp_noise
 
                     logp = self._calc_action_logp(norm_exp_noise)
                     self._exp_action = True
 
-        return a, logp
+        return a_out, logp, a
 
     def _enable_stoch_policy(self):
         return self.enable_training and (self._mode == self.Mode.TRAIN or self._mode == self.Mode.TRAIN_END)

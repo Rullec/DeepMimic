@@ -21,6 +21,6 @@ def build_net(net_name, input_tfs, reuse=False):
     elif(net_name == fc_3layers_128_128_64.NAME):
         net = fc_3layers_128_128_64.build_net(input_tfs, reuse)
     else:
-        assert False, 'Unsupported net: ' + net_name
+        assert False, 'Unsupported sa: ' + net_name
     
     return net
