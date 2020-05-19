@@ -472,13 +472,15 @@ void cInteractiveIDSolver::tSummaryTable::WriteToDisk(const std::string & path)
     root["num_of_trajs"] = mTotalEpochNum;
     root["total_second"] = mTotalLengthTime;
     root["total_frame"] = mTotalLengthFrame;
+    root["timestamp"] = mTimeStamp;
     root["single_trajs_lst"] = Json::arrayValue;
     Json::Value single_epoch;
     for(auto & x: mEpochInfos)
     {
         single_epoch["num_of_frame"] = x.frame_num;
         single_epoch["length_second"] = x.length_second;
-        single_epoch["filename"] = x.traj_filename;
+        single_epoch["traj_filename"] = x.traj_filename;
+        single_epoch["train_data_filename"] = x.train_data_filename;
         root["single_trajs_lst"].append(single_epoch);
     }
 
@@ -504,6 +506,7 @@ void cInteractiveIDSolver::tSummaryTable::LoadFromDisk(const std::string & path)
     mTotalEpochNum = root["num_of_trajs"].asInt();
     mTotalLengthTime = root["total_second"].asDouble();
     mTotalLengthFrame = root["total_frame"].asInt();
+    mTimeStamp = root["timestamp"].asString();
     auto & trajs_lst = root["single_trajs_lst"];
     if(mTotalEpochNum != trajs_lst.size())
     {
@@ -517,7 +520,26 @@ void cInteractiveIDSolver::tSummaryTable::LoadFromDisk(const std::string & path)
     {
         mEpochInfos[i].frame_num = trajs_lst[i]["num_of_frame"].asInt();
         mEpochInfos[i].length_second = trajs_lst[i]["length_second"].asDouble();
-        mEpochInfos[i].traj_filename = trajs_lst[i]["filename"].asString();
+        mEpochInfos[i].traj_filename = trajs_lst[i]["traj_filename"].asString();
     }
     std::cout <<"[log] tSummaryTable::LoadFromDisk " << path << std::endl;
+}
+
+cInteractiveIDSolver::tSummaryTable::tSingleEpochInfo::tSingleEpochInfo()
+{
+    frame_num = 0;
+    length_second = 0;
+    traj_filename = "";
+    train_data_filename = "";
+}
+
+cInteractiveIDSolver::tSummaryTable::tSummaryTable()
+{
+    mSampleCharFile = "";
+    mSampleControllerFile = "";
+    mTimeStamp = "";
+    mTotalEpochNum = 0;
+    mTotalLengthTime = 0;
+    mTotalLengthFrame = 0;
+    mEpochInfos.clear();
 }

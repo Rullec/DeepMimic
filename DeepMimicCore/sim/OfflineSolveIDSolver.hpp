@@ -36,6 +36,7 @@ protected:
     // config for BatchTrajSolveMode
     struct {
         std::string mSummaryTableFile;  // You need to specify a summary table which records the details info of batch trajs. It is the output of cSampleIDSolver
+        std::string mExportDataDir;     // The same as mExportDataPath
     } mBatchTrajSolveConfig;
     
     std::string mRefMotionPath;     // You must specify the reference motion when OfflineSolve() try to recalculate the reward for each frame.
@@ -47,5 +48,5 @@ protected:
     void ParseBatchTrajConfig(const Json::Value & batch_traj_config);
 
     void SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDResult);
-    void BatchTrajsSolve(const tSummaryTable & summary_table);
+    void BatchTrajsSolve(tSummaryTable & summary_table);
 };

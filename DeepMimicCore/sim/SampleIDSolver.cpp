@@ -301,6 +301,7 @@ void cSampleIDSolver::Reset()
     mSummaryTable.mTotalLengthTime += a.length_second;
     mSummaryTable.mTotalLengthFrame += a.frame_num;
     mSummaryTable.mEpochInfos.push_back(a);
+    
     mSummaryTable.WriteToDisk(mSampleInfo.mSummaryTableFilename);
 
     // clear frame id

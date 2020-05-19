@@ -2,6 +2,7 @@
 #include "FileUtil.h"
 #include <iostream>
 #include <fstream>
+#include <memory>
 
 std::string cJsonUtil::BuildVectorJson(const tVector& vec)
 {
