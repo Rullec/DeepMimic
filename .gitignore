@@ -40,3 +40,4 @@ Backup/
 data/intermediate/
 
 DeepMimicCore/DeepMimicCore.py
+cmake-build*
