@@ -31,6 +31,7 @@ void cOfflineSolveIDSolver::PreSim()
     {
         std::vector<tSingleFrameIDResult> mResult;
         std::cout <<"[log] cOfflineIDSolver::OfflineSolve: begin to solve traj : " << mSingleTrajSolveConfig.mSolveTrajPath << "\n";
+        LoadTraj(mLoadInfo, mSingleTrajSolveConfig.mSolveTrajPath);
         SingleTrajSolve(mResult);
         SaveTrainData(mSingleTrajSolveConfig.mExportDataPath, mResult);
     }
@@ -129,7 +130,6 @@ void cOfflineSolveIDSolver::ParseSingleTrajConfig(const Json::Value & single_tra
     const Json::Value & solve_traj_path = single_traj_config["solve_traj_path"];
     assert(solve_traj_path.isNull() == false);
     mSingleTrajSolveConfig.mSolveTrajPath = solve_traj_path.asString();
-    LoadTraj(mLoadInfo, mSingleTrajSolveConfig.mSolveTrajPath);
 /*
     "export_train_data_path_meaning" : "训练数据的输出路径，后缀名为.train，里面存放了state, action, reward三个键值",
     "export_train_data_path" : "data/batch_train_data/0424/leftleg_0.train",
@@ -153,6 +153,8 @@ void cOfflineSolveIDSolver::ParseBatchTrajConfig(const Json::Value & batch_traj_
 {
     assert(batch_traj_config.isNull() == false);
     mBatchTrajSolveConfig.mSummaryTableFile = batch_traj_config["summary_table_filename"].asString();
+    mBatchTrajSolveConfig.mExportDataDir = batch_traj_config["export_train_data_dir"].asString();
+
     if(false == cFileUtil::ExistsFile(mBatchTrajSolveConfig.mSummaryTableFile))
     {
         std::cout << "[error] cOfflineSolveIDSolver::ParseBatchTrajConfig summary table doesn't exist: " << mBatchTrajSolveConfig.mSummaryTableFile << std::endl;
@@ -167,7 +169,7 @@ void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & 
     cTimeUtil::Begin("OfflineSolve");
     assert(mLoadInfo.mTotalFrame > 0);
     IDResults.resize(mLoadInfo.mTotalFrame);
-    std::cout <<"[debug] cOfflineIDSolver::OfflineSolve: motion total frame = " << mLoadInfo.mTotalFrame << std::endl;
+    // std::cout <<"[debug] cOfflineIDSolver::OfflineSolve: motion total frame = " << mLoadInfo.mTotalFrame << std::endl;
     tVectorXd old_q, old_u;
     RecordGeneralizedInfo(old_q, old_u);
 
@@ -396,7 +398,7 @@ void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & 
         if(total_action_err > 1e-7)
         {
             std::cout <<"[error] OfflineSolveIDSolver: frame " << cur_frame <<" action err = " << total_action_err << std::endl;
-            exit(1);
+            // exit(1);
         }
         ID_action_err += total_action_err;
 
@@ -421,11 +423,11 @@ void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & 
         // std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
 
     }
-    if(ID_torque_err < 1e-6 && ID_action_err < 1e-6 && reward_err < 1e-6)
+    if(ID_torque_err < 1e-3 && ID_action_err < 1e-3 && reward_err < 1e-3)
     {
-        std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID torque error = " << ID_torque_err << std::endl;
-        std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID Action error = " << ID_action_err << std::endl;
-        std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID reward error = " << reward_err << std::endl;
+        std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID torque error = " << ID_torque_err;
+        std::cout <<", total ID Action error = " << ID_action_err;
+        std::cout <<"，total ID reward error = " << reward_err << std::endl;
     }
     else
     {
@@ -436,7 +438,22 @@ void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & 
     cTimeUtil::End("OfflineSolve");
 }
 
-void cOfflineSolveIDSolver::BatchTrajsSolve(const tSummaryTable & summary_table)
+void cOfflineSolveIDSolver::BatchTrajsSolve(tSummaryTable & summary_table)
 {
-    std::cout <<"Batch solve for "<< summary_table.mTimeStamp << std::endl;
+    std::cout <<"[log] Batch solve for "<< summary_table.mTimeStamp << std::endl;
+    std::vector<tSingleFrameIDResult> mResult;
+    for(int i=0; i< summary_table.mTotalEpochNum; i++)
+    {
+        std::cout <<"--------------batch solve for epoch " << i <<" begin---------------\n";
+        std::string traj_name = summary_table.mEpochInfos[i].traj_filename;
+        LoadTraj(mLoadInfo, traj_name);
+        SingleTrajSolve(mResult);
+
+        std::string export_name = cFileUtil::GetFilename(traj_name);
+        export_name = mBatchTrajSolveConfig.mExportDataDir + cFileUtil::RemoveExtension(export_name) + ".train";
+        SaveTrainData(export_name, mResult);
+        summary_table.mEpochInfos[i].train_data_filename = export_name;
+    }
+
+    summary_table.WriteToDisk(mBatchTrajSolveConfig.mSummaryTableFile);
 }

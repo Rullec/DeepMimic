@@ -1,0 +1,29 @@
+{
+	"char_file" : "data/0424/characters/skeleton_042302_revised.json",
+	"controller_file" : "data/0424/controllers/humanoid3d_ctrl_skeleton_0424.txt",
+	"num_of_trajs" : 3,
+	"single_trajs_lst" : 
+	[
+		{
+			"length_second" : 1.9999999999999998,
+			"num_of_frame" : 1200,
+			"train_data_filename" : "data/batch_train_data/0426/traj_fullbody_0.train",
+			"traj_filename" : "data/batch_trajs/0426//traj_fullbody_0.json"
+		},
+		{
+			"length_second" : 1.9999999999999998,
+			"num_of_frame" : 1200,
+			"train_data_filename" : "data/batch_train_data/0426/traj_fullbody_1.train",
+			"traj_filename" : "data/batch_trajs/0426//traj_fullbody_1.json"
+		},
+		{
+			"length_second" : 1.9999999999999998,
+			"num_of_frame" : 1200,
+			"train_data_filename" : "data/batch_train_data/0426/traj_fullbody_2.train",
+			"traj_filename" : "data/batch_trajs/0426//traj_fullbody_2.json"
+		}
+	],
+	"timestamp" : "2020-05-19 11:19:38\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+	"total_frame" : 3600,
+	"total_second" : 5.9999999999999991
+}
