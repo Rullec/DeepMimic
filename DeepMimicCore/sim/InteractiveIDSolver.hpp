@@ -45,7 +45,7 @@ protected:
         double mRewards[MAX_FRAME_NUM];    // rewards
         double mRefTime[MAX_FRAME_NUM];     // current time in kinchar reference motion
         cMotion * mMotion;
-        std::vector<tForceInfo> mContactForces[MAX_FRAME_NUM];
+        std::vector<tContactForceInfo> mContactForces[MAX_FRAME_NUM];
         std::vector<tVector> mExternalForces[MAX_FRAME_NUM], mExternalTorques[MAX_FRAME_NUM];
         tVector mLinearMomentum[MAX_FRAME_NUM], mAngularMomentum[MAX_FRAME_NUM]; // linear, ang momentum for each frame
         tVectorXd mCharPoses[MAX_FRAME_NUM];
@@ -69,7 +69,7 @@ protected:
         Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat, mActionMat, mPDTargetMat;
         cMotion * mMotion = nullptr;
         tVectorXd mTimesteps, mRewards, mMotionRefTime;
-        std::vector<std::vector<tForceInfo>> mContactForces;
+        std::vector<std::vector<tContactForceInfo>> mContactForces;
         std::vector<std::vector<tMatrix>> mLinkRot;	// local to world rotation mats
         std::vector<std::vector<tVector>> mLinkPos;	// link COM pos in world frame
         std::vector<std::vector<tVector>> mExternalForces, mExternalTorques;

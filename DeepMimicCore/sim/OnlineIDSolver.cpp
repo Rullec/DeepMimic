@@ -363,7 +363,7 @@ void cOnlineIDSolver::Reset()
 
 
 void cOnlineIDSolver::SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
-		const std::vector<tForceInfo> & contact_forces,
+		const std::vector<tContactForceInfo> & contact_forces,
 		const std::vector<tVector> & link_pos, 
 		const std::vector<tMatrix> & link_rot, 
 		const tVectorXd & buf_q,

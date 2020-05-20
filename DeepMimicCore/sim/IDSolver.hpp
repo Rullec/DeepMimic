@@ -24,11 +24,13 @@ const std::string gIDSolverTypeStr [] = {
 	"Sample",
 };
 
-struct tForceInfo {
+struct tContactForceInfo {
 	int mId;		// applied link id in Inverse Dynamics order but not deepmimic order
 	tVector mPos, mForce;
-	tForceInfo()
+	bool mIsSelfCollision;	// Does this contact belong to the self collision in this character?
+	tContactForceInfo()
 	{
+		mIsSelfCollision = false;
 		mId = -1;
 		mPos = mForce = tVector::Zero();
 	}
@@ -80,8 +82,8 @@ protected:
 	void RecordJointForces(std::vector<tVector> & mJointForces) const;
 	void RecordAction(tVectorXd & action) const;	// ball joints are in aas
 	void RecordPDTarget(tVectorXd & pd_target) const;	// ball joints are in quaternions
-	void RecordContactForces(std::vector<tForceInfo> &mContactForces, double mCurTimestep, std::map<int, int> &mWorldId2InverseId) const;
-	void ApplyContactForcesToID(const std::vector<tForceInfo> &mContactForces, const std::vector<tVector> & mLinkPos, const std::vector<tMatrix> & mLinkRot) const;
+	void RecordContactForces(std::vector<tContactForceInfo> &mContactForces, double mCurTimestep, std::map<int, int> &mWorldId2InverseId) const;
+	void ApplyContactForcesToID(const std::vector<tContactForceInfo> &mContactForces, const std::vector<tVector> & mLinkPos, const std::vector<tMatrix> & mLinkRot) const;
 	void ApplyExternalForcesToID(const std::vector<tVector> & link_poses, const std::vector<tMatrix> & link_rot, const std::vector<tVector> & ext_forces, const std::vector<tVector> & ext_torques) const;
 
 	// set functions
@@ -105,7 +107,7 @@ protected:
 
 	// solving single step
 	virtual void SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
-		const std::vector<tForceInfo> & contact_forces,
+		const std::vector<tContactForceInfo> & contact_forces,
 		const std::vector<tVector> &link_pos, 
 		const std::vector<tMatrix> &link_rot, 
 		const tVectorXd & mBuffer_q,
