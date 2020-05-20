@@ -426,8 +426,9 @@ void cIDSolver::RecordPDTarget(tVectorXd & pd_target) const
 	pd_target = mCharController->GetCurPDTargetPose();
 }
 
-void cIDSolver::RecordContactForces(std::vector<tForceInfo> &mContactForces, double mCurTimestep, std::map<int, int> &mWorldId2InverseId) const
+void cIDSolver::RecordContactForces(std::vector<tContactForceInfo> &mContactForces, double mCurTimestep, std::map<int, int> &mWorldId2InverseId) const
 {
+	
     mContactForces.clear();
 	int num_contact_manifolds = mWorld->getDispatcher()->getNumManifolds();
 	for (int i = 0; i < num_contact_manifolds; i++)
@@ -438,10 +439,10 @@ void cIDSolver::RecordContactForces(std::vector<tForceInfo> &mContactForces, dou
 			body1_id = manifold->getBody1()->getWorldArrayIndex();
 
 		int num_contact_pts = manifold->getNumContacts();
-		tForceInfo cur_contact_info;
+		tContactForceInfo cur_contact_info;
 		for (int j = 0; j < num_contact_pts; j++)
 		{
-			tForceInfo contact_info;
+			tContactForceInfo contact_info;
 			const btManifoldPoint & pt = manifold->getContactPoint(j);
 			btScalar linear_friction_force1 = pt.m_appliedImpulseLateral1 / mCurTimestep;
 			btScalar linear_friction_force2 = pt.m_appliedImpulseLateral2 / mCurTimestep;
@@ -464,8 +465,10 @@ void cIDSolver::RecordContactForces(std::vector<tForceInfo> &mContactForces, dou
 				// add contact forces for body 0
 				contact_info.mPos = pos;
 				contact_info.mForce = force;
+				contact_info.mIsSelfCollision = (mInverseId2WorldId.find(body0_id) != mInverseId2WorldId.end())
+													&&
+												(mInverseId2WorldId.find(body1_id) != mInverseId2WorldId.end());
 				mContactForces.push_back(contact_info);
-
 				collision_valid = true;
 			}
 			if (mWorldId2InverseId.end() != mWorldId2InverseId.find(body1_id))
@@ -477,6 +480,9 @@ void cIDSolver::RecordContactForces(std::vector<tForceInfo> &mContactForces, dou
 				// add contact forces for body 1
 				contact_info.mPos = pos;
 				contact_info.mForce = force;
+				contact_info.mIsSelfCollision = (mInverseId2WorldId.find(body0_id) != mInverseId2WorldId.end())
+													&&
+												(mInverseId2WorldId.find(body1_id) != mInverseId2WorldId.end());
 				mContactForces.push_back(contact_info);
 				collision_valid = true;
 			}
@@ -491,7 +497,7 @@ void cIDSolver::RecordContactForces(std::vector<tForceInfo> &mContactForces, dou
 	}
 }
 
-void cIDSolver::ApplyContactForcesToID(const std::vector<tForceInfo> &mContactForces, const std::vector<tVector> & mLinkPos, const std::vector<tMatrix> & mLinkRot) const
+void cIDSolver::ApplyContactForcesToID(const std::vector<tContactForceInfo> &mContactForces, const std::vector<tVector> & mLinkPos, const std::vector<tMatrix> & mLinkRot) const
 {
 	assert(mLinkRot.size() == mNumLinks);
 	assert(mLinkPos.size() == mNumLinks);
@@ -532,7 +538,7 @@ void cIDSolver::ApplyContactForcesToID(const std::vector<tForceInfo> &mContactFo
 
 
 void cIDSolver::SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
-	const std::vector<tForceInfo> & contact_forces,
+	const std::vector<tContactForceInfo> & contact_forces,
 	const std::vector<tVector> & link_pos, 
 	const std::vector<tMatrix> &link_rot, 
 	const tVectorXd & mBuffer_q,

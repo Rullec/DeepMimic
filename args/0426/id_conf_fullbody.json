@@ -1,12 +1,12 @@
 {
-    "IDMode_bak1": "Online",
+    "IDMode_bak3": "Online",
     "IDMode_bak2" : "OfflineSolve",
     "IDMode_bak4" : "Display",
-    "IDMode_bak3" : "Sample",
+    "IDMode_bak1" : "Sample",
     "IDMode": "OfflineSolve",
     "SampleModeInfo":
     {
-        "sample_num" : 20,
+        "sample_num" : 1,
         "sample_trajs_dir" : "data/batch_trajs/0426/",
         "sample_trajs_rootname" : "traj_fullbody.json",
         "summary_table_filename" : "summary_table_fullbody.json"

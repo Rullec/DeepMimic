@@ -34,7 +34,7 @@ void cInteractiveIDSolver::LoadTraj(tLoadInfo & load_info, const std::string & p
         std::string mLoadPath = "";
         Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat;
         tVectorXd mTimesteps;
-        std::vector<std::vector<tForceInfo>> mContactForces;
+        std::vector<std::vector<tContactForceInfo>> mContactForces;
         Eigen::MatrixXd mExternalForces, mExternalTorques;
         int mTotalFrame = 0;
         int mCurFrame = 0;
@@ -116,9 +116,9 @@ void cInteractiveIDSolver::LoadTraj(tLoadInfo & load_info, const std::string & p
                 */
                 load_info.mContactForces[frame_id][c_id].mPos[i] = cur_contact_info[c_id]["force_pos"][i].asDouble();
                 load_info.mContactForces[frame_id][c_id].mForce[i] = cur_contact_info[c_id]["force_value"][i].asDouble();
-
             }
             load_info.mContactForces[frame_id][c_id].mId = cur_contact_info[c_id]["force_link_id"].asInt();
+            load_info.mContactForces[frame_id][c_id].mIsSelfCollision = cur_contact_info[c_id]["is_self_collision"].asBool();
         }
 
         // std::cout <<"[load file] frame " << frame_id <<" contact num = " << cur_contact_info.size() << std::endl;
@@ -377,12 +377,13 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
         for(int c_id = 0; c_id < mSaveInfo.mContactForces[frame_id].size(); c_id++)
         {
             Json::Value single_contact;
-            const tForceInfo & force = mSaveInfo.mContactForces[frame_id][c_id];
+            const tContactForceInfo & force = mSaveInfo.mContactForces[frame_id][c_id];
             single_contact["force_pos"] = Json::arrayValue;
             for(int i=0; i<4; i++) single_contact["force_pos"].append(force.mPos[i]);
             single_contact["force_value"] = Json::arrayValue;
             for(int i=0; i<4; i++) single_contact["force_value"].append(force.mForce[i]);
             single_contact["force_link_id"] = force.mId;
+            single_contact["is_self_collision"] = force.mIsSelfCollision;
             single_frame["contact_info"].append(single_contact);
         }
 

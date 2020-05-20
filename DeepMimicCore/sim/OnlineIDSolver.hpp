@@ -27,7 +27,7 @@ protected:
 
 
 	// ID buffer vars
-	std::vector<tForceInfo> mContactForces;
+	std::vector<tContactForceInfo> mContactForces;
 	std::vector<tVector> mJointForces;	// reference joint torque(except root) in link frame
 	std::vector<tVector> mSolvedJointForces;	// solved joint torques from
 	std::vector<tVector> mExternalForces;// for each link, external forces in COM
@@ -45,7 +45,7 @@ protected:
 	void AddExternalForces();
 
 	virtual void SolveIDSingleStep(std::vector<tVector> & solved_joint_forces,
-		const std::vector<tForceInfo> & contact_forces,
+		const std::vector<tContactForceInfo> & contact_forces,
 		const std::vector<tVector> &link_pos, 
 		const std::vector<tMatrix> &link_rot, 
 		const tVectorXd & mBuffer_q,
