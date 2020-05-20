@@ -71,6 +71,7 @@ class NetWork(object):
         with self.sess.as_default():
             filename = self.json_data['net_save_path']
             # filename = '/home/ljf/playground/TF/sa/output/exp-1/model/sa_net.ckpt-1000'
+            print("[log] SimpleAgentNetWorkOpt load mode from %s" % filename)
             self.saver.restore(self.sess, filename)
 
     def _create_data_set(self, feature, label):
