@@ -14,8 +14,12 @@ public:
 	static void ClearFile(const std::string& file_name);
 	static void CreateFile(const std::string& file_name);
 	static void DeleteFile(const char* file_name);
+	static void ClearDir(const char * dir_name);
+	static void DeleteDir(const char * dir_name);
+	static void CreateDir(const char * dir_name);
 	static std::string RemoveExtension(const std::string& filename);
 	static void DeleteFile(const std::string& filename);
+	static void RenameFile(const std::string& ori_name, const std::string & des_name);
 	static long int GetFileSize(const std::string& filename);
 	static std::string GetExtension(const std::string& filename);
 	static std::string GetFilename(const std::string& path);
@@ -34,7 +38,12 @@ public:
 
 	static bool AppendText(const std::string& str, const std::string& out_filename);
 	static std::string GenerateSerialFilename(const std::string & root, int id);
-
+	static std::string GenerateRandomFilename(const std::string & root);
+	
+	// Multi Processes File Block
+	static bool AddLock(const std::string &);
+	static bool DeleteLock(const std::string &);
 private:
 	static std::string ReadTextFile(FILE* f);
+	static std::string mFileLockDir;
 };

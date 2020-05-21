@@ -110,7 +110,7 @@ protected:
             tSingleEpochInfo();
         };
         std::vector<tSingleEpochInfo> mEpochInfos;
-        void WriteToDisk(const std::string & path);
+        void WriteToDisk(const std::string & path, bool append = true);
         void LoadFromDisk(const std::string & path);
     };
     tSummaryTable mSummaryTable;

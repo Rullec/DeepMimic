@@ -14,4 +14,7 @@ protected:
     void Parseconfig(const std::string & conf);
     void InitSampleSummaryTable();
     void PrintSampleInfo();
+
+    // MPI UTILS
+    bool mEnableIDTest;
 };

@@ -6,6 +6,10 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <experimental/filesystem>
+#include <sys/file.h>
+#include <unistd.h>
+#include <map>
 
 FILE* cFileUtil::OpenFile(const std::string& file_name, const char* mode)
 {
@@ -54,6 +58,37 @@ void cFileUtil::DeleteFile(const char* file_name)
 	}
 }
 
+void cFileUtil::DeleteDir(const char * dir_name)
+{
+
+	std::cout <<"delete a dir " << dir_name << " ";
+	if(cFileUtil::ExistsDir(dir_name) == true && std::experimental::filesystem::remove_all(dir_name))
+	{
+		std::cout <<"succ\n";
+	}
+	else std::cout <<"failed\n";
+}
+
+void cFileUtil::ClearDir(const char * dir_name)
+{
+	std::cout <<"clear dir " << dir_name << std::endl;
+	if(cFileUtil::ExistsDir(dir_name))
+	{
+    	for (const auto & entry : std::experimental::filesystem::directory_iterator(dir_name))
+		{
+			cFileUtil::DeleteFile(entry.path());
+		}
+	}
+}
+
+void cFileUtil::CreateDir(const char * dir_name)
+{
+	// std::cout <<"create a dir " << dir_name << " ";
+	if(cFileUtil::ExistsDir(dir_name) == false)
+	{
+		std::experimental::filesystem::create_directories(dir_name);
+	}
+}
 
 std::string cFileUtil::RemoveExtension(const std::string& filename)
 {
@@ -74,6 +109,14 @@ void cFileUtil::DeleteFile(const std::string& filename)
 	{
 		printf("Failed to delete %s!\n", filename.c_str());
 		assert(false);
+	}
+}
+
+void cFileUtil::RenameFile(const std::string& ori_name, const std::string & des_name)
+{	
+	if (rename(ori_name.c_str(), des_name.c_str()) != 0)
+	{
+		std::cout <<"[error] cFileUtil::RenameFile from " << ori_name <<" to " << des_name << "failed\n";
 	}
 }
 
@@ -394,6 +437,20 @@ std::string cFileUtil::GenerateSerialFilename(const std::string & root, int id)
 	return path;
 }
 
+std::string cFileUtil::GenerateRandomFilename(const std::string & root)
+{
+	std::string single_path = cFileUtil::RemoveExtension(root),
+				final_path = "";
+	do
+	{
+		final_path = single_path + "_" + std::to_string(std::rand()) + "." + cFileUtil::GetExtension(root);
+		// std::cout <<"try " << final_path << std::endl;
+	}
+	while (cFileUtil::ExistsFile(final_path) == true);
+	return final_path;
+    
+}
+
 std::string cFileUtil::ReadTextFile(FILE* f)
 {
 	if (!f)
@@ -415,4 +472,56 @@ std::string cFileUtil::ReadTextFile(FILE* f)
 
 	buffer.reset();
 	return text;
+}
+
+
+std::string cFileUtil::mFileLockDir = "./logs/controller_logs/locks/";
+static std::map<std::string, int> write_descriptor;
+
+#define LOCK_FAIL false
+#define LOCK_SUCCESS true
+bool cFileUtil::AddLock(const std::string & path)
+{
+	cFileUtil::CreateDir(mFileLockDir.c_str());
+	std::string path_lock = mFileLockDir + cFileUtil::GetFilename(path) + ".lock";
+	// open fail failed: add lock failed certainly
+	int desc;
+    if(( desc = open(path_lock.c_str(), O_RDWR|O_CREAT, 0644))<0) {
+        return LOCK_FAIL;
+    }
+	write_descriptor[path_lock] = desc;
+	// if "path" this file has been locked by other process, then this flock will block this process untill it gets the lock.
+	// But if flock return <0, some errors must occur.
+    if(flock(desc, LOCK_EX)<0) {
+        close(desc);
+        desc = write_descriptor[path_lock] = -1;
+        return LOCK_FAIL;
+    }
+    return LOCK_SUCCESS;
+}
+
+bool cFileUtil::DeleteLock(const std::string & path)
+{
+	std::string path_lock = mFileLockDir + cFileUtil::GetFilename(path) + ".lock";
+	int desc;
+	// if the file descrimitor <0 which means this file hasn't been locked correctly, leads to the failure of deleting lock
+	if(write_descriptor.find(path_lock) == write_descriptor.end())
+	{
+		std::cout <<"delete lock " << path_lock << " no descriptor\n";
+		return LOCK_FAIL;
+	}
+	desc = write_descriptor[std::string(path_lock)];
+	if(desc < 0)
+	{
+		std::cout <<"delete lock " << path_lock << " descriptor < 0\n";
+		return LOCK_FAIL;
+	}
+    if(flock(desc, LOCK_UN)<0) {
+        // nothing could be done here
+    }
+    close(desc);
+	// cFileUtil::DeleteFile(path_lock);
+
+	write_descriptor.erase(write_descriptor.find(path_lock));
+    return LOCK_SUCCESS;
 }

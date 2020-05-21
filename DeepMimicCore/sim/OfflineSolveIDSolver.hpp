@@ -48,5 +48,5 @@ protected:
     void ParseBatchTrajConfig(const Json::Value & batch_traj_config);
 
     void SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDResult);
-    void BatchTrajsSolve(tSummaryTable & summary_table);
+    void BatchTrajsSolve(const std::string & path);
 };
