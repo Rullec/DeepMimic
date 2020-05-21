@@ -9,6 +9,7 @@
 #include <sim/SimCharacter.h>
 #include "../util/FileUtil.h"
 #include <iostream>
+#include <mpi/mpi.h>
 
 extern std::string controller_details_path;
 // extern std::string gRewardInfopath;
@@ -18,6 +19,7 @@ cOfflineSolveIDSolver::cOfflineSolveIDSolver(cSceneImitate * imi, const std::str
     controller_details_path = "logs/controller_logs/controller_details_offlinesolve.txt";
     // gRewardInfopath = "reward_info_solve.txt";
     ParseConfig(config);
+    
 }
 
 cOfflineSolveIDSolver::~cOfflineSolveIDSolver()
@@ -27,6 +29,7 @@ cOfflineSolveIDSolver::~cOfflineSolveIDSolver()
 
 void cOfflineSolveIDSolver::PreSim()
 {
+    cTimeUtil::Begin("ID Solving");
     if(mOfflineSolveMode == eOfflineSolveMode::SingleTrajSolveMode)
     {
         std::vector<tSingleFrameIDResult> mResult;
@@ -38,15 +41,14 @@ void cOfflineSolveIDSolver::PreSim()
     else if (mOfflineSolveMode == eOfflineSolveMode::BatchTrajSolveMode)
     {
         std::cout <<"Batch solve, summary table = " << mBatchTrajSolveConfig.mSummaryTableFile << std::endl;
-        mSummaryTable.LoadFromDisk(mBatchTrajSolveConfig.mSummaryTableFile);
-        BatchTrajsSolve(mSummaryTable);
+        BatchTrajsSolve(mBatchTrajSolveConfig.mSummaryTableFile);
     }
     else
     {
         std::cout <<"[error] cOfflineSolveIDSolver::PreSim invalid mode " << mOfflineSolveMode << std::endl;
         exit(0);
     }
-
+    cTimeUtil::End("ID Solving");
     exit(0);
 }
 
@@ -438,22 +440,135 @@ void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & 
     cTimeUtil::End("OfflineSolve");
 }
 
-void cOfflineSolveIDSolver::BatchTrajsSolve(tSummaryTable & summary_table)
+/**
+ * \brief       Given A summary files, this function will solve their ID very quick under the help of MPI
+*/
+// int mpi_rank;
+void cOfflineSolveIDSolver::BatchTrajsSolve(const std::string & path)
 {
-    std::cout <<"[log] Batch solve for "<< summary_table.mTimeStamp << std::endl;
-    std::vector<tSingleFrameIDResult> mResult;
-    for(int i=0; i< summary_table.mTotalEpochNum; i++)
+    // 1. MPI init
+    MPI_Init(NULL, NULL);
+
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    // mpi_rank = world_rank;
+    
+    // 2. load the json: ensure that all process can load the summary table correctly.
+    cFileUtil::AddLock(path);
+    mSummaryTable.LoadFromDisk(path);
+    auto & summary_table = mSummaryTable;
+    cFileUtil::DeleteLock(path);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // 3. rename this summary table: after that here is a MPI_Barrier, which ensures that our process will not delete other processes' result.
+    cFileUtil::AddLock(path);
+    if(cFileUtil::ExistsFile(path)) cFileUtil::RenameFile(path, path + ".bak");
+    cFileUtil::DeleteLock(path);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // 4. determine my own tasks
+    int total_traj_num = summary_table.mEpochInfos.size();
+    int st = -1, ed = -1;   // from where to where?
+    bool enable_single_thread = false;
+    if(total_traj_num < world_size || world_size == 1)
     {
-        std::cout <<"--------------batch solve for epoch " << i <<" begin---------------\n";
-        std::string traj_name = summary_table.mEpochInfos[i].traj_filename;
-        LoadTraj(mLoadInfo, traj_name);
+        st = 0, ed = total_traj_num -1;
+        enable_single_thread = true;
+    }
+    else
+    {
+        int unit = std::floor(total_traj_num * 1.0 / world_size) + 1;
+        if(unit * world_size < total_traj_num)
+        {
+            std::cout <<"[error] cOfflineSolveIDSolver::BatchTrajsSolve MPI divide unit " << unit << " is not enough!\n";
+            exit(1);
+        }
+        st = world_rank * unit;
+        ed = st + unit - 1;
+    }
+    std::cout <<"[main] " << world_rank << " myself rank id = " << world_rank <<" task from " << st << \
+        " to " << ed << ", size " << (ed - st + 1) << "/" << total_traj_num<< std::endl;
+
+    // MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Finalize();
+    // exit(0);
+    // 4. now remember all info in summary_table and clear them at all
+    auto full_epoch_infos = summary_table.mEpochInfos;
+    summary_table.mEpochInfos.clear();
+    summary_table.mTotalEpochNum = 0;
+    summary_table.mTotalLengthFrame = 0;
+    summary_table.mTotalLengthTime = 0;    
+
+    std::vector<tSingleFrameIDResult> mResult(0);
+    cInteractiveIDSolver::tSummaryTable::tSingleEpochInfo single_epoch_info;
+    for(int i=st; i <= ed && i < total_traj_num; i++)
+    {
+        LoadTraj(mLoadInfo, full_epoch_infos[i].traj_filename);
         SingleTrajSolve(mResult);
 
-        std::string export_name = cFileUtil::GetFilename(traj_name);
+        std::string export_name = cFileUtil::GetFilename(full_epoch_infos[i].traj_filename);
         export_name = mBatchTrajSolveConfig.mExportDataDir + cFileUtil::RemoveExtension(export_name) + ".train";
+        cFileUtil::AddLock(export_name);
         SaveTrainData(export_name, mResult);
-        summary_table.mEpochInfos[i].train_data_filename = export_name;
-    }
+        cFileUtil::DeleteLock(export_name);
 
-    summary_table.WriteToDisk(mBatchTrajSolveConfig.mSummaryTableFile);
+        single_epoch_info.frame_num = mLoadInfo.mTotalFrame;
+        single_epoch_info.length_second = mLoadInfo.mTotalFrame * mLoadInfo.mTimesteps[1];
+        single_epoch_info.traj_filename = full_epoch_infos[i].traj_filename;
+        single_epoch_info.train_data_filename = export_name;
+        summary_table.mEpochInfos.push_back(single_epoch_info);
+        summary_table.mTotalEpochNum += 1;
+        summary_table.mTotalLengthTime += single_epoch_info.length_second;
+        summary_table.mTotalLengthFrame += single_epoch_info.frame_num;
+    }
+    // std::cout <<"[log] Batch solve for "<< summary_table.mTimeStamp << std::endl;
+    
+    // for(int i=0; i< summary_table.mTotalEpochNum; i++)
+    // {
+    //     std::cout <<"--------------batch solve for epoch " << i <<" begin---------------\n";
+    //     std::string traj_name = summary_table.mEpochInfos[i].traj_filename;
+    //     LoadTraj(mLoadInfo, traj_name);
+    //     SingleTrajSolve(mResult);
+
+        
+    //     SaveTrainData(export_name, mResult);
+    //     summary_table.mEpochInfos[i].train_data_filename = export_name;
+    // }
+
+    // // ring model writing to the file
+    // {
+    //     int token;
+    //     if (world_rank != 0) {
+    //         MPI_Recv(&token, 1, MPI_INT, world_rank - 1, 0,
+    //                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    //     } else {
+    //         // Set the token's value if you are process 0
+    //         // for process 0, write to file before sending token
+    //         token = -1;
+    //     }
+
+    //     // receive token and send
+    //     // for process0: it write to disk first. after it finished, send a signal
+
+    // }
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+    std::cout <<"for process " << world_rank <<" tasks size = " << (ed - st + 1) <<" true size = " << summary_table.mEpochInfos.size() << std::endl;
+    if(enable_single_thread == true)
+    {
+        if(0 == world_rank)
+        {
+            summary_table.WriteToDisk(mBatchTrajSolveConfig.mSummaryTableFile, true);
+        }
+        
+    }
+    else
+    {
+        summary_table.WriteToDisk(mBatchTrajSolveConfig.mSummaryTableFile, true);
+    }
+    
+    MPI_Finalize();
 }

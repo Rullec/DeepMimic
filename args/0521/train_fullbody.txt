@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 1
---time_lim_max 1
+--time_lim_min 0.5
+--time_lim_max 0.5
 --time_lim_exp 0.2
 
 --time_end_lim_min 20
@@ -11,7 +11,7 @@
 
 --num_update_substeps 10
 --num_sim_substeps 2
---world_scale 1
+--world_scale 4
 
 --terrain_file data/terrain/plane.txt
 
@@ -35,14 +35,14 @@
 --enable_torque_record false
 --torque_record_file logs/controller_logs/torque.record.0920.run
 --reward_file data/0420/rewards/reward_weight.json
---enable_pdtarget_solve_test true
+--enable_pdtarget_solve_test false
 
 --agent_files data/0420/agents/agent_1024_ppo.txt
---train_agents false
+--train_agents true
 
 --output_path output/0426
---model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
+# --model_files output/0426/agent0_model_2020_04_25_23_12_30_10.78.ckpt
 
 #---------------------- Inverse Dyanmics config-------------------
---enable_inverse_dynamic_solving true
+--enable_inverse_dynamic_solving false
 --inverse_dynamic_config_file args/0426/id_conf_fullbody.json

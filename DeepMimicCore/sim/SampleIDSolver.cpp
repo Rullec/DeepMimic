@@ -5,6 +5,7 @@
 #include "../util/JsonUtil.h"
 #include "../util/FileUtil.h"
 #include "../util/cTimeUtil.hpp"
+#include <mpi/mpi.h>
 #include <iostream>
 
 extern std::string controller_details_path;
@@ -12,7 +13,31 @@ cSampleIDSolver::cSampleIDSolver(cSceneImitate * imitate_scene, const std::strin
 :cInteractiveIDSolver(imitate_scene, eIDSolverType::Display)
 {
     controller_details_path = "logs/controller_logs/controller_details_sample.txt";
+    mEnableIDTest = false;
     Parseconfig(config);
+
+    // 1. MPI init. We need to check initialized if we call this program by python agent. Second Initialized is prohibited.
+    int init_flag;
+    MPI_Initialized(&init_flag);
+    if(init_flag == false) MPI_Init(NULL, NULL);
+
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+
+    // clear the data dir
+    cFileUtil::AddLock(mSampleInfo.mSampleTrajsDir);
+    if(cFileUtil::ExistsDir(mSampleInfo.mSampleTrajsDir) == true) cFileUtil::ClearDir(mSampleInfo.mSampleTrajsDir.c_str());
+    else cFileUtil::CreateDir(mSampleInfo.mSampleTrajsDir.c_str());
+    cFileUtil::DeleteLock(mSampleInfo.mSampleTrajsDir);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    std::cout <<"[debug] cSampleIDSolver rank " << world_rank <<"/" << world_size <<" constructed\n";
+    // MPI_Finalize();
+    // exit(0);
 }
 
 cSampleIDSolver::~cSampleIDSolver()
@@ -111,6 +136,12 @@ void cSampleIDSolver::PostSim()
     // record the post generalized info
     RecordGeneralizedInfo(mSaveInfo.mBuffer_q[cur_frame], mSaveInfo.mBuffer_u[cur_frame]);
 
+    // q dot dot
+    if(cur_frame >=2)
+    {
+        mSaveInfo.mBuffer_u_dot[cur_frame - 1] = (mSaveInfo.mBuffer_u[cur_frame] - mSaveInfo.mBuffer_u[cur_frame - 1]) / mSaveInfo.mTimesteps[cur_frame -1];
+    }
+
     // record contact forces
     RecordContactForces(mSaveInfo.mContactForces[cur_frame-1], mSaveInfo.mTimesteps[cur_frame - 1], mWorldId2InverseId);
 
@@ -122,6 +153,11 @@ void cSampleIDSolver::PostSim()
     
     // record reference time now
     RecordRefTime(mSaveInfo.mRefTime[cur_frame]);
+
+    // character pose
+    mSaveInfo.mCharPoses[cur_frame] = mSimChar->GetPose();
+
+    if(mEnableIDTest == false) return ;
 
     // calculate vel and omega from discretion
     CalcDiscreteVelAndOmega(
@@ -153,10 +189,6 @@ void cSampleIDSolver::PostSim()
         mSaveInfo.mLinkDiscretOmega[cur_frame],
         mSaveInfo.mLinearMomentum[cur_frame - 1],
         mSaveInfo.mAngularMomentum[cur_frame - 1]);
-
-
-    // character pose
-    mSaveInfo.mCharPoses[cur_frame] = mSimChar->GetPose();
 
     // calculate the relative generalized velocity, take care of the idx... 
     if (cur_frame >= 2)
@@ -301,8 +333,6 @@ void cSampleIDSolver::Reset()
     mSummaryTable.mTotalLengthTime += a.length_second;
     mSummaryTable.mTotalLengthFrame += a.frame_num;
     mSummaryTable.mEpochInfos.push_back(a);
-    
-    mSummaryTable.WriteToDisk(mSampleInfo.mSummaryTableFilename);
 
     // clear frame id
     mSaveInfo.mCurEpoch++;
@@ -311,7 +341,18 @@ void cSampleIDSolver::Reset()
     // judge terminate
     if(mSummaryTable.mTotalEpochNum >= mSampleInfo.mSampleEpoches)
     {
-        std::cout <<"[log] cOfflineIDSolver::Reset sample finished\n";
+        int world_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+        int world_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+        std::cout <<"[debug] cSampleIDSolver rank " << world_rank <<"/" << world_size <<" sampled done, res num = " << mSummaryTable.mTotalEpochNum << std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
+        
+        // std::cout <<"[log] cSampleIDSolver::Reset sample finished, begin to write summary file\n";
+        mSummaryTable.WriteToDisk(mSampleInfo.mSummaryTableFilename);
+        // std::cout <<"[log] cSampleIDSolver::Reset write summary file done\n";
+        MPI_Finalize();
         exit(0);
     }
 }
@@ -338,16 +379,22 @@ void cSampleIDSolver::Parseconfig(const std::string & conf)
 
     mSampleInfo.mSampleEpoches = sample_num_json.asInt();
     mSampleInfo.mSampleTrajsDir = sample_trajs_dir_json.asString();
-    assert(cFileUtil::ExistsDir(mSampleInfo.mSampleTrajsDir));
-    mSampleInfo.mSampleTrajsRootName = mSampleInfo.mSampleTrajsDir + "/" + sample_root_json.asString();
-    mSampleInfo.mSummaryTableFilename = mSampleInfo.mSampleTrajsDir + "/" + summary_table_file.asString();
-    assert(cFileUtil::ValidateFilePath(mSampleInfo.mSampleTrajsRootName));
-    assert(cFileUtil::ValidateFilePath(mSampleInfo.mSummaryTableFilename));
+    mSampleInfo.mSampleTrajsRootName = mSampleInfo.mSampleTrajsDir + sample_root_json.asString();
+    mSampleInfo.mSummaryTableFilename = mSampleInfo.mSampleTrajsDir + summary_table_file.asString();
+    if(sample_value["enable_sample_ID_test"].isNull() == false) mEnableIDTest = sample_value["enable_sample_ID_test"].asBool();
+    // assert(cFileUtil::ValidateFilePath(mSampleInfo.mSampleTrajsRootName));
+    // assert(cFileUtil::ValidateFilePath(mSampleInfo.mSummaryTableFilename));
     
     std::cout <<"[log] Inverse Dynamic plugin running in sample mode\n";
     mSaveInfo.mMotion = new cMotion();
     PrintSampleInfo();
     InitSampleSummaryTable();
+
+    // remove the sample trajs dir
+    // cFileUtil::AddLock("lock.lock");
+    // if(cFileUtil::ExistsDir(mSampleInfo.mSampleTrajsDir) == true) cFileUtil::ClearDir(mSampleInfo.mSampleTrajsDir.c_str());
+    // else cFileUtil::CreateDir(mSampleInfo.mSampleTrajsDir.c_str());
+    // cFileUtil::DeleteLock("lock.lock");
 }
 
 /**
@@ -366,7 +413,7 @@ void cSampleIDSolver::InitSampleSummaryTable()
     mSummaryTable.mTotalLengthFrame = 0;
     mSummaryTable.mEpochInfos.clear();
     mSummaryTable.mTimeStamp = cTimeUtil::GetSystemTime();
-    std::cout <<"[log] cOfflineIDSolver::InitSampleSummaryTable: set timestamp = " << mSummaryTable.mTimeStamp << std::endl;
+    std::cout <<"[log] cSampleIDSolver::InitSampleSummaryTable: set timestamp = " << mSummaryTable.mTimeStamp << std::endl;
 }
 
 void cSampleIDSolver::PrintSampleInfo()

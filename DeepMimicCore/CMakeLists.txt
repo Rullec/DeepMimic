@@ -49,7 +49,7 @@ endif(NOT OPENGL_FOUND)
 include_directories(${OpenGL_INCLUDE_DIRS})
 link_directories(${OpenGL_LIBRARY_DIRS})
 add_definitions(${OpenGL_DEFINITIONS})
-add_definitions( -DBT_USE_DOUBLE_PRECISION )
+add_definitions( -DBT_USE_DOUBLE_PRECISION  -std=c++17)
 
 set(include_dir ${PYTHON_INC} ${EIGEN_INC} ${BULLTER_INC} ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${include_dir})
@@ -72,10 +72,11 @@ add_subdirectory(scenes)
 add_subdirectory(sim)
 add_subdirectory(util)
 add_subdirectory(util/json)
+
 if(APPLE)
-    set(libs ${OPENGL_LIBRARIES} GLEW ${GLUT_LIBRARY} BulletDynamics BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils stdc++)
+    set(libs ${OPENGL_LIBRARIES} GLEW ${GLUT_LIBRARY} BulletDynamics BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils stdc++  stdc++fs)
 else()
-    set(libs ${OPENGL_LIBRARIES} GLEW glut BulletDynamics BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils stdc++)
+    set(libs ${OPENGL_LIBRARIES} GLEW glut BulletDynamics BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils stdc++ stdc++fs )
 endif()
 set(mylibs SCENES SIM JSON ANIM RENDER UTIL )
 
@@ -89,6 +90,8 @@ include_directories(${PYTHON_INCLUDE_PATH})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${PYTHON_INC})
 
+
+
 set(CMAKE_SWIG_FLAGS "")
 if(APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "-flat_namespace -undefined suppress")
@@ -100,7 +103,7 @@ swig_link_libraries(DeepMimicCore ${mylibs} ${libs} ${PYTHON_LIB})
 
 # set up target Main 
 add_executable(Main Main.cpp DeepMimicCore.cpp DeepMimicCore)
-target_link_libraries(Main ${mylibs} ${libs} m)
+target_link_libraries(Main ${mylibs} ${libs})
 
 # move main to its parent folder
 if(EXISTS "../Main")

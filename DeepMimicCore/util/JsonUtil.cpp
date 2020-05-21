@@ -84,6 +84,8 @@ bool cJsonUtil::ReadVectorJson(const Json::Value& root, Eigen::VectorXd& out_vec
 
 bool cJsonUtil::ParseJson(const std::string & path, Json::Value & value)
 {
+	// cFileUtil::AddLock(path);
+	// std::cout <<"parsing " << path << " begin \n";
     std::ifstream fin(path);
     if(fin.fail() == true)
     {
@@ -96,19 +98,24 @@ bool cJsonUtil::ParseJson(const std::string & path, Json::Value & value)
     if (!parsingSuccessful)
     {
     // report to the user the failure and their locations in the document.
-        std::cout  << "[error] cJsonUtil::ParseJson: Failed to parse configuration\n"
+        std::cout  << "[error] cJsonUtil::ParseJson: Failed to parse json\n"
                << errs << std::endl;
                return false;
     }
+	// std::cout <<"parsing " << path << " end \n";
+	// cFileUtil::DeleteLock(path);
     return true;
 }
 
 bool cJsonUtil::WriteJson(const std::string & path, Json::Value & value, bool indent/* = true*/)
 {
+	// cFileUtil::AddLock(path);
     Json::StreamWriterBuilder builder;
 	if(indent == false) builder.settings_["indentation"] = "";
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
 	std::ofstream fout(path);
     writer->write(value, &fout);
+	fout.close();
+	// cFileUtil::DeleteLock(path);
 	return fout.fail() == false;
 }
