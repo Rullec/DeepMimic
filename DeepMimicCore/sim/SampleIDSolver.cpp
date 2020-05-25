@@ -36,6 +36,7 @@ cSampleIDSolver::cSampleIDSolver(cSceneImitate * imitate_scene, const std::strin
     MPI_Barrier(MPI_COMM_WORLD);
 
     std::cout <<"[debug] cSampleIDSolver rank " << world_rank <<"/" << world_size <<" constructed\n";
+    cTimeUtil::Begin("sample_epoch");
     // MPI_Finalize();
     // exit(0);
 }
@@ -324,6 +325,7 @@ void cSampleIDSolver::PostSim()
 
 void cSampleIDSolver::Reset()
 {
+    cTimeUtil::End("sample_epoch");
     tSummaryTable::tSingleEpochInfo a;
     a.length_second = mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId-1] * mSaveInfo.mCurFrameId;
     a.frame_num = mSaveInfo.mCurFrameId;
@@ -355,6 +357,7 @@ void cSampleIDSolver::Reset()
         MPI_Finalize();
         exit(0);
     }
+    cTimeUtil::Begin("sample_epoch");
 }
 
 void cSampleIDSolver::SetTimestep(double timestep)

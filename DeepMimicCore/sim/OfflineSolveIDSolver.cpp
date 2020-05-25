@@ -468,6 +468,7 @@ void cOfflineSolveIDSolver::BatchTrajsSolve(const std::string & path)
     // 3. rename this summary table: after that here is a MPI_Barrier, which ensures that our process will not delete other processes' result.
     cFileUtil::AddLock(path);
     if(cFileUtil::ExistsFile(path)) cFileUtil::RenameFile(path, path + ".bak");
+    if(cFileUtil::ExistsDir(mBatchTrajSolveConfig.mExportDataDir)) cFileUtil::ClearDir(mBatchTrajSolveConfig.mExportDataDir.c_str());
     cFileUtil::DeleteLock(path);
     MPI_Barrier(MPI_COMM_WORLD);
 
