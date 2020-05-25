@@ -447,7 +447,9 @@ void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & 
 void cOfflineSolveIDSolver::BatchTrajsSolve(const std::string & path)
 {
     // 1. MPI init
-    MPI_Init(NULL, NULL);
+    int is_mpi_init;
+    MPI_Initialized(&is_mpi_init);
+    if(0 == is_mpi_init) MPI_Init(NULL, NULL);
 
     int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
