@@ -50,10 +50,18 @@
 		"NoiseInternal": 0,
 		"Temp": 0.001
 	},
+    "buffer_dir": "/home/xudong/Projects/DeepMimic/output/trajs/0520",
+    "batch_size": 2000,
+    "l2_coeff": 1e-3,
+    "lr": 1e-3,
+    "n_epoch": 1000,
+    "output_path": "./output/20200520/",
+    "layers": [256, 128],
+    "save_step": 100,
+    "model_output_path" : "./output/20200520/",
 
-	"std_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/norm/std.npz",
-	"mean_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/norm/mean.npz",
-	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/model/sa_net.ckpt-1000",
-    "output_path": "./output/exp-1/",
-    "layers": [1024, 512, 256, 128],
+	"std_path": "/home/xudong/Projects/retargeting_jfcode/output/20200520/norm/std.npz",
+	"mean_path": "/home/xudong/Projects/retargeting_jfcode/output/20200520/norm/mean.npz",
+	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/20200520/model_old_method/sa_net.ckpt-500",
+	"ENABLE_SAVE_PATH_KEY" : true
 }

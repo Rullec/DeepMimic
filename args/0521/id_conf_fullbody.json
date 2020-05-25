@@ -6,7 +6,7 @@
     "IDMode_bak1": "OfflineSolve",
     "SampleModeInfo":
     {
-        "sample_num" : 20,
+        "sample_num" : 60,
         "enable_sample_ID_test" : false,
         "sample_trajs_dir" : "data/batch_trajs/0521/",
         "sample_trajs_rootname" : "traj_fullbody.json",
