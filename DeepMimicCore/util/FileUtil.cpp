@@ -60,17 +60,19 @@ void cFileUtil::DeleteFile(const char* file_name)
 
 void cFileUtil::DeleteDir(const char * dir_name)
 {
-
+#ifndef __APPLE__
 	std::cout <<"delete a dir " << dir_name << " ";
 	if(cFileUtil::ExistsDir(dir_name) == true && std::experimental::filesystem::remove_all(dir_name))
 	{
 		std::cout <<"succ\n";
 	}
 	else std::cout <<"failed\n";
+#endif
 }
 
 void cFileUtil::ClearDir(const char * dir_name)
 {
+#ifndef __APPLE__
 	std::cout <<"clear dir " << dir_name << std::endl;
 	if(cFileUtil::ExistsDir(dir_name))
 	{
@@ -79,15 +81,18 @@ void cFileUtil::ClearDir(const char * dir_name)
 			cFileUtil::DeleteFile(entry.path());
 		}
 	}
+#endif
 }
 
 void cFileUtil::CreateDir(const char * dir_name)
 {
 	// std::cout <<"create a dir " << dir_name << " ";
+#ifndef __APPLE__
 	if(cFileUtil::ExistsDir(dir_name) == false)
 	{
 		std::experimental::filesystem::create_directories(dir_name);
 	}
+#endif
 }
 
 std::string cFileUtil::RemoveExtension(const std::string& filename)

@@ -5,7 +5,11 @@
 #include "../util/JsonUtil.h"
 #include "../util/FileUtil.h"
 #include "../util/cTimeUtil.hpp"
+#ifdef __APPLE__
+#include <mpi.h>
+#else
 #include <mpi/mpi.h>
+#endif
 #include <iostream>
 
 extern std::string controller_details_path;
@@ -36,7 +40,7 @@ cSampleIDSolver::cSampleIDSolver(cSceneImitate * imitate_scene, const std::strin
     MPI_Barrier(MPI_COMM_WORLD);
 
     std::cout <<"[debug] cSampleIDSolver rank " << world_rank <<"/" << world_size <<" constructed\n";
-    // cTimeUtil::Begin("sample_epoch");
+    cTimeUtil::Begin("sample_epoch");
     // MPI_Finalize();
     // exit(0);
 }
@@ -93,7 +97,7 @@ void cSampleIDSolver::PreSim()
         // RecordMomentum(mSaveInfo.mLinearMomentum[cur_frame], mSaveInfo.mAngularMomentum[cur_frame]);
     }
     // cTimeUtil::EndLazy("pre_sim3");
-    cTimeUtil::BeginLazy("pre_sim4");
+    // cTimeUtil::BeginLazy("pre_sim4");
     
     // if(cur_frame == 200)
     // {
@@ -131,7 +135,7 @@ void cSampleIDSolver::PreSim()
     // fout << "\n buffer u : ";
     // fout << mSaveInfo.mBuffer_u[cur_frame].transpose() <<" ";
     // fout << std::endl;
-    cTimeUtil::EndLazy("pre_sim4");
+    // cTimeUtil::EndLazy("pre_sim4");
     // cTimeUtil::EndLazy("pre_sim2");
     // cTimeUtil::EndLazy("pre_sim");
 }
@@ -339,7 +343,7 @@ void cSampleIDSolver::PostSim()
 
 void cSampleIDSolver::Reset()
 {
-    // cTimeUtil::End("sample_epoch");
+    cTimeUtil::End("sample_epoch");
     // cTimeUtil::Begin("save_traj");
     tSummaryTable::tSingleEpochInfo a;
     a.length_second = mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId-1] * mSaveInfo.mCurFrameId;
@@ -350,6 +354,7 @@ void cSampleIDSolver::Reset()
     mSummaryTable.mTotalLengthTime += a.length_second;
     mSummaryTable.mTotalLengthFrame += a.frame_num;
     mSummaryTable.mEpochInfos.push_back(a);
+    mSaveInfo.mMotion->Clear();
 
     // clear frame id
     mSaveInfo.mCurEpoch++;
@@ -375,12 +380,13 @@ void cSampleIDSolver::Reset()
     // cTimeUtil::ClearLazy("pre_sim1");
     // cTimeUtil::ClearLazy("pre_sim2");
     // cTimeUtil::ClearLazy("pre_sim3");
-    cTimeUtil::ClearLazy("pre_sim4");
+    // cTimeUtil::ClearLazy("motion_resize");
+    // cTimeUtil::ClearLazy("pre_sim4");
     // cTimeUtil::ClearLazy("pre_sim");
     
     // cTimeUtil::ClearLazy("post_sim");
     // cTimeUtil::End("save_traj");
-    // cTimeUtil::Begin("sample_epoch");
+    cTimeUtil::Begin("sample_epoch");
 }
 
 void cSampleIDSolver::SetTimestep(double timestep)
