@@ -1,15 +1,10 @@
 #include "cTimeUtil.hpp"
 #include <ctime>
-#include <ratio>
-#include <chrono>
 #include <iostream>
-#include <map>
 
 using namespace std;
 using namespace std::chrono;
 
-std::map<const std::string, high_resolution_clock::time_point> mTimeTable;
-std::map<const std::string, high_resolution_clock::time_point>::iterator time_it;
 void cTimeUtil::Begin(const std::string & name)
 {
     mTimeTable[name] = high_resolution_clock::now();
@@ -36,4 +31,28 @@ std::string cTimeUtil::GetSystemTime()
     std::string s(30, '\0');
     std::strftime(&s[0], s.size(), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
     return s;
+}
+
+void cTimeUtil::BeginLazy(const std::string & name)
+{
+    cTimeUtil::Begin(name);
+}
+
+void cTimeUtil::EndLazy(const std::string & name)
+{
+    time_it = mTimeTable.find(name);
+    if(time_it == mTimeTable.end())
+    {
+        std::cout <<"[error] cTimeUtil::End No static info about " << name << std::endl;
+        exit(1);
+    }
+
+    mLazyTimeTable[name] += (high_resolution_clock::now() - time_it->second).count() * 1e-6;
+
+}
+
+void cTimeUtil::ClearLazy(const std::string & name)
+{
+    std::cout <<"[log] segment lazy " << name << " cost time = " << mLazyTimeTable[name] << std::endl;
+    mLazyTimeTable[name] = 0;
 }
