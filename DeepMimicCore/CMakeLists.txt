@@ -73,10 +73,11 @@ add_subdirectory(sim)
 add_subdirectory(util)
 add_subdirectory(util/json)
 
+set(libs ${OPENGL_LIBRARIES} GLEW  BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils BulletDynamics stdc++)
 if(APPLE)
-    set(libs ${OPENGL_LIBRARIES} GLEW ${GLUT_LIBRARY} BulletDynamics BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils stdc++  stdc++fs)
+    set(libs ${libs} ${GLUT_LIBRARY} )
 else()
-    set(libs ${OPENGL_LIBRARIES} GLEW glut BulletDynamics BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils stdc++ stdc++fs )
+    set(libs ${libs} glut stdc++fs )
 endif()
 set(mylibs SCENES SIM JSON ANIM RENDER UTIL )
 

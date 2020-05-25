@@ -9,7 +9,11 @@
 #include <sim/SimCharacter.h>
 #include "../util/FileUtil.h"
 #include <iostream>
-#include <mpi/mpi.h>
+#ifdef __APPLE__
+    #include <mpi.h>
+#else
+    #include <mpi/mpi.h>
+#endif
 
 extern std::string controller_details_path;
 // extern std::string gRewardInfopath;

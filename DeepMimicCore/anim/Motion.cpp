@@ -456,6 +456,7 @@ double cMotion::GetFrameDuration(int f) const
 	return dur;
 }
 
+#include <util/cTimeUtil.hpp>
 bool cMotion::AddFrame(const tFrame & frame, double timestep)
 {
 	/*
@@ -472,13 +473,18 @@ bool cMotion::AddFrame(const tFrame & frame, double timestep)
 	else 
 	{
 		assert(frame.size() == mFrames.row(0).size()-1);
+		// cTimeUtil::BeginLazy("motion_resize");
+		// std::cout <<"before resize " << mFrames.rows() <<" " << mFrames.cols() <<":";
 		mFrames.conservativeResize(mFrames.rows()+1, frame.size() + 1);
+		// std::cout <<"after resize " << mFrames.rows() <<" " << mFrames.cols() <<"\n";
+		// cTimeUtil::EndLazy("motion_resize");
 	}
 	// std::cout << "after resize " << mFrames.rows() << std::endl;
 
 	// std::cout << "mframe shape = " << mFrames.rows() <<" " << mFrames.cols() << std::endl;
 	// std::cout <<"fr = " << frame.size() << std::endl;
 	// std::cout <<"set timestep = " << timestep << std::endl;
+	
 	mFrames(mFrames.rows()-1, 0) = timestep;
 	mFrames.row(mFrames.rows()-1).segment(1, frame.size()) = frame.transpose();
 	// std::cout << "row added done " << mFrames.rows() << std::endl;
