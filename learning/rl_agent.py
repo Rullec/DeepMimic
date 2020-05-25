@@ -443,7 +443,7 @@ class RLAgent(ABC):
         g = self._record_goal()
         r = self._record_reward()
 
-        print("[rl agent] end path, r = {}".format(r))
+        print("[rl agent] end path, r = {}\n".format(r))
         self.path.rewards.append(r)
         self.path.states.append(s)
         # self.path.contact_info.append(c)
