@@ -52,7 +52,7 @@ bool cRLScene::IsEpisodeEnd() const
 		if (termin != eTerminateNull)	// 只要不是无法判断，那么episode就是结束了。
 		{
 			is_end = true;
-			std::cout <<"[end] CheckTermiate said terminated, episode done" << std::endl;
+			std::cout <<"[end] CheckTerminate said terminated, episode done" << std::endl;
 			break;
 		}
 	}

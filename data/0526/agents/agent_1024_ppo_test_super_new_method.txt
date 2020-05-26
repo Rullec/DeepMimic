@@ -31,8 +31,6 @@
 	"TestEpisodes": 32,
 
 	"ExpAnnealSamples": 64000000,
-	"EnableSavePath": false,
-	"PathSaveDir": "./logs/paths/",
 	"ExpParamsBeg":
 	{
 		"Rate": 1,
@@ -50,18 +48,15 @@
 		"NoiseInternal": 0,
 		"Temp": 0.001
 	},
-    "buffer_dir": "/home/xudong/Projects/DeepMimic/output/trajs/0520",
-    "batch_size": 2000,
-    "l2_coeff": 1e-3,
-    "lr": 1e-3,
-    "n_epoch": 1000,
-    "output_path": "./output/20200520/",
-    "layers": [256, 128],
-    "save_step": 100,
-    "model_output_path" : "./output/20200520/",
 
-	"std_path": "/home/xudong/Projects/retargeting_jfcode/output/20200520/norm/std.npz",
-	"mean_path": "/home/xudong/Projects/retargeting_jfcode/output/20200520/norm/mean.npz",
-	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/20200520/model/sa_net.ckpt-500",
-	"ENABLE_SAVE_PATH_KEY" : true
+	"EnableSavePath": false,
+	"PathSaveDir": "./data/paths/",
+
+	"state_std_path": "/home/xudong/Projects/retargeting_jfcode/output/new_method/norm/state_std.npz",
+	"state_mean_path": "/home/xudong/Projects/retargeting_jfcode/output/new_method/norm/state_mean.npz",
+	"enable_action_normalize" : true,
+	"action_std_path": "/home/xudong/Projects/retargeting_jfcode/output/new_method/norm/action_std.npz",
+	"action_mean_path": "/home/xudong/Projects/retargeting_jfcode/output/new_method/norm/action_mean.npz",
+	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/new_method/model/sa_net.ckpt-2000",
+    "layers": [128, 64]
 }

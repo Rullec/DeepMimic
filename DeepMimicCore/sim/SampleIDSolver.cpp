@@ -11,6 +11,7 @@
 #include <mpi/mpi.h>
 #endif
 #include <iostream>
+// #define SHOW_SAMPLE_COST
 
 extern std::string controller_details_path;
 cSampleIDSolver::cSampleIDSolver(cSceneImitate * imitate_scene, const std::string & config)
@@ -44,6 +45,7 @@ cSampleIDSolver::cSampleIDSolver(cSceneImitate * imitate_scene, const std::strin
     }
     
     std::cout <<"[debug] cSampleIDSolver rank " << world_rank <<"/" << world_size <<" constructed\n";
+
     cTimeUtil::Begin("sample_traj");
     // MPI_Finalize();
     // exit(0);
@@ -56,9 +58,12 @@ cSampleIDSolver::~cSampleIDSolver()
 
 void cSampleIDSolver::PreSim()
 {
+    #ifdef SHOW_SAMPLE_COST
+        cTimeUtil::BeginLazy("sample_one_epoch");
+    #endif
+    
     mInverseModel->clearAllUserForcesAndMoments();
     const int & cur_frame = mSaveInfo.mCurFrameId;
-    // std::cout <<"frame id " << cur_frame  << std::endl;
     // if(0 == cur_frame)
     // {
     //     mMultibody->setBaseVel(btVector3(3, -3, 3));
@@ -167,6 +172,9 @@ void cSampleIDSolver::PostSim()
 
     if(mEnableIDTest == false)
     {
+    #ifdef SHOW_SAMPLE_COST
+        cTimeUtil::EndLazy("sample_one_epoch");
+    #endif
         return ;
     } 
 
@@ -350,6 +358,9 @@ void cSampleIDSolver::Reset()
     mSaveInfo.mCurEpoch++;
     mSaveInfo.mCurFrameId = 0;
 
+#ifdef SHOW_SAMPLE_COST
+    cTimeUtil::ClearLazy("sample_one_epoch");
+#endif
     // judge terminate
     if(mSummaryTable.mTotalEpochNum >= mSampleInfo.mSampleEpoches)
     {
@@ -396,7 +407,7 @@ void cSampleIDSolver::Parseconfig(const std::string & conf)
     mSampleInfo.mSampleTrajsRootName = mSampleInfo.mSampleTrajsDir + sample_root_json.asString();
     mSampleInfo.mSummaryTableFilename = mSampleInfo.mSampleTrajsDir + summary_table_file.asString();
     if(sample_value["enable_sample_ID_test"].isNull() == false) mEnableIDTest = sample_value["enable_sample_ID_test"].asBool();
-    if(sample_value["clear_old_data_json"].isNull() == false) mClearOldData = sample_value["clear_old_data_json"].asBool();
+    if(sample_value["clear_old_data"].isNull() == false) mClearOldData = sample_value["clear_old_data"].asBool();
     // assert(cFileUtil::ValidateFilePath(mSampleInfo.mSampleTrajsRootName));
     // assert(cFileUtil::ValidateFilePath(mSampleInfo.mSummaryTableFilename));
     

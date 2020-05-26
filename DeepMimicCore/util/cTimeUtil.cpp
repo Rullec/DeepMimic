@@ -53,6 +53,6 @@ void cTimeUtil::EndLazy(const std::string & name)
 
 void cTimeUtil::ClearLazy(const std::string & name)
 {
-    std::cout <<"[log] segment lazy " << name << " cost time = " << mLazyTimeTable[name] << std::endl;
+    std::cout <<"[log] segment lazy " << name << " cost time = " << mLazyTimeTable[name] << " ms\n";
     mLazyTimeTable[name] = 0;
 }

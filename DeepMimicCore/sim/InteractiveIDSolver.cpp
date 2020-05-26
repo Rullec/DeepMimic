@@ -5,6 +5,7 @@
 #include "../util/BulletUtil.h"
 #include "../util/FileUtil.h"
 #include <iostream>
+// #define VERBOSE
 
 std::string controller_details_path;
 cInteractiveIDSolver::cInteractiveIDSolver(cSceneImitate * imitate_scene, eIDSolverType type)
@@ -24,6 +25,7 @@ void cInteractiveIDSolver::LoadTraj(tLoadInfo & load_info, const std::string & p
     auto & raw_pose = mSimChar->GetPose();
     Json::Value data_json, list_json;
     bool succ = cJsonUtil::ParseJson(path, data_json);
+    load_info.mLoadPath = path;
     if(!succ) std::cout <<"[error] cInteractiveIDSolver::LoadTraj parse json " << path << " failed\n", exit(1);
     // std::cout <<"load succ\n";
     list_json = data_json["list"];
@@ -154,7 +156,9 @@ void cInteractiveIDSolver::LoadTraj(tLoadInfo & load_info, const std::string & p
         }
 
     }
-    std::cout <<"[debug] cOfflineIDSolver::LoadTraj " << path <<", number of frames = " << num_of_frames << std::endl;
+#ifdef VERBOSE
+    std::cout <<"[debug] cInteractiveIDSolver::LoadTraj " << path <<", number of frames = " << num_of_frames << std::endl;
+#endif
     assert(num_of_frames > 0);
     mSimChar->SetPose(raw_pose);
 }
@@ -285,11 +289,11 @@ void cInteractiveIDSolver::SaveMotion(const std::string & path_root, cMotion * m
     assert(nullptr != motion);
     if(false == cFileUtil::ValidateFilePath(path_root))
     {
-        std::cout <<"[error] cOfflineIDSolver::SaveMotion: path root invalid: " << path_root << std::endl;
+        std::cout <<"[error] cInteractiveIDSolver::SaveMotion: path root invalid: " << path_root << std::endl;
         exit(1);
     }
     std::string filename = cFileUtil::RemoveExtension(path_root) + "_" + std::to_string(mSaveInfo.mCurEpoch) + "." + cFileUtil::GetExtension(path_root);
-    std::cout <<"[log] cOfflineIDSolver::SaveMotion for epoch " << mSaveInfo.mCurEpoch <<" to " << filename << std::endl;
+    std::cout <<"[log] cInteractiveIDSolver::SaveMotion for epoch " << mSaveInfo.mCurEpoch <<" to " << filename << std::endl;
     motion->FinishAddFrame();
     motion->Output(filename);
     motion->Clear();
@@ -323,7 +327,9 @@ void cInteractiveIDSolver::SaveTrainData(const std::string & path, std::vector<t
         root["data_list"].append(single_frame);
     }
     cJsonUtil::WriteJson(path, root, false);
+#ifdef VERBOSE
     std::cout <<"[log] cInteractiveIDSolver::SaveTrainData to " << path << std::endl;
+#endif
 }
 
 /**
@@ -437,12 +443,14 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
     cFileUtil::AddLock(final_name);
     if(false == cFileUtil::ValidateFilePath(final_name))
     {
-        std::cout <<"[error] cOfflineIDSolver::SaveTraj path " << final_name <<" illegal\n";
+        std::cout <<"[error] cInteractiveIDSolver::SaveTraj path " << final_name <<" illegal\n";
         exit(1);
     }
     cJsonUtil::WriteJson(final_name, root, false);
     cFileUtil::DeleteLock(final_name);
-    std::cout <<"[log] cOfflineIDSolver::SaveTraj for epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
+#ifdef VERBOSE
+    std::cout <<"[log] cInteractiveIDSolver::SaveTraj for epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
+#endif
     return final_name;
 }
 
@@ -531,6 +539,12 @@ void cInteractiveIDSolver::tSummaryTable::LoadFromDisk(const std::string & path)
     {
         std::cout <<"[error] tSummaryTable::LoadFromDisk path invalid " << path << std::endl;
         exit(0);
+    }
+    
+    if(cFileUtil::ExistsFile(path) == false && cFileUtil::ExistsFile(path + ".bak") == true)
+    {
+        std::cout << "[warning] " << path << "doesn't exist, but found " << path +".bak" <<" exists, rename and use the backup file\n";
+        cFileUtil::RenameFile(path + ".bak", path);
     }
     
     Json::Value root;

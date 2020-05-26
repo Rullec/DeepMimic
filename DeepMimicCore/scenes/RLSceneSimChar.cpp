@@ -124,7 +124,7 @@ void cRLSceneSimChar::RecordContactInfo(int agent_id, Eigen::VectorXd& out_goal)
 
 void cRLSceneSimChar::SetAction(int agent_id, const Eigen::VectorXd& action)
 {
-	// std::cout <<"void cRLSceneSimChar::SetAction" << std::endl;
+	// std::cout <<"void cRLSceneSimChar::SetAction" << action.transpose( ) << std::endl;
 	const auto& ctrl = GetController(agent_id);
 	ctrl->ApplyAction(action);
 }

@@ -63,6 +63,6 @@
 
 	"std_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/norm/std.npz",
 	"mean_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/norm/mean.npz",
-	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/model/sa_net.ckpt-1000",
+	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/model/sa_net.ckpt-1500",
 	"ENABLE_SAVE_PATH_KEY" : true
 }

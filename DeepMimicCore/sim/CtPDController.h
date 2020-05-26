@@ -24,6 +24,7 @@ public:
 
 	cImpPDController & GetImpPDController(){return mPDCtrl;}
 	virtual void ConvertTargetPoseToActionFullsize(tVectorXd & pd_target);
+	void UpdateTimeOnly(double timestep) {mTime += timestep;};
 protected:
 	cImpPDController mPDCtrl;	// 他才是关键的执行器，所有的ApplyAction都是要向这个里面放东西而已。
 
