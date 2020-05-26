@@ -415,7 +415,7 @@ cSceneImitate::eTerminate cSceneImitate::CheckTerminate(int agent_id) const
 	}
 	else
 	{
-		std::cout << "[end] character fall down(terminated is not eterminaltedNull)" <<std::endl;
+		// std::cout << "[end] character fall down" <<std::endl;
 	}
 	
 	return terminated;

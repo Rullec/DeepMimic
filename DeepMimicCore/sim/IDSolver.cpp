@@ -411,7 +411,7 @@ void cIDSolver::RecordAction(tVectorXd & action) const
 {
 	assert(mCharController != nullptr);
 	action = mCharController->GetCurAction();
-	// std::cout << "void cIDSolver::RecordAction get pd target: " << pd_target.transpose() << std::endl;
+	// std::cout << "void cIDSolver::RecordAction get action:void cIDSolver::RecordAction " << action.transpose() << std::endl;
 	// exit(1);
 }
 

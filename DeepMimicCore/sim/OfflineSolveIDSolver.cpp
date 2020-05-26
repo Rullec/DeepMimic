@@ -84,9 +84,13 @@ void cOfflineSolveIDSolver::ParseConfig(const std::string & conf)
 
     // 1. load shared config
     const Json::Value   &   ref_motion_path = root["ref_motion_path"],
-                        &   retargeted_char_path = root["retargeted_char_path"];
-    mRefMotionPath = ref_motion_path.asString();
-    mRetargetCharPath = retargeted_char_path.asString();
+                        &   retargeted_char_path = root["retargeted_char_path"],
+                        &   recalc_reward = root["recalculate_reward"],
+                        &   verified_action = root["verified_action"];
+    mRefMotionPath      = ref_motion_path.asString();
+    mRetargetCharPath   = retargeted_char_path.asString();
+    mRecalculateReward  = recalc_reward.asBool();
+    mVerfiedAction      = verified_action.asBool();
 
     // 2. load solving mode
     const Json::Value & solve_mode_json = root["solve_mode"];
@@ -160,19 +164,12 @@ void cOfflineSolveIDSolver::ParseBatchTrajConfig(const Json::Value & batch_traj_
     assert(batch_traj_config.isNull() == false);
     mBatchTrajSolveConfig.mSummaryTableFile = batch_traj_config["summary_table_filename"].asString();
     mBatchTrajSolveConfig.mExportDataDir = batch_traj_config["export_train_data_dir"].asString();
-
-    if(false == cFileUtil::ExistsFile(mBatchTrajSolveConfig.mSummaryTableFile))
-    {
-        std::cout << "[error] cOfflineSolveIDSolver::ParseBatchTrajConfig summary table doesn't exist: " << mBatchTrajSolveConfig.mSummaryTableFile << std::endl;
-        exit(0);
-    }
     std::cout <<"[log] mOfflineSolveIDSolver work in BatchTrajSolve mode\n";
-
 }
 
 void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDResults)
 {
-    cTimeUtil::Begin("OfflineSolve");
+    // cTimeUtil::Begin("OfflineSolve");
     assert(mLoadInfo.mTotalFrame > 0);
     IDResults.resize(mLoadInfo.mTotalFrame);
     // std::cout <<"[debug] cOfflineIDSolver::OfflineSolve: motion total frame = " << mLoadInfo.mTotalFrame << std::endl;
@@ -190,7 +187,6 @@ void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & 
 			mSaveInfo.mBuffer_u[cur_frame - 1] = CalculateGeneralizedVel(mSaveInfo.mBuffer_q[cur_frame - 2], mSaveInfo.mBuffer_q[cur_frame - 1], last_timestep);
 			mSaveInfo.mBuffer_u[cur_frame] = CalculateGeneralizedVel(mSaveInfo.mBuffer_q[cur_frame - 1], mSaveInfo.mBuffer_q[cur_frame], cur_timestep);
 			mSaveInfo.mBuffer_u_dot[cur_frame - 1] = (mSaveInfo.mBuffer_u[cur_frame] - mSaveInfo.mBuffer_u[cur_frame - 1]) / cur_timestep;
-
     */
     for(int frame_id = 0; frame_id < mLoadInfo.mTotalFrame - 1; frame_id++)
     {
@@ -233,11 +229,12 @@ void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & 
     mSimChar->PostUpdate(0);
     mScene->ResolveCharGroundIntersectInverseDynamic();                         // Resolve intersection between char and the ground. Sync to KinChar is also included.
     mKinChar->Update(mLoadInfo.mTimesteps[0]);                                  // Go for another timestep
+    mCharController->Update(mLoadInfo.mTimesteps[0]);
 
     // 4. solve ID for each frame
     double ID_torque_err = 0, ID_action_err = 0, reward_err = 0;
     tVectorXd torque = tVectorXd::Zero(mSimChar->GetPose().size()), pd_target = tVectorXd::Zero(mSimChar->GetPose().size());
-    
+
     for(int cur_frame = 1; cur_frame < mLoadInfo.mTotalFrame; cur_frame++)
     {
         auto & cur_ID_res = IDResults[cur_frame];
@@ -250,6 +247,7 @@ void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & 
 
         // 4.2 record state at this moment
         mCharController->RecordState(cur_ID_res.state);
+        // std::cout <<"[debug] cur record state = " << cur_ID_res.state[0] << std::endl;
 
         // 4.3 solve Inverse Dynamic for joint torques
         std::vector<tVector> result;
@@ -349,99 +347,120 @@ void cOfflineSolveIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & 
         tVectorXd action = pd_target;
         mCharController->ConvertTargetPoseToActionFullsize(action);
         
-        // 4.6 the loaded action hasn't been normalized, we need to preprocess it before comparing...
-        tVectorXd truth_action = mLoadInfo.mActionMat.row(cur_frame);
-        double total_action_err = 0, single_action_err = 0;
-        assert(truth_action.size() == mCharController->GetActionSize());
-        f_cnt = 0;
-        for(int j=0; j<mNumLinks-1; j++)
-        {           
-            switch (this->mMultibody->getLink(j).m_jointType)
-            {
-            case btMultibodyLink::eFeatherstoneJointType::eRevolute:
-            {
-                // 6.1 compare the ideal action and solved action
-                single_action_err = std::fabs( truth_action[f_cnt] - action[f_cnt]);
-                if(single_action_err > 1e-7)
-                {
-                    std::cout <<"joint " << j << " type eRevolute, truth joint force " <<\
-                        truth_action[f_cnt] <<", solved joint force = " << action[f_cnt] <<", diff = "\
-                        << single_action_err << std::endl;
-                    total_action_err += single_action_err;
-                }
-                f_cnt++;
-                break;
-            }
-            case btMultibodyLink::eFeatherstoneJointType::eSpherical:
-            {
-                truth_action.segment(f_cnt + 1, 3).normalize();
-                if(std::fabs(truth_action[f_cnt]) <1e-10) truth_action.segment(f_cnt, 4).setZero();
-
-                // it is because that, the axis angle represention is ambiguous
-                single_action_err = std::min(
-                    (truth_action.segment(f_cnt, 4) + action.segment(f_cnt, 4)).norm(),
-                    (truth_action.segment(f_cnt, 4) - action.segment(f_cnt, 4)).norm()
-                    );
-                if(single_action_err > 1e-7)
-                {
-                    std::cout <<"joint " << j << " type eSpherical, truth joint force " << \
-                    truth_action.segment(f_cnt, 4).transpose() <<", solved joint force = " \
-                    << action.segment(f_cnt, 4).transpose() <<", diff = " << single_action_err << std::endl;
-                    total_action_err += single_action_err;
-                }
-                f_cnt+=4;
-                break;
-            }
-            case btMultibodyLink::eFeatherstoneJointType::eFixed:
-                break;
-            default:
-                std::cout <<"cOfflineIDSolver::OfflineSolve joint " << j <<" type " << mMultibody->getLink(j).m_jointType << std::endl;
-                exit(1);
-                break;
-            }
-        }
-
-        if(total_action_err > 1e-7)
+        // 4.6 verified the ID result action if possible 
+        // the loaded action hasn't been normalized, we need to preprocess it before comparing...
+        if(true == mVerfiedAction)
         {
-            std::cout <<"[error] OfflineSolveIDSolver: frame " << cur_frame <<" action err = " << total_action_err << std::endl;
-            // exit(1);
+            tVectorXd truth_action = mLoadInfo.mActionMat.row(cur_frame);
+            double total_action_err = 0, single_action_err = 0;
+            assert(truth_action.size() == mCharController->GetActionSize());
+            f_cnt = 0;
+            for(int j=0; j<mNumLinks-1; j++)
+            {           
+                switch (this->mMultibody->getLink(j).m_jointType)
+                {
+                case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+                {
+                    // 6.1 compare the ideal action and solved action
+                    single_action_err = std::fabs( truth_action[f_cnt] - action[f_cnt]);
+                    if(single_action_err > 1e-7)
+                    {
+                        std::cout <<"joint " << j << " type eRevolute, truth joint force " <<\
+                            truth_action[f_cnt] <<", solved joint force = " << action[f_cnt] <<", diff = "\
+                            << single_action_err << std::endl;
+                        total_action_err += single_action_err;
+                    }
+                    f_cnt++;
+                    break;
+                }
+                case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+                {
+                    truth_action.segment(f_cnt + 1, 3).normalize();
+                    if(std::fabs(truth_action[f_cnt]) <1e-10) truth_action.segment(f_cnt, 4).setZero();
+
+                    // it is because that, the axis angle represention is ambiguous
+                    single_action_err = std::min(
+                        (truth_action.segment(f_cnt, 4) + action.segment(f_cnt, 4)).norm(),
+                        (truth_action.segment(f_cnt, 4) - action.segment(f_cnt, 4)).norm()
+                        );
+                    if(single_action_err > 1e-7)
+                    {
+                        // std::cout <<"[debug] OfflineSOlvejoint " << j << " type eSpherical, truth joint force " << \
+                        // truth_action.segment(f_cnt, 4).transpose() <<", solved joint force = " \
+                        // << action.segment(f_cnt, 4).transpose() <<", diff = " << single_action_err << std::endl;
+                        total_action_err += single_action_err;
+                    }
+                    f_cnt+=4;
+                    break;
+                }
+                case btMultibodyLink::eFeatherstoneJointType::eFixed:
+                    break;
+                default:
+                    std::cout <<"cOfflineIDSolver::OfflineSolve joint " << j <<" type " << mMultibody->getLink(j).m_jointType << std::endl;
+                    exit(1);
+                    break;
+                }
+            }
+            
+            if(total_action_err > 1e-4)
+            {
+                std::cout <<"[error] OfflineSolveIDSolver: " << mLoadInfo.mLoadPath <<" frame " << cur_frame <<" action err = " << total_action_err << std::endl;
+                // exit(1);
+            }
+            ID_action_err += total_action_err;
         }
-        ID_action_err += total_action_err;
+        
 
         cur_ID_res.action = action;
 
-        // 4.8 recalculate the reward according to current motion
-        // you must confirm that the simchar skeleton file is the same as trajectories skeleton file accordly (Now it has been guranteed in ParseConfig)
-        cur_ID_res.reward = mScene->CalcReward(0);
-        
-        // 4.9 judging whether we should jump to the next cycle and update/sync the kinChar according to the simchar.
-        double prev_phase = mKinChar->GetPhase();
-        mKinChar->Update(mLoadInfo.mTimesteps[cur_frame]);
-        double curr_phase = mKinChar->GetPhase();
 
-        if (curr_phase < prev_phase)
+        double prev_phase = mKinChar->GetPhase();
+        if(true == mRecalculateReward)
         {
-            (dynamic_cast<cSceneImitate *>(mScene))->SyncKinCharNewCycleInverseDynamic(*mSimChar, *mKinChar);
+            // 4.8 recalculate the reward according to current motion
+            // you must confirm that the simchar skeleton file is the same as trajectories skeleton file accordly (Now it has been guranteed in ParseConfig)
+            cur_ID_res.reward = mScene->CalcReward(0);
+        }
+
+        // update kinchar and mcharcontroller to maintain the recorded state phase is correct
+        mKinChar->Update(mLoadInfo.mTimesteps[cur_frame]);
+        mCharController->UpdateTimeOnly(mLoadInfo.mTimesteps[cur_frame]);
+
+        // recalcualte the reward?
+        if(true == mRecalculateReward)
+        {
+            double curr_phase = mKinChar->GetPhase();
+            // 4.9 judging whether we should jump to the next cycle and update/sync the kinChar according to the simchar.
+            if (curr_phase < prev_phase)
+            {
+                (dynamic_cast<cSceneImitate *>(mScene))->SyncKinCharNewCycleInverseDynamic(*mSimChar, *mKinChar);
+            }
+            
+            reward_err += std::fabs(cur_ID_res.reward - mLoadInfo.mRewards[cur_frame]);
+            // std::cout <<"frame " << cur_frame <<" truth action = " << mLoadInfo.mActionMat.row(cur_frame) << std::endl;
+            // std::cout <<"frame " << cur_frame <<" solved action = " << action.transpose() << std::endl;
+            // std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
+            // std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
+        }
+        else
+        {
+            cur_ID_res.reward = mLoadInfo.mRewards[cur_frame];
         }
         
-        reward_err += std::fabs(cur_ID_res.reward - mLoadInfo.mRewards[cur_frame]);
-        // std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
-        // std::cout <<"frame " << cur_frame <<" cur reward = " << cur_ID_res.reward << ", load reward = " << mLoadInfo.mRewards[cur_frame] <<  std::endl;
-
     }
     if(ID_torque_err < 1e-3 && ID_action_err < 1e-3 && reward_err < 1e-3)
     {
-        std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID torque error = " << ID_torque_err;
-        std::cout <<", total ID Action error = " << ID_action_err;
-        std::cout <<"，total ID reward error = " << reward_err << std::endl;
+        // std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID torque error = " << ID_torque_err;
+        // std::cout <<", total ID Action error = " << ID_action_err;
+        // std::cout <<"，total ID reward error = " << reward_err << std::endl;
     }
     else
     {
-        std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID torque error = " << ID_torque_err << std::endl;
-        std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID Action error = " << ID_action_err << std::endl;
-        std::cout <<"[error] cOfflineIDSolver::OfflineSolve: failed, total ID reward error = " << reward_err << std::endl;
+        std::cout <<"[error] OfflineSolve failed " << mLoadInfo.mLoadPath << ", total ID torque error = " << ID_torque_err << ", ";
+        std::cout <<"total ID Action error = " << ID_action_err << ", ";
+        std::cout <<"total ID reward error = " << reward_err << std::endl;
     }
-    cTimeUtil::End("OfflineSolve");
+    // cTimeUtil::End("OfflineSolve");
 }
 
 /**
@@ -530,6 +549,7 @@ void cOfflineSolveIDSolver::BatchTrajsSolve(const std::string & path)
         summary_table.mTotalEpochNum += 1;
         summary_table.mTotalLengthTime += single_epoch_info.length_second;
         summary_table.mTotalLengthFrame += single_epoch_info.frame_num;
+        std::cout <<"[log] OfflineIDSolver proc " << world_rank <<" progress " << (i - st + 1) <<"/" << (ed - st + 1) << std::endl;
     }
     // std::cout <<"[log] Batch solve for "<< summary_table.mTimeStamp << std::endl;
     

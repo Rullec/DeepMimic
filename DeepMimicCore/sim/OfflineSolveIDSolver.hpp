@@ -39,6 +39,8 @@ protected:
         std::string mExportDataDir;     // The same as mExportDataPath
     } mBatchTrajSolveConfig;
     
+    bool        mVerfiedAction;     // .traj files sometimes include the resulting actions (for debugging), do you want to verify the ID result with this ground truth? 
+    bool        mRecalculateReward; // .traj files usually include the old reward value, do you want to calculate it again? performance cost.
     std::string mRefMotionPath;     // You must specify the reference motion when OfflineSolve() try to recalculate the reward for each frame.
     std::string mRetargetCharPath;  // The character skeleton file which belongs to this trajectory
 

@@ -1717,7 +1717,7 @@ bool cSimCharacter::CheckFallContact() const
 			bool has_contact = curr_part->IsInContact();	// 看这个link是否摔倒了, 所以脚是不是应该...关了.
 			if (has_contact)
 			{
-				std::cout <<"[end] detect part " << b <<" contact with ground, so episode end" << std::endl;
+				// std::cout <<"[end] detect part " << b <<" contact with ground, so episode end" << std::endl;
 				return true;
 			}
 		}
