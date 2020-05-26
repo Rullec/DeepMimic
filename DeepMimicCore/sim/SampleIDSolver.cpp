@@ -18,6 +18,7 @@ cSampleIDSolver::cSampleIDSolver(cSceneImitate * imitate_scene, const std::strin
 {
     controller_details_path = "logs/controller_logs/controller_details_sample.txt";
     mEnableIDTest = false;
+    mClearOldData = false;
     Parseconfig(config);
 
     // 1. MPI init. We need to check initialized if we call this program by python agent. Second Initialized is prohibited.
@@ -33,14 +34,17 @@ cSampleIDSolver::cSampleIDSolver(cSceneImitate * imitate_scene, const std::strin
 
 
     // clear the data dir
-    cFileUtil::AddLock(mSampleInfo.mSampleTrajsDir);
-    if(cFileUtil::ExistsDir(mSampleInfo.mSampleTrajsDir) == true) cFileUtil::ClearDir(mSampleInfo.mSampleTrajsDir.c_str());
-    else cFileUtil::CreateDir(mSampleInfo.mSampleTrajsDir.c_str());
-    cFileUtil::DeleteLock(mSampleInfo.mSampleTrajsDir);
-    MPI_Barrier(MPI_COMM_WORLD);
-
+    if(mClearOldData == true)
+    {
+        cFileUtil::AddLock(mSampleInfo.mSampleTrajsDir);
+        if(cFileUtil::ExistsDir(mSampleInfo.mSampleTrajsDir) == true) cFileUtil::ClearDir(mSampleInfo.mSampleTrajsDir.c_str());
+        else cFileUtil::CreateDir(mSampleInfo.mSampleTrajsDir.c_str());
+        cFileUtil::DeleteLock(mSampleInfo.mSampleTrajsDir);
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    
     std::cout <<"[debug] cSampleIDSolver rank " << world_rank <<"/" << world_size <<" constructed\n";
-    cTimeUtil::Begin("sample_epoch");
+    cTimeUtil::Begin("sample_traj");
     // MPI_Finalize();
     // exit(0);
 }
@@ -52,8 +56,6 @@ cSampleIDSolver::~cSampleIDSolver()
 
 void cSampleIDSolver::PreSim()
 {
-    // cTimeUtil::BeginLazy("pre_sim");
-    // cTimeUtil::BeginLazy("pre_sim1");
     mInverseModel->clearAllUserForcesAndMoments();
     const int & cur_frame = mSaveInfo.mCurFrameId;
     // std::cout <<"frame id " << cur_frame  << std::endl;
@@ -79,9 +81,6 @@ void cSampleIDSolver::PreSim()
     // double reward = mScene->CalcReward(0);
     // std::cout << "frame " << cur_frame <<" reward = " << reward << std::endl;
 
-    // cTimeUtil::EndLazy("pre_sim1");
-    // cTimeUtil::BeginLazy("pre_sim2");
-    // cTimeUtil::BeginLazy("pre_sim3");
     // only record momentum in PreSim for the first frame
     if(0 == cur_frame)
     {
@@ -96,8 +95,6 @@ void cSampleIDSolver::PreSim()
         //     mSaveInfo.mAngularMomentum[cur_frame]);
         // RecordMomentum(mSaveInfo.mLinearMomentum[cur_frame], mSaveInfo.mAngularMomentum[cur_frame]);
     }
-    // cTimeUtil::EndLazy("pre_sim3");
-    // cTimeUtil::BeginLazy("pre_sim4");
     
     // if(cur_frame == 200)
     // {
@@ -135,14 +132,10 @@ void cSampleIDSolver::PreSim()
     // fout << "\n buffer u : ";
     // fout << mSaveInfo.mBuffer_u[cur_frame].transpose() <<" ";
     // fout << std::endl;
-    // cTimeUtil::EndLazy("pre_sim4");
-    // cTimeUtil::EndLazy("pre_sim2");
-    // cTimeUtil::EndLazy("pre_sim");
 }
 
 void cSampleIDSolver::PostSim()
 {
-    // cTimeUtil::BeginLazy("post_sim");
     // if(mSaveInfo.mCurFrameId > 2) exit(1);
     // std::cout <<"offline post sim frame = " << mSaveInfo.mCurFrameId<<std::endl;
     mSaveInfo.mCurFrameId++;
@@ -174,7 +167,6 @@ void cSampleIDSolver::PostSim()
 
     if(mEnableIDTest == false)
     {
-        // cTimeUtil::EndLazy("post_sim");
         return ;
     } 
 
@@ -343,8 +335,6 @@ void cSampleIDSolver::PostSim()
 
 void cSampleIDSolver::Reset()
 {
-    cTimeUtil::End("sample_epoch");
-    // cTimeUtil::Begin("save_traj");
     tSummaryTable::tSingleEpochInfo a;
     a.length_second = mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId-1] * mSaveInfo.mCurFrameId;
     a.frame_num = mSaveInfo.mCurFrameId;
@@ -375,18 +365,9 @@ void cSampleIDSolver::Reset()
         mSummaryTable.WriteToDisk(mSampleInfo.mSummaryTableFilename);
         // std::cout <<"[log] cSampleIDSolver::Reset write summary file done\n";
         MPI_Finalize();
+        cTimeUtil::End("sample_traj");
         exit(0);
     }
-    // cTimeUtil::ClearLazy("pre_sim1");
-    // cTimeUtil::ClearLazy("pre_sim2");
-    // cTimeUtil::ClearLazy("pre_sim3");
-    // cTimeUtil::ClearLazy("motion_resize");
-    // cTimeUtil::ClearLazy("pre_sim4");
-    // cTimeUtil::ClearLazy("pre_sim");
-    
-    // cTimeUtil::ClearLazy("post_sim");
-    // cTimeUtil::End("save_traj");
-    cTimeUtil::Begin("sample_epoch");
 }
 
 void cSampleIDSolver::SetTimestep(double timestep)
@@ -401,6 +382,7 @@ void cSampleIDSolver::Parseconfig(const std::string & conf)
     auto sample_value = root["SampleModeInfo"];
     assert(sample_value.isNull() == false);
     auto & sample_num_json = sample_value["sample_num"];
+    auto & clear_old_data_json = sample_value["clear_old_data"];
     auto & sample_trajs_dir_json = sample_value["sample_trajs_dir"];
     auto & sample_root_json = sample_value["sample_trajs_rootname"];
     auto & summary_table_file = sample_value["summary_table_filename"];
@@ -414,6 +396,7 @@ void cSampleIDSolver::Parseconfig(const std::string & conf)
     mSampleInfo.mSampleTrajsRootName = mSampleInfo.mSampleTrajsDir + sample_root_json.asString();
     mSampleInfo.mSummaryTableFilename = mSampleInfo.mSampleTrajsDir + summary_table_file.asString();
     if(sample_value["enable_sample_ID_test"].isNull() == false) mEnableIDTest = sample_value["enable_sample_ID_test"].asBool();
+    if(sample_value["clear_old_data_json"].isNull() == false) mClearOldData = sample_value["clear_old_data_json"].asBool();
     // assert(cFileUtil::ValidateFilePath(mSampleInfo.mSampleTrajsRootName));
     // assert(cFileUtil::ValidateFilePath(mSampleInfo.mSummaryTableFilename));
     

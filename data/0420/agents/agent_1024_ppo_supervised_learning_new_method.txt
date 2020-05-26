@@ -56,13 +56,13 @@
     "l2_coeff": 1e-4,
     "lr": 1e-3,
     "n_epoch": 1000,
-    "layers": [1024, 512, 256, 128],
+    "layers": [256, 128],
     "save_step": 100,
     "model_output_path": "./output/20200518/",
 	"output_path": "./output/20200518/",
 
 	"std_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/norm/std.npz",
 	"mean_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/norm/mean.npz",
-	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/model/sa_net.ckpt-5000",
+	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/20200518/model/sa_net.ckpt-1000",
 	"ENABLE_SAVE_PATH_KEY" : true
 }

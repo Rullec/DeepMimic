@@ -49,3 +49,4 @@ Main
 *.dylib
 *.train
 cmake-build*
+*npz

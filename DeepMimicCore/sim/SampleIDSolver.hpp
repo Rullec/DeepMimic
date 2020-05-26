@@ -17,4 +17,5 @@ protected:
 
     // MPI UTILS
     bool mEnableIDTest;
+    bool mClearOldData;
 };
