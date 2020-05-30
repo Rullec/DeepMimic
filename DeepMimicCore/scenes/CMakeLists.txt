@@ -3,3 +3,4 @@ project(DeepMimicCore)
 
 aux_source_directory(. DIR_SRCS)
 add_library(SCENES ${DIR_SRCS} )
+target_link_libraries(SCENES UTIL)

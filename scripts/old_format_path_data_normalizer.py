@@ -55,8 +55,12 @@ def target_normalized(number, normalize_lst):
 def NormalizeAction(filename, target_filename):
     assert(os.path.exists(filename))
     print("begin to handle %s" % filename)
-    with open(filename, 'r') as f:
-        root = json.load(f)
+    try:
+        with open(filename, 'r') as f:
+            root = json.load(f)
+    except :
+        print("load %s failed" % filename)
+        return 
     actions = root["actions"]
     new_actions = []
     for single_action in actions:
@@ -69,11 +73,21 @@ def NormalizeAction(filename, target_filename):
         print("write json to %s" % target_filename)
     return 
 
+import shutil
+from multiprocessing import Pool
 if __name__ == "__main__":    
     # numbers = [float(i) for i in range(100)]
     # new_numbers = target_normalized(numbers, st_num)
     # print("before %s" % str(numbers))
     # print("after %s" % str(new_numbers))
+    if os.path.exists(target_path_dir):
+        shutil.rmtree(target_path_dir)
+    os.makedirs(target_path_dir)
+    arts = []
     for file in files:
         if -1 != file.find("json"):
-            NormalizeAction(os.path.join(origin_path_dir, file), os.path.join(target_path_dir, file))
+            arts.append([os.path.join(origin_path_dir, file), os.path.join(target_path_dir, file)])
+            # NormalizeAction(os.path.join(origin_path_dir, file), os.path.join(target_path_dir, file))
+    pool = Pool(12)
+    pool.starmap(NormalizeAction, arts)
+    

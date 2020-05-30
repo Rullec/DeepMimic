@@ -33,6 +33,7 @@
 	"ExpAnnealSamples": 64000000,
 	"EnableSavePath": false,
 	"PathSaveDir": "./logs/paths/",
+	"ClearSavePath": true,
 	"ExpParamsBeg":
 	{
 		"Rate": 1,

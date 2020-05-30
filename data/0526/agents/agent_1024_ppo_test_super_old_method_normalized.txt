@@ -54,9 +54,9 @@
 
 	"state_std_path": "/home/xudong/Projects/retargeting_jfcode/output/old_method_normalized/norm/state_std.npz",
 	"state_mean_path": "/home/xudong/Projects/retargeting_jfcode/output/old_method_normalized/norm/state_mean.npz",
-	"enable_action_normalize" : true,
+	"enable_action_normalize" : false,
 	"action_std_path": "/home/xudong/Projects/retargeting_jfcode/output/old_method_normalized/norm/action_std.npz",
 	"action_mean_path": "/home/xudong/Projects/retargeting_jfcode/output/old_method_normalized/norm/action_mean.npz",
-	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/old_method_normalized/model/sa_net.ckpt-2000",
+	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/old_method_normalized/model/sa_net.ckpt-1800",
     "layers": [128, 64]
 }

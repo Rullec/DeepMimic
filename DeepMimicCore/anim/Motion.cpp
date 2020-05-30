@@ -1,7 +1,7 @@
 #include "Motion.h"
 #include <assert.h>
 #include <iostream>
-
+#include <util/TimeUtil.hpp>
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
 
@@ -456,7 +456,6 @@ double cMotion::GetFrameDuration(int f) const
 	return dur;
 }
 
-#include <util/cTimeUtil.hpp>
 bool cMotion::AddFrame(const tFrame & frame, double timestep)
 {
 	/*

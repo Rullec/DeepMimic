@@ -47,6 +47,7 @@ typedef Eigen::VectorXd tVectorXd;
 typedef Eigen::Vector3d tVector3;
 typedef Eigen::Matrix4d tMatrix;
 typedef Eigen::Matrix3d tMatrix3;
+typedef Eigen::MatrixXd tMatrixXd;
 typedef Eigen::Quaterniond tQuaternion;
 
 template <typename T>

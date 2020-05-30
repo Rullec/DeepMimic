@@ -1,11 +1,11 @@
 #include "InteractiveIDSolver.hpp"
 
 class cSceneImitate;
-class cOfflineSolveIDSolver : public cInteractiveIDSolver
+class cOfflineIDSolver : public cInteractiveIDSolver
 {
 public:
-    explicit cOfflineSolveIDSolver(cSceneImitate * imitate, const std::string & config);
-    ~cOfflineSolveIDSolver();
+    explicit cOfflineIDSolver(cSceneImitate * imitate, const std::string & config);
+    ~cOfflineIDSolver();
     virtual void PreSim() override final;
     virtual void PostSim() override final;
     virtual void Reset() override final;
@@ -37,10 +37,12 @@ protected:
     struct {
         std::string mSummaryTableFile;  // You need to specify a summary table which records the details info of batch trajs. It is the output of cSampleIDSolver
         std::string mExportDataDir;     // The same as mExportDataPath
+        bool mEnableRestoreThetaByActionDist;   // if open, ID result will be revised by an external theta distribution file. It's a way to remove the ambiguity of axis angle repre.
+        bool mEnableRestoreThetaByGT;   // restore theta by ground truth
     } mBatchTrajSolveConfig;
     
-    bool        mVerfiedAction;     // .traj files sometimes include the resulting actions (for debugging), do you want to verify the ID result with this ground truth? 
-    bool        mRecalculateReward; // .traj files usually include the old reward value, do you want to calculate it again? performance cost.
+    bool        mEnableActionVerfied;     // .traj files sometimes include the resulting actions (for debugging), do you want to verify the ID result with this ground truth? 
+    bool        mEnableRewardRecalc; // .traj files usually include the old reward value, do you want to calculate it again? performance cost.
     std::string mRefMotionPath;     // You must specify the reference motion when OfflineSolve() try to recalculate the reward for each frame.
     std::string mRetargetCharPath;  // The character skeleton file which belongs to this trajectory
 
@@ -51,4 +53,6 @@ protected:
 
     void SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDResult);
     void BatchTrajsSolve(const std::string & path);
+    void RestoreActionByThetaDist(std::vector<tSingleFrameIDResult> & IDResult);
+    void RestoreActionByGroundTruth(std::vector<tSingleFrameIDResult> & IDResult);
 };

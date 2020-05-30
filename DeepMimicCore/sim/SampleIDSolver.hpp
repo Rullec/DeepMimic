@@ -13,9 +13,13 @@ public:
 protected:
     void Parseconfig(const std::string & conf);
     void InitSampleSummaryTable();
-    void PrintSampleInfo();
+    void RecordActionThetaDist(const tVectorXd & cur_action, double phase, tMatrixXd & action_theta_dist_mat) const;
 
-    // MPI UTILS
-    bool mEnableIDTest;
-    bool mClearOldData;
+    bool mEnableIDTest; // enable solving Inverse Dynamics when sampling, usually for test
+    bool mClearOldData; // clear the whole storaged trajs data dir before sampling
+    bool mRecordThetaDist;  // the action for spherical joints in our character is represented in axis-angle, an ambiguous rotation representation. 
+                            // If true, the SampleIDSolver will record the symbol of theta for each spherical joint when sampling
+                            // this can help the following ID procedure and following supervised learning.
+    bool mEnableSyncThetaDist;  // sync the action theta distribution between processes
+    
 };

@@ -40,7 +40,7 @@ std::shared_ptr<cIDSolver> BuildIDSolver(const std::string & conf, cSceneImitate
     switch (type)
     {
     case eIDSolverType::Display: solver = std::shared_ptr<cIDSolver>(new cDisplayIDSolver(imitate_scene, conf)); break;
-    case eIDSolverType::OfflineSolve: solver = std::shared_ptr<cIDSolver>(new cOfflineSolveIDSolver(imitate_scene, conf)); break;
+    case eIDSolverType::OfflineSolve: solver = std::shared_ptr<cIDSolver>(new cOfflineIDSolver(imitate_scene, conf)); break;
     case eIDSolverType::Online: solver = std::shared_ptr<cIDSolver>(new cOnlineIDSolver(imitate_scene)); break;
     case eIDSolverType::Sample: solver = std::shared_ptr<cIDSolver>(new cSampleIDSolver(imitate_scene, conf)); break;
     default:

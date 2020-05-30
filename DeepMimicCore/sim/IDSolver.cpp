@@ -1,13 +1,17 @@
+#include <iostream>
 #include "IDSolver.hpp"
 #include "SimCharacter.h"
 #include "../scenes/SceneImitate.h"
 #include "../Extras/InverseDynamics/btMultiBodyTreeCreator.hpp"
 #include "sim/CtPDController.h"
 #include <util/BulletUtil.h>
-#include <iostream>
+#include <util/LogUtil.hpp>
 
 cIDSolver::cIDSolver(cSceneImitate * imitate_scene, eIDSolverType type)
 {
+	// spdlog::info("cIDSolver::cIDSolver");
+	mLogger = cLogUtil::CreateLogger("cIDSolver");
+	
 	assert(imitate_scene != nullptr);
 	mScene = imitate_scene;
 	mSimChar = imitate_scene->GetCharacter(0).get();

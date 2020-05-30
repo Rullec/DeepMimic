@@ -72,12 +72,12 @@ protected:
         std::vector<std::vector<tContactForceInfo>> mContactForces;
         std::vector<std::vector<tMatrix>> mLinkRot;	// local to world rotation mats
         std::vector<std::vector<tVector>> mLinkPos;	// link COM pos in world frame
-        std::vector<std::vector<tVector>> mExternalForces, mExternalTorques;
-        std::vector<std::vector<tVector>> mTruthJointForces;
+        std::vector<std::vector<tVector>> mExternalForces, mExternalTorques;    // external forces applied on each link
+        std::vector<std::vector<tVector>> mTruthJointForces;    // The ground truth joint torques loaded from some .traj files will be storaged here. mostly for debug purpose
         int mTotalFrame = 0;
         int mCurFrame = 0;
-        bool mEnableOutputMotionInfo = false;
-        std::string mOutputMotionInfoPath = "";
+        bool mEnableOutputMotionInfo = false;       // if this option is set to true, when the tLoadInfo is loaded from the disk, the Loadfunc will export a summary report about the loaded info
+        std::string mOutputMotionInfoPath = "";     // used accompany with the last one, it points out the location of report file that will be overwritted.
     };
     struct tLoadInfo mLoadInfo;    // work for display and solve mode
 
@@ -89,6 +89,7 @@ protected:
         std::string mSampleTrajsDir;    // the saving dir of trajectoris, for example "data/walk/"
         std::string mSampleTrajsRootName;   // the root of trajectories' filename, for example "traj_walk.json". Then "traj_walk_xxx.json" will be genearated and saved
         std::string mSummaryTableFilename;  // These recorded trajs' info will be recorded in this file. It can be "summary_table.json" 
+        std::string mActionThetaDistFilename;  // This file will record action theta distribution for spherical joints
     } mSampleInfo;  // work for sample mode
 
     // Summary table, It will be used in cSampleIDSolver and cOfflineIDSolver
@@ -96,6 +97,7 @@ protected:
         tSummaryTable();
         std::string mSampleCharFile, mSampleControllerFile; // the character filepath and the controller filepath. They ares recorded in the summary table for clearity
         std::string mTimeStamp;         // the year-month-date timestamp recorded in the summary table
+        std::string mActionThetaDistFile;   // storage of target files with symbol of angular values in the axis angle
         int mTotalEpochNum;             // The number of individual trajectory files this summary table managed
         double mTotalLengthTime;        // The total time length for trajs recorded in this file. the unit is second.
         int mTotalLengthFrame;          // The total frame number for trajs recorded in this file. the unit is second.
@@ -112,8 +114,18 @@ protected:
         std::vector<tSingleEpochInfo> mEpochInfos;
         void WriteToDisk(const std::string & path, bool append = true);
         void LoadFromDisk(const std::string & path);
+        private:
+        tLogger mLogger;
     };
     tSummaryTable mSummaryTable;
+
+
+    // test functionality: 
+    const int mActionThetaGranularity = 2000;
+    tMatrixXd mActionThetaDist;     // (optional) this matrix is used to storage the symbol of each spherical joints' actions' theta value.
+                                    // each row i represents a spherical joint
+                                    // each col j has 100 blanks, represent the symbol for joint i  when the character is running in j% phase of motion
+    
 
     // used for storaged Inverse Dynamic result. instantiated in OfflineSolveIDSolver.hpp
     struct tSingleFrameIDResult{    // ID result of single frame
@@ -129,4 +141,8 @@ protected:
     void LoadMotion(const std::string & path, cMotion * motion) const;  // load deepmimic motion
     void SaveMotion(const std::string & path, cMotion * motion) const;  // save action
     void SaveTrainData(const std::string & path, std::vector<tSingleFrameIDResult> &) const;      // save train data "*.train", only "state, action, reward " trio pair will be storaged in it.
+    
+    void InitActionThetaDist(cSimCharacter * sim_char, tMatrixXd & mat) const;
+    void LoadActionThetaDist(const std::string & path, tMatrixXd & mat) const;
+    void SaveActionThetaDist(const std::string & path, tMatrixXd & mat) const;
 };

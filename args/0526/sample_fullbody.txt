@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 2
---time_lim_max 2
+--time_lim_min 1
+--time_lim_max 1
 --time_lim_exp 0.2
 
 --time_end_lim_min 20

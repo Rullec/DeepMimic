@@ -50,5 +50,6 @@
 	},
 
 	"EnableSavePath": true,
+	"EnableClearPath": true,
 	"PathSaveDir": "./data/paths/"
 }

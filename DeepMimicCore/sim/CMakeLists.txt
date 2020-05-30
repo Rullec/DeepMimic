@@ -9,4 +9,4 @@ endif()
 
 aux_source_directory(. DIR_SRCS)
 add_library(SIM ${DIR_SRCS} )
-target_link_libraries(SIM ${MPI_LIBRARIES})
+target_link_libraries(SIM ${MPI_LIBRARIES} UTIL)
