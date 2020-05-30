@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 #include "Eigen/Dense"
+#include <util/LogUtil.hpp>
 
 class cFileUtil
 {
@@ -46,4 +47,6 @@ public:
 private:
 	static std::string ReadTextFile(FILE* f);
 	static std::string mFileLockDir;
+
+	inline static const tLogger mLogger = cLogUtil::CreateLogger("FileUtil");
 };

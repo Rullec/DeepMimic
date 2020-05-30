@@ -137,20 +137,25 @@ train_data_flipped_dir = "/home/xudong/Projects/DeepMimic/data/batch_train_data/
 def show_theta_for_new_train_data():
     # for i in range(10):
     # show raw result
-    # files = [os.path.join(train_data_dir, i) for i in os.listdir(train_data_dir)]
-    # joint_axis_angle_theta_lst = action_axis_angle_theta_extract(files[0])
-    # joint_minimum_interval_pt_lst = action_minimum_analyze(joint_axis_angle_theta_lst)
-    # draw_theta(joint_axis_angle_theta_lst, joint_minimum_interval_pt_lst)
+    files = [os.path.join(train_data_dir, i) for i in os.listdir(train_data_dir) if i.find("train") != -1]
+    for i in range(1):
+    # for i in range(len(files)):
+        joint_axis_angle_theta_lst = action_axis_angle_theta_extract(files[i])
+        joint_minimum_interval_pt_lst = action_minimum_analyze(joint_axis_angle_theta_lst)
+        draw_theta(joint_axis_angle_theta_lst, joint_minimum_interval_pt_lst)
+        mng = plt.get_current_fig_manager()
+        mng.full_screen_toggle()
+        plt.show()
     # plt.show(block=False)
 
     # show now 
-    files = [os.path.join(train_data_flipped_dir, i) for i in os.listdir(train_data_flipped_dir)]
-    joint_axis_angle_theta_lst = action_axis_angle_theta_extract(files[0])
-    draw_theta(joint_axis_angle_theta_lst, None)
+    # files = [os.path.join(train_data_flipped_dir, i) for i in os.listdir(train_data_flipped_dir)]
+    # joint_axis_angle_theta_lst = action_axis_angle_theta_extract(files[0])
+    # draw_theta(joint_axis_angle_theta_lst, None)
 
-    mng = plt.get_current_fig_manager()
-    mng.full_screen_toggle()
-    plt.show()
+    # mng = plt.get_current_fig_manager()
+    # mng.full_screen_toggle()
+    # plt.show()
     return
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(DeepMimicCore)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 # ljf
 # set(PYTHON_INC /home/ljf/anaconda3/include/python3.7m)
@@ -49,7 +49,7 @@ endif(NOT OPENGL_FOUND)
 include_directories(${OpenGL_INCLUDE_DIRS})
 link_directories(${OpenGL_LIBRARY_DIRS})
 add_definitions(${OpenGL_DEFINITIONS})
-add_definitions( -DBT_USE_DOUBLE_PRECISION  -std=c++17)
+add_definitions(-DBT_USE_DOUBLE_PRECISION  -std=c++17 -march=native)
 
 set(include_dir ${PYTHON_INC} ${EIGEN_INC} ${BULLTER_INC} ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${include_dir})
@@ -64,22 +64,24 @@ else()
     message(STATUS "Build type: release(default)")
     add_definitions("-O3 -fPIC")
 endif()
-add_definitions("-Wno-overloaded-virtual -Wno-unused-variable -Wno-reorder -Wno-int-to-void-pointer-cast -Wno-deprecated-declarations -Wno-unused-value -Werror=return-type")
+add_definitions("-Wno-overloaded-virtual -Wno-unused-variable -Wno-reorder -Wno-int-to-pointer-cast -Wno-unused-but-set-variable -Wno-sign-compare -Wno-deprecated-declarations -Wno-unused-value -Werror=return-type")
 
+add_subdirectory(util/json)
+add_subdirectory(util)
 add_subdirectory(anim)
 add_subdirectory(render)
 add_subdirectory(scenes)
 add_subdirectory(sim)
-add_subdirectory(util)
-add_subdirectory(util/json)
+
+
 
 set(libs ${OPENGL_LIBRARIES} GLEW  BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils BulletDynamics stdc++)
 if(APPLE)
     set(libs ${libs} ${GLUT_LIBRARY} )
 else()
-    set(libs ${libs} glut stdc++fs )
+    set(libs ${libs} glut)
 endif()
-set(mylibs SCENES SIM JSON ANIM RENDER UTIL )
+set(mylibs SCENES SIM JSON ANIM RENDER )
 
 find_package(SWIG REQUIRED)
 include(${SWIG_USE_FILE})
@@ -90,7 +92,6 @@ include_directories(${PYTHON_INCLUDE_PATH})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${PYTHON_INC})
-
 
 
 set(CMAKE_SWIG_FLAGS "")

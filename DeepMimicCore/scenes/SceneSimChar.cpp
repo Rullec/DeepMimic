@@ -8,6 +8,8 @@
 #include "sim/DeepMimicCharController.h"
 #include "sim/BuildIDSolver.hpp"
 #include "util/FileUtil.h"
+#include <util/BulletUtil.h>
+#include <util/TimeUtil.hpp>
 #include <iostream>
 #include <fstream>
 using namespace std;
@@ -186,8 +188,6 @@ void cSceneSimChar::Clear()
 	ClearObjs();
 }
 
-#include <util/BulletUtil.h>
-#include <util/cTimeUtil.hpp>
 void cSceneSimChar::Update(double time_elapsed)
 {
 	// std::cout <<"------------cSceneSimChar::Update------------" << this->GetTime() << std::endl;;

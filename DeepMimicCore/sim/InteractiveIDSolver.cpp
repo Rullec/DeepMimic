@@ -11,7 +11,7 @@ std::string controller_details_path;
 cInteractiveIDSolver::cInteractiveIDSolver(cSceneImitate * imitate_scene, eIDSolverType type)
     :cIDSolver(imitate_scene, type)
 {
-
+    mLogger = cLogUtil::CreateLogger("InteractiveIDSolver");
 }
 
 cInteractiveIDSolver::~cInteractiveIDSolver()
@@ -26,8 +26,13 @@ void cInteractiveIDSolver::LoadTraj(tLoadInfo & load_info, const std::string & p
     Json::Value data_json, list_json;
     bool succ = cJsonUtil::ParseJson(path, data_json);
     load_info.mLoadPath = path;
-    if(!succ) std::cout <<"[error] cInteractiveIDSolver::LoadTraj parse json " << path << " failed\n", exit(1);
-    // std::cout <<"load succ\n";
+    if(!succ)
+    {
+        ErrorPrintf(mLogger, "LoadTraj parse json %s failed", path);
+        exit(0);
+    } 
+    
+
     list_json = data_json["list"];
     assert(list_json.isNull() == false);
     // std::cout <<"get list json, begin set up pramas\n";
@@ -276,12 +281,11 @@ void cInteractiveIDSolver::PrintLoadInfo(tLoadInfo & load_info, const std::strin
 void cInteractiveIDSolver::LoadMotion(const std::string & path, cMotion * motion) const
 {
     assert(cFileUtil::ExistsFile(path));
-    std::cout <<"[debug] offline load motion from " << path << std::endl;
+    
     cMotion::tParams params;
     params.mMotionFile = path;
     motion->Load(params);
-    
-    std::cout <<"[debug] offline load motion frames = " << motion->GetNumFrames() <<", dof = " <<motion->GetNumDof() << std::endl;
+    DebugPrintf(mLogger, "Load Motion from %s, frame_nums = %d, dof = %d", path, motion->GetNumFrames(), motion->GetNumDof());
 }
 
 void cInteractiveIDSolver::SaveMotion(const std::string & path_root, cMotion * motion) const
@@ -289,11 +293,11 @@ void cInteractiveIDSolver::SaveMotion(const std::string & path_root, cMotion * m
     assert(nullptr != motion);
     if(false == cFileUtil::ValidateFilePath(path_root))
     {
-        std::cout <<"[error] cInteractiveIDSolver::SaveMotion: path root invalid: " << path_root << std::endl;
+        ErrorPrintf(mLogger, "SaveMotion: path root invalid %s", path_root);
         exit(1);
     }
     std::string filename = cFileUtil::RemoveExtension(path_root) + "_" + std::to_string(mSaveInfo.mCurEpoch) + "." + cFileUtil::GetExtension(path_root);
-    std::cout <<"[log] cInteractiveIDSolver::SaveMotion for epoch " << mSaveInfo.mCurEpoch <<" to " << filename << std::endl;
+    InfoPrintf(mLogger, "SaveMotion for epoch %d to %s", mSaveInfo.mCurEpoch, filename);
     motion->FinishAddFrame();
     motion->Output(filename);
     motion->Clear();
@@ -308,7 +312,7 @@ void cInteractiveIDSolver::SaveTrainData(const std::string & path, std::vector<t
 {
     if(cFileUtil::ValidateFilePath(path) == false)
     {
-        std::cout <<"[error]  cInteractiveIDSolver::SaveTrainData path " << path <<" invalid\n";
+        ErrorPrintf(mLogger, "SaveTrainData path %s invalid", path);
         exit(0);
     }
     Json::Value root;
@@ -332,6 +336,64 @@ void cInteractiveIDSolver::SaveTrainData(const std::string & path, std::vector<t
 #endif
 }
 
+
+/**
+ * \brief       Init Action Theta Dist. 
+ * For more details please check the comment for var "mActionThetaDist"
+*/
+void cInteractiveIDSolver::InitActionThetaDist(cSimCharacter * sim_char, tMatrixXd & mat) const
+{
+    // [links except root, Granularity]
+    mat.resize(mSimChar->GetMultiBody()->getNumLinks(), mActionThetaGranularity);
+    mat.setZero();
+}
+
+void cInteractiveIDSolver::LoadActionThetaDist(const std::string & path, tMatrixXd & mat) const
+{
+    Json::Value root;
+    if(cJsonUtil::ParseJson(path, root) == false)
+    {
+        mLogger->error("LoadActionThetaDist failed for " + path);
+        exit(1);
+    }
+    
+    int num_of_joints = mSimChar->GetNumJoints();
+    mat.resize(num_of_joints, mActionThetaGranularity);
+    mat.setZero();
+
+    if(num_of_joints != root.size())
+    {
+        ErrorPrintf(mLogger, "LoadActionThetaDist from %s expected %d items but get %d", path.c_str(), num_of_joints, root.size());
+        exit(1);
+    }
+    tVectorXd row;
+    auto & multibody = mSimChar->GetMultiBody();
+    for (int i = 0; i<multibody->getNumLinks(); i++)
+    {
+        cJsonUtil::ReadVectorJson(root[std::to_string(i)], row);
+        mat.row(i) = row;
+    }
+    mLogger->info("LoadActionThetaDist from " + path);
+}
+
+void cInteractiveIDSolver::SaveActionThetaDist(const std::string & path, tMatrixXd & mat) const
+{
+    if(cFileUtil::ValidateFilePath(path) == false)
+    {
+        ErrorPrintf(mLogger, "SaveActionThetaDist to %s failed", path.c_str());
+        exit(1);
+    }
+
+    Json::Value root;
+    for (int i=0; i<mat.rows(); i++)
+    {
+        root[std::to_string(i)] = Json::arrayValue;
+        for(int j =0; j<mActionThetaGranularity; j++) root[std::to_string(i)].append(mat(i, j));
+    }
+    cJsonUtil::WriteJson(path, root, true);
+    mLogger->info("SaveActionThetaDist to " + path);
+}
+
 /**
  * \brief                   Save trajectories to disk
 */
@@ -339,7 +401,7 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
 {
     if(cFileUtil::ValidateFilePath(path_raw) == false)
     {
-        std::cout << "[error] cInteractiveIDSolver::SaveTraj path " << path_raw <<" invalid\n";
+        ErrorPrintf(mLogger, "SaveTraj path %s invalid", path_raw);
         exit(0);
     } 
     Json::Value root, single_frame;
@@ -443,7 +505,7 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
     cFileUtil::AddLock(final_name);
     if(false == cFileUtil::ValidateFilePath(final_name))
     {
-        std::cout <<"[error] cInteractiveIDSolver::SaveTraj path " << final_name <<" illegal\n";
+        ErrorPrintf(mLogger, "SaveTraj path %s illegal", final_name);
         exit(1);
     }
     cJsonUtil::WriteJson(final_name, root, false);
@@ -520,11 +582,12 @@ void cInteractiveIDSolver::tSummaryTable::WriteToDisk(const std::string & path, 
             single_epoch["train_data_filename"] = x.train_data_filename;
             root["single_trajs_lst"].append(single_epoch);
         }
+        root["action_theta_dist_file"] = mActionThetaDistFile;
     }
 
     // std::cout <<"[debug] " << mpi_rank <<" WriteToDisk ready to write trajs num = " << root["single_trajs_lst"].size() << std::endl;;
     cJsonUtil::WriteJson(path, root, true);
-    std::cout <<"[log] tSummaryTable::WriteToDisk " << path << std::endl;
+    InfoPrintf(mLogger, "WriteToDisk %s", path.c_str());
     if(cFileUtil::DeleteLock(path) == false)
     {
         std::cout <<"[error] tSummaryTable::WriteToDisk delete lock failed for " << path << std::endl;
@@ -543,7 +606,7 @@ void cInteractiveIDSolver::tSummaryTable::LoadFromDisk(const std::string & path)
     
     if(cFileUtil::ExistsFile(path) == false && cFileUtil::ExistsFile(path + ".bak") == true)
     {
-        std::cout << "[warning] " << path << "doesn't exist, but found " << path +".bak" <<" exists, rename and use the backup file\n";
+        InfoPrintf(mLogger, "LoadFromdDisk: path %s doesn't exist, but %s found, rename and use this backup file", path.c_str(), (path+".bak").c_str());
         cFileUtil::RenameFile(path + ".bak", path);
     }
     
@@ -557,6 +620,9 @@ void cInteractiveIDSolver::tSummaryTable::LoadFromDisk(const std::string & path)
     mTotalLengthTime = root["total_second"].asDouble();
     mTotalLengthFrame = root["total_frame"].asInt();
     mTimeStamp = root["timestamp"].asString();
+    mActionThetaDistFile = root["action_theta_dist_file"].asString();
+
+
     auto & trajs_lst = root["single_trajs_lst"];
     if(mTotalEpochNum != trajs_lst.size())
     {
@@ -572,8 +638,7 @@ void cInteractiveIDSolver::tSummaryTable::LoadFromDisk(const std::string & path)
         mEpochInfos[i].length_second = trajs_lst[i]["length_second"].asDouble();
         mEpochInfos[i].traj_filename = trajs_lst[i]["traj_filename"].asString();
     }
-    std::cout <<"[log] tSummaryTable::LoadFromDisk " << path << std::endl;
-    // cFileUtil::DeleteLock(path);
+    mLogger->info("LoadFromDisk " + path);
 }
 
 cInteractiveIDSolver::tSummaryTable::tSingleEpochInfo::tSingleEpochInfo()
@@ -589,8 +654,11 @@ cInteractiveIDSolver::tSummaryTable::tSummaryTable()
     mSampleCharFile = "";
     mSampleControllerFile = "";
     mTimeStamp = "";
+    mActionThetaDistFile = "";
     mTotalEpochNum = 0;
     mTotalLengthTime = 0;
     mTotalLengthFrame = 0;
     mEpochInfos.clear();
+    mLogger = cLogUtil::CreateLogger("tSummaryTable");
 }
+

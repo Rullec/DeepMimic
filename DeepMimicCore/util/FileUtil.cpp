@@ -73,7 +73,7 @@ void cFileUtil::DeleteDir(const char * dir_name)
 void cFileUtil::ClearDir(const char * dir_name)
 {
 #ifndef __APPLE__
-	std::cout <<"clear dir " << dir_name << std::endl;
+	mLogger->info("Clear dir " + std::string(dir_name));
 	if(cFileUtil::ExistsDir(dir_name))
 	{
     	for (const auto & entry : std::experimental::filesystem::directory_iterator(dir_name))

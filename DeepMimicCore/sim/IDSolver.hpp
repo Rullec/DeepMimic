@@ -4,6 +4,7 @@
 #include "BulletInverseDynamics/IDConfig.hpp"
 #include <BulletDynamics/Featherstone/btMultiBodyLink.h>
 #include <util/MathUtil.h>
+#include <util/LogUtil.hpp>
 #include <map>
 #define MAX_FRAME_NUM 10000
 
@@ -54,6 +55,7 @@ public:
 	virtual void SetTimestep(double) = 0;
 
 protected:
+	tLogger mLogger;
 	eIDSolverType mType;
 
 	cSceneImitate * mScene;

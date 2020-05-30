@@ -14,7 +14,7 @@ from util.logger import Logger
 import util.mpi_util as MPIUtil
 import util.math_util as MathUtil
 import learning.rl_util as RLUtil
-
+import shutil
 
 class RLAgent(ABC):
     '''
@@ -52,6 +52,7 @@ class RLAgent(ABC):
     EXP_PARAM_END_KEY = "ExpParamsEnd"
 
     ENABLE_SAVE_PATH_KEY = "EnableSavePath"
+    ENABLE_CLEAR_PATH_KEY = "EnableClearPath"
     PATH_SAVE_DIR_KEY = "PathSaveDir"
 
     def __init__(self, world, id, json_data):
@@ -379,6 +380,10 @@ class RLAgent(ABC):
 
         if (self.ENABLE_SAVE_PATH_KEY in json_data):
             self.enable_save_path = json_data[self.ENABLE_SAVE_PATH_KEY]
+        
+        self.enable_clear_path = False
+        if (self.ENABLE_CLEAR_PATH_KEY in json_data):
+            self.enable_clear_path = json_data[self.ENABLE_CLEAR_PATH_KEY]
 
         if (self.PATH_SAVE_DIR_KEY in json_data):
             self.path_save_dir = json_data[self.PATH_SAVE_DIR_KEY]
@@ -389,6 +394,18 @@ class RLAgent(ABC):
         if (self.EXP_PARAM_END_KEY in json_data):
             self.exp_params_end.load(json_data[self.EXP_PARAM_END_KEY])
 
+        # clear the path
+        if self.enable_clear_path == True:
+            for filename in os.listdir(self.path_save_dir):
+                file_path = os.path.join(self.path_save_dir, filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print('Failed to delete %s. Reason: %s' % (file_path, e))
+        
         num_procs = MPIUtil.get_num_procs()
         self._local_mini_batch_size = int(np.ceil(self.mini_batch_size / num_procs))
         self._local_mini_batch_size = np.maximum(self._local_mini_batch_size, 1)
