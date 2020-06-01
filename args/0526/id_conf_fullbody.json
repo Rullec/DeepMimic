@@ -6,11 +6,11 @@
     "IDMode": "OfflineSolve",
     "SampleModeInfo":
     {
-        "sample_num" : 50,
-        "enable_sample_ID_test" : true,
+        "sample_num" : 100,
+        "enable_sample_ID_test" : false,
         "clear_old_data" : true,
-        "record_theta_distribution" : true,
-        "enable_sync_theta_dist" : true,
+        "record_theta_distribution" : false,
+        "enable_sync_theta_dist" : false,
         "sample_trajs_dir" : "data/batch_trajs/0526/",
         "sample_trajs_rootname" : "traj_fullbody.json",
         "summary_table_filename" : "summary_table_fullbody.json"
@@ -42,7 +42,8 @@
         {
             "summary_table_filename" : "data/batch_trajs/0526/summary_table_fullbody.json",
             "export_train_data_dir" : "data/batch_train_data/0526/",
-            "enable_restore_theta_by_action_dist" : true
+            "enable_restore_theta_by_action_dist" : false,
+            "enable_restore_theta_by_ground_truth" : true
         },
         "ref_motion_path" : "data/0424/motions/walk_motion_042601.txt",
         "retargeted_char_path" : "data/0424/characters/skeleton_042302_revised.json",

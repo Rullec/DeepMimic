@@ -166,7 +166,7 @@ void cOfflineIDSolver::ParseBatchTrajConfig(const Json::Value & batch_traj_confi
     mBatchTrajSolveConfig.mSummaryTableFile = batch_traj_config["summary_table_filename"].asString();
     mBatchTrajSolveConfig.mExportDataDir = batch_traj_config["export_train_data_dir"].asString();
     mBatchTrajSolveConfig.mEnableRestoreThetaByActionDist = batch_traj_config["enable_restore_theta_by_action_dist"].asBool();
-    mBatchTrajSolveConfig.mEnableRestoreThetaByGT = batch_traj_config["enable_restore_theta_by_groung_truth"].asBool();
+    mBatchTrajSolveConfig.mEnableRestoreThetaByGT = batch_traj_config["enable_restore_theta_by_ground_truth"].asBool();
     mLogger->info("working in BatchTrajSolve mode");
 }
 
@@ -671,12 +671,6 @@ void cOfflineIDSolver::RestoreActionByThetaDist(std::vector<tSingleFrameIDResult
 void cOfflineIDSolver::RestoreActionByGroundTruth(std::vector<tSingleFrameIDResult> & IDResult)
 {
     int num_of_joints = mSimChar->GetNumJoints();
-    if(mActionThetaDist.rows() != num_of_joints || mActionThetaDist.cols() != mActionThetaGranularity)
-    {
-        ErrorPrintf(mLogger, "RestoreActionThetaDist cur action theta shape (%d, %d) != (%d, %d)", mActionThetaDist.rows(), mActionThetaDist.cols(),
-            num_of_joints, mActionThetaGranularity);
-        exit(1);
-    }
     auto & multibody = mSimChar->GetMultiBody();
     
     for(int frame_id=1; frame_id < IDResult.size(); frame_id++)
