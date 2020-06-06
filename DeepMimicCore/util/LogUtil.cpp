@@ -3,7 +3,9 @@
 
 tLogger cLogUtil::CreateLogger(const std::string & loggername)
 {
-    return spdlog::stdout_color_mt(loggername);
+    tLogger logger = spdlog::stdout_color_mt(loggername);
+    logger->set_level(spdlog::level::trace);
+    return logger;
 }
 
 void cLogUtil::DropLogger(const std::string & loggername)

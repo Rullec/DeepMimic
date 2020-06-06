@@ -121,7 +121,7 @@ protected:
 
 
     // test functionality: 
-    const int mActionThetaGranularity = 2000;
+    const int mActionThetaGranularity = 200;
     tMatrixXd mActionThetaDist;     // (optional) this matrix is used to storage the symbol of each spherical joints' actions' theta value.
                                     // each row i represents a spherical joint
                                     // each col j has 100 blanks, represent the symbol for joint i  when the character is running in j% phase of motion
