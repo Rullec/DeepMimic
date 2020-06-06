@@ -7,15 +7,24 @@ from old_format_path_data_visualzer import st_num
 
 mGuranty = 120 # resolution
 paint_sample = 20
+# fetch_axis = False
+# fetch_theta = True
+fetch_axis = True
+fetch_theta = False
 
 def get_new_data_action_theta_dist_with_ref_time_mpi(file_lst):
     global mGuranty
+    assert(fetch_axis != fetch_theta)
+
     aa_theta_dist_with_respect_to_ref_time = np.zeros([len(st_num), mGuranty])
     # print(np.shape(aa_theta_dist_with_respect_to_ref_time))
     for single_file in file_lst:
-        with open(single_file, 'r') as f:
-            root = json.load(f)
-        
+        try:
+            with open(single_file, 'r') as f:
+                root = json.load(f)
+        except:
+            print("open %s failed" % single_file)
+            continue
         # 1. load all states and actions
         states = [i["state"] for i in root["data_list"]][20:]
         actions = [i["action"] for i in root["data_list"]][20:]
@@ -28,8 +37,13 @@ def get_new_data_action_theta_dist_with_ref_time_mpi(file_lst):
                 cur_phase_int = int (phases[frame_id] * mGuranty)
                 cur_action = actions[frame_id]
 
-                for sp_joint_id, aa_axis_st_pos in enumerate(st_num):
-                    aa_theta_dist_with_respect_to_ref_time[sp_joint_id, cur_phase_int] += cur_action[aa_axis_st_pos-1]
+                if fetch_theta == True:
+                    for sp_joint_id, aa_axis_st_pos in enumerate(st_num):
+                        aa_theta_dist_with_respect_to_ref_time[sp_joint_id, cur_phase_int] += cur_action[aa_axis_st_pos-1]
+                elif fetch_axis == True:
+                    for sp_joint_id, aa_axis_st_pos in enumerate(st_num):
+                        aa_theta_dist_with_respect_to_ref_time[sp_joint_id, cur_phase_int] += cur_action[aa_axis_st_pos]
+
                 if frame_id % paint_sample == 0:
                     # print("[traj] frame %d joint 0 action theta = %.5f" % (frame_id//20, cur_action[0]))
                     continue
@@ -65,19 +79,28 @@ def get_old_data_action_theta_dist_with_ref_time(file_lst):
             cur_phase_int = int (phases[frame_id] * mGuranty)
             cur_action = actions[frame_id]
 
-            for sp_joint_id, aa_axis_st_pos in enumerate(st_num):
-                aa_theta_dist_with_respect_to_ref_time[sp_joint_id, cur_phase_int] += cur_action[aa_axis_st_pos-1]
-                if sp_joint_id == 0:
-                    # print("[path] frame %d joint 0 action theta = %.5f" % (frame_id, cur_action[aa_axis_st_pos-1]))
-                    continue
+
+            if fetch_theta == True:
+                for sp_joint_id, aa_axis_st_pos in enumerate(st_num):
+                    aa_theta_dist_with_respect_to_ref_time[sp_joint_id, cur_phase_int] += cur_action[aa_axis_st_pos-1]
+            elif fetch_axis == True:
+                for sp_joint_id, aa_axis_st_pos in enumerate(st_num):
+                    aa_theta_dist_with_respect_to_ref_time[sp_joint_id, cur_phase_int] += cur_action[aa_axis_st_pos]
+                        
+
+            # for sp_joint_id, aa_axis_st_pos in enumerate(st_num):
+            #     aa_theta_dist_with_respect_to_ref_time[sp_joint_id, cur_phase_int] += cur_action[aa_axis_st_pos-1]
+            #     if sp_joint_id == 0:
+            #         # print("[path] frame %d joint 0 action theta = %.5f" % (frame_id, cur_action[aa_axis_st_pos-1]))
+            #         continue
 
     return aa_theta_dist_with_respect_to_ref_time / len(file_lst)
 
         
 
 
-old_format_data_dir = "./paths/"
-new_format_data_dir = "./batch_train_data/0526/"
+old_format_data_dir = "../data/paths_normalized/"
+new_format_data_dir = "../data/batch_train_data/0526/"
 if __name__ == "__main__":
     old_format_files = [os.path.join(old_format_data_dir, i) for i in os.listdir(old_format_data_dir)]
     new_format_files = [[os.path.join(new_format_data_dir, i)] for i in os.listdir(new_format_data_dir) if i.find("train") != -1]

@@ -535,7 +535,15 @@ void cSampleIDSolver::RecordActionThetaDist(const tVectorXd & cur_action, double
         case btMultibodyLink::eFeatherstoneJointType::eRevolute: f_cnt+=1; break;
         case btMultibodyLink::eFeatherstoneJointType::eSpherical: 
         {
-            action_theta_dist_mat(i, int_phase) += cMathUtil::Sign(cur_action[f_cnt]);          
+            action_theta_dist_mat(i, int_phase) += cMathUtil::Sign(cur_action[f_cnt]);
+            if(std::fabs(action_theta_dist_mat(i, int_phase))>1e-10 && cMathUtil::Sign(action_theta_dist_mat(i, int_phase)) != cMathUtil::Sign(cur_action[f_cnt]))
+            {
+                // DebugPrintf(mLogger, "action theta dist %.5f, cur_action %.5f",\
+                //     action_theta_dist_mat(i, int_phase), cur_action[f_cnt]);
+                WarnPrintf(mLogger, "RecordActionThetaDist frame %d joint %d: cur action sgn %.3f != action_theta_dist %.3f. It may drive the ID solving into errors, expanding mActionThetaGranularity is better for this problem.",\
+                    mSaveInfo.mCurFrameId, i, cMathUtil::Sign(action_theta_dist_mat(i, int_phase)), cMathUtil::Sign(cur_action[f_cnt]));
+                // exit(0);
+            }
             f_cnt+=4;
         }
         break;

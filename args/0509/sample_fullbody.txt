@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 10
---time_lim_max 10
+--time_lim_min 2
+--time_lim_max 2
 --time_lim_exp 0.2
 
 --time_end_lim_min 20
@@ -20,12 +20,12 @@
 --character_files data/0424/characters/skeleton_042302_revised.json
 --enable_joint_force_control true
 --enable_char_soft_contact false
---fall_contact_bodies 0 1 2 3 4 5 6 7 8 9 10 11 12 14 15
+--fall_contact_bodies 0 1 2 3 4 6 7 8 9 11 12 14 15
 
 #----------------PD params and motion data----------------
 --char_ctrls ct_pd
 --char_ctrl_files data/0424/controllers/humanoid3d_ctrl_skeleton_0424.txt
---motion_file data/0424/motions/walk_motion_042601.txt
+--motion_file data/0509/motions/cartwheel_motion_050901_opt.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
 
@@ -37,11 +37,12 @@
 --reward_file data/0420/rewards/reward_weight.json
 --enable_pdtarget_solve_test true
 
---agent_files data/0526/agents/agent_1024_ppo_test_super_new_method.txt
+--agent_files data/0420/agents/agent_1024_ppo.txt
 --train_agents false
 
 --output_path output/0426
+--model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
 
 #---------------------- Inverse Dyanmics config-------------------
---enable_inverse_dynamic_solving false
---inverse_dynamic_config_file args/0526/id_conf_fullbody.json
+--enable_inverse_dynamic_solving true
+--inverse_dynamic_config_file args/0509/id_conf_fullbody.json

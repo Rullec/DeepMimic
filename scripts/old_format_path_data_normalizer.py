@@ -3,8 +3,8 @@ import json
 import os
 
 st_num = [1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 46, 50, 55]
-origin_path_dir = "./paths"
-target_path_dir = "./paths_normalized"
+origin_path_dir = "../data/paths"
+target_path_dir = "../data/paths_normalized"
 files = os.listdir(origin_path_dir)
 
 # use to normlize the joint axis angle norm. given a uniform norm
