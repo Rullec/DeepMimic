@@ -15,7 +15,7 @@
 
 extern std::string controller_details_path;
 cSampleIDSolver::cSampleIDSolver(cSceneImitate * imitate_scene, const std::string & config)
-:cInteractiveIDSolver(imitate_scene, eIDSolverType::Display)
+:cInteractiveIDSolver(imitate_scene, eIDSolverType::Display, config)
 {
     mLogger = cLogUtil::CreateLogger("SampleIDSolver");
     controller_details_path = "logs/controller_logs/controller_details_sample.txt";
@@ -353,6 +353,19 @@ void cSampleIDSolver::Reset()
     a.frame_num = mSaveInfo.mCurFrameId;
     a.traj_filename = SaveTraj(mSaveInfo, mSampleInfo.mSampleTrajsRootName);
 
+    // // test code
+    // {
+    //     Json::Value v1_root = SaveTrajV1(mSaveInfo),
+    //         v2_root = SaveTrajV2(mSaveInfo);
+
+    //     a.traj_filename = "v2.json";
+    //     cJsonUtil::WriteJson("v1.json", v1_root);
+    //     cJsonUtil::WriteJson("v2.json", v2_root);
+    //     // exit(0);
+    // }
+    
+    
+
     mSummaryTable.mTotalEpochNum++;
     mSummaryTable.mTotalLengthTime += a.length_second;
     mSummaryTable.mTotalLengthFrame += a.frame_num;
@@ -441,7 +454,7 @@ void cSampleIDSolver::SetTimestep(double timestep)
 void cSampleIDSolver::Parseconfig(const std::string & conf)
 {
     Json::Value root;
-    cJsonUtil::ParseJson(conf, root);
+    cJsonUtil::LoadJson(conf, root);
     auto sample_value = root["SampleModeInfo"];
     assert(sample_value.isNull() == false);
     auto & sample_num_json = sample_value["sample_num"];

@@ -15,11 +15,16 @@ class cInteractiveIDSolver : public cIDSolver
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    explicit cInteractiveIDSolver(cSceneImitate * imitate_scene, eIDSolverType type);
+    explicit cInteractiveIDSolver(cSceneImitate * imitate_scene, eIDSolverType type, const std::string & conf);
     ~cInteractiveIDSolver();
     
 protected:
-
+    enum eTrajFileVersion{
+        UNSET,
+        V1,
+        V2,
+    };
+    eTrajFileVersion mTrajFileVersion;
     // this struct are used to storage "trajectory" infos when we are sampling the controller.
     // joint force ground truth, contact info... Nearly everything is included.
     // this struct can be exported to "*.traj" or normal DeepMimic motion data "*.txt"
@@ -66,7 +71,7 @@ protected:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
         std::string mLoadPath = "";
         eLoadMode mLoadMode = eLoadMode::INVALID;
-        Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat, mActionMat, mPDTargetMat;
+        Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat, mActionMat, mPDTargetMat, mCharPoseMat;
         cMotion * mMotion = nullptr;
         tVectorXd mTimesteps, mRewards, mMotionRefTime;
         std::vector<std::vector<tContactForceInfo>> mContactForces;
@@ -134,9 +139,15 @@ protected:
     };
 
     // IO tools
-    // load methods
-    void LoadTraj(tLoadInfo & load_info, const std::string & path);     // load our custon trajectroy "*.traj"
-    std::string SaveTraj(tSaveInfo & mSaveInfo, const std::string & path) const;    // save it
+    // load and save methods
+    // Note that which will be called among V1 and V2 is fully determined by the variable mTrajFileVersion
+    // DO NOT mannually call V1 and V2 functions
+    void LoadTraj(tLoadInfo & load_info, const std::string & path);     // load our custom trajectroy "*.traj" generally
+    void LoadTrajV1(tLoadInfo & load_info, const std::string & path);     // load our custon trajectroy "*.traj" v1 for full format
+    void LoadTrajV2(tLoadInfo & load_info, const std::string & path);     // load our custon trajectroy "*.traj" v2 for simplified format
+    std::string SaveTraj(tSaveInfo & mSaveInfo, const std::string & path) const;    // save trajectories
+    const Json::Value SaveTrajV1(tSaveInfo & mSaveInfo) const;    // save trajectories for full version
+    const Json::Value SaveTrajV2(tSaveInfo & mSaveInfo) const;    // save trajectories for simplified version
     void PrintLoadInfo(tLoadInfo & load_info, const std::string &, bool disable_root = true) const;
     void LoadMotion(const std::string & path, cMotion * motion) const;  // load deepmimic motion
     void SaveMotion(const std::string & path, cMotion * motion) const;  // save action
@@ -145,4 +156,5 @@ protected:
     void InitActionThetaDist(cSimCharacter * sim_char, tMatrixXd & mat) const;
     void LoadActionThetaDist(const std::string & path, tMatrixXd & mat) const;
     void SaveActionThetaDist(const std::string & path, tMatrixXd & mat) const;
+    void ParseConfig(const std::string & path);
 };

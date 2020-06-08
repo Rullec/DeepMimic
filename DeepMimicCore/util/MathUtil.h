@@ -198,6 +198,14 @@ public:
 	static tVector SkewMatToVector(const tMatrix &);
 	static bool IsSame(const tVector & v1, const tVector & v2, const double eps);
 	static void ThresholdOp(tVectorXd & v, double threshold = 1e-6);
+	template<typename T> 
+	static const std::string EigenToString(const T &mat)
+	{
+		std::stringstream ss;
+		ss << mat;
+		return ss.str();
+	}
+	
 private:
 	static cRand gRand;
 

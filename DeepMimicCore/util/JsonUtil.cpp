@@ -4,6 +4,7 @@
 #include <fstream>
 #include <memory>
 
+tLogger cJsonUtil::mLogger = cLogUtil::CreateLogger("cJsonUtil");
 std::string cJsonUtil::BuildVectorJson(const tVector& vec)
 {
 	std::string json = "";
@@ -82,14 +83,14 @@ bool cJsonUtil::ReadVectorJson(const Json::Value& root, Eigen::VectorXd& out_vec
 	return succ;
 }
 
-bool cJsonUtil::ParseJson(const std::string & path, Json::Value & value)
+bool cJsonUtil::LoadJson(const std::string & path, Json::Value & value)
 {
 	// cFileUtil::AddLock(path);
 	// std::cout <<"parsing " << path << " begin \n";
     std::ifstream fin(path);
     if(fin.fail() == true)
     {
-        std::cout << "[error] cJsonUtil::ParseJson file " << path <<" doesn't exist\n";
+        std::cout << "[error] cJsonUtil::LoadJson file " << path <<" doesn't exist\n";
         return false;
     }
     Json::CharReaderBuilder rbuilder;
@@ -98,7 +99,7 @@ bool cJsonUtil::ParseJson(const std::string & path, Json::Value & value)
     if (!parsingSuccessful)
     {
     // report to the user the failure and their locations in the document.
-        std::cout  << "[error] cJsonUtil::ParseJson: Failed to parse json\n"
+        std::cout  << "[error] cJsonUtil::LoadJson: Failed to parse json\n"
                << errs << std::endl;
                return false;
     }
@@ -118,4 +119,66 @@ bool cJsonUtil::WriteJson(const std::string & path, Json::Value & value, bool in
 	fout.close();
 	// cFileUtil::DeleteLock(path);
 	return fout.fail() == false;
+}
+
+#define JSONUTIL_ASSERT_NULL(root, data) (root.isMember(data))
+
+int cJsonUtil::ParseAsInt(const std::string & data_field_name, const Json::Value & root)
+{
+	if(false == JSONUTIL_ASSERT_NULL(root, data_field_name))
+	{
+		mLogger->error("ParseAsInt {} failed", data_field_name.c_str());
+		exit(0);
+	}
+	return root[data_field_name].asInt();
+}
+
+std::string cJsonUtil::ParseAsString(const std::string & data_field_name, const Json::Value & root)
+{
+	if(false == JSONUTIL_ASSERT_NULL(root, data_field_name))
+	{
+		mLogger->error("ParseAsString {} failed", data_field_name.c_str());
+		exit(0);
+	}
+	return root[data_field_name].asString();
+}
+
+double cJsonUtil::ParseAsDouble(const std::string & data_field_name, const Json::Value & root)
+{
+	if(false == JSONUTIL_ASSERT_NULL(root, data_field_name))
+	{
+		mLogger->error("ParseAsDouble {} failed", data_field_name.c_str());
+		exit(0);
+	}
+	return root[data_field_name].asDouble();
+}
+
+float cJsonUtil::ParseAsFloat(const std::string & data_field_name, const Json::Value & root)
+{
+	if(false == JSONUTIL_ASSERT_NULL(root, data_field_name))
+	{
+		mLogger->error("ParseAsFloat {} failed", data_field_name.c_str());
+		exit(0);
+	}
+	return root[data_field_name].asFloat();
+}
+
+bool cJsonUtil::ParseAsBool(const std::string & data_field_name, const Json::Value & root)
+{
+	if(false == JSONUTIL_ASSERT_NULL(root, data_field_name))
+	{
+		mLogger->error("ParseAsBool {} failed", data_field_name.c_str());
+		exit(0);
+	}
+	return root[data_field_name].asBool();
+}
+
+Json::Value cJsonUtil::ParseAsValue(const std::string & data_field_name, const Json::Value & root)
+{
+	if(false == JSONUTIL_ASSERT_NULL(root, data_field_name))
+	{
+		mLogger->error("ParseAsValue {} failed", data_field_name.c_str());
+		exit(0);
+	}
+	return root[data_field_name];
 }

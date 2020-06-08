@@ -1376,7 +1376,6 @@ void cMathUtil::ThresholdOp(tVectorXd & v, double threshold)
 	v = (threshold < v.array().abs()).select(v, 0.0f);
 }
 
-
 tMatrix xconventionRotation(double x)
 {
 	// ������ת����ϵ����child frame��ת��
