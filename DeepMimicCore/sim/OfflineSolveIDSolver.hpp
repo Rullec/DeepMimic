@@ -37,15 +37,17 @@ protected:
     struct {
         std::string mSummaryTableFile;  // You need to specify a summary table which records the details info of batch trajs. It is the output of cSampleIDSolver
         std::string mExportDataDir;     // The same as mExportDataPath
-        bool mEnableRestoreThetaByActionDist;   // if open, ID result will be revised by an external theta distribution file. It's a way to remove the ambiguity of axis angle repre.
-        bool mEnableRestoreThetaByGT;   // restore theta by ground truth
     } mBatchTrajSolveConfig;
     
-    bool        mEnableActionVerfied;     // .traj files sometimes include the resulting actions (for debugging), do you want to verify the ID result with this ground truth? 
+    bool        mEnableActionVerfied;       // .traj files sometimes include the resulting actions (for debugging), do you want to verify the ID result with this ground truth? 
+    bool        mEnableTorqueVerified;      // verified torque
+    bool        mEnableDiscreteVerified;    // verified discrete vel and accel
     bool        mEnableRewardRecalc; // .traj files usually include the old reward value, do you want to calculate it again? performance cost.
     std::string mRefMotionPath;     // You must specify the reference motion when OfflineSolve() try to recalculate the reward for each frame.
     std::string mRetargetCharPath;  // The character skeleton file which belongs to this trajectory
-
+    bool mEnableRestoreThetaByActionDist;   // if open, ID result will be revised by an external theta distribution file. It's a way to remove the ambiguity of axis angle repre.
+    bool mEnableRestoreThetaByGT;   // restore theta by ground truth
+    
     // methods
     void ParseConfig(const std::string & conf);
     void ParseSingleTrajConfig(const Json::Value & single_traj_config);

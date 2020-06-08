@@ -18,13 +18,15 @@
 extern std::string controller_details_path;
 // extern std::string gRewardInfopath;
 cOfflineIDSolver::cOfflineIDSolver(cSceneImitate * imi, const std::string & config)
-:cInteractiveIDSolver(imi, eIDSolverType::OfflineSolve)
+:cInteractiveIDSolver(imi, eIDSolverType::OfflineSolve, config)
 {
     mLogger = cLogUtil::CreateLogger("OfflineIDSolver");
     controller_details_path = "logs/controller_logs/controller_details_offlinesolve.txt";
     // gRewardInfopath = "reward_info_solve.txt";
     mEnableActionVerfied = true;
     mEnableRewardRecalc = true;
+    mEnableDiscreteVerified = false;
+    mEnableTorqueVerified = false;
     ParseConfig(config);
     
 }
@@ -78,22 +80,27 @@ void cOfflineIDSolver::SetTimestep(double)
 void cOfflineIDSolver::ParseConfig(const std::string & conf)
 {
     Json::Value root_;
-    if(false == cJsonUtil::ParseJson(conf, root_))
+    if(false == cJsonUtil::LoadJson(conf, root_))
     {
         ErrorPrintf(mLogger, "ParseConfig %s failed", conf);
         exit(1);
     }
     Json::Value root = root_["SolveModeInfo"];
 
-    // 1. load shared config
-    const Json::Value   &   ref_motion_path = root["ref_motion_path"],
-                        &   retargeted_char_path = root["retargeted_char_path"],
-                        &   recalc_reward = root["enable_reward_recal"],
-                        &   enable_action_verified = root["enable_action_verified"],
-    mRefMotionPath = ref_motion_path.asString();
-    mRetargetCharPath = retargeted_char_path.asString();
-    mEnableRewardRecalc = recalc_reward.asBool();
-    mEnableActionVerfied = enable_action_verified.asBool();
+    mRefMotionPath = cJsonUtil::ParseAsString("ref_motion_path", root);
+    mRetargetCharPath = cJsonUtil::ParseAsString("retargeted_char_path", root);
+    mEnableRewardRecalc = cJsonUtil::ParseAsBool("enable_reward_recal", root);
+    mEnableActionVerfied = cJsonUtil::ParseAsBool("enable_action_verified", root);    
+    mEnableTorqueVerified = cJsonUtil::ParseAsBool("enable_torque_verified", root);    
+    mEnableDiscreteVerified = cJsonUtil::ParseAsBool("enable_discrete_verified", root);    
+    mEnableRestoreThetaByActionDist = cJsonUtil::ParseAsBool("enable_restore_theta_by_action_dist", root);
+    mEnableRestoreThetaByGT = cJsonUtil::ParseAsBool("enable_restore_theta_by_ground_truth", root);
+
+    if(mEnableRestoreThetaByGT == mEnableRestoreThetaByActionDist)
+    {
+        mLogger->error("Please select a restoration policy between GT %d and ActionDsit %d", mEnableRestoreThetaByGT, mEnableRestoreThetaByActionDist);
+        exit(1);
+    }
 
     // 2. load solving mode
     const Json::Value & solve_mode_json = root["solve_mode"];
@@ -122,14 +129,14 @@ void cOfflineIDSolver::ParseConfig(const std::string & conf)
     // verify that the retarget char path is the same as the simchar skeleton path
     if(mRetargetCharPath != mSimChar->GetCharFilename())
     {
-        ErrorPrintf(mLogger, "retarget path %s != loaded simchar path %s", mRetargetCharPath, mSimChar->GetCharFilename());
+        ErrorPrintf(mLogger, "retarget path %s != loaded simchar path %s", mRetargetCharPath.c_str(), mSimChar->GetCharFilename().c_str());
         exit(0);
     }
 
     // verify that the ref motion is the same as kinchar motion
     if(mRefMotionPath != mKinChar->GetMotion().GetMotionFile())
     {
-        ErrorPrintf(mLogger, "ID ref motion path %s != loaded motion path %s", mRefMotionPath, mKinChar->GetMotion().GetMotionFile());
+        ErrorPrintf(mLogger, "ID ref motion path %s != loaded motion path %s", mRefMotionPath.c_str(), mKinChar->GetMotion().GetMotionFile().c_str());
         exit(0);
     }
 }
@@ -165,8 +172,11 @@ void cOfflineIDSolver::ParseBatchTrajConfig(const Json::Value & batch_traj_confi
     assert(batch_traj_config.isNull() == false);
     mBatchTrajSolveConfig.mSummaryTableFile = batch_traj_config["summary_table_filename"].asString();
     mBatchTrajSolveConfig.mExportDataDir = batch_traj_config["export_train_data_dir"].asString();
-    mBatchTrajSolveConfig.mEnableRestoreThetaByActionDist = batch_traj_config["enable_restore_theta_by_action_dist"].asBool();
-    mBatchTrajSolveConfig.mEnableRestoreThetaByGT = batch_traj_config["enable_restore_theta_by_ground_truth"].asBool();
+    if(cFileUtil::ExistsDir(mBatchTrajSolveConfig.mExportDataDir) == false)
+    {
+        mLogger->warn("Train dat aoutput folder {} doesn't exist, created.", mBatchTrajSolveConfig.mExportDataDir);
+        cFileUtil::CreateDir(mBatchTrajSolveConfig.mExportDataDir.c_str());
+    }
     mLogger->info("working in BatchTrajSolve mode");
 }
 
@@ -198,12 +208,19 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
         // std::cout <<"com vel size = " << mLoadInfo.mVelMat.row(frame_id + 1).size() << std::endl;
         // std::cout <<" cur vel = " << cur_vel.transpose() << std::endl;
         // std::cout <<"vel comp = " << mLoadInfo.mVelMat.row(frame_id + 1) << std::endl;
-        tVectorXd diff = mLoadInfo.mVelMat.row(frame_id + 1).transpose() - cur_vel;
+        if(mEnableDiscreteVerified == true)
+        {
+            tVectorXd diff = mLoadInfo.mVelMat.row(frame_id + 1).transpose() - cur_vel;
+            assert(diff.norm() < 1e-10);
+        }
+               
         mLoadInfo.mVelMat.row(frame_id + 1) = cur_vel;
+        // std::cout <<"vel = " << cur_vel.transpose() << std::endl;
         // std::cout <<"frame id " << frame_id << " vel diff = " << diff.norm() << std::endl;
-        assert(diff.norm() < 1e-10);
+
+        
     }
-    
+
     for(int frame_id = 1; frame_id < mLoadInfo.mTotalFrame - 1; frame_id++)
     {
         tVectorXd cur_accel = (mLoadInfo.mVelMat.row(frame_id + 1)- mLoadInfo.mVelMat.row(frame_id))/ mLoadInfo.mTimesteps[frame_id];
@@ -211,18 +228,27 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
         // std::cout <<"com accel size = " << mLoadInfo.mAccelMat.row(frame_id).size() << std::endl;
         // std::cout <<"cur accel = " << cur_accel.transpose() << std::endl;
         // std::cout <<"accel comp = " << mLoadInfo.mAccelMat.row(frame_id) << std::endl;
-        tVectorXd diff = mLoadInfo.mAccelMat.row(frame_id).transpose() - cur_accel;
+        if(mEnableDiscreteVerified == true)
+        {
+            tVectorXd diff = mLoadInfo.mAccelMat.row(frame_id).transpose() - cur_accel;
+            assert(diff.norm() < 1e-7);
+        }
+
         mLoadInfo.mAccelMat.row(frame_id) = cur_accel;
+
         // std::cout <<"frame id " << frame_id << " accel diff = " << diff.norm() << std::endl;
-        assert(diff.norm() < 1e-7);
+        
     }
+    
     
     // 2. calculate link pos and link rot from generalized info
     for(int frame_id = 0; frame_id < mLoadInfo.mTotalFrame; frame_id++)
     {
         SetGeneralizedPos(mLoadInfo.mPoseMat.row(frame_id));
         RecordMultibodyInfo(mLoadInfo.mLinkRot[frame_id], mLoadInfo.mLinkPos[frame_id]);
+
     }
+    // exit(0);
 
     // 3. Init the status for mKinChar and mSimChar according to mLoadInfo
     // ATTENTION: most of these codes are used to gurantee the validity of reward we get from the following Inverse Dynamics procedure.
@@ -238,7 +264,7 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
     double ID_torque_err = 0, ID_action_err = 0, reward_err = 0;
     tVectorXd torque = tVectorXd::Zero(mSimChar->GetPose().size()), pd_target = tVectorXd::Zero(mSimChar->GetPose().size());
 
-    for(int cur_frame = 1; cur_frame < mLoadInfo.mTotalFrame; cur_frame++)
+    for(int cur_frame = 1; cur_frame < mLoadInfo.mTotalFrame-1; cur_frame++)
     {
         auto & cur_ID_res = IDResults[cur_frame];
 
@@ -250,7 +276,6 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
 
         // 4.2 record state at this moment
         mCharController->RecordState(cur_ID_res.state);
-        // std::cout <<"[debug] cur record state = " << cur_ID_res.state[0] << std::endl;
 
         // 4.3 solve Inverse Dynamic for joint torques
         std::vector<tVector> result;
@@ -302,16 +327,23 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
                 exit(1);
                 break;
             }
-            double single_error = (result[j] - mLoadInfo.mTruthJointForces[cur_frame][j]).norm();
-            if(single_error > 1e-6)
+
+            if(true == mEnableTorqueVerified)
             {
-                std::cout <<"[error] cOfflineIDSolver::OfflineSolve for frame " << cur_frame <<" link " << j << ":\n";
-                std::cout <<"offline solved = " << result[j].transpose() << std::endl;
-                std::cout <<"standard = " << mLoadInfo.mTruthJointForces[cur_frame][j].transpose() << std::endl;
-                std::cout <<"error = " << single_error << std::endl;
-                assert(0);
+                double single_error = (result[j] - mLoadInfo.mTruthJointForces[cur_frame][j]).norm();
+                if(single_error > 1e-6)
+                {
+                    mLogger->error("SingleTrajSolve Torque: frame {} joint {} ground truth {}, result {}, error {}",
+                        cur_frame,
+                        j,
+                        cMathUtil::EigenToString(mLoadInfo.mTruthJointForces[cur_frame][j].transpose()),\
+                        cMathUtil::EigenToString(result[j].transpose()),
+                        std::to_string(single_error));
+                    assert(0);
+                }
+                ID_torque_err += single_error;
             }
-            ID_torque_err += single_error;
+
         }
 
         // 4.4 convert the result joint torques into PD Target
@@ -369,7 +401,7 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
                     {
                         // this action is zero
                         action.segment(f_cnt, 4) = IDResults[cur_frame - 1].action.segment(f_cnt, 4);
-                        WarnPrintf(mLogger, "SingleTrajSolve for %s: frame %d joint %d action is zero, overwrite it with previsou result.", \
+                        mLogger->warn("SingleTrajSolve Action: for {}: frame {} joint {} action is zero, overwrite it with previsou result.", \
                             mLoadInfo.mLoadPath.c_str(), cur_frame, j);
                     }
                     f_cnt+=4;
@@ -403,7 +435,11 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
                     single_action_err = std::fabs( truth_action[f_cnt] - action[f_cnt]);
                     if(single_action_err > 1e-7)
                     {
-                        ErrorPrintf(mLogger, "revo joint %d true joint force %lf, solved joint force %lf, diff %lf", j, truth_action[f_cnt], action[f_cnt], single_action_err);
+                        mLogger->error("SingleTrajSolve Action error: frame {} joint {} (rev), truth action {}, solved action {}, diff",
+                        truth_action[f_cnt],
+                        action[f_cnt],
+                        single_action_err
+                        );
                         total_action_err += single_action_err;
                     }
                     f_cnt++;
@@ -421,10 +457,12 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
                         );
                     if(single_action_err > 1e-7)
                     {
+                        mLogger->error("SingleTrajSolve Action error: frame {} joint {} (sph), truth action {}, solved action {}, diff",
+                        cMathUtil::EigenToString(truth_action.segment(f_cnt, 4).transpose()),
+                        cMathUtil::EigenToString(action.segment(f_cnt, 4).transpose()),
+                        single_action_err
+                        );
 
-                        // std::cout <<"[debug] OfflineSOlvejoint " << j << " type eSpherical, truth joint force " << \
-                        // truth_action.segment(f_cnt, 4).transpose() <<", solved joint force = " \
-                        // << action.segment(f_cnt, 4).transpose() <<", diff = " << single_action_err << std::endl;
                         total_action_err += single_action_err;
                     }
                     f_cnt+=4;
@@ -486,16 +524,27 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
     }
     if(ID_torque_err < 1e-3 && ID_action_err < 1e-3 && reward_err < 1e-3)
     {
-        // std::cout <<"[log] cOfflineIDSolver::OfflineSolve: succ, total ID torque error = " << ID_torque_err;
-        // std::cout <<", total ID Action error = " << ID_action_err;
-        // std::cout <<"，total ID reward error = " << reward_err << std::endl;
+        mLogger->info("SingleTrajSolve ID succ {}, total ID torque err = {}, total ID Action error = {}, total ID reward error = {}",
+            mLoadInfo.mLoadPath,
+            ID_torque_err,
+            ID_action_err,
+            reward_err
+        );
     }
     else
     {
-        std::cout <<"[error] OfflineSolve failed " << mLoadInfo.mLoadPath << ", total ID torque error = " << ID_torque_err << ", ";
-        std::cout <<"total ID Action error = " << ID_action_err << ", ";
-        std::cout <<"total ID reward error = " << reward_err << std::endl;
+        mLogger->error("SingleTrajSolve ID failed {}, total ID torque err = {}, total ID Action error = {}, total ID reward error = {}",
+            mLoadInfo.mLoadPath,
+            ID_torque_err,
+            ID_action_err,
+            reward_err
+        );
     }
+
+    // post process
+    
+    if(mEnableRestoreThetaByActionDist == true)   RestoreActionByThetaDist(IDResults);
+    if(mEnableRestoreThetaByGT == true)   RestoreActionByGroundTruth(IDResults);
     // cTimeUtil::End("OfflineSolve");
 }
 
@@ -524,7 +573,7 @@ void cOfflineIDSolver::BatchTrajsSolve(const std::string & path)
     MPI_Barrier(MPI_COMM_WORLD);
 
     // 2.1 load action distribution from files
-    if(mBatchTrajSolveConfig.mEnableRestoreThetaByActionDist == true)
+    if(mEnableRestoreThetaByActionDist == true)
     {
         InitActionThetaDist(mSimChar, mActionThetaDist);
         LoadActionThetaDist(mSummaryTable.mActionThetaDistFile, mActionThetaDist);
@@ -578,10 +627,6 @@ void cOfflineIDSolver::BatchTrajsSolve(const std::string & path)
         // 4.1 load a single traj and solve ID for it.
         LoadTraj(mLoadInfo, full_epoch_infos[i].traj_filename);
         SingleTrajSolve(mResult);
-
-        // 4.2 
-        if(mBatchTrajSolveConfig.mEnableRestoreThetaByActionDist == true)   RestoreActionByThetaDist(mResult);
-        if(mBatchTrajSolveConfig.mEnableRestoreThetaByGT == true)   RestoreActionByGroundTruth(mResult);
 
         std::string export_name = cFileUtil::GetFilename(full_epoch_infos[i].traj_filename);
         export_name = mBatchTrajSolveConfig.mExportDataDir + cFileUtil::RemoveExtension(export_name) + ".train";
@@ -673,7 +718,7 @@ void cOfflineIDSolver::RestoreActionByGroundTruth(std::vector<tSingleFrameIDResu
     int num_of_joints = mSimChar->GetNumJoints();
     auto & multibody = mSimChar->GetMultiBody();
     
-    for(int frame_id=1; frame_id < IDResult.size(); frame_id++)
+    for(int frame_id=1; frame_id < IDResult.size()-1; frame_id++)
     {
         auto & cur_res = IDResult[frame_id];
         const tVectorXd & ground_truth_action = mLoadInfo.mActionMat.row(frame_id);

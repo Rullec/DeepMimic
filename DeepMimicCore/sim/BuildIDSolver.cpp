@@ -11,7 +11,7 @@
 std::shared_ptr<cIDSolver> BuildIDSolver(const std::string & conf, cSceneImitate * imitate_scene)
 {
     Json::Value ID_JSON_VALUE;
-    if(false == cJsonUtil::ParseJson(conf, ID_JSON_VALUE))
+    if(false == cJsonUtil::LoadJson(conf, ID_JSON_VALUE))
     {
         std::cout <<"[error] parse id config json failed = " << conf << std::endl;
         exit(1);

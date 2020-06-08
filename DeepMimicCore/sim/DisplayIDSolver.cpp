@@ -7,7 +7,7 @@
 
 extern std::string controller_details_path;
 cDisplayIDSolver::cDisplayIDSolver(cSceneImitate * scene, const std::string & config)
-:cInteractiveIDSolver(scene, eIDSolverType::Display)
+:cInteractiveIDSolver(scene, eIDSolverType::Display, config)
 {
     controller_details_path = "logs/controller_logs/controller_details_display.txt";
     Parseconfig(config);
@@ -27,7 +27,7 @@ void cDisplayIDSolver::PostSim()
 {
    if(mLoadInfo.mLoadMode == eLoadMode::INVALID)
     {
-        std::cout <<"[error] cOfflineIDSolver::DisplaySet invalid info mode\n";
+        std::cout <<"[error] cDisplayIDSolver::DisplaySet invalid info mode\n";
         exit(1);
     }
     else if(mLoadInfo.mLoadMode == eLoadMode::LOAD_TRAJ)
@@ -35,8 +35,9 @@ void cDisplayIDSolver::PostSim()
         mLoadInfo.mCurFrame++;
         mLoadInfo.mCurFrame %= mLoadInfo.mTotalFrame;
         const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPoseMat.rows();
-        std::cout <<"[log] cOfflineIDSolver display mode: cur frame = " << cur_frame << std::endl;
+        std::cout <<"[log] cDisplayIDSolver display mode: cur frame = " << cur_frame << std::endl;
         const tVectorXd & q = mLoadInfo.mPoseMat.row(cur_frame);
+        std::cout <<"q = " << q.transpose() << std::endl;
         SetGeneralizedPos(q);
         RecordMultibodyInfo(mLoadInfo.mLinkRot[cur_frame], mLoadInfo.mLinkPos[cur_frame]);
 
@@ -84,7 +85,7 @@ void cDisplayIDSolver::PostSim()
     {
         mLoadInfo.mCurFrame++;
         const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mMotion->GetNumFrames();
-        std::cout <<"[log] cOfflineIDSolver display mode: cur frame = " << cur_frame << std::endl;
+        std::cout <<"[log] cDisplayIDSolver display mode: cur frame = " << cur_frame << std::endl;
         tVectorXd out_pose = mLoadInfo.mMotion->GetFrame(cur_frame);
         // auto & mJointMat = mSimChar->GetJointMat();
         // {
@@ -112,7 +113,7 @@ void cDisplayIDSolver::PostSim()
     }
     else
     {
-        std::cout <<"[error] cOfflineIDSolver::DisplaySet mode invalid: "<< mLoadInfo.mLoadMode << std::endl;
+        std::cout <<"[error] cDisplayIDSolver::DisplaySet mode invalid: "<< mLoadInfo.mLoadMode << std::endl;
         exit(1);
     }
 }
@@ -131,10 +132,10 @@ void cDisplayIDSolver::SetTimestep(double)
 void cDisplayIDSolver::Parseconfig(const std::string & conf)
 {
     Json::Value root;
-    cJsonUtil::ParseJson(conf, root);
+    cJsonUtil::LoadJson(conf, root);
     auto display_value = root["DisplayModeInfo"];
     assert(display_value.isNull() == false);
-    // std::cout <<"void cOfflineIDSolver::ParseConfigDisplay(const Json::Value & save_value)\n";
+    // std::cout <<"void cDisplayIDSolver::ParseConfigDisplay(const Json::Value & save_value)\n";
     const Json::Value & display_traj_path = display_value["display_traj_path"],
         display_motion_path = display_value["display_motion_path"],
         enable_output_motion_info = display_value["enable_output_motion_info"],
@@ -156,7 +157,7 @@ void cDisplayIDSolver::Parseconfig(const std::string & conf)
     {
         if(!display_motion_path_isnull && !display_traj_path_isnull)
         {
-            std::cout <<"[error] cOfflineIDSolver::ParseConfigDisplay: there is only one choice between \
+            std::cout <<"[error] cDisplayIDSolver::ParseConfigDisplay: there is only one choice between \
                 loading motions and loading trajectories\n";
             exit(1);
         }
@@ -177,13 +178,13 @@ void cDisplayIDSolver::Parseconfig(const std::string & conf)
     }
     else
     {
-        std::cout <<"[error] cOfflineIDSolver::ParseConfigDisplay: all options are empty\n";
+        std::cout <<"[error] cDisplayIDSolver::ParseConfigDisplay: all options are empty\n";
         exit(1);
     }
 
     // init load info character pose
     const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPoseMat.rows();
-    std::cout <<"[log] cOfflineIDSolver display mode: cur frame = " << cur_frame << std::endl;
+    std::cout <<"[log] cDisplayIDSolver display mode: cur frame = " << cur_frame << std::endl;
     const tVectorXd & q = mLoadInfo.mPoseMat.row(cur_frame);
     SetGeneralizedPos(q);
     RecordMultibodyInfo(mLoadInfo.mLinkRot[cur_frame], mLoadInfo.mLinkPos[cur_frame]);

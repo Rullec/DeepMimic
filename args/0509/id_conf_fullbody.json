@@ -6,9 +6,9 @@
     "IDMode_bak1": "OfflineSolve",
     "SampleModeInfo":
     {
-        "sample_num" : 40,
+        "sample_num" : 10,
         "enable_sample_ID_test" : false,
-        "sample_trajs_dir" : "data/batch_trajs/0426/",
+        "sample_trajs_dir" : "data/batch_trajs/0509/",
         "clear_old_data" : true,
         "record_theta_distribution" : false,
         "enable_sync_theta_dist" : false,
@@ -18,15 +18,15 @@
     "SaveModeInfo":
     {
         "_comment" : "this section focus on the setting of save mode",
-        "save_traj_root" : "data/0426/trajs/traj_fullbody.json",
-        "save_motion_root" :  "data/0426/motions/ID_motion_fullbody.txt"
+        "save_traj_root" : "data/0509/trajs/traj_fullbody.json",
+        "save_motion_root" :  "data/0509/motions/ID_motion_fullbody.txt"
     },
     "DisplayModeInfo":
     {
         "_comment" : "this section focus on the setting of display mode",
-        "display_traj_path" : "data/0426/trajs/traj_fullbody_drop.json",
-        "display_traj_path_bak" : "data/0426/trajs/traj_fullbody_0.json",
-        "display_motion_path_bak" : "data/0426/motions/ID_motion_fullbody_0.txt"
+        "display_traj_path" : "data/0509/trajs/traj_fullbody_drop.json",
+        "display_traj_path_bak" : "data/0509/trajs/traj_fullbody_0.json",
+        "display_motion_path_bak" : "data/0509/motions/ID_motion_fullbody_0.txt"
     },
     "SolveModeInfo":
     {
@@ -35,17 +35,17 @@
         "solve_mode" : "BatchTraj",
         "SingleTrajSolveInfo" : 
         {
-            "solve_traj_path" : "data/batch_trajs/0426/traj_fullbody_0.json",
-            "export_train_data_path" : "data/batch_train_data/0426/fullbody_0.train"
+            "solve_traj_path" : "data/batch_trajs/0509/traj_fullbody_0.json",
+            "export_train_data_path" : "data/batch_train_data/0509/fullbody_0.train"
         },
         "BatchTrajSolveInfo" : 
         {
-            "summary_table_filename" : "data/batch_trajs/0426/summary_table_fullbody.json",
-            "export_train_data_dir" : "data/batch_train_data/0426/",
+            "summary_table_filename" : "data/batch_trajs/0509/summary_table_fullbody.json",
+            "export_train_data_dir" : "data/batch_train_data/0509/",
             "enable_restore_theta_by_action_dist" : false,
             "enable_restore_theta_by_ground_truth" : true
         },
-        "ref_motion_path" : "data/0424/motions/walk_motion_042601.txt",
+        "ref_motion_path" : "data/0424/motions/walk_motion_050901.txt",
         "retargeted_char_path" : "data/0424/characters/skeleton_042302_revised.json",
         "enable_reward_recal" : false,
         "enable_action_verified" : false
