@@ -205,7 +205,7 @@ public:
 		ss << mat;
 		return ss.str();
 	}
-	
+	static double Truncate(double num, int digits = 5);
 private:
 	static cRand gRand;
 

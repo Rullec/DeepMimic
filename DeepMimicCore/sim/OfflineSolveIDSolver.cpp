@@ -27,6 +27,8 @@ cOfflineIDSolver::cOfflineIDSolver(cSceneImitate * imi, const std::string & conf
     mEnableRewardRecalc = true;
     mEnableDiscreteVerified = false;
     mEnableTorqueVerified = false;
+    mEnableRestoreThetaByActionDist = false;
+    mEnableRestoreThetaByGT = true;
     ParseConfig(config);
     
 }
@@ -39,22 +41,25 @@ cOfflineIDSolver::~cOfflineIDSolver()
 void cOfflineIDSolver::PreSim()
 {
     cTimeUtil::Begin("ID Solving");
-    if(mOfflineSolveMode == eOfflineSolveMode::SingleTrajSolveMode)
+    if(mSolveMode == eSolveMode::SingleTrajSolveMode)
     {
         std::vector<tSingleFrameIDResult> mResult;
-        InfoPrintf(mLogger, "begin to solve traj %s ", mSingleTrajSolveConfig.mSolveTrajPath.c_str());
+        mLogger->info("begin to solve traj {}", mSingleTrajSolveConfig.mSolveTrajPath);
         LoadTraj(mLoadInfo, mSingleTrajSolveConfig.mSolveTrajPath);
         SingleTrajSolve(mResult);
-        SaveTrainData(mSingleTrajSolveConfig.mExportDataPath, mResult);
+        std::string export_dir = cFileUtil::GetDir(mSingleTrajSolveConfig.mExportDataPath);
+        std::string export_name = cFileUtil::GetFilename(mSingleTrajSolveConfig.mExportDataPath);
+        SaveTrainData(export_dir, export_name, mResult);
+        mLogger->info("save train data to {}", mSingleTrajSolveConfig.mExportDataPath);
     }
-    else if (mOfflineSolveMode == eOfflineSolveMode::BatchTrajSolveMode)
+    else if (mSolveMode == eSolveMode::BatchTrajSolveMode)
     {
-        InfoPrintf(mLogger, "Batch solve, summary table = %s", mBatchTrajSolveConfig.mSummaryTableFile.c_str());
-        BatchTrajsSolve(mBatchTrajSolveConfig.mSummaryTableFile);
+        mLogger->info("Batch solve, summary table = {}", mBatchTrajSolveConfig.mOriSummaryTableFile);
+        BatchTrajsSolve(mBatchTrajSolveConfig.mOriSummaryTableFile);
     }
     else
     {
-        ErrorPrintf(mLogger, "PreSim invalid mode %d", mOfflineSolveMode);
+        mLogger->error("PreSim invalid mode {}", mSolveMode);
         exit(0);
     }
     cTimeUtil::End("ID Solving");
@@ -95,7 +100,8 @@ void cOfflineIDSolver::ParseConfig(const std::string & conf)
     mEnableDiscreteVerified = cJsonUtil::ParseAsBool("enable_discrete_verified", root);    
     mEnableRestoreThetaByActionDist = cJsonUtil::ParseAsBool("enable_restore_theta_by_action_dist", root);
     mEnableRestoreThetaByGT = cJsonUtil::ParseAsBool("enable_restore_theta_by_ground_truth", root);
-
+    
+   
     if(mEnableRestoreThetaByGT == mEnableRestoreThetaByActionDist)
     {
         mLogger->error("Please select a restoration policy between GT %d and ActionDsit %d", mEnableRestoreThetaByGT, mEnableRestoreThetaByActionDist);
@@ -103,26 +109,11 @@ void cOfflineIDSolver::ParseConfig(const std::string & conf)
     }
 
     // 2. load solving mode
-    const Json::Value & solve_mode_json = root["solve_mode"];
-    mOfflineSolveMode = eOfflineSolveMode::INVALID;
-    for(int i=0; i<eOfflineSolveMode::OfflineSolveModeNum; i++)
+    mSolveMode = ParseSolvemode(cJsonUtil::ParseAsString("solve_mode", root));
+    switch (mSolveMode)
     {
-        if(mConfPath[i] == solve_mode_json.asString())
-        {
-            mOfflineSolveMode = static_cast<eOfflineSolveMode>(i);
-            break;
-        }
-    }
-    if(mOfflineSolveMode == eOfflineSolveMode::INVALID)
-    {
-        ErrorPrintf(mLogger, "parse solve mode failed %s", solve_mode_json.asString());
-        exit(0);
-    }
-
-    switch (mOfflineSolveMode)
-    {
-    case eOfflineSolveMode::SingleTrajSolveMode: ParseSingleTrajConfig(root["SingleTrajSolveInfo"]); break;
-    case eOfflineSolveMode::BatchTrajSolveMode: ParseBatchTrajConfig(root["BatchTrajSolveInfo"]); break;
+    case eSolveMode::SingleTrajSolveMode: ParseSingleTrajConfig(root["SingleTrajSolveInfo"]); break;
+    case eSolveMode::BatchTrajSolveMode: ParseBatchTrajConfig(root["BatchTrajSolveInfo"]); break;
     default: exit(0); break;
     }
 
@@ -170,11 +161,14 @@ void cOfflineIDSolver::ParseSingleTrajConfig(const Json::Value & single_traj_con
 void cOfflineIDSolver::ParseBatchTrajConfig(const Json::Value & batch_traj_config)
 {
     assert(batch_traj_config.isNull() == false);
-    mBatchTrajSolveConfig.mSummaryTableFile = batch_traj_config["summary_table_filename"].asString();
-    mBatchTrajSolveConfig.mExportDataDir = batch_traj_config["export_train_data_dir"].asString();
+    mBatchTrajSolveConfig.mOriSummaryTableFile = cJsonUtil::ParseAsString("summary_table_filename", batch_traj_config);
+    mBatchTrajSolveConfig.mExportDataDir = cJsonUtil::ParseAsString("export_train_data_dir", batch_traj_config);
+    mBatchTrajSolveConfig.mDestSummaryTableFile = cFileUtil::ConcatFilename(mBatchTrajSolveConfig.mExportDataDir, cFileUtil::GetFilename(mBatchTrajSolveConfig.mOriSummaryTableFile));
+    mBatchTrajSolveConfig.mSolveTarget = ParseSolveTargetInBatchMode(cJsonUtil::ParseAsString("solve_target", batch_traj_config));
+    
     if(cFileUtil::ExistsDir(mBatchTrajSolveConfig.mExportDataDir) == false)
     {
-        mLogger->warn("Train dat aoutput folder {} doesn't exist, created.", mBatchTrajSolveConfig.mExportDataDir);
+        mLogger->warn("Train datａ aoutput folder {} doesn't exist, created.", mBatchTrajSolveConfig.mExportDataDir);
         cFileUtil::CreateDir(mBatchTrajSolveConfig.mExportDataDir.c_str());
     }
     mLogger->info("working in BatchTrajSolve mode");
@@ -201,7 +195,7 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
 			mSaveInfo.mBuffer_u[cur_frame] = CalculateGeneralizedVel(mSaveInfo.mBuffer_q[cur_frame - 1], mSaveInfo.mBuffer_q[cur_frame], cur_timestep);
 			mSaveInfo.mBuffer_u_dot[cur_frame - 1] = (mSaveInfo.mBuffer_u[cur_frame] - mSaveInfo.mBuffer_u[cur_frame - 1]) / cur_timestep;
     */
-    for(int frame_id = 0; frame_id < mLoadInfo.mTotalFrame - 1; frame_id++)
+    for(int frame_id = 0; frame_id < mLoadInfo.mTotalFrame; frame_id++)
     {
         tVectorXd cur_vel = CalcGeneralizedVel(mLoadInfo.mPoseMat.row(frame_id), mLoadInfo.mPoseMat.row(frame_id+1), mLoadInfo.mTimesteps[frame_id]);
         // std::cout <<"cur vel size = " << cur_vel.size() << std::endl;
@@ -569,6 +563,7 @@ void cOfflineIDSolver::BatchTrajsSolve(const std::string & path)
     cFileUtil::AddLock(path);
     mSummaryTable.LoadFromDisk(path);
     auto & summary_table = mSummaryTable;
+    mSummaryTable.mIDTraindataDir = mBatchTrajSolveConfig.mExportDataDir;
     cFileUtil::DeleteLock(path);
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -586,79 +581,67 @@ void cOfflineIDSolver::BatchTrajsSolve(const std::string & path)
     cFileUtil::DeleteLock(path);
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // 4. determine my own tasks
-    int total_traj_num = summary_table.mEpochInfos.size();
-    int st = -1, ed = -1;   // from where to where?
-    bool enable_single_thread = false;
-    if(total_traj_num < world_size || world_size == 1)
-    {
-        st = 0, ed = total_traj_num -1;
-        enable_single_thread = true;
-    }
-    else
-    {
-        int unit = std::floor(total_traj_num * 1.0 / world_size);
-        if (unit * world_size < total_traj_num) unit++;
-        
-        if(unit * world_size < total_traj_num)
-        {
-            ErrorPrintf(mLogger, "BatchTrajSolve MPI divide unit %d is not enough", unit);
-            exit(1);
-        }
-        st = world_rank * unit;
-        ed = st + unit - 1;
-    }
-    InfoPrintf(mLogger, "proc %d task from %d to %d, size %d/%d", world_rank, st, ed, (ed-st+1), total_traj_num);
-
     // MPI_Barrier(MPI_COMM_WORLD);
     // MPI_Finalize();
     // exit(0);
     // 4. now remember all info in summary_table and clear them at all
+    int total_traj_num = summary_table.mEpochInfos.size();
+    int my_own_task_num = 0;
     auto full_epoch_infos = summary_table.mEpochInfos;
     summary_table.mEpochInfos.clear();
     summary_table.mTotalEpochNum = 0;
-    summary_table.mTotalLengthFrame = 0;
-    summary_table.mTotalLengthTime = 0;    
+    // summary_table.mTotalLengthFrame = 0;
+    // summary_table.mTotalLengthTime = 0;    
 
     std::vector<tSingleFrameIDResult> mResult(0);
     cInteractiveIDSolver::tSummaryTable::tSingleEpochInfo single_epoch_info;
-    for(int i=st; i <= ed && i < total_traj_num; i++)
+    for(int i=world_rank; i < total_traj_num; i+=world_size) my_own_task_num++;
+    // std::cout <<"total traj num = " << total_traj_num <<", my own task num = " << my_own_task_num << std::endl;
+    
+    for(int i=world_rank, id=0; i < total_traj_num; i+=world_size, id++)
     {
+        std::string target_traj_filename_full = "";
+
+        switch (mBatchTrajSolveConfig.mSolveTarget)
+        {
+        case eSolveTarget::MRedTraj:
+            target_traj_filename_full = cFileUtil::ConcatFilename(summary_table.mMrTrajDir, full_epoch_infos[i].mr_traj_filename);
+            break;
+        case eSolveTarget::SampledTraj:
+            target_traj_filename_full = cFileUtil::ConcatFilename(summary_table.mSampleTrajDir, full_epoch_infos[i].sample_traj_filename);
+            break;
+        }
+        if(cFileUtil::ExistsFile(target_traj_filename_full) == false)
+        {
+            mLogger->error("BatchTrajsSolve: the traj {} to be solved does not exist", target_traj_filename_full);
+            exit(1);
+        }
         // 4.1 load a single traj and solve ID for it.
-        LoadTraj(mLoadInfo, full_epoch_infos[i].traj_filename);
+        // const std::string & sample_traj_filename_full = cFileUtil::ConcatFilename(summary_table.mSampleTrajDir, full_epoch_infos[i].sample_traj_filename);
+        LoadTraj(mLoadInfo, target_traj_filename_full);
         SingleTrajSolve(mResult);
 
-        std::string export_name = cFileUtil::GetFilename(full_epoch_infos[i].traj_filename);
-        export_name = mBatchTrajSolveConfig.mExportDataDir + cFileUtil::RemoveExtension(export_name) + ".train";
+        std::string export_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(full_epoch_infos[i].sample_traj_filename)) + ".train";
         cFileUtil::AddLock(export_name);
-        SaveTrainData(export_name, mResult);
+        SaveTrainData(mBatchTrajSolveConfig.mExportDataDir, export_name, mResult);
+        mLogger->info("Save traindata to {}", cFileUtil::ConcatFilename(mBatchTrajSolveConfig.mExportDataDir, cFileUtil::RemoveExtension(export_name) + ".train"));
         cFileUtil::DeleteLock(export_name);
 
         single_epoch_info.frame_num = mLoadInfo.mTotalFrame;
         single_epoch_info.length_second = mLoadInfo.mTotalFrame * mLoadInfo.mTimesteps[1];
-        single_epoch_info.traj_filename = full_epoch_infos[i].traj_filename;
-        single_epoch_info.train_data_filename = export_name;
+        single_epoch_info.sample_traj_filename = full_epoch_infos[i].sample_traj_filename;
+        single_epoch_info.train_filename = export_name;
+        single_epoch_info.mr_traj_filename = full_epoch_infos[i].mr_traj_filename;
         summary_table.mEpochInfos.push_back(single_epoch_info);
         summary_table.mTotalEpochNum += 1;
-        summary_table.mTotalLengthTime += single_epoch_info.length_second;
-        summary_table.mTotalLengthFrame += single_epoch_info.frame_num;
-        InfoPrintf(mLogger, "proc %d progress %d/%d", world_rank, i-st+1, ed-st+1);
+        // summary_table.mTotalLengthTime += single_epoch_info.length_second;
+        // summary_table.mTotalLengthFrame += single_epoch_info.frame_num;
+        InfoPrintf(mLogger, "proc %d progress %d/%d", world_rank, id+1, my_own_task_num);
     }
-    
+
     MPI_Barrier(MPI_COMM_WORLD);
-    InfoPrintf(mLogger, "proc %d tasks size = %d, expected size = %d", world_rank, ed - st+1, summary_table.mEpochInfos.size());
-    if(enable_single_thread == true)
-    {
-        if(0 == world_rank)
-        {
-            summary_table.WriteToDisk(mBatchTrajSolveConfig.mSummaryTableFile, true);
-        }
-        
-    }
-    else
-    {
-        summary_table.WriteToDisk(mBatchTrajSolveConfig.mSummaryTableFile, true);
-    }
+    InfoPrintf(mLogger, "proc %d tasks size = %d, expected size = %d", world_rank, my_own_task_num, summary_table.mEpochInfos.size());
+    summary_table.WriteToDisk(mBatchTrajSolveConfig.mDestSummaryTableFile, true);
     
     MPI_Finalize();
 }
@@ -742,4 +725,41 @@ void cOfflineIDSolver::RestoreActionByGroundTruth(std::vector<tSingleFrameIDResu
             }
         }
     }
+}
+
+cOfflineIDSolver::eSolveTarget cOfflineIDSolver::ParseSolveTargetInBatchMode(const std::string & solve_target_str) const
+{
+    eSolveTarget mSolveTarget = eSolveTarget::INVALID_SOLVETARGET;
+    for(int i=0; i<eSolveTarget::SolveTargetNum; i++)
+    {
+        if(solve_target_str == SolveTargetstr[i])
+        {
+            mSolveTarget = static_cast<eSolveTarget>(i);
+        }
+    }
+    if(eSolveTarget::INVALID_SOLVETARGET == mSolveTarget)
+    {
+        mLogger->error("Invalid Solve Target : {}", solve_target_str), exit(0);
+    } 
+    // std::cout << solve_target_str << std::endl;
+    return mSolveTarget;
+}
+
+cOfflineIDSolver::eSolveMode cOfflineIDSolver::ParseSolvemode(const std::string & name) const
+{
+    eSolveMode mSolveMode = eSolveMode::INVALID_SOLVEMODE;
+    for(int i=0; i<eSolveMode::SolveModeNum; i++)
+    {
+        if(SolveModeStr[i] == name)
+        {
+            mSolveMode = static_cast<eSolveMode>(i);
+            break;
+        }
+    }
+    if(mSolveMode == eSolveMode::INVALID_SOLVEMODE)
+    {
+        mLogger->error("parse solve mode failed {}", name);
+        exit(0);
+    }
+    return mSolveMode;
 }

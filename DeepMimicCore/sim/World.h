@@ -86,7 +86,7 @@ public:
 	virtual void UpdateContact(const cContactManager::tContactHandle& handle);
 	virtual bool IsInContact(const cContactManager::tContactHandle& handle) const;
 	virtual const tEigenArr<cContactManager::tContactPt>& GetContactPts(const cContactManager::tContactHandle& handle) const;
-	virtual const cContactManager& GetContactManager() const;
+	virtual cContactManager& GetContactManager();
 
 	virtual void RayTest(const tVector& beg, const tVector& end, tRayTestResults& results) const;
 	virtual void AddPerturb(const tPerturb& perturb);

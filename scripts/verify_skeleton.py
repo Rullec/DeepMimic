@@ -111,6 +111,6 @@ if __name__ == "__main__":
     files = os.listdir(character_dir)
     for i in files:
         print("[log] begin verify %s" % i)
-        if i.find(".json") != -1 and i.find("skeleton") != -1:
+        if i.find(".json") != -1 and i.find("skeleton") != -1 or i.find("body") !=-1:
             verify_drawshapes_and_bodydefs(os.path.join(character_dir, i))
-            verify_symmetric(os.path.join(character_dir, i))
+            # verify_symmetric(os.path.join(character_dir, i))

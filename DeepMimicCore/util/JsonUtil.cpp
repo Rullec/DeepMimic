@@ -115,6 +115,11 @@ bool cJsonUtil::WriteJson(const std::string & path, Json::Value & value, bool in
 	if(indent == false) builder.settings_["indentation"] = "";
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
 	std::ofstream fout(path);
+	if(fout.fail() == true)
+	{
+		mLogger->error("WriteJson open {} failed", path);
+		exit(1);
+	}
     writer->write(value, &fout);
 	fout.close();
 	// cFileUtil::DeleteLock(path);

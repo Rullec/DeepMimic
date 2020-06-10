@@ -1376,6 +1376,11 @@ void cMathUtil::ThresholdOp(tVectorXd & v, double threshold)
 	v = (threshold < v.array().abs()).select(v, 0.0f);
 }
 
+double cMathUtil::Truncate(double num, int digits)
+{
+	return round(num * pow(10, digits)) / pow(10, digits);
+}
+
 tMatrix xconventionRotation(double x)
 {
 	// ������ת����ϵ����child frame��ת��

@@ -125,6 +125,37 @@ void cFileUtil::RenameFile(const std::string& ori_name, const std::string & des_
 	}
 }
 
+void cFileUtil::CopyFile(const std::string & ori_name, const std::string & des_name)
+{
+	if(cFileUtil::ExistsFile(ori_name) == false)
+	{
+		mLogger->error("CopyFile: original file {} doesn't exist", ori_name);
+		exit(1);
+	}
+
+	std::string target_dir_name = cFileUtil::GetDir(des_name);
+
+	if(cFileUtil::ExistsDir(target_dir_name)== false) 
+	{
+		mLogger->warn("CopyFile: target dir {} doesn't exist, created now.", target_dir_name);
+		cFileUtil::CreateDir(target_dir_name.c_str());
+	}
+
+	if(cFileUtil::ValidateFilePath(des_name) == false)
+	{
+		mLogger->error("CopyFile: target file {} is invalid", des_name);
+		exit(1);
+	}
+
+	if (false == std::experimental::filesystem::copy_file(ori_name, des_name))
+	{
+		mLogger->error("CopyFile: from {} to {} failed", ori_name, des_name);
+		exit(1);
+	}
+
+	mLogger->info("CopyFile: from {} to {} succ", __ORDER_BIG_ENDIAN__, des_name);
+}
+
 long int cFileUtil::GetFileSize(const std::string& filename)
 {
 	// returns size in bytes
@@ -175,8 +206,24 @@ std::string cFileUtil::GetFilename(const std::string& path)
 	}
 
 	std::string filename = path.substr(idx, path.size() - idx);
-	filename = cFileUtil::RemoveExtension(filename);
 	return filename;
+}
+
+std::string cFileUtil::GetDir(const std::string& path)
+{
+	int idx = 0;
+	for (int i = static_cast<int>(path.size()) - 1; i >= 0; --i)
+	{
+		char curr_char = path[i];
+		if (curr_char == '\\' || curr_char == '/')
+		{
+			idx = i + 1;
+			break;
+		}
+	}
+
+	std::string dirname = path.substr(0, idx);
+	return dirname;
 }
 
 void cFileUtil::FilterFilesByExtension(std::vector<std::string>& files, const std::string& ext)
@@ -209,6 +256,8 @@ bool cFileUtil::ExistsFile(const std::string& file_name)
 
 bool cFileUtil::ExistsDir(const std::string& dir_name)
 {
+	if(dir_name.size() ==0) return true;
+
 	struct stat info;
 	stat(dir_name.c_str(), &info);
 	if( info.st_mode & S_IFDIR ) return true;
@@ -227,6 +276,13 @@ bool cFileUtil::ValidateFilePath(const std::string& file_name)
 		}
 		else return false;
 	}
+}
+
+std::string cFileUtil::ConcatFilename(const std::string & dir_, const std::string & file_)
+{
+	std::experimental::filesystem::path dir(dir_), file(file_);
+	std::experimental::filesystem::path full_path  = dir / file;
+	return full_path.string();
 }
 
 void cFileUtil::FindLine(std::ifstream& f_stream, int line)

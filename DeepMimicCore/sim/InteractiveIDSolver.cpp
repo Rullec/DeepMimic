@@ -169,14 +169,14 @@ void cInteractiveIDSolver::SaveMotion(const std::string & path_root, cMotion * m
 
 /**
  * \brief                   Save Train Data "*.train"
- * \param path              target filename
+ * \param dir               storaged directory
  * \param info              a info struct for what we need to save.
 */
-void cInteractiveIDSolver::SaveTrainData(const std::string & path, std::vector<tSingleFrameIDResult> & info) const
+void cInteractiveIDSolver::SaveTrainData(const std::string & dir, const std::string & filename, std::vector<tSingleFrameIDResult> & info) const
 {
-    if(cFileUtil::ValidateFilePath(path) == false)
+    if(cFileUtil::ExistsDir(dir) == false)
     {
-        mLogger->error("SaveTrainData path {} invalid", path);
+        mLogger->error("SaveTrainData target dir {} doesn't exist", dir);
         exit(0);
     }
     Json::Value root;
@@ -194,7 +194,7 @@ void cInteractiveIDSolver::SaveTrainData(const std::string & path, std::vector<t
         single_frame["reward"] = info[i].reward;
         root["data_list"].append(single_frame);
     }
-    cJsonUtil::WriteJson(path, root, false);
+    cJsonUtil::WriteJson(cFileUtil::ConcatFilename(dir, filename), root, false);
 #ifdef VERBOSE
     std::cout <<"[log] cInteractiveIDSolver::SaveTrainData to " << path << std::endl;
 #endif
@@ -274,12 +274,15 @@ void cInteractiveIDSolver::ParseConfig(const std::string & path)
 
 /**
  * \brief                   Save trajectories to disk
+ * \param mSaveInfo         the trajecoty we want to save
+ * \param traj_dir          the storaged directory
+ * \param traj_root_name    root name for storaged. 
 */
-std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::string & path_raw) const
+std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::string & traj_dir, const std::string & traj_rootname) const
 {
-    if(cFileUtil::ValidateFilePath(path_raw) == false)
+    if(cFileUtil::ExistsDir(traj_dir) == false)
     {
-        ErrorPrintf(mLogger, "SaveTraj path %s invalid", path_raw);
+        mLogger->error("SaveTraj directory {} doesn't exist", traj_dir);
         exit(0);
     } 
 
@@ -294,7 +297,8 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
         break;
     }
 
-    std::string final_name = cFileUtil::GenerateRandomFilename(path_raw);
+    std::string traj_name = cFileUtil::GenerateRandomFilename(traj_rootname);
+    std::string final_name = cFileUtil::ConcatFilename(traj_dir, traj_name);
     cFileUtil::AddLock(final_name);
     if(false == cFileUtil::ValidateFilePath(final_name))
     {
@@ -306,7 +310,7 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
 #ifdef VERBOSE
     std::cout <<"[log] cInteractiveIDSolver::SaveTraj for epoch " << mSaveInfo.mCurEpoch <<" to " << final_name << std::endl;
 #endif
-    return final_name;
+    return traj_name;
 }
 
 /**
@@ -499,6 +503,14 @@ const Json::Value cInteractiveIDSolver::SaveTrajV2(tSaveInfo & mSaveInfo) const 
     return root;
 }
 
+/**
+ * \brief               Write current summary table to the disk
+ * \param path          specified location
+ * \param is_append     Generally, this option is used with MPI. 
+ *                      When here are multiple process sampling or solving ID together, they need to write a single summary table.
+ *                      In this case, all processes need to load json from disk first, and append its own content in it, finally write back.
+ *                      If you want to enable this feature, simply set is_append to true.
+*/
 void cInteractiveIDSolver::tSummaryTable::WriteToDisk(const std::string & path, bool is_append)
 { 
     
@@ -524,11 +536,9 @@ void cInteractiveIDSolver::tSummaryTable::WriteToDisk(const std::string & path, 
             std::cout <<"[error] tSummaryTable WriteToDisk: Parse json " << path <<" failed\n";
             exit(0);
         }
-        root["num_of_trajs"] = mTotalEpochNum + root["num_of_trajs"].asInt();
-        root["total_second"] = mTotalLengthTime + root["total_second"].asDouble();
-        root["total_frame"] = mTotalLengthFrame + root["total_frame"].asInt();
-        // std::cout <<"[debug] " << mpi_rank <<" WriteToDisk load trajs num = " << root["single_trajs_lst"].size() << std::endl;;
-        if(root["single_trajs_lst"].isArray() == false)
+        root["sample_num_of_trajs"] = mTotalEpochNum + root["sample_num_of_trajs"].asInt();
+
+        if(root["item_list"].isArray() == false)
         {
             std::cout << "[error] tSummaryTable WriteToDisk single traj list is not an array\n";
             exit(0);
@@ -538,40 +548,43 @@ void cInteractiveIDSolver::tSummaryTable::WriteToDisk(const std::string & path, 
         {
             single_epoch["num_of_frame"] = x.frame_num;
             single_epoch["length_second"] = x.length_second;
-            single_epoch["traj_filename"] = x.traj_filename;
-            single_epoch["train_data_filename"] = x.train_data_filename;
-            root["single_trajs_lst"].append(single_epoch);
+            single_epoch["sample_traj_filename"] = x.sample_traj_filename;
+            single_epoch["ID_train_filename"] = x.train_filename;
+            single_epoch["mr_traj_filename"] = x.mr_traj_filename;
+            root["item_list"].append(single_epoch);
         }
         // std::cout <<"[debug] " << mpi_rank <<" WriteToDisk append size = " << mEpochInfos.size() << std::endl;;
     }
     else
     {
         // std::cout <<"[debug] " << mpi_rank <<" WriteToDisk begin to overwrite\n";
-        root["char_file"] = mSampleCharFile;
-        root["controller_file"] = mSampleControllerFile;
-        root["num_of_trajs"] = mTotalEpochNum;
-        root["total_second"] = mTotalLengthTime;
-        root["total_frame"] = mTotalLengthFrame;
-        root["timestamp"] = mTimeStamp;
-        root["single_trajs_lst"] = Json::arrayValue;
+        root["sample_char_file"] = mSampleCharFile;
+        root["sample_controller_file"] = mSampleControllerFile;
+        root["sample_num_of_trajs"] = mTotalEpochNum;
+        root["sample_timestamp"] = mTimeStamp;
+        root["item_list"] = Json::arrayValue;
+        root["sample_traj_dir"] = mSampleTrajDir;
+        root["ID_traindata_dir"] = mIDTraindataDir;
+        root["mr_traj_dir"] = mMrTrajDir;
         Json::Value single_epoch;
         for (auto & x : mEpochInfos)
         {
             single_epoch["num_of_frame"] = x.frame_num;
             single_epoch["length_second"] = x.length_second;
-            single_epoch["traj_filename"] = x.traj_filename;
-            single_epoch["train_data_filename"] = x.train_data_filename;
-            root["single_trajs_lst"].append(single_epoch);
+            single_epoch["sample_traj_filename"] = x.sample_traj_filename;
+            single_epoch["ID_train_filename"] = x.train_filename;
+            single_epoch["mr_traj_filename"] = x.mr_traj_filename;
+            root["item_list"].append(single_epoch);
         }
-        root["action_theta_dist_file"] = mActionThetaDistFile;
+        root["sample_action_theta_dist_file"] = mActionThetaDistFile;
     }
 
-    // std::cout <<"[debug] " << mpi_rank <<" WriteToDisk ready to write trajs num = " << root["single_trajs_lst"].size() << std::endl;;
+    // std::cout <<"[debug] " << mpi_rank <<" WriteToDisk ready to write trajs num = " << root["item_list"].size() << std::endl;;
     cJsonUtil::WriteJson(path, root, true);
-    InfoPrintf(mLogger, "WriteToDisk %s", path.c_str());
+    mLogger->info("WriteToDisk {}", path);
     if(cFileUtil::DeleteLock(path) == false)
     {
-        std::cout <<"[error] tSummaryTable::WriteToDisk delete lock failed for " << path << std::endl;
+        mLogger->error("delete lock failed for {}", path);
         exit(1);
     }
 }
@@ -587,7 +600,7 @@ void cInteractiveIDSolver::tSummaryTable::LoadFromDisk(const std::string & path)
     
     if(cFileUtil::ExistsFile(path) == false && cFileUtil::ExistsFile(path + ".bak") == true)
     {
-        InfoPrintf(mLogger, "LoadFromdDisk: path %s doesn't exist, but %s found, rename and use this backup file", path.c_str(), (path+".bak").c_str());
+        InfoPrintf(mLogger, "LoadFromDisk: path %s doesn't exist, but %s found, rename and use this backup file", path.c_str(), (path+".bak").c_str());
         cFileUtil::RenameFile(path + ".bak", path);
     }
     
@@ -595,29 +608,36 @@ void cInteractiveIDSolver::tSummaryTable::LoadFromDisk(const std::string & path)
     cJsonUtil::LoadJson(path, root);
 
     // overview infos
-    mSampleCharFile = root["char_file"].asString();
-    mSampleControllerFile = root["controller_file"].asString();
-    mTotalEpochNum = root["num_of_trajs"].asInt();
-    mTotalLengthTime = root["total_second"].asDouble();
-    mTotalLengthFrame = root["total_frame"].asInt();
-    mTimeStamp = root["timestamp"].asString();
-    mActionThetaDistFile = root["action_theta_dist_file"].asString();
+    mSampleCharFile = cJsonUtil::ParseAsString("sample_char_file", root);
+    mSampleControllerFile = cJsonUtil::ParseAsString("sample_controller_file", root);
+    mTotalEpochNum = cJsonUtil::ParseAsInt("sample_num_of_trajs", root);
+    // mTotalLengthTime = root["total_second"].asDouble();
+    // mTotalLengthFrame = root["total_frame"].asInt();
+    mTimeStamp = cJsonUtil::ParseAsString("sample_timestamp", root);
+    mActionThetaDistFile = cJsonUtil::ParseAsString("sample_action_theta_dist_file", root);
+    mSampleTrajDir = cJsonUtil::ParseAsString("sample_traj_dir", root);
+    mIDTraindataDir = cJsonUtil::ParseAsString("ID_traindata_dir", root);
+    mMrTrajDir = cJsonUtil::ParseAsString("mr_traj_dir", root);
 
-
-    auto & trajs_lst = root["single_trajs_lst"];
+    auto & trajs_lst = root["item_list"];
     if(mTotalEpochNum != trajs_lst.size())
     {
         std::cout << "[warn] tSummaryTable::LoadFromDisk trajs num doesn't match " << mTotalEpochNum <<" " << trajs_lst.size() << ", correct it\n";
         mTotalEpochNum = trajs_lst.size();
     }
 
+    std::cout << "mtotal epoch num = " <<mTotalEpochNum << std::endl;
     // resize and load all trajs info
     mEpochInfos.resize(mTotalEpochNum);
     for(int i=0; i<mTotalEpochNum; i++)
     {
-        mEpochInfos[i].frame_num = trajs_lst[i]["num_of_frame"].asInt();
-        mEpochInfos[i].length_second = trajs_lst[i]["length_second"].asDouble();
-        mEpochInfos[i].traj_filename = trajs_lst[i]["traj_filename"].asString();
+        const auto & cur_traj_json = trajs_lst[i];
+        auto & cur_epoch_info = mEpochInfos[i];
+        cur_epoch_info.frame_num = cJsonUtil::ParseAsInt("num_of_frame", cur_traj_json);
+        cur_epoch_info.length_second = cJsonUtil::ParseAsDouble("length_second", cur_traj_json);
+        cur_epoch_info.sample_traj_filename = cJsonUtil::ParseAsString("sample_traj_filename", cur_traj_json);
+        cur_epoch_info.mr_traj_filename = cJsonUtil::ParseAsString("mr_traj_filename", cur_traj_json);
+        cur_epoch_info.train_filename = trajs_lst[i]["ID_train_filename"].asString();
     }
     mLogger->info("LoadFromDisk " + path);
 }
@@ -626,8 +646,9 @@ cInteractiveIDSolver::tSummaryTable::tSingleEpochInfo::tSingleEpochInfo()
 {
     frame_num = 0;
     length_second = 0;
-    traj_filename = "";
-    train_data_filename = "";
+    sample_traj_filename = "";
+    mr_traj_filename = "";
+    train_filename = "";
 }
 
 cInteractiveIDSolver::tSummaryTable::tSummaryTable()
@@ -637,8 +658,9 @@ cInteractiveIDSolver::tSummaryTable::tSummaryTable()
     mTimeStamp = "";
     mActionThetaDistFile = "";
     mTotalEpochNum = 0;
-    mTotalLengthTime = 0;
-    mTotalLengthFrame = 0;
+    // mTotalLengthTime = 0;
+    // mTotalLengthFrame = 0;
+    mSampleTrajDir = "";
     mEpochInfos.clear();
     mLogger = cLogUtil::CreateLogger("tSummaryTable");
 }
@@ -655,7 +677,7 @@ void cInteractiveIDSolver::LoadTrajV1(tLoadInfo & load_info, const std::string &
     load_info.mLoadPath = path;
     if(!succ)
     {
-        ErrorPrintf(mLogger, "LoadTraj parse json %s failed", path);
+        mLogger->error("LoadTrajV1 parse json {} failed", path);
         exit(0);
     } 
     
@@ -814,7 +836,7 @@ void cInteractiveIDSolver::LoadTrajV2(tLoadInfo & load_info, const std::string &
     load_info.mLoadPath = path;
     if(!succ)
     {
-        ErrorPrintf(mLogger, "LoadTraj parse json %s failed", path);
+        mLogger->error("LoadTrajV2 parse json {} failed", path);
         exit(0);
     } 
     
@@ -822,11 +844,11 @@ void cInteractiveIDSolver::LoadTrajV2(tLoadInfo & load_info, const std::string &
     list_json = data_json["list"];
     assert(list_json.isNull() == false);
     // std::cout <<"get list json, begin set up pramas\n";
-    
+    const int version = cJsonUtil::ParseAsInt("version", data_json);
 #ifndef IGNORE_TRAJ_VERISION
-    if (2 != cJsonUtil::ParseAsInt("version", data_json))
+    if (2 != version)
     {
-        mLogger->error("LoadTrajV2 is called but the spcified fileversion in {} is {}", path, cJsonUtil::ParseAsInt("version", data_json));
+        mLogger->error("LoadTrajV2 is called but the spcified fileversion in {} is {}", path, version);
         exit(1);
     }
 #endif

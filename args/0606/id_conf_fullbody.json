@@ -1,9 +1,9 @@
 {
     "IDMode_bak3": "Online",
     "IDMode_bak2" : "OfflineSolve",
-    "IDMode_bak1" : "Display",
-    "IDMode" : "Sample",
-    "IDMode_bak4": "OfflineSolve",
+    "IDMode_bak4" : "Display",
+    "IDMode_bak1" : "Sample",
+    "IDMode": "OfflineSolve",
     "traj_file_version" : 2,
     "SampleModeInfo":
     {
@@ -27,7 +27,9 @@
         "_comment" : "this section focus on the setting of display mode",
         "display_traj_path" : "data/batch_trajs/0606_MR_walk/traj_fullbody_105349627.json_output.json",
         "display_traj_path_bak" : "data/0606/trajs/traj_fullbody_0.json",
-        "display_motion_path_bak" : "data/0606/motions/ID_motion_fullbody_0.txt"
+        "display_motion_path_bak" : "data/0606/motions/ID_motion_fullbody_0.txt",
+        "enable_output_motion_info" : false,
+        "output_motion_info_path" : ""
     },
     "SolveModeInfo":
     {
@@ -38,18 +40,18 @@
         "enable_restore_theta_by_ground_truth" : true,
         "SingleTrajSolveInfo" : 
         {
-            "solve_traj_path" : "v2.json",
-            "export_train_data_path" : "v2.train"
+            "solve_traj_path" : "data/batch_trajs/0606_MR_walk/traj_fullbody_1906486840.json_output.json",
+            "export_train_data_path" : "test.json"
         },
         "BatchTrajSolveInfo" : 
         {
-            "summary_table_filename" : "data/batch_trajs/0606/summary_table_fullbody.json",
-            "export_train_data_dir" : "data/batch_train_data/0606/"
+            "summary_table_filename" : "data/batch_trajs/0606_MR_walk/summary_table_fullbody.json",
+            "export_train_data_dir" : "data/batch_train_data/0606_MR_walk/"
         },
         "ref_motion_path" : "data/0424/motions/walk_motion_042601.txt",
         "retargeted_char_path" : "data/0606/characters/full_body_short_2.json",
-        "enable_reward_recal" : true,
-        "enable_action_verified" : true,
+        "enable_reward_recal" : false,
+        "enable_action_verified" : false,
         "enable_torque_verified" : false,
         "enable_discrete_verified" : false
     }

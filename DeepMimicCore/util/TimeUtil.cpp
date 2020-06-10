@@ -30,6 +30,7 @@ std::string cTimeUtil::GetSystemTime()
     std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     std::string s(30, '\0');
     std::strftime(&s[0], s.size(), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    s.resize(s.find('\0'));
     return s;
 }
 

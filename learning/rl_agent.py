@@ -395,7 +395,7 @@ class RLAgent(ABC):
             self.exp_params_end.load(json_data[self.EXP_PARAM_END_KEY])
 
         # clear the path
-        if self.enable_clear_path == True:
+        if self.enable_clear_path == True and os.path.exists(self.path_save_dir) == True:
             for filename in os.listdir(self.path_save_dir):
                 file_path = os.path.join(self.path_save_dir, filename)
                 try:

@@ -259,7 +259,7 @@ const tEigenArr<cContactManager::tContactPt>& cWorld::GetContactPts(const cConta
 	return mContactManager.GetContactPts(handle);
 }
 
-const cContactManager& cWorld::GetContactManager() const
+cContactManager& cWorld::GetContactManager()
 {
 	return mContactManager;
 }

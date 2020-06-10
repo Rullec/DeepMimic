@@ -25,6 +25,9 @@ void cDisplayIDSolver::PreSim()
 
 void cDisplayIDSolver::PostSim()
 {
+    mLoadInfo.mCurFrame++;
+    std::cout <<"\r[log] cDisplayIDSolver display mode: cur frame = " << mLoadInfo.mCurFrame;
+
    if(mLoadInfo.mLoadMode == eLoadMode::INVALID)
     {
         std::cout <<"[error] cDisplayIDSolver::DisplaySet invalid info mode\n";
@@ -32,12 +35,9 @@ void cDisplayIDSolver::PostSim()
     }
     else if(mLoadInfo.mLoadMode == eLoadMode::LOAD_TRAJ)
     {
-        mLoadInfo.mCurFrame++;
-        mLoadInfo.mCurFrame %= mLoadInfo.mTotalFrame;
-        const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPoseMat.rows();
-        std::cout <<"[log] cDisplayIDSolver display mode: cur frame = " << cur_frame << std::endl;
+        const int cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mTotalFrame;
         const tVectorXd & q = mLoadInfo.mPoseMat.row(cur_frame);
-        std::cout <<"q = " << q.transpose() << std::endl;
+        // std::cout <<"q = " << q.transpose() << std::endl;
         SetGeneralizedPos(q);
         RecordMultibodyInfo(mLoadInfo.mLinkRot[cur_frame], mLoadInfo.mLinkPos[cur_frame]);
 
@@ -83,9 +83,9 @@ void cDisplayIDSolver::PostSim()
     }
     else if(mLoadInfo.mLoadMode == eLoadMode::LOAD_MOTION)
     {
-        mLoadInfo.mCurFrame++;
+        
         const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mMotion->GetNumFrames();
-        std::cout <<"[log] cDisplayIDSolver display mode: cur frame = " << cur_frame << std::endl;
+
         tVectorXd out_pose = mLoadInfo.mMotion->GetFrame(cur_frame);
         // auto & mJointMat = mSimChar->GetJointMat();
         // {
@@ -116,6 +116,9 @@ void cDisplayIDSolver::PostSim()
         std::cout <<"[error] cDisplayIDSolver::DisplaySet mode invalid: "<< mLoadInfo.mLoadMode << std::endl;
         exit(1);
     }
+
+    // we are in display mode, so we need to clear the contact info incase something contact with the ground
+    mScene->GetWorld()->GetContactManager().Clear();
 }
 
 void cDisplayIDSolver::Reset()
@@ -133,19 +136,15 @@ void cDisplayIDSolver::Parseconfig(const std::string & conf)
 {
     Json::Value root;
     cJsonUtil::LoadJson(conf, root);
-    auto display_value = root["DisplayModeInfo"];
+    auto display_value = cJsonUtil::ParseAsValue("DisplayModeInfo", root);
     assert(display_value.isNull() == false);
     // std::cout <<"void cDisplayIDSolver::ParseConfigDisplay(const Json::Value & save_value)\n";
     const Json::Value & display_traj_path = display_value["display_traj_path"],
-        display_motion_path = display_value["display_motion_path"],
-        enable_output_motion_info = display_value["enable_output_motion_info"],
-        output_motion_info_path = display_value["output_motion_info_path"];
+        display_motion_path = display_value["display_motion_path"];
 
-    assert(enable_output_motion_info.isNull() == false);
-    assert(output_motion_info_path.isNull() == false);
-
-    mLoadInfo.mEnableOutputMotionInfo = enable_output_motion_info.asBool();
-    mLoadInfo.mOutputMotionInfoPath = output_motion_info_path.asString();
+    // mLoadInfo.mEnableOutputMotionInfo = enable_output_motion_info.asBool();
+    mLoadInfo.mEnableOutputMotionInfo = cJsonUtil::ParseAsBool("enable_output_motion_info", display_value);
+    mLoadInfo.mOutputMotionInfoPath = cJsonUtil::ParseAsString("output_motion_info_path", display_value);
 
     if(mLoadInfo.mEnableOutputMotionInfo)
         cFileUtil::ClearFile(mLoadInfo.mOutputMotionInfoPath);
@@ -167,12 +166,14 @@ void cDisplayIDSolver::Parseconfig(const std::string & conf)
             mLoadInfo.mLoadMode = eLoadMode::LOAD_MOTION;
             mLoadInfo.mMotion = new cMotion();
             LoadMotion(display_motion_path.asString(), mLoadInfo.mMotion);
+            mLogger->info("LoadMotion {}", display_motion_path.asString());
             // std::cout <<"[log] offlineIDSolver load motion " << display_motion_path<<", the resulted NOF = " << mLoadInfo.mMotion->GetNumFrames() << std::endl;
         }
         else // choose to load trajectories from files
         {
             mLoadInfo.mLoadMode = eLoadMode::LOAD_TRAJ;
             LoadTraj(mLoadInfo, display_traj_path.asString());
+            mLogger->info("LoadTraj {}", display_traj_path.asString());
             // std::cout <<"[log] offlineIDSolver load the trajectory " << display_motion_path<<", the resulted NOF = " << mLoadInfo.mTotalFrame << std::endl;
         }       
     }
@@ -184,7 +185,7 @@ void cDisplayIDSolver::Parseconfig(const std::string & conf)
 
     // init load info character pose
     const int & cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPoseMat.rows();
-    std::cout <<"[log] cDisplayIDSolver display mode: cur frame = " << cur_frame << std::endl;
+    mLogger->info("cDisplayIDSolver display mode: cur frame {}", cur_frame);
     const tVectorXd & q = mLoadInfo.mPoseMat.row(cur_frame);
     SetGeneralizedPos(q);
     RecordMultibodyInfo(mLoadInfo.mLinkRot[cur_frame], mLoadInfo.mLinkPos[cur_frame]);

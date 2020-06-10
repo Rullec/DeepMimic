@@ -13,7 +13,7 @@ public:
     static void Printf(const tLogger & logger, eLogLevel level, const char * fmt, va_list args);
 
 private:
-    inline const static size_t buf_size = 100000;
+    inline const static size_t buf_size = 1000;
     inline static char buf[buf_size];
 };
 

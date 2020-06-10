@@ -351,14 +351,16 @@ void cSampleIDSolver::Reset()
     tSummaryTable::tSingleEpochInfo a;
     a.length_second = mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId-1] * mSaveInfo.mCurFrameId;
     a.frame_num = mSaveInfo.mCurFrameId;
-    a.traj_filename = SaveTraj(mSaveInfo, mSampleInfo.mSampleTrajsRootName);
+    
+    a.sample_traj_filename = SaveTraj(mSaveInfo, mSampleInfo.mSampleTrajsDir, mSampleInfo.mSampleTrajsRootName);
+    mLogger->info("Sampling: save trajs to {} succ", a.sample_traj_filename);
 
     // // test code
     // {
     //     Json::Value v1_root = SaveTrajV1(mSaveInfo),
     //         v2_root = SaveTrajV2(mSaveInfo);
 
-    //     a.traj_filename = "v2.json";
+    //     a.sample_traj_filename = "v2.json";
     //     cJsonUtil::WriteJson("v1.json", v1_root);
     //     cJsonUtil::WriteJson("v2.json", v2_root);
     //     // exit(0);
@@ -367,8 +369,8 @@ void cSampleIDSolver::Reset()
     
 
     mSummaryTable.mTotalEpochNum++;
-    mSummaryTable.mTotalLengthTime += a.length_second;
-    mSummaryTable.mTotalLengthFrame += a.frame_num;
+    // mSummaryTable.mTotalLengthTime += a.length_second;
+    // mSummaryTable.mTotalLengthFrame += a.frame_num;
     mSummaryTable.mEpochInfos.push_back(a);
     mSaveInfo.mMotion->Clear();
 
@@ -474,8 +476,8 @@ void cSampleIDSolver::Parseconfig(const std::string & conf)
     
     mSampleInfo.mSampleEpoches = sample_num_json.asInt();
     mSampleInfo.mSampleTrajsDir = sample_trajs_dir_json.asString();
-    mSampleInfo.mSampleTrajsRootName = mSampleInfo.mSampleTrajsDir + sample_root_json.asString();
-    mSampleInfo.mSummaryTableFilename = mSampleInfo.mSampleTrajsDir + summary_table_file.asString();
+    mSampleInfo.mSampleTrajsRootName = sample_root_json.asString();
+    mSampleInfo.mSummaryTableFilename = cFileUtil::ConcatFilename(mSampleInfo.mSampleTrajsDir, summary_table_file.asString()) ;
     if(mRecordThetaDist == true)
     {
         mSampleInfo.mActionThetaDistFilename = mSampleInfo.mSampleTrajsDir + "action_theta_dist.txt";
@@ -508,11 +510,12 @@ void cSampleIDSolver::InitSampleSummaryTable()
         mSummaryTable.mActionThetaDistFile = mSampleInfo.mActionThetaDistFilename;
 
     mSummaryTable.mTotalEpochNum = 0;
-    mSummaryTable.mTotalLengthTime = 0;
-    mSummaryTable.mTotalLengthFrame = 0;
+    mSummaryTable.mSampleTrajDir = mSampleInfo.mSampleTrajsDir;
+    // mSummaryTable.mTotalLengthTime = 0;
+    // mSummaryTable.mTotalLengthFrame = 0;
     mSummaryTable.mEpochInfos.clear();
     mSummaryTable.mTimeStamp = cTimeUtil::GetSystemTime();
-    InfoPrintf(mLogger, "InitSampleSummaryTable: set timestamp = ", mSummaryTable.mTimeStamp);
+    mLogger->info("InitSampleSummaryTable: set timestamp {}", mSummaryTable.mTimeStamp);
 }
 
 /**

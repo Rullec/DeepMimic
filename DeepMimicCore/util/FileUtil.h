@@ -21,14 +21,16 @@ public:
 	static std::string RemoveExtension(const std::string& filename);
 	static void DeleteFile(const std::string& filename);
 	static void RenameFile(const std::string& ori_name, const std::string & des_name);
+	static void CopyFile(const std::string & ori_name, const std::string & des_name);
 	static long int GetFileSize(const std::string& filename);
 	static std::string GetExtension(const std::string& filename);
 	static std::string GetFilename(const std::string& path);
+	static std::string GetDir(const std::string& path);
 	static void FilterFilesByExtension(std::vector<std::string>& files, const std::string& ext);
 	static bool ExistsFile(const std::string& file_name);
 	static bool ExistsDir(const std::string& dir_name);
 	static bool ValidateFilePath(const std::string& file_name);
-	
+	static std::string ConcatFilename(const std::string & dir, const std::string & file);
 	static void FindLine(std::ifstream& f_stream, int line);
 	static std::string ReadTextFile(const std::string& path);
 
