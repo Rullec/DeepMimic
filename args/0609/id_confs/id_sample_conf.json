@@ -1,6 +1,6 @@
 {
     "IDMode" : "Sample",
-    "traj_file_version" : 1,
+    "traj_file_version" : 2,
     "SampleModeInfo":
     {
         "sample_num" : 40,

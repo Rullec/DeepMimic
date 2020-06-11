@@ -353,7 +353,7 @@ void cSampleIDSolver::Reset()
     a.frame_num = mSaveInfo.mCurFrameId;
     
     a.sample_traj_filename = SaveTraj(mSaveInfo, mSampleInfo.mSampleTrajsDir, mSampleInfo.mSampleTrajsRootName);
-    mLogger->info("Sampling: save trajs to {} succ", a.sample_traj_filename);
+    mLogger->info("Sampling: save trajs to {} succ, {}/{}", a.sample_traj_filename, mSummaryTable.mTotalEpochNum+1, mSampleInfo.mSampleEpoches);;
 
     // // test code
     // {

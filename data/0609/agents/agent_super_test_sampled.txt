@@ -57,6 +57,6 @@
 	"enable_action_normalize" : false,
 	"action_std_path": "/home/xudong/Projects/retargeting_jfcode/output/transfer_before_mr/norm/action_std.npz",
 	"action_mean_path": "/home/xudong/Projects/retargeting_jfcode/output/transfer_before_mr/norm/action_mean.npz",
-	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/transfer_before_mr/model/sa_net.ckpt-800",
+	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/transfer_before_mr/model/sa_net.ckpt-400",
     "layers": [128, 64]
 }
