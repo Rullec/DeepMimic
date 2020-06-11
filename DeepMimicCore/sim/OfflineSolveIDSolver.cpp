@@ -152,7 +152,7 @@ void cOfflineIDSolver::ParseSingleTrajConfig(const Json::Value & single_traj_con
 
     if(false == cFileUtil::ValidateFilePath(mSingleTrajSolveConfig.mExportDataPath))
     {
-        ErrorPrintf(mLogger, "ParseSingleTrajConfig export train data path illegal: %s", mSingleTrajSolveConfig.mExportDataPath);
+        mLogger->error("ParseSingleTrajConfig export train data path illegal: {}", mSingleTrajSolveConfig.mExportDataPath);
         exit(0);
     }
     mLogger->info("working in SingleTrajSolve mode");
@@ -195,7 +195,7 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
 			mSaveInfo.mBuffer_u[cur_frame] = CalculateGeneralizedVel(mSaveInfo.mBuffer_q[cur_frame - 1], mSaveInfo.mBuffer_q[cur_frame], cur_timestep);
 			mSaveInfo.mBuffer_u_dot[cur_frame - 1] = (mSaveInfo.mBuffer_u[cur_frame] - mSaveInfo.mBuffer_u[cur_frame - 1]) / cur_timestep;
     */
-    for(int frame_id = 0; frame_id < mLoadInfo.mTotalFrame; frame_id++)
+    for(int frame_id = 0; frame_id < mLoadInfo.mTotalFrame-1; frame_id++)
     {
         tVectorXd cur_vel = CalcGeneralizedVel(mLoadInfo.mPoseMat.row(frame_id), mLoadInfo.mPoseMat.row(frame_id+1), mLoadInfo.mTimesteps[frame_id]);
         // std::cout <<"cur vel size = " << cur_vel.size() << std::endl;
@@ -621,7 +621,7 @@ void cOfflineIDSolver::BatchTrajsSolve(const std::string & path)
         LoadTraj(mLoadInfo, target_traj_filename_full);
         SingleTrajSolve(mResult);
 
-        std::string export_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(full_epoch_infos[i].sample_traj_filename)) + ".train";
+        std::string export_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(target_traj_filename_full)) + ".train";
         cFileUtil::AddLock(export_name);
         SaveTrainData(mBatchTrajSolveConfig.mExportDataDir, export_name, mResult);
         mLogger->info("Save traindata to {}", cFileUtil::ConcatFilename(mBatchTrajSolveConfig.mExportDataDir, cFileUtil::RemoveExtension(export_name) + ".train"));

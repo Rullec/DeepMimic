@@ -21,7 +21,7 @@ joint 16 LFootTongue aa st from 55
 '''
 st_num = [1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 46, 50, 55]
 # origin_path_dir = "./paths"
-origin_path_dir = "../data/paths_normalized"
+origin_path_dir = "../data/paths"
 # origin_path_dir = "./paths_normalized"
 # origin_path_dir = "./paths_ori_single"
 files = [os.path.join(origin_path_dir, i) for i in os.listdir(origin_path_dir)]

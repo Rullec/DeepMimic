@@ -49,7 +49,7 @@
 		"Temp": 0.001
 	},
 
-	"EnableSavePath": false,
+	"EnableSavePath": true,
 	"PathSaveDir": "./data/paths/",
 
 	"state_std_path": "/home/xudong/Projects/retargeting_jfcode/output/new_method/norm/state_std.npz",
@@ -57,6 +57,6 @@
 	"enable_action_normalize" : false,
 	"action_std_path": "/home/xudong/Projects/retargeting_jfcode/output/new_method/norm/action_std.npz",
 	"action_mean_path": "/home/xudong/Projects/retargeting_jfcode/output/new_method/norm/action_mean.npz",
-	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/new_method/model/sa_net.ckpt-600",
+	"net_save_path": "/home/xudong/Projects/retargeting_jfcode/output/new_method/model/sa_net.ckpt-1000",
     "layers": [128, 64]
 }

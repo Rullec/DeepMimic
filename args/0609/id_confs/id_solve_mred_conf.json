@@ -8,14 +8,13 @@
         "solve_mode" : "BatchTraj",
         "SingleTrajSolveInfo" : 
         {
-            "solve_traj_path" : "data/batch_trajs/0609/traj_fullbody_1090060275_mr.json",
-            "export_train_data_path" : "test.json"
+            "solve_traj_path" : "data/batch_trajs/0609_mred/traj_fullbody_96360814_mr.json",
+            "export_train_data_path" : "data/batch_train_data/0609_mred_solved/test.json"
         },
         "BatchTrajSolveInfo" : 
         {
-            "summary_table_filename" : "data/batch_trajs/0609/same_skeleton_transfer.json",
-            "export_train_data_dir" : "data/batch_train_data/0609/",
-            "solve_target_bak" : "SampledTraj",
+            "summary_table_filename" : "data/batch_trajs/0609_mred/summary_table_fullbody.json",
+            "export_train_data_dir" : "data/batch_train_data/0609_mred_solved/",
             "solve_target" : "MRedTraj"
         },
         "ref_motion_path" : "data/0424/motions/walk_motion_042601.txt",

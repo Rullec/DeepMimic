@@ -1,0 +1,29 @@
+{
+    "IDMode": "OfflineSolve",
+    "traj_file_version" : 1,
+    "SolveModeInfo":
+    {
+        "_comment" : "this section focus on the setting of solve mode",
+        "solve_mode_bak" : "SingleTraj",
+        "solve_mode" : "BatchTraj",
+        "SingleTrajSolveInfo" : 
+        {
+            "solve_traj_path" : "data/batch_trajs/0609_mred/traj_fullbody_96360814_mr.json",
+            "export_train_data_path" : "data/batch_train_data/0609_mred_solved/test.json"
+        },
+        "BatchTrajSolveInfo" : 
+        {
+            "summary_table_filename" : "data/batch_trajs/0609_sampled/summary_table_fullbody.json",
+            "export_train_data_dir" : "data/batch_train_data/0609_sampled_solved/",
+            "solve_target" : "SampledTraj"
+        },
+        "ref_motion_path" : "data/0424/motions/walk_motion_042601.txt",
+        "retargeted_char_path" : "data/0424/characters/skeleton_042302_revised.json",
+        "enable_reward_recal" : false,
+        "enable_action_verified" : true,
+        "enable_torque_verified" : true,
+        "enable_discrete_verified" : true,
+        "enable_restore_theta_by_action_dist" : false,
+        "enable_restore_theta_by_ground_truth" : true
+    }
+}

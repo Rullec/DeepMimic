@@ -99,7 +99,7 @@ def get_old_data_action_theta_dist_with_ref_time(file_lst):
         
 
 
-old_format_data_dir = "../data/paths_normalized/"
+old_format_data_dir = "../data/paths/"
 new_format_data_dir = "../data/batch_train_data/0526/"
 if __name__ == "__main__":
     old_format_files = [os.path.join(old_format_data_dir, i) for i in os.listdir(old_format_data_dir)]

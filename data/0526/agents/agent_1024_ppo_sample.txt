@@ -49,7 +49,7 @@
 		"Temp": 0.001
 	},
 
-	"EnableSavePath": false,
+	"EnableSavePath": true,
 	"EnableClearPath": true,
 	"PathSaveDir": "./data/paths/"
 }
