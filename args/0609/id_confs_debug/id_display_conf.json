@@ -1,0 +1,13 @@
+{
+    "IDMode" : "Display",
+    "traj_file_version" : 2,   
+    "DisplayModeInfo":
+    {
+        "_comment" : "this section focus on the setting of display mode",
+        "display_traj_path" : "data/batch_trajs/0609_mred/traj_fullbody_916583258_mr.json",
+        "display_traj_path_bak" : "data/0609/trajs/traj_fullbody_0.json",
+        "display_motion_path_bak" : "data/0609/motions/ID_motion_fullbody_0.txt",
+        "enable_output_motion_info" : false,
+        "output_motion_info_path" : ""
+    }
+}

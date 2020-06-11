@@ -3,12 +3,12 @@
     "traj_file_version" : 1,
     "SampleModeInfo":
     {
-        "sample_num" : 40,
+        "sample_num" : 1,
         "enable_sample_ID_test" : false,
         "clear_old_data" : true,
         "record_theta_distribution" : false,
         "enable_sync_theta_dist" : false,
-        "sample_trajs_dir" : "data/batch_trajs/0609_sampled/",
+        "sample_trajs_dir" : "data/batch_trajs/0609_debug/",
         "sample_trajs_rootname" : "traj_fullbody.json",
         "summary_table_filename" : "summary_table_fullbody.json"
     }

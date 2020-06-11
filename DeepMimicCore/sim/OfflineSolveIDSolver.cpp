@@ -258,7 +258,7 @@ void cOfflineIDSolver::SingleTrajSolve(std::vector<tSingleFrameIDResult> & IDRes
     double ID_torque_err = 0, ID_action_err = 0, reward_err = 0;
     tVectorXd torque = tVectorXd::Zero(mSimChar->GetPose().size()), pd_target = tVectorXd::Zero(mSimChar->GetPose().size());
 
-    for(int cur_frame = 1; cur_frame < mLoadInfo.mTotalFrame-1; cur_frame++)
+    for(int cur_frame = 1; cur_frame < mLoadInfo.mTotalFrame; cur_frame++)
     {
         auto & cur_ID_res = IDResults[cur_frame];
 
