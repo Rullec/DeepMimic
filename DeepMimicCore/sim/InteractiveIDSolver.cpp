@@ -149,7 +149,8 @@ void cInteractiveIDSolver::LoadMotion(const std::string & path, cMotion * motion
     cMotion::tParams params;
     params.mMotionFile = path;
     motion->Load(params);
-    DebugPrintf(mLogger, "Load Motion from %s, frame_nums = %d, dof = %d", path, motion->GetNumFrames(), motion->GetNumDof());
+//    DebugPrintf(mLogger, "Load Motion from %s, frame_nums = %d, dof = %d", path, motion->GetNumFrames(), motion->GetNumDof());
+    mLogger->debug("Load Motion from %s, frame_nums = %d, dof = %d", path, motion->GetNumFrames(), motion->GetNumDof());
 }
 
 void cInteractiveIDSolver::SaveMotion(const std::string & path_root, cMotion * motion) const
@@ -157,11 +158,13 @@ void cInteractiveIDSolver::SaveMotion(const std::string & path_root, cMotion * m
     assert(nullptr != motion);
     if(false == cFileUtil::ValidateFilePath(path_root))
     {
-        ErrorPrintf(mLogger, "SaveMotion: path root invalid %s", path_root);
+//        ErrorPrintf(mLogger, "SaveMotion: path root invalid %s", path_root);
+        mLogger->error("SaveMotion: path root invalid %s", path_root);
         exit(1);
     }
     std::string filename = cFileUtil::RemoveExtension(path_root) + "_" + std::to_string(mSaveInfo.mCurEpoch) + "." + cFileUtil::GetExtension(path_root);
-    InfoPrintf(mLogger, "SaveMotion for epoch %d to %s", mSaveInfo.mCurEpoch, filename);
+//    InfoPrintf(mLogger, "SaveMotion for epoch %d to %s", mSaveInfo.mCurEpoch, filename);
+    mLogger->info("SaveMotion for epoch %d to %s", mSaveInfo.mCurEpoch, filename);
     motion->FinishAddFrame();
     motion->Output(filename);
     motion->Clear();
@@ -279,7 +282,8 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
 {
     if(cFileUtil::ValidateFilePath(path_raw) == false)
     {
-        ErrorPrintf(mLogger, "SaveTraj path %s invalid", path_raw);
+//        ErrorPrintf(mLogger, "SaveTraj path %s invalid", path_raw);
+        mLogger->error("SaveTraj path %s invalid", path_raw);
         exit(0);
     } 
 
@@ -298,7 +302,8 @@ std::string cInteractiveIDSolver::SaveTraj(tSaveInfo & mSaveInfo, const std::str
     cFileUtil::AddLock(final_name);
     if(false == cFileUtil::ValidateFilePath(final_name))
     {
-        ErrorPrintf(mLogger, "SaveTraj path %s illegal", final_name);
+//        ErrorPrintf(mLogger, "SaveTraj path %s illegal", final_name);
+        mLogger->error("SaveTraj path %s illegal", final_name);
         exit(1);
     }
     cJsonUtil::WriteJson(final_name, root, false);
@@ -655,10 +660,11 @@ void cInteractiveIDSolver::LoadTrajV1(tLoadInfo & load_info, const std::string &
     load_info.mLoadPath = path;
     if(!succ)
     {
-        ErrorPrintf(mLogger, "LoadTraj parse json %s failed", path);
+        mLogger->error("LoadTraj parse json {} failed", path);
+//        ErrorPrintf(mLogger, , path);
         exit(0);
     } 
-    
+
 
     list_json = data_json["list"];
     assert(list_json.isNull() == false);
@@ -814,7 +820,8 @@ void cInteractiveIDSolver::LoadTrajV2(tLoadInfo & load_info, const std::string &
     load_info.mLoadPath = path;
     if(!succ)
     {
-        ErrorPrintf(mLogger, "LoadTraj parse json %s failed", path);
+//        ErrorPrintf(mLogger, "LoadTraj parse json %s failed", path);
+        mLogger->error("LoadTraj parse json %s failed", path);
         exit(0);
     } 
     

@@ -82,7 +82,8 @@ void cOfflineIDSolver::ParseConfig(const std::string & conf)
     Json::Value root_;
     if(false == cJsonUtil::LoadJson(conf, root_))
     {
-        ErrorPrintf(mLogger, "ParseConfig %s failed", conf);
+//        ErrorPrintf(mLogger, "ParseConfig %s failed", conf);
+        mLogger->error("ParseConfig %s failed", conf);
         exit(1);
     }
     Json::Value root = root_["SolveModeInfo"];
@@ -115,7 +116,8 @@ void cOfflineIDSolver::ParseConfig(const std::string & conf)
     }
     if(mOfflineSolveMode == eOfflineSolveMode::INVALID)
     {
-        ErrorPrintf(mLogger, "parse solve mode failed %s", solve_mode_json.asString());
+//        ErrorPrintf(mLogger, "parse solve mode failed %s", solve_mode_json.asString());
+        mLogger->error("parse solve mode failed %s", solve_mode_json.asString());
         exit(0);
     }
 
@@ -161,7 +163,8 @@ void cOfflineIDSolver::ParseSingleTrajConfig(const Json::Value & single_traj_con
 
     if(false == cFileUtil::ValidateFilePath(mSingleTrajSolveConfig.mExportDataPath))
     {
-        ErrorPrintf(mLogger, "ParseSingleTrajConfig export train data path illegal: %s", mSingleTrajSolveConfig.mExportDataPath);
+//        ErrorPrintf(mLogger, "ParseSingleTrajConfig export train data path illegal: %s", mSingleTrajSolveConfig.mExportDataPath);
+        mLogger->error("ParseSingleTrajConfig export train data path illegal: %s", mSingleTrajSolveConfig.mExportDataPath);
         exit(0);
     }
     mLogger->info("working in SingleTrajSolve mode");
