@@ -512,7 +512,8 @@ void cSampleIDSolver::InitSampleSummaryTable()
     mSummaryTable.mTotalLengthFrame = 0;
     mSummaryTable.mEpochInfos.clear();
     mSummaryTable.mTimeStamp = cTimeUtil::GetSystemTime();
-    InfoPrintf(mLogger, "InitSampleSummaryTable: set timestamp = ", mSummaryTable.mTimeStamp);
+//    InfoPrintf(mLogger, "InitSampleSummaryTable: set timestamp = ", mSummaryTable.mTimeStamp);
+    mLogger->info("InitSampleSummaryTable: set timestamp = ", mSummaryTable.mTimeStamp);
 }
 
 /**

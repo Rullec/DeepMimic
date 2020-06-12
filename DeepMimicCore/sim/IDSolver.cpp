@@ -2,7 +2,7 @@
 #include "IDSolver.hpp"
 #include "SimCharacter.h"
 #include "../scenes/SceneImitate.h"
-#include "../Extras/InverseDynamics/btMultiBodyTreeCreator.hpp"
+#include "InverseDynamics/btMultiBodyTreeCreator.hpp"
 #include "sim/CtPDController.h"
 #include <util/BulletUtil.h>
 #include <util/LogUtil.hpp>
