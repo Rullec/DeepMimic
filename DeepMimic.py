@@ -83,14 +83,20 @@ def update_world(world, time_elapsed):
         if valid_episode:   # 速度没有爆炸
             end_episode = world.env.is_episode_end()
             if (end_episode):
-                # print("episode done")
+                print("episode done")
                 world.end_episode()
                 world.reset()
+                change_body_shape(world)
                 break
         else:   # 速度爆炸了
             # 一旦出现无效episode，直接就world.reset了。
             world.reset()
+            # change_body_shape(world)
             break
+    return
+
+def change_body_shape(world):
+    world.change_body_shape()
     return
 
 def draw():

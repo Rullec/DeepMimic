@@ -160,3 +160,11 @@ class RLWorld(object):
             assert (agent != None), 'Failed to build agent {:d} from: {}'.format(id, agent_file)
 
         return agent
+
+    def _generate_new_body_shape(self):
+        assert len(self.agents) == 1
+        return self.agents[0].generate_new_body_shape()
+
+    def change_body_shape(self):
+        shape = self._generate_new_body_shape()
+        self.env.change_body_shape(shape.tolist())

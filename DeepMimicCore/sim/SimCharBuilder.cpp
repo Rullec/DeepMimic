@@ -1,11 +1,13 @@
 #include "SimCharBuilder.h"
 
 #include "sim/SimCharGeneral.h"
+#include "SimCharVarShape.h"
 
 const std::string gCharName[cSimCharBuilder::eCharMax] =
 {
 	"none",
-	"general"
+	"general",
+	"var_links"
 };
 
 void cSimCharBuilder::CreateCharacter(eCharType char_type, std::shared_ptr<cSimCharacter>& out_char)
@@ -14,6 +16,9 @@ void cSimCharBuilder::CreateCharacter(eCharType char_type, std::shared_ptr<cSimC
 	{
 		out_char = std::shared_ptr<cSimCharGeneral>(new cSimCharGeneral());
 	}
+	else if (char_type == cCharVarLinks) {
+        out_char = std::shared_ptr<cSimCharVarShape>(new cSimCharVarShape());
+    }
 	else
 	{
 		printf("No valid character specified\n");

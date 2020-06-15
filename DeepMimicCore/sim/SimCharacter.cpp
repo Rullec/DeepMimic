@@ -16,6 +16,7 @@ cSimCharacter::tParams::tParams()
 	mID = gInvalidIdx;
 	mCharFile = "";
 	mStateFile = "";
+	mVarLinksFile = "";
 	mInitPos = tVector(0, 0, 0, 0);
 	mLoadDrawShapes = true;
 
@@ -910,7 +911,10 @@ void cSimCharacter::SetPose(const Eigen::VectorXd& pose)
 		mController->HandlePoseReset();
 	}
 }
-
+/*
+ * \brief           load important key "BodyDefs" and create bullet rigid body\
+ * \prame params    configure parameters
+ */
 bool cSimCharacter::BuildSimBody(const tParams& params)
 {
 	bool succ = true;
@@ -935,7 +939,10 @@ bool cSimCharacter::BuildSimBody(const tParams& params)
 
 	return succ;
 }
-
+/*
+ * \brief               根据bodydefs创建bullet的 collider
+ * \param out_body      设置好的btMultibody,事实上并没有被用到
+ */
 bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 {
 	// build class MultiBody inherited from btMultiBody
@@ -1011,6 +1018,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 
 		//Eigen::Vector3d tmp_inertia = Eigen::Vector3d(inertia[0], inertia[1], inertia[2]);
 		//std::cout<<"[init body] link " << j <<", mass = " << mass <<", inertia = " << tmp_inertia.transpose() << std::endl;
+		// set up joints
 		if (is_root && !fixed_base)
 		{
 			mMultiBody->setupFixed(j, static_cast<btScalar>(mass), inertia, parent_joint,
@@ -1090,10 +1098,13 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 			}
 		}
 
-		// set up link name
+		// ======================================================================================================
+		// SET UP LINKS
+		// 1. set up link name
 		mMultiBody->getLink(j).m_linkName = mBodyDefsName[j].c_str();
 		mMultiBody->getLink(j).m_jointName = mSkeletonJointsName[j].c_str();
 
+		// 2. set up colliders
 		// 从这里开始，添加碰撞。
 		// 如果有问题，只有可能是添加的时候初始化有问题，就从这里排查，把log打出来，然后看他们究竟有什么不一样的地方。
 		btMultiBodyLinkCollider* col_obj = new btMultiBodyLinkCollider(mMultiBody.get(), j);
@@ -1106,10 +1117,10 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody>& out_body)
 
 		int collisionFilterGroup = GetPartColGroup(j);
 		int collisionFilterMask = GetPartColMask(j);
-		//std::cout << "[add collider] filter group " << j << " = " << collisionFilterGroup << std::endl;
-		//std::cout << "[add collider] filter mask " << j << " = " << collisionFilterMask << std::endl;
+		// 3. add the collision info to rl world
 		mWorld->AddCollisionObject(col_obj, collisionFilterGroup, collisionFilterMask);
 		mMultiBody->getLink(j).m_collider = col_obj;
+        // ======================================================================================================
 	}
 	
 	mMultiBody->finalizeMultiDof();
@@ -1733,6 +1744,30 @@ const btCollisionObject* cSimCharacter::GetCollisionObject() const
 btCollisionObject* cSimCharacter::GetCollisionObject()
 {
 	return nullptr;
+}
+
+void cSimCharacter::ChangeBodyShape(Eigen::VectorXd& param) {
+    return;
+}
+
+void cSimCharacter::UpdateBodyShape() {
+    bool succ = true;
+    mWorld->RemoveCharacter(*this);
+    mJoints.clear();
+    mBodyParts.clear();
+    mCons.clear();
+    mMultiBody.reset();
+//    mWorld->RemoveCharacter(*this);
+    mInvRootAttachRot = cMathUtil::EulerToQuaternion(cKinTree::GetAttachTheta(mJointMat, GetRootID()), eRotationOrder::XYZ).inverse();
+    succ &= BuildMultiBody(mMultiBody);
+    succ &= BuildJointLimits(mMultiBody);
+    succ &= BuildBodyLinks();
+    succ &= BuildJoints();
+    mWorld->AddCharacter(*this);
+
+    mVecBuffer0.resize(mMultiBody->getNumLinks() + 1);
+    mVecBuffer1.resize(mMultiBody->getNumLinks() + 1);
+    mRotBuffer.resize(mMultiBody->getNumLinks() + 1);
 }
 
 void btvector2eigen(btAlignedObjectArray<btScalar> & r, Eigen::VectorXd &e)

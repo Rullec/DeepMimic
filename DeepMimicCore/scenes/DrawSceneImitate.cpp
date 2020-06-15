@@ -105,3 +105,7 @@ const std::shared_ptr<cKinCharacter>& cDrawSceneImitate::GetKinChar() const
 	const cSceneImitate* scene = dynamic_cast<const cSceneImitate*>(mScene.get());
 	return scene->GetKinChar();
 }
+
+void cDrawSceneImitate::ChangeBodyShape(Eigen::VectorXd &body_param) {
+    mScene->ChangeBodyShape(body_param);
+}

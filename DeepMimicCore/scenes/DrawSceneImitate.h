@@ -22,6 +22,8 @@ public:
 
 	virtual std::string GetName() const;
 
+    void ChangeBodyShape(Eigen::VectorXd &body_param) override;
+
 protected:
 
 	bool mDrawKinChar;

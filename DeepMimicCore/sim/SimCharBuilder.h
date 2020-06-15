@@ -10,6 +10,7 @@ public:
 	{
 		eCharNone,
 		cCharGeneral,
+		cCharVarLinks,
 		eCharMax
 	};
 	// 这个builder类里面就只有两个静态函数，所以说这个builder只是一个封装

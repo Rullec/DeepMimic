@@ -130,6 +130,9 @@ public:
 	static int GetJointParamSize(eJointType joint_type);
 	static void GetJointParams(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& state, int j, Eigen::VectorXd& out_params);
 	static void SetJointParams(const Eigen::MatrixXd& joint_mat, int j, const Eigen::VectorXd& params, Eigen::VectorXd& out_state);
+
+	static tVector GetJointAttachPt(const Eigen::MatrixXd& joint_mat, int joint_id);
+	static void SetJointAttachPt(Eigen::MatrixXd& joint_mat, const tVector& attach_pt, int joint_id);
 	static eJointType GetJointType(const Eigen::MatrixXd& joint_mat, int joint_id);
 	static int GetParent(const Eigen::MatrixXd& joint_mat, int joint_id);
 	static bool HasParent(const Eigen::MatrixXd& joint_mat, int joint_id);
@@ -171,6 +174,7 @@ public:
 	
 	static cShape::eShape GetBodyShape(const Eigen::MatrixXd& body_defs, int part_id);
 	static tVector GetBodyAttachPt(const Eigen::MatrixXd& body_defs, int part_id);
+	static void SetBodyAttachPt(Eigen::MatrixXd& body_defs, tVector attach_pt, int part_id);
 	static tVector GetBodyAttachTheta(const Eigen::MatrixXd& body_defs, int part_id);
 	static void GetBodyRotation(const Eigen::MatrixXd& body_defs, int part_id, tVector& out_axis, double& out_theta);
 	static double GetBodyMass(const Eigen::MatrixXd& body_defs, int part_id);
@@ -178,6 +182,7 @@ public:
 	static bool GetBodyEnableFallContact(const Eigen::MatrixXd& body_defs, int part_id);
 	static void SetBodyEnableFallContact(int part_id, bool enable, Eigen::MatrixXd& out_body_defs);
 	static tVector GetBodySize(const Eigen::MatrixXd& body_defs, int part_id);
+	static void SetBodySize(Eigen::MatrixXd& body_defs, const tVector body_size, int part_id);
 	static tVector GetBodyColor(const Eigen::MatrixXd& body_defs, int part_id);
 	static double CalcTotalMass(const Eigen::MatrixXd& body_defs);
 	static bool IsValidBody(const Eigen::MatrixXd& body_defs, int part_id);
@@ -189,8 +194,10 @@ public:
 	static void GetDrawShapeRotation(const tDrawShapeDef& shape, tVector& out_axis, double& out_theta);
 	static tVector GetDrawShapeColor(const tDrawShapeDef& shape);
 	static int GetDrawShapeMeshID(const tDrawShapeDef& shape);
-
-	static tVector CalcBodyPartPos(const Eigen::MatrixXd& joint_mat, const Eigen::MatrixXd& body_defs, const Eigen::VectorXd& state, int part_id);
+    static tVector GetDrawShapeSize(const Eigen::MatrixXd& draw_mat, int part_id);
+    static void SetDrawShapeSize(Eigen::MatrixXd& draw_mat, tVector& shape_size, int part_id);
+    static void SetDrawShapeAttachPt(Eigen::MatrixXd& draw_mat, tVector& attach_pt, int part_id);
+    static tVector CalcBodyPartPos(const Eigen::MatrixXd& joint_mat, const Eigen::MatrixXd& body_defs, const Eigen::VectorXd& state, int part_id);
 	static tVector CalcBodyPartVel(const Eigen::MatrixXd& joint_mat, const Eigen::MatrixXd& body_defs, const Eigen::VectorXd& state, const Eigen::VectorXd& vel, int part_id);
 	static void CalcBodyPartRotation(const Eigen::MatrixXd& joint_mat, const Eigen::MatrixXd& body_defs, const Eigen::VectorXd& state, int part_id, tVector& out_axis, double& out_theta);
 	static tMatrix BodyWorldTrans(const Eigen::MatrixXd& joint_mat, const Eigen::MatrixXd& body_defs, const Eigen::VectorXd& state, int part_id);
@@ -264,4 +271,5 @@ protected:
 
 	static void CalcJointPoseDiff(const Eigen::MatrixXd& joint_mat, int joint_id, const Eigen::VectorXd& pose0, const Eigen::VectorXd& pose1, Eigen::VectorXd& out_diff);
 	static void CalcJointVelDiff(const Eigen::MatrixXd& joint_mat, int joint_id, const Eigen::VectorXd& vel0, const Eigen::VectorXd& vel1, Eigen::VectorXd& out_diff);
+
 };

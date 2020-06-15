@@ -74,7 +74,7 @@ else()
 endif()
 #add_definitions("-Wno-overloaded-virtual -Wno-unused-variable -Wno-reorder -Wno-int-to-pointer-cast -Wno-unused-but-set-variable -Wno-sign-compare -Wno-deprecated-declarations -Wno-unused-value -Werror=return-type")
 add_definitions("-Wno-overloaded-virtual -Wno-unused-variable -Wno-reorder -Wno-int-to-pointer-cast -Wno-unused-const-variable -Wno-sign-compare -Wno-deprecated-declarations -Wno-unused-value -Werror=return-type")
-
+add_definitions("-Wno-inconsistent-missing-override")
 add_subdirectory(util/json)
 add_subdirectory(util)
 add_subdirectory(anim)
@@ -121,14 +121,23 @@ add_custom_command(TARGET Main
 
 # move the .dylib in build folder to .so in the parent folder
 if(UNIX)
-    if(EXISTS "../_DeepMimicCore.so")
-        add_custom_command(TARGET Main
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.so)
+        add_custom_command(TARGET _DeepMimicCore
             PRE_BUILD
-            COMMAND rm ../_DeepMimicCore.so
+            COMMAND rm -f ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.so
             )
     endif()
-    add_custom_command(TARGET Main
+    add_custom_command(TARGET _DeepMimicCore
         POST_BUILD
-        COMMAND mv ./_DeepMimicCore.* ../_DeepMimicCore.so
+        COMMAND mv ./_DeepMimicCore.so ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.so
         )
 endif()
+
+#INSTALL(
+#        TARGETS _DeepMimicCore
+#        LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../
+#)
+#INSTALL(
+#        TARGETS Main
+#        LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../
+#)

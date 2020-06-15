@@ -642,7 +642,8 @@ void cDeepMimicCore::SetupScene()
 
 	std::string scene_name = "";
 	mArgParser->ParseString("scene", scene_name);	// 文件中指定的imitate / train / run之类的
-
+	bool var_links = false;
+    mArgParser->ParseBool("var_links", var_links);
 	mScene = nullptr;
 	mRLScene = nullptr;
 	// 根据是否绘制，创建不同的Scene子类对象
@@ -734,4 +735,15 @@ void cDeepMimicCore::ConvertVector(const std::vector<int>& in_vec, Eigen::Vector
 	int size = static_cast<int>(in_vec.size());
 	out_vec.resize(size);
 	std::memcpy(out_vec.data(), in_vec.data(), size * sizeof(int));
+}
+
+void cDeepMimicCore::ChangeBodyShape(const std::vector<double>& body_param) {
+    std::cout << "[log] cDeepMimicCore::ChangeBodyShape() is called\n";
+    if (mScene == nullptr) {
+        std::cerr << "[Error] cDeepMimicCore::mScene is nullptr\n";
+        exit(-1);
+    }
+    Eigen::VectorXd shape;
+    ConvertVector(body_param, shape);
+    mScene->ChangeBodyShape(shape);
 }
