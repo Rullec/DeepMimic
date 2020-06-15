@@ -40,6 +40,11 @@ public:
 
 	virtual std::string GetName() const = 0;
 
+	// ========================================================
+	// For Body Shape Variation
+	virtual void ChangeBodyShape(Eigen::VectorXd &body_param) {}
+    // ========================================================
+
 protected:
 
 	cRand mRand;

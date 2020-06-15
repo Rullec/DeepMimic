@@ -185,4 +185,7 @@ protected:
 									double min_speed, double max_speed, double y_offset, double life_time);
 
 	virtual void ResetRandPertrub();
+
+public:
+    void ChangeBodyShape(Eigen::VectorXd &body_param) override;
 };

@@ -840,3 +840,9 @@ class RLAgent(ABC):
         self.logger.log_tabular("Exp_Noise", self.exp_params_curr.noise)
         self.logger.log_tabular("Exp_Temp", self.exp_params_curr.temp)
         return
+
+    def generate_new_body_shape(self):
+        return np.array([1, 1.5, 1,
+                         1, 1.5, 1,
+                         1, 1.5, 1,
+                         1, 1.5, 1])

@@ -393,6 +393,8 @@ bool cSceneSimChar::BuildCharacters()
 	mChars.clear();
 
 	int num_chars = static_cast<int>(mCharParams.size());
+	bool var_links = false;
+
 	for (int i = 0; i < num_chars; ++i)
 	{
 		// 对于每个角色，都由SimCharacter管理(这是一个类)
@@ -487,7 +489,14 @@ bool cSceneSimChar::ParseCharParams(const std::shared_ptr<cArgParser>& parser, s
 
 	std::vector<double> init_pos_xs;
 	parser->ParseDoubles("char_init_pos_xs", init_pos_xs);
-	
+
+    bool var_links = false;
+    parser->ParseBool("var_links", var_links);
+    std::vector<string> var_links_files;
+    if (var_links) {
+        parser->ParseStrings("var_links_files", var_links_files);
+    }
+
 	int num_files = static_cast<int>(char_files.size());
 	out_params.resize(num_files);
 
@@ -498,7 +507,7 @@ bool cSceneSimChar::ParseCharParams(const std::shared_ptr<cArgParser>& parser, s
 		params.mCharFile = char_files[i];
 		
 		params.mEnableContactFall = mEnableContactFall;
-
+        if (var_links) params.mVarLinksFile = var_links_files[i];
 		if (state_files.size() > i)
 		{
 			params.mStateFile = state_files[i];
@@ -1191,4 +1200,19 @@ void cSceneSimChar::ResetRandPertrub()
 {
 	mPerturbParams.mTimer = 0;
 	mPerturbParams.mNextTime = mRand.RandDouble(mPerturbParams.mTimeMin, mPerturbParams.mTimeMax);
+}
+
+void cSceneSimChar::ChangeBodyShape(Eigen::VectorXd &body_param) {
+    std::cout << "[log] cSceneSimChar::ChangeBodyShape() is called\n";
+    const int n_char  = mChars.size();
+    assert(n_char == 1);
+    auto curr_char    = mChars[0].get();
+    const int n_joint = curr_char->GetNumJoints();
+    const int n_part  = curr_char->GetNumBodyParts();
+    std::cout << "[log] cSceneSimChar::ChangeBodyShape(): num of characters: " << n_char << std::endl;
+    std::cout << "[log] cSceneSimChar::ChangeBodyShape(): num of joint: " << n_joint << std::endl;
+    std::cout << "[log] cSceneSimChar::ChangeBodyShape(): num of body parts: " << n_part << std::endl;
+
+    curr_char->ChangeBodyShape(body_param);
+
 }

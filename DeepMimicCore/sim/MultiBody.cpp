@@ -21,7 +21,7 @@ cMultiBody::~cMultiBody()
 #include <iostream>
 void cMultiBody::compTreeLinkVelocities(btVector3 *omega, btVector3 *vel) const
 {
-	// µ«ÊÇÕâ¸öº¯Êı±ØĞë±£Ö¤, ¸¸Ç×µÄĞòºÅ±ØÈ»Ğ¡ÓÚ¶ù×ÓµÄĞòºÅ
+	// ä½†æ˜¯è¿™ä¸ªå‡½æ•°å¿…é¡»ä¿è¯, çˆ¶äº²çš„åºå·å¿…ç„¶å°äºå„¿å­çš„åºå·
 	int num_links = getNumLinks();
 	// Calculates the velocities of each link (and the base) in its local frame
 	const btQuaternion& base_rot = getWorldToBaseRot();
@@ -38,11 +38,11 @@ void cMultiBody::compTreeLinkVelocities(btVector3 *omega, btVector3 *vel) const
 			exit(1);
 		}
 		// transform parent vel into this frame, store in omega[i+1], vel[i+1]
-		// bulletÊÇlinkºÍlinkÁ¬½ÓµÄÄ£ĞÍ£¬Ã¿¸ölink×ø±êÏµ¶¼½¨ÔÚCOM´¦
-		// m_cachedRotParentToThis ÊÇ´Óparent link×ø±êÏµµ½ child link×ø±êÏµµÄ±ä»»Õó
-		// m_cachedRVector ÊÇchild link×ø±êÏµÏÂ£¬vector from COM of parent to COM of this link
-		// ¶ÔÓÚ½ÇËÙ¶ÈomegaÀ´Ëµ£¬Ö»ÊÇ±ä»»ÁËÒ»ÏÂ
-		// µ«ÊÇ¶ÔÓÚÏßËÙ¶ÈÀ´Ëµ£¬
+		// bulletæ˜¯linkå’Œlinkè¿æ¥çš„æ¨¡å‹ï¼Œæ¯ä¸ªlinkåæ ‡ç³»éƒ½å»ºåœ¨COMå¤„
+		// m_cachedRotParentToThis æ˜¯ä»parent linkåæ ‡ç³»åˆ° child linkåæ ‡ç³»çš„å˜æ¢é˜µ
+		// m_cachedRVector æ˜¯child linkåæ ‡ç³»ä¸‹ï¼Œvector from COM of parent to COM of this link
+		// å¯¹äºè§’é€Ÿåº¦omegaæ¥è¯´ï¼Œåªæ˜¯å˜æ¢äº†ä¸€ä¸‹
+		// ä½†æ˜¯å¯¹äºçº¿é€Ÿåº¦æ¥è¯´ï¼Œ
 		// top: angular terms, bottom: linear terms
 		SpatialTransform(btMatrix3x3(link.m_cachedRotParentToThis), link.m_cachedRVector,
 			omega[parent + 1], vel[parent + 1],

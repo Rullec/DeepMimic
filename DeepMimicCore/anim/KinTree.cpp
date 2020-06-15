@@ -153,12 +153,14 @@ bool cKinTree::LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_b
 
 			succ = true;
 			out_body_defs.resize(num_bodies, eBodyParamMax);
+			std::cout << "===================================================\n";
+			std::cout << "Load Body Defs: \n";
 			for (int b = 0; b < num_bodies; ++b)
 			{
 				tBodyDef curr_def = BuildBodyDef();
 				Json::Value body_json = body_defs.get(b, 0);
 				bool succ_def = ParseBodyDef(body_json, curr_def, out_body_names[b]);
-
+                std::cout << "b: " << b << " out_body_names[" << b << "]: " << out_body_names[b] << std::endl;
 				if (succ)
 				{
 					out_body_defs.row(b) = curr_def;
@@ -168,8 +170,9 @@ bool cKinTree::LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_b
 					succ = false;
 					break;
 				}
-			}
-		}
+            }
+            std::cout << "===================================================\n";
+        }
 	}
 	
 	if (!succ)
@@ -238,12 +241,14 @@ bool cKinTree::LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& 
 
 			succ = true;
 			out_draw_defs.resize(num_shapes, eDrawShapeParamMax);
+			std::cout << "=====================================================\n";
+			std::cout << "load drawshape defs: \n";
 			for (int b = 0; b < num_shapes; ++b)
 			{
 				tDrawShapeDef curr_def = BuildDrawShapeDef();
 				Json::Value shape_json = shape_defs.get(b, 0);
 				bool succ_def = ParseDrawShapeDef(shape_json, curr_def, out_draw_names[b]);
-
+                std::cout << "b: " << b << " out_draw_names[" << b << "]: " << out_draw_names[b] << std::endl;
 				if (succ)
 				{
 					out_draw_defs.row(b) = curr_def;
@@ -254,6 +259,7 @@ bool cKinTree::LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& 
 					break;
 				}
 			}
+            std::cout << "=====================================================\n";
 		}
 	}
 
@@ -487,7 +493,7 @@ bool cKinTree::Load(const Json::Value& root, Eigen::MatrixXd& out_joint_mat, std
 
 		// 全部参数传入一个MaxtrxXd(joint_num, desciption_length) 中
 		out_joint_mat.resize(num_joints, eJointDescMax);
-		
+        std::cout << "==========================================================\n";
 		for (int j = 0; j < num_joints; ++j)
 		{
 			tJointDesc curr_joint_desc = tJointDesc::Zero();
@@ -495,7 +501,8 @@ bool cKinTree::Load(const Json::Value& root, Eigen::MatrixXd& out_joint_mat, std
 			Json::Value joint_json = joints.get(j, 0);
 			// 读取每一个joint，里面的值都已经从json读取到结构中了(ParseJoint)
 			succ = ParseJoint(joint_json, curr_joint_desc, out_joint_name[j]);
-			if (succ)
+            std::cout << "j: " << j << " out_joint_name[" << j << "]: " << out_joint_name[j] << "\n";
+            if (succ)
 			{
 				// out_joint_mat　存储的似乎是每个joint的"desc"?
 				out_joint_mat.row(j) = curr_joint_desc;
@@ -506,8 +513,8 @@ bool cKinTree::Load(const Json::Value& root, Eigen::MatrixXd& out_joint_mat, std
 				return false;
 			}
 		}
-
-		for (int j = 0; j < num_joints; ++j)
+        std::cout << "==========================================================\n";
+        for (int j = 0; j < num_joints; ++j)
 		{
 			// 这里开始重建父子joint关系，成树。因为上面各个joint都弄好了嘛
 			// 这个里面是纯粹用joint表示的，没有link的事情
@@ -2109,4 +2116,46 @@ void cKinTree::BuildDefaultVelSpherical(Eigen::VectorXd& out_pose)
 {
 	int dim = GetJointParamSize(eJointTypeSpherical);
 	out_pose = Eigen::VectorXd::Zero(dim);
+}
+
+void cKinTree::SetBodySize(Eigen::MatrixXd &body_defs, const tVector body_size, int part_id) {
+    body_defs.coeffRef(part_id, eBodyParam0) = body_size.x();
+    body_defs.coeffRef(part_id, eBodyParam1) = body_size.y();
+    body_defs.coeffRef(part_id, eBodyParam2) = body_size.z();
+}
+
+tVector cKinTree::GetDrawShapeSize(const Eigen::MatrixXd &draw_mat, int part_id) {
+    const tBodyDef& def = draw_mat.row(part_id);
+    tVector size = tVector(def(eDrawShapeParam0), def(eDrawShapeParam1), def(eDrawShapeParam2), 0);
+    return size;
+}
+
+void cKinTree::SetDrawShapeSize(Eigen::MatrixXd &draw_mat, tVector &shape_size, int part_id) {
+    draw_mat.coeffRef(part_id, eDrawShapeParam0) = shape_size.x();
+    draw_mat.coeffRef(part_id, eDrawShapeParam1) = shape_size.y();
+    draw_mat.coeffRef(part_id, eDrawShapeParam2) = shape_size.z();
+}
+
+void cKinTree::SetBodyAttachPt(Eigen::MatrixXd &body_defs, tVector attach_pt, int part_id) {
+    body_defs.coeffRef(part_id, eBodyParamAttachX) = attach_pt.x();
+    body_defs.coeffRef(part_id, eBodyParamAttachY) = attach_pt.y();
+    body_defs.coeffRef(part_id, eBodyParamAttachZ) = attach_pt.z();
+}
+
+void cKinTree::SetDrawShapeAttachPt(Eigen::MatrixXd &draw_mat, tVector &attach_pt, int part_id) {
+    draw_mat.coeffRef(part_id, eDrawShapeAttachX) = attach_pt.x();
+    draw_mat.coeffRef(part_id, eDrawShapeAttachY) = attach_pt.y();
+    draw_mat.coeffRef(part_id, eDrawShapeAttachZ) = attach_pt.z();
+}
+
+tVector cKinTree::GetJointAttachPt(const Eigen::MatrixXd &joint_mat, int joint_id) {
+    const tJointDesc & def = joint_mat.row(joint_id);
+    tVector size = tVector(def(eJointDescAttachX), def(eJointDescAttachY), def(eJointDescAttachZ), 0);
+    return size;
+}
+
+void cKinTree::SetJointAttachPt(Eigen::MatrixXd &joint_mat, const tVector &attach_pt, int joint_id) {
+    joint_mat.coeffRef(joint_id, eJointDescAttachX) = attach_pt.x();
+    joint_mat.coeffRef(joint_id, eJointDescAttachY) = attach_pt.y();
+    joint_mat.coeffRef(joint_id, eJointDescAttachZ) = attach_pt.z();
 }

@@ -86,6 +86,11 @@ public:
 	virtual void SetMode(int mode);
 	virtual void SetSampleCount(int count);
 
+	// =========================================================================
+	// For Body Shape Variation
+	virtual void ChangeBodyShape(const std::vector<double>& body_param);
+    // =========================================================================
+
 protected:
 	unsigned long int mRandSeed;
 

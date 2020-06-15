@@ -184,3 +184,7 @@ class DeepMimicEnv(Env):
     def set_mode(self, mode):
         self._core.SetMode(mode.value)
         return
+
+    def change_body_shape(self, body_shape):
+        self._core.ChangeBodyShape(body_shape)
+        return

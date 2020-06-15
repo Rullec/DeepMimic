@@ -26,6 +26,7 @@ public:
 		int mID;
 		std::string mCharFile;	// 角色文件: character的真正参数存储
 		std::string mStateFile;
+		std::string mVarLinksFile;
 		tVector mInitPos;
 		bool mLoadDrawShapes;
 
@@ -148,7 +149,8 @@ public:
 	virtual void SetColMask(short col_mask);
 	virtual void SetEnablejointTorqueControl(bool v_);
 	virtual std::string GetCharFilename();
-	
+
+	virtual void ChangeBodyShape(Eigen::VectorXd& body_param);
 protected:
 	std::shared_ptr<cMultiBody> mMultiBody;
 	std::vector<std::shared_ptr<cSimBodyLink>> mBodyParts;
@@ -199,6 +201,7 @@ protected:
 	virtual bool CheckFallContact() const;
 	virtual const btCollisionObject* GetCollisionObject() const;
 	virtual btCollisionObject* GetCollisionObject();
+	void UpdateBodyShape();
 };
 
 #define MAX_NUM_CONTACT_PTS 10

@@ -328,7 +328,7 @@ void cSimBodyJoint::ClampTotalTorque(tVector& out_torque) const
 	// 添加报警功能，如果满负荷就要报警
 	if(mag - torque_lim > 0)
 	{
-		std::cout <<"[torque lim] joint "<< mParams.mID <<" torque lim = " << torque_lim <<", cur torque = " << mag << std::endl;
+//		std::cout <<"[torque lim] joint "<< mParams.mID <<" torque lim = " << torque_lim <<", cur torque = " << mag << std::endl;
 	}
 }
 

@@ -101,7 +101,7 @@ void cDrawCharacter::DrawCharShapes(const cCharacter& character, const tVector& 
 	size_t num_shapes = shape_defs.rows();
 
 	cDrawUtil::SetLineWidth(1);
-	// std::cout <<"------------draw char shapes------------" << num_shapes << std::endl;;
+//	 std::cout <<"------------draw char shapes------------\n" << num_shapes << std::endl;;
 	for (int i = 0; i < num_shapes; ++i)
 	{
 		cKinTree::tDrawShapeDef curr_def = shape_defs.row(i);
