@@ -61,6 +61,7 @@ bool cCharacter::Init(const std::string& char_file, bool load_draw_shapes)
 				// load "Skeleton":"Joints" Key in character file (skeleton.json)
 				// It doesn't storage any joint name or link name.
 				succ = LoadSkeleton(root[gSkeletonKey]);
+				if (succ) mJointMat0.noalias() = mJointMat;
 			}
 		}
 	}
@@ -75,6 +76,7 @@ bool cCharacter::Init(const std::string& char_file, bool load_draw_shapes)
 
 			// load key "DrawShapeDefs" in chracter file
 			succ &= LoadDrawShapeDefs(char_file, mDrawShapeDefs);
+			if (succ) mDrawShapeDefs0.noalias() = mDrawShapeDefs;
 		}
 	}
 
@@ -404,7 +406,7 @@ bool cCharacter::LoadSkeleton(const Json::Value& root)
 {
 	// set up joint info in mJointMat
 	mSkeletonJointsName.clear();
-	return cKinTree::Load(root, mJointMat, mSkeletonJointsName);	
+	return cKinTree::Load(root, mJointMat, mSkeletonJointsName);
 
 }
 

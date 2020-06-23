@@ -159,6 +159,7 @@ protected:
 
 	double mFriction;
 	Eigen::MatrixXd mBodyDefs;
+    Eigen::MatrixXd mBodyDefs0;
 
 	std::shared_ptr<cCharController> mController;
 	tQuaternion mInvRootAttachRot;

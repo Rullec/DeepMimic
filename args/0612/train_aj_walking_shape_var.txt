@@ -42,3 +42,4 @@
 # --buffer_save_path /data/ubuntu_data/DeepMimic/output/1113/111301/
 --var_links true
 --var_links_files data/1126/characters/var_links.json
+--enable_inverse_dynamic_solving false

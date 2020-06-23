@@ -9,6 +9,8 @@
 #include "util/ArgParser.h"
 #include "util/Timer.h"
 
+#include "ret_opt/RetOptImpl.h"
+
 class cScene
 {
 public:
@@ -43,6 +45,7 @@ public:
 	// ========================================================
 	// For Body Shape Variation
 	virtual void ChangeBodyShape(Eigen::VectorXd &body_param) {}
+	virtual void RunRetargeting(cRetOptImpl::tParam& param);
     // ========================================================
 
 protected:
@@ -54,6 +57,8 @@ protected:
 	std::shared_ptr<cArgParser> mArgParser;
 	cTimer::tParams mTimerParams;
 	cTimer mTimer;
+
+	cRetOptImpl* mRetOptImpl;
 
 	cScene();
 

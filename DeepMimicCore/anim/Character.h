@@ -88,12 +88,14 @@ public:
 protected:
 	int mID;
 	Eigen::MatrixXd mJointMat;
+	Eigen::MatrixXd mJointMat0;
 	Eigen::VectorXd mPose;
 	Eigen::VectorXd mVel;
 	Eigen::VectorXd mPose0;
 	Eigen::VectorXd mVel0;
 
 	Eigen::MatrixXd mDrawShapeDefs;
+	Eigen::MatrixXd mDrawShapeDefs0;
 	std::vector<std::shared_ptr<cDrawMesh>> mMeshes;
 	
 	// store the name of joints 

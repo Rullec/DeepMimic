@@ -49,6 +49,9 @@ public:
 	virtual std::string GetName() const;
 	virtual void SyncKinCharNewCycleInverseDynamic(const cSimCharacter& sim_char, cKinCharacter& out_kin_char) const;
 	virtual void ResolveCharGroundIntersectInverseDynamic();
+
+	virtual void ChangeBodyShape(Eigen::VectorXd &body_param) override;
+
 protected:
 
 	std::string mMotionFile;

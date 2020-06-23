@@ -11,7 +11,9 @@ cIDSolver::cIDSolver(cSceneImitate * imitate_scene, eIDSolverType type)
 {
 	// spdlog::info("cIDSolver::cIDSolver");
 	mLogger = cLogUtil::CreateLogger("cIDSolver");
-	
+
+	mLogger->error("id solver initialized!\n");
+	exit(0);
 	assert(imitate_scene != nullptr);
 	mScene = imitate_scene;
 	mSimChar = imitate_scene->GetCharacter(0).get();

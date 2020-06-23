@@ -839,3 +839,14 @@ double cSceneImitate::CalcRandKinResetTime()
 	double rand_time = cMathUtil::RandDouble(0, dur);
 	return rand_time;
 }
+
+void cSceneImitate::ChangeBodyShape(Eigen::VectorXd &body_param) {
+    cSceneSimChar::ChangeBodyShape(body_param);
+    auto& kin_char = GetKinChar();
+    const Eigen::MatrixXd& joint_mat = GetCharacter()->GetJointMat();
+    Eigen::MatrixXd & motion_mat = kin_char->GetMotionFrames();
+    cRetOptImpl::tParam param;
+    param.joint_mat = &joint_mat;
+    param.motion_mat = &motion_mat;
+    cSceneSimChar::RunRetargeting(param);
+}
