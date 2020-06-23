@@ -1,8 +1,10 @@
+#include <iostream>
 #include "DrawSceneImitate.h"
 #include "SceneImitate.h"
 #include "render/DrawCharacter.h"
 #include "render/DrawUtil.h"
 #include "sim/RBDUtil.h"
+#include "ret_opt/RetOptImpl.h"
 
 const double gLinkWidth = 0.025f;
 const tVector gLineColor = tVector(0, 0, 0, 1);
@@ -108,4 +110,12 @@ const std::shared_ptr<cKinCharacter>& cDrawSceneImitate::GetKinChar() const
 
 void cDrawSceneImitate::ChangeBodyShape(Eigen::VectorXd &body_param) {
     mScene->ChangeBodyShape(body_param);
+    auto& kin_char = GetKinChar();
+    const Eigen::MatrixXd& joint_mat = mScene->GetCharacter()->GetJointMat();
+    Eigen::MatrixXd & motion_mat = kin_char->GetMotionFrames();
+    cRetOptImpl::tParam param;
+    param.joint_mat = &joint_mat;
+    param.motion_mat = &motion_mat;
+    mScene->RunRetargeting(param);
 }
+

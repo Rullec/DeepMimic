@@ -81,6 +81,7 @@ add_subdirectory(anim)
 add_subdirectory(render)
 add_subdirectory(scenes)
 add_subdirectory(sim)
+add_subdirectory(ret_opt)
 
 set(libs ${OPENGL_LIBRARIES} ${BULLET_LIBRARIES} GLEW BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils BulletDynamics stdc++)
 if(APPLE)
@@ -88,7 +89,7 @@ if(APPLE)
 else()
     set(libs ${libs} glut)
 endif()
-set(mylibs SCENES SIM JSON ANIM RENDER )
+set(mylibs SCENES SIM JSON ANIM RENDER DMRETOPT)
 
 find_package(SWIG REQUIRED)
 include(${SWIG_USE_FILE})
@@ -98,14 +99,16 @@ set(CMAKE_SWIG_FLAGS "")
 if(APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "-flat_namespace -undefined suppress")
 endif()
+link_directories(third)
+
 # set up target library
 set_source_files_properties(DeepMimicCore.i PROPERTIES CPLUSPLUS ON)
 swig_add_library(DeepMimicCore TYPE SHARED LANGUAGE python OUTPUT_DIR ${CMAKE_SOURCE_DIR} OUTFILE_DIR ${CMAKE_SOURCE_DIR} SOURCES DeepMimicCore.i DeepMimicCore.cpp)
-swig_link_libraries(DeepMimicCore ${mylibs} ${libs} ${PYTHON_LIB})
+swig_link_libraries(DeepMimicCore RETOPT ${mylibs} ${libs} ${PYTHON_LIB})
 
 # set up target Main 
 add_executable(Main Main.cpp DeepMimicCore.cpp DeepMimicCore)
-target_link_libraries(Main ${mylibs} ${libs})
+target_link_libraries(Main ${mylibs} ${libs} RETOPT)
 
 # move main to its parent folder
 if(EXISTS "../Main")

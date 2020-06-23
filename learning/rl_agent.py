@@ -844,5 +844,5 @@ class RLAgent(ABC):
     def generate_new_body_shape(self):
         return np.array([1, 1.5, 1,
                          1, 1.5, 1,
-                         1, 1.5, 1,
+                         1, 1.5, 1, 
                          1, 1.5, 1])

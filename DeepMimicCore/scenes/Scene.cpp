@@ -6,6 +6,7 @@ cScene::cScene()
 	mRand.Seed(cMathUtil::RandUint());
 	mRandSeed = 0;
 	mHasRandSeed = false;
+	mRetOptImpl = nullptr;
 }
 
 cScene::~cScene()
@@ -138,4 +139,11 @@ void cScene::UpdateTimers(double timestep)
 {
 	// std::cout <<"void cScene::UpdateTimers(double timestep)" << std::endl;
 	mTimer.Update(timestep);
+}
+
+void cScene::RunRetargeting(cRetOptImpl::tParam &param) {
+    if (this->mRetOptImpl == nullptr) {
+        mRetOptImpl = new cRetOptImpl();
+    }
+    mRetOptImpl->Run(param);
 }

@@ -85,7 +85,10 @@ public:
 
 	virtual void Output(const std::string& out_filepath) const;
 
-	std::string GetMotionFile()const{return mParams.mMotionFile;} 
+	std::string GetMotionFile()const{return mParams.mMotionFile;}
+
+	Eigen::MatrixXd& GetFrames() {return mFrames;}
+
 protected:
 	eLoop mLoop;
 	double mVelFilterCutoff;

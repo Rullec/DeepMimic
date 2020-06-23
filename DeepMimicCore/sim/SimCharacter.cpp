@@ -920,6 +920,7 @@ bool cSimCharacter::BuildSimBody(const tParams& params)
 	bool succ = true;
 	// load important key "BodyDefs" , it is essential for simulation, including mass, inertia, etc.
 	succ = LoadBodyDefs(params.mCharFile, mBodyDefs);
+	if (succ) mBodyDefs0.noalias() = mBodyDefs;
 
 	if (succ)
 	{

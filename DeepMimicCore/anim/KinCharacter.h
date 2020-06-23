@@ -67,6 +67,7 @@ public:
 	virtual void PostProcessFrame(cMotion::tFrame* out_frame) const;
 	
 	virtual tVector GetCycleRootDelta() const;
+    virtual Eigen::MatrixXd& GetMotionFrames() {return mMotion.GetFrames();}
 
 protected:
 	double mTime;

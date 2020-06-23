@@ -1209,10 +1209,7 @@ void cSceneSimChar::ChangeBodyShape(Eigen::VectorXd &body_param) {
     auto curr_char    = mChars[0].get();
     const int n_joint = curr_char->GetNumJoints();
     const int n_part  = curr_char->GetNumBodyParts();
-    std::cout << "[log] cSceneSimChar::ChangeBodyShape(): num of characters: " << n_char << std::endl;
-    std::cout << "[log] cSceneSimChar::ChangeBodyShape(): num of joint: " << n_joint << std::endl;
-    std::cout << "[log] cSceneSimChar::ChangeBodyShape(): num of body parts: " << n_part << std::endl;
-
+    assert(n_joint > 0);
+    assert(n_part > 0);
     curr_char->ChangeBodyShape(body_param);
-
 }
