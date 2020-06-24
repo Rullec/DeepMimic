@@ -2,14 +2,19 @@
     "IDMode_bak1": "Online",
     "IDMode_bak2" : "OfflineSolve",
     "IDMode_bak4" : "Display",
-    "IDMode_bak3" : "Sample",
-    "IDMode": "OfflineSolve",
-    "SaveModeInfo":
+    "IDMode" : "Sample",
+    "IDMode_bak3": "OfflineSolve",
+    "traj_file_version" : 2,
+    "SampleModeInfo":
     {
-        "_comment" : "this section focus on the setting of save mode",
-        "clear_applied_force" : true,
-        "save_traj_root" : "data/0424/trajs/traj_0_obj.json",
-        "save_motion_root" :  "data/0424/motions/ID_motion_0_obj.txt"
+        "sample_num" : 1,
+        "enable_sample_ID_test" : false,
+        "clear_old_data" : true,
+        "record_theta_distribution" : false,
+        "enable_sync_theta_dist" : false,
+        "sample_trajs_dir" : "data/0424/0obj_trajs/",
+        "sample_trajs_rootname" : "traj_0obj.json",
+        "summary_table_filename" : "summary_table_0obj.json"
     },
     "DisplayModeInfo":
     {

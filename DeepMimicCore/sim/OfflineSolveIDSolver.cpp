@@ -87,7 +87,7 @@ void cOfflineIDSolver::ParseConfig(const std::string & conf)
     Json::Value root_;
     if(false == cJsonUtil::LoadJson(conf, root_))
     {
-        ErrorPrintf(mLogger, "ParseConfig %s failed", conf);
+        mLogger->error("ParseConfig %s failed", conf);
         exit(1);
     }
     Json::Value root = root_["SolveModeInfo"];
