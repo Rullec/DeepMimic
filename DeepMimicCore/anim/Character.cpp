@@ -533,3 +533,11 @@ std::string cCharacter::GetDrawShapeName(int id) const
 {
 	return mDrawShapeDefsName[id];
 }
+
+std::vector<std::string> *cCharacter::GetJointNames() {
+    return &mSkeletonJointsName;
+}
+
+std::vector<std::string> *cCharacter::GetBodyNames() {
+    return &mBodyDefsName;
+}

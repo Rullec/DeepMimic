@@ -10,12 +10,13 @@ class DeepMimicVariableLink:
     id = 0
     sym_link = ""
 
-    def __init__(self, id, name, lb, ub, sym_link):
+    def __init__(self, id, name, lb, ub, sym_link, is_fixed=False):
         self.id         = id
         self.name       = name
         self.lb         = lb
         self.ub         = ub
         self.sym_link   = sym_link
+        self.is_fixed   = is_fixed
 
     def print(self):
         print('id     : {}'.format(self.id))
@@ -23,6 +24,7 @@ class DeepMimicVariableLink:
         print('symlink: {}'.format(self.sym_link))
         print('lb     : {}'.format(self.lb))
         print('ub     : {}'.format(self.ub))
+        print('is_fixed:{}'.format(self.is_fixed))
 
 
 class DeepMimicShapeVarEnv(DeepMimicEnv):
@@ -48,8 +50,9 @@ class DeepMimicShapeVarEnv(DeepMimicEnv):
             lb = link_attrib['lb']
             ub = link_attrib['ub']
             sym_link = link_attrib['SymLink']
+            is_fixed = link_attrib['is_fixed']
             _id = self.var_links_name_id_map[link]
-            var_link = DeepMimicVariableLink(_id, link, lb, ub, sym_link)
+            var_link = DeepMimicVariableLink(_id, link, lb, ub, sym_link, is_fixed)
             self.var_links.append(var_link)
             self.body_shape_dim += 3
 
@@ -80,6 +83,7 @@ class DeepMimicShapeVarEnv(DeepMimicEnv):
         return np.array([1.0 for _ in range(self.body_shape_dim)])
 
     def build_state_norm_groups(self, agent_id):
+        '''todo: fix here'''
         group = self._core.BuildStateNormGroups(agent_id)
         group = list(group)
         for _ in range(self.body_shape_dim):
