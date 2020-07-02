@@ -149,6 +149,7 @@ class RLWorld(object):
         for agent in self.agents:
             if (agent != None):
                 agent.end_episode()
+        self.change_body_shape()
         return
 
     def _build_agent(self, id, agent_file):
@@ -167,4 +168,4 @@ class RLWorld(object):
 
     def change_body_shape(self):
         shape = self._generate_new_body_shape()
-        self.env.change_body_shape(shape.tolist())
+        self.env.change_body_shape(shape)

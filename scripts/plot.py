@@ -41,11 +41,11 @@ def read_log_file(filename):
                 time_exp_buffer.append(line.split()[11])
                 # print(line.split())
                 # print(time)
-        # print((time_count))
-        # print(time_exp_count)
-        # print((train_return))
-        # print((test_return))
-        
+        print((time_count))
+        print(time_exp_count)
+        print((train_return))
+        print((test_return))
+        print('len: {}'.format(len(train_return)))
         return train_return, test_return, time_count, time_exp_count
     #     cmd = "cat %s | grep -i train_return | awk '{print $4}' | grep -v =" % filename
     #     ret = subprocess.getoutput(cmd).split()

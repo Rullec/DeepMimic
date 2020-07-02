@@ -12,6 +12,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
 from env.deepmimic_env import DeepMimicEnv
+from env.env_builder import EnvType, build_env
 from learning.rl_world import RLWorld
 from util.arg_parser import ArgParser
 from util.logger import Logger
@@ -38,6 +39,7 @@ updates_per_sec = 0
 
 args = []
 world = None
+
 
 def build_arg_parser(args):
     arg_parser = ArgParser()
@@ -86,7 +88,6 @@ def update_world(world, time_elapsed):
                 print("episode done")
                 world.end_episode()
                 world.reset()
-                change_body_shape(world)
                 break
         else:   # 速度爆炸了
             # 一旦出现无效episode，直接就world.reset了。
@@ -95,9 +96,6 @@ def update_world(world, time_elapsed):
             break
     return
 
-def change_body_shape(world):
-    world.change_body_shape()
-    return
 
 def draw():
     global reshaping
@@ -323,7 +321,10 @@ def build_world(args, enable_draw, playback_speed=1):
     '''
 
     arg_parser = build_arg_parser(args)     # 参数解析器，之前已经看过，就是一个dict(value - list )而已
-    env = DeepMimicEnv(args, enable_draw)   # 先创建env
+    # env = DeepMimicEnv(args, enable_draw)   # 先创建env
+    env_type = EnvType.NORMAL_ENV if not arg_parser.has_key("var_links") else EnvType.SHAPEVAR_ENV
+    # env_type = EnvType.NORMAL_ENV if '--shape_var' not in args else EnvType.SHAPEVAR_ENV
+    env = build_env(env_type, args, enable_draw)
     world = RLWorld(env, arg_parser)        # 然后在创建world, (创建完world再创建agent)
     world.env.set_playback_speed(playback_speed)
     # 为什么环境总是要被先创建?因为agent是依赖world中的env才能给出维度信息的，才能act的。world是舞台

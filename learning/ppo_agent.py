@@ -15,6 +15,7 @@ from env.env import Env
 Proximal Policy Optimization Agent
 '''
 
+
 class PPOAgent(PGAgent):
     NAME = "PPO"
     EPOCHS_KEY = "Epochs"
@@ -192,6 +193,7 @@ class PPOAgent(PGAgent):
 
     def _eval_actor(self, s, g, enable_exp):
         s = np.reshape(s, [-1, self.get_state_size()])
+        # s = self.reshape_state(s)
         g = np.reshape(g, [-1, self.get_goal_size()]) if self.has_goal() else None
           
         feed = {
@@ -257,6 +259,7 @@ class PPOAgent(PGAgent):
         critic_loss = 0
         actor_loss = 0
         actor_clip_frac = 0
+        generator_loss = 0
 
         for e in range(self.epochs):
             # 对于每个epoch，先把idx shuffle
@@ -285,6 +288,8 @@ class PPOAgent(PGAgent):
                 # update critic
                 curr_critic_loss = self._update_critic(critic_s, critic_g, critic_batch_vals)
 
+                curr_generator_loss = self._update_generator(critic_s, critic_g, critic_batch_vals)
+
                 actor_s = self.replay_buffer.get("states", actor_batch[:,0])
                 actor_g = self.replay_buffer.get("goals", actor_batch[:,0]) if self.has_goal() else None    # 必须得有goal,不然怎么mimic?
                 actor_a = self.replay_buffer.get("actions", actor_batch[:,0])
@@ -303,6 +308,7 @@ class PPOAgent(PGAgent):
                 critic_loss += curr_critic_loss
                 actor_loss += np.abs(curr_actor_loss)
                 actor_clip_frac += curr_actor_clip_frac
+                generator_loss += curr_generator_loss
 
                 if (shuffle_actor):
                     np.random.shuffle(exp_idx)
@@ -315,6 +321,7 @@ class PPOAgent(PGAgent):
         critic_loss = MPIUtil.reduce_avg(critic_loss)
         actor_loss = MPIUtil.reduce_avg(actor_loss)
         actor_clip_frac = MPIUtil.reduce_avg(actor_clip_frac)
+        generator_loss = MPIUtil.reduce_avg(generator_loss)
 
         critic_stepsize = self.critic_solver.get_stepsize()
         actor_stepsize = self.update_actor_stepsize(actor_clip_frac)
@@ -326,7 +333,7 @@ class PPOAgent(PGAgent):
         self.logger.log_tabular('Clip_Frac', actor_clip_frac)
         self.logger.log_tabular('Adv_Mean', adv_mean)
         self.logger.log_tabular('Adv_Std', adv_std)
-
+        self.logger.log_tabular('Generator_Loss', generator_loss)
         # if we want to save buffer in TRAIN mode
         # then we will save buffer to disk at here,
         # just before clearing the buffer
@@ -485,3 +492,6 @@ class PPOAgent(PGAgent):
         }
         self.sess.run(self._actor_stepsize_update_op, feed)
         return
+
+    def _update_generator(self, s, g, tar_vals):
+        pass

@@ -64,7 +64,7 @@ endif()
 #different build type
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     message(STATUS "Build type: debug")
-    add_definitions("-O0 -g -Wall -fPIC -ggdb ")
+    add_definitions("-O0 -g -Wall -fPIC")
 elseif("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
     message(STATUS "Build type: release")
     add_definitions("-O3 -g -fPIC")

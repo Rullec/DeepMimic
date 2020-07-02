@@ -252,6 +252,7 @@ class PGAgent(TFAgent):
     def _eval_critic(self, s, g):
         with self.sess.as_default(), self.graph.as_default():
             s = np.reshape(s, [-1, self.get_state_size()])
+            # s = self.reshape_state(s)
             g = np.reshape(g, [-1, self.get_goal_size()]) if self.has_goal() else None
 
             feed = {
@@ -290,7 +291,7 @@ class PGAgent(TFAgent):
         idx = self.replay_buffer.sample(self._local_mini_batch_size)
         s = self.replay_buffer.get('states', idx)
         g = self.replay_buffer.get('goals', idx) if self.has_goal() else None
-        
+
         tar_V = self._calc_updated_vals(idx)
         tar_V = np.clip(tar_V, self.val_min, self.val_max)
 

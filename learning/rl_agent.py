@@ -242,6 +242,7 @@ class RLAgent(ABC):
             if (self._mode == self.Mode.TRAIN or self._mode == self.Mode.TRAIN_END):
                 if (self.enable_training and self.path.pathlength() > 0):
                     self._store_path(self.path)# rl agent里面有一个path的存储，每次在episode结束的时候都会存储起来
+
             elif (self._mode == self.Mode.TEST):
                 self._update_test_return(self.path)
                 # print("==================")
@@ -532,6 +533,7 @@ class RLAgent(ABC):
         # print("logp : " + str(logp))# 实数: 114.27289?怎么会这么大?
         # path里面有所有信息: state goal actions logps flags，每次就是存进去。
         # 所以现在的问题就是，为什么这些state action goal a logp会是nan?
+
         self.path.states.append(s)
         # self.path.contact_info.append(c)
         # self.path.poses.append(p)
@@ -842,7 +844,11 @@ class RLAgent(ABC):
         return
 
     def generate_new_body_shape(self):
-        return np.array([1, 1.5, 1,
-                         1, 1.5, 1,
-                         1, 1.5, 1, 
-                         1, 1.5, 1])
+        pass
+
+    def reshape_state(self, s):
+        s = np.reshape(s, [-1, self.get_state_size()])
+        return s
+
+    def concat_state(self, s):
+        return s

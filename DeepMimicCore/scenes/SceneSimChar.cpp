@@ -175,6 +175,7 @@ void cSceneSimChar::Init()
 	// std::cout << "root rot = " << sim_char->GetRootRotation().coeffs().transpose() << std::endl;
 	// std::cout << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
 	// exit(1);
+
 }
 
 void cSceneSimChar::Clear()
@@ -411,6 +412,7 @@ bool cSceneSimChar::BuildCharacters()
 		cSimCharBuilder::CreateCharacter(char_type, curr_char);
 		
 		succ &= curr_char->Init(mWorld, curr_params);
+
 		// std::cout <<"init1 pose = " << curr_char->GetPose().transpose() << std::endl;
 		if (succ)
 		{
@@ -449,8 +451,7 @@ bool cSceneSimChar::BuildCharacters()
 		// set up other setting
 		curr_char->SetEnablejointTorqueControl(mEnableJointTorqueControl);
 	}
-	
-	
+
 	return succ;
 }
 
@@ -1203,7 +1204,8 @@ void cSceneSimChar::ResetRandPertrub()
 }
 
 void cSceneSimChar::ChangeBodyShape(Eigen::VectorXd &body_param) {
-    std::cout << "[log] cSceneSimChar::ChangeBodyShape() is called\n";
+//    std::cout << "[log] cSceneSimChar::ChangeBodyShape() is called\n";
+//    return;
     const int n_char  = mChars.size();
     assert(n_char == 1);
     auto curr_char    = mChars[0].get();

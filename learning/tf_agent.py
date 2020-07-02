@@ -123,10 +123,11 @@ class TFAgent(RLAgent):
     def _build_normalizers(self):
         with self.sess.as_default(), self.graph.as_default(), tf.variable_scope(self.tf_scope):
             with tf.variable_scope(self.RESOURCE_SCOPE):
+                # todo: modify goal norm group
                 self.s_norm = TFNormalizer(self.sess, 's_norm', self.get_state_size(), self.world.env.build_state_norm_groups(self.id))
-                self.s_norm.set_mean_std(-self.world.env.build_state_offset(self.id), 
+                self.s_norm.set_mean_std(-self.world.env.build_state_offset(self.id),
                                          1 / self.world.env.build_state_scale(self.id))
-                
+
                 self.g_norm = TFNormalizer(self.sess, 'g_norm', self.get_goal_size(), self.world.env.build_goal_norm_groups(self.id))
                 self.g_norm.set_mean_std(-self.world.env.build_goal_offset(self.id), 
                                          1 / self.world.env.build_goal_scale(self.id))

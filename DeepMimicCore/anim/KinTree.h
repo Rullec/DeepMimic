@@ -243,6 +243,8 @@ public:
 	static std::string BuildJointMatJson(const Eigen::MatrixXd& joint_mat);
 	static std::string BuildJointJson(int id, const tJointDesc& joint_desc);
 
+    static void SetBodyMass(Eigen::MatrixXd &body_def, double mass, int &part_id);
+
 protected:
 	static bool ParseJoint(const Json::Value& root, tJointDesc& out_joint_desc, std::string & out_joint_name);
 	static bool ParseJointType(const std::string& type_str, eJointType& out_joint_type);

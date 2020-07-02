@@ -3,6 +3,7 @@ from env.env import Env
 from DeepMimicCore import DeepMimicCore
 from env.action_space import ActionSpace
 
+
 class DeepMimicEnv(Env):
     def __init__(self, args, enable_draw):
         super().__init__(args, enable_draw)
@@ -188,3 +189,15 @@ class DeepMimicEnv(Env):
     def change_body_shape(self, body_shape):
         self._core.ChangeBodyShape(body_shape)
         return
+
+    def init_state_of_body_shape(self):
+        pass
+
+    def is_symmetric_var_mode(self):
+        pass
+
+    def get_var_links(self):
+        pass
+
+    def get_var_links_names_id_map(self):
+        pass
