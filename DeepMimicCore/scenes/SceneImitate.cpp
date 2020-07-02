@@ -312,7 +312,6 @@ cSceneImitate::cSceneImitate()
 	mEnableAngleDiffLog = false;
 	mEnableRootRotFail = false;
 	mHoldEndFrame = 0;
-
 	// gRewardInfopath = "reward_info_sample.txt";
 	// cFileUtil::ClearFile(gRewardInfopath);
 }
@@ -841,6 +840,7 @@ double cSceneImitate::CalcRandKinResetTime()
 }
 
 void cSceneImitate::ChangeBodyShape(Eigen::VectorXd &body_param) {
+//    return;
     cSceneSimChar::ChangeBodyShape(body_param);
     auto& kin_char = GetKinChar();
     const Eigen::MatrixXd& joint_mat = GetCharacter()->GetJointMat();

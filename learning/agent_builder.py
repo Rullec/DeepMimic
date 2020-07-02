@@ -3,8 +3,10 @@ import numpy as np
 from learning.ppo_agent import PPOAgent
 from retargeting.sa.SimpleAgent import SimpleAgent
 from retargeting.pg.PGRTAgent import PGRTAgent
+from learning.PPOShepVarAgent import PPOShapeVarAgent
 
 AGENT_TYPE_KEY = "AgentType"
+
 
 def build_agent(world, id, file):
     agent = None
@@ -20,6 +22,8 @@ def build_agent(world, id, file):
             agent = SimpleAgent(world, id, json_data)
         elif agent_type == PGRTAgent.NAME:
             agent = PGRTAgent(world, id, json_data)
+        elif agent_type == PPOShapeVarAgent.NAME:
+            agent = PPOShapeVarAgent(world, id, json_data)
         else:
             assert False, 'Unsupported agent type: ' + agent_type
 

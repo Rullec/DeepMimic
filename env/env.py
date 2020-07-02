@@ -226,3 +226,15 @@ class Env(ABC):
     @abstractmethod
     def set_mode(self, mode):
         pass
+
+    @abstractmethod
+    def is_symmetric_var_mode(self):
+        pass
+
+    @abstractmethod
+    def get_var_links(self):
+        pass
+
+    @abstractmethod
+    def get_var_links_names_id_map(self):
+        pass

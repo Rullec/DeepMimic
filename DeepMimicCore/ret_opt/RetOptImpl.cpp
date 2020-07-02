@@ -4,8 +4,9 @@
 
 #include "RetOptImpl.h"
 #include "DMRetController.h"
+#include <iostream>
 #include <fstream>
-#include <math.h>
+#include <cmath>
 
 void cRetOptImpl::Run(cRetOptImpl::tParam param) {
     DeepMimicData data;
@@ -13,12 +14,13 @@ void cRetOptImpl::Run(cRetOptImpl::tParam param) {
     data.motion = param.motion_mat;
     data.n_frames = param.motion_mat->rows();
 
+
     DMRetController* controller = new DMRetController();
     controller->RunDeepMimicShapeVarRetargeting(data);
     delete controller;
-    SaveJointMat("/home/ljf/playground/project/RobotControl/Data/joint_mat/0620/062001.txt", *(data.joint_mat));
-    SaveMotionMat("/home/ljf/playground/project/RobotControl/Data/motion_mat/0620/062001.txt", *(data.motion));
-    exit(-1);
+//    SaveJointMat("/home/ljf/playground/project/RobotControl/Data/joint_mat/0620/062001.txt", *(data.joint_mat));
+//    SaveMotionMat("/home/ljf/playground/project/RobotControl/Data/motion_mat/0620/062001.txt", *(data.motion));
+//    exit(-1);
 }
 
 void cRetOptImpl::SaveJointMat(const char *file, const Eigen::MatrixXd& joint_mat) {

@@ -2159,3 +2159,7 @@ void cKinTree::SetJointAttachPt(Eigen::MatrixXd &joint_mat, const tVector &attac
     joint_mat.coeffRef(joint_id, eJointDescAttachY) = attach_pt.y();
     joint_mat.coeffRef(joint_id, eJointDescAttachZ) = attach_pt.z();
 }
+
+void cKinTree::SetBodyMass(Eigen::MatrixXd &body_defs, double mass, int &part_id) {
+    body_defs.coeffRef(part_id, eBodyParamMass) = mass;
+}

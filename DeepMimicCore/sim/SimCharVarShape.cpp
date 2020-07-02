@@ -10,7 +10,9 @@ cSimCharVarShape::cSimCharVarShape() {
 
 bool cSimCharVarShape::Init(const std::shared_ptr<cWorld> &world, const cSimCharacter::tParams &params) {
     bool succ = cSimCharacter::Init(world, params);
+
     succ &= LoadVarLinksFile(params.mVarLinksFile.data());
+
     return succ;
 }
 
@@ -37,48 +39,61 @@ bool cSimCharVarShape::LoadVarLinksFile(const char *file) {
             std::cerr << "[Error] Cannot find variable link: " << links_name << std::endl;
             succ = false;
         }
-        found = false;
-        for(size_t i = 0; i < GetDrawShapeDefs().rows(); ++i) {
-            if (GetDrawShapeName(i) == links_name) {
-                var_draw_shape_ids.push_back(i);
-                found = true;
-                break;
+        if (GetDrawShapeDefs().rows() > 0) {
+            found = false;
+            for(size_t i = 0; i < GetDrawShapeDefs().rows(); ++i) {
+                if (GetDrawShapeName(i) == links_name) {
+                    var_draw_shape_ids.push_back(i);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                std::cerr << "[Error] Cannot find variable link: " << links_name << std::endl ;
+                succ = false;
             }
         }
-        if (!found) {
-            std::cerr << "[Error] Cannot find variable link: " << links_name << std::endl ;
-            succ = false;
-        }
+
     }
     std::cout << "variable links: \n";
     for(auto& i: var_body_ids) {
         std::cout << "i: " << i << ' ' << GetBodyName(i) << std::endl;
     }
     std::cout << "==========\n";
-    for(auto& i: var_draw_shape_ids) {
-        std::cout << "i: " << i << ' ' << GetDrawShapeName(i) << std::endl;
+    if (GetDrawShapeDefs().rows() > 0) {
+        std::cout << "variable draw defs: \n";
+        for(auto& i: var_draw_shape_ids) {
+            std::cout << "i: " << i << ' ' << GetDrawShapeName(i) << std::endl;
+        }
+        std::cout << "==========\n";
     }
-    std::cout << "==========\n";
+
     return succ;
 }
 
 void cSimCharVarShape::ChangeBodyShape(Eigen::VectorXd& param) {
-    std::cout << "[log] cSimCharVarShape::ChangeBodyShape() is called\n";
+//    std::cout << "[log] cSimCharVarShape::ChangeBodyShape() is called\n";
     assert(param.size() == 3 * var_joint_ids.size());
     cCharacter::Reset();
 
     for(size_t i = 0; i < var_body_ids.size(); ++i) {
         tVector scale(param[i * 3], param[i * 3 + 1], param[i * 3 + 2], 0);
         tVector body_shape = cKinTree::GetBodySize(mBodyDefs0, var_body_ids[i]);
+        double mass = cKinTree::GetBodyMass(mBodyDefs0, var_body_ids[i]);
         body_shape.noalias() = body_shape.cwiseProduct(scale);
+        mass *= scale[0] * scale[1] * scale[2];
         // 1. set shape param
         cKinTree::SetBodySize(mBodyDefs, body_shape, var_body_ids[i]);
-        cKinTree::SetDrawShapeSize(mDrawShapeDefs, body_shape, var_draw_shape_ids[i]);
+        cKinTree::SetBodyMass(mBodyDefs, mass, var_body_ids[i]);
         // 2. set attach param
         tVector body_attach_pt = cKinTree::GetBodyAttachPt(mBodyDefs0, var_body_ids[i]);
         body_attach_pt.noalias() = body_attach_pt.cwiseProduct(scale);
         cKinTree::SetBodyAttachPt(mBodyDefs, body_attach_pt, var_body_ids[i]);
-        cKinTree::SetDrawShapeAttachPt(mDrawShapeDefs, body_attach_pt, var_draw_shape_ids[i]);
+
+        if (GetDrawShapeDefs().rows() > 0) {
+            cKinTree::SetDrawShapeSize(mDrawShapeDefs, body_shape, var_draw_shape_ids[i]);
+            cKinTree::SetDrawShapeAttachPt(mDrawShapeDefs, body_attach_pt, var_draw_shape_ids[i]);
+        }
 
         tVector joint_attach_pt = cKinTree::GetJointAttachPt(mJointMat0, var_joint_ids[i] + 1);
         joint_attach_pt.noalias() = joint_attach_pt.cwiseProduct(scale);
@@ -86,5 +101,6 @@ void cSimCharVarShape::ChangeBodyShape(Eigen::VectorXd& param) {
     }
 
     UpdateBodyShape();
+//    std::cout << "[log] cSimCharVarShape::ChangeBodyShape() finished\n";
 }
 

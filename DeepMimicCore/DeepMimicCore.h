@@ -91,6 +91,9 @@ public:
 	virtual void ChangeBodyShape(const std::vector<double>& body_param);
     // =========================================================================
 
+    virtual std::string GetStringArgs(const std::string& name);
+    virtual bool GetBooleanArgs(const std::string& name);
+
 protected:
 	unsigned long int mRandSeed;
 
