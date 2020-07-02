@@ -12,6 +12,7 @@ class RLWorld(object):
         self.arg_parser = arg_parser
         self._enable_training = True
         self.train_agents = []
+        self.var_links = False
         self.parse_args(arg_parser) # 解析参数，主要解释num_agent, agent的个数。
 
         self.build_agents()
@@ -43,7 +44,7 @@ class RLWorld(object):
         num_agents = self.env.get_num_agents()
         # agent 个数和 worker个数不一样，一个agent代表训练一个策略;而多个worker只是用来增加采样数的
         assert(len(self.train_agents) == num_agents or len(self.train_agents) == 0)
-
+        self.var_links = self.arg_parser.parse_bools('var_links')
         return
 
     def shutdown(self):
@@ -167,5 +168,7 @@ class RLWorld(object):
         return self.agents[0].generate_new_body_shape()
 
     def change_body_shape(self):
+        if not self.var_links:
+            return
         shape = self._generate_new_body_shape()
         self.env.change_body_shape(shape)
