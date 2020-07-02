@@ -13,6 +13,8 @@ public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
         const Eigen::MatrixXd* joint_mat;
         Eigen::MatrixXd* motion_mat;
+        std::vector<std::string>* joint_names;
+        std::vector<std::string>* link_names;
     };
 
     cRetOptImpl() {}

@@ -109,6 +109,18 @@ const std::shared_ptr<cKinCharacter>& cDrawSceneImitate::GetKinChar() const
 }
 
 void cDrawSceneImitate::ChangeBodyShape(Eigen::VectorXd &body_param) {
+
+    bool is_fixed = true;
+    for(int i = 0; i < body_param.size(); ++i) {
+        if (abs(body_param[i] - 1) > 1e-5) {
+            is_fixed = false;
+            break;
+        }
+    }
+    if (is_fixed) {
+        return;
+    };
+
     mScene->ChangeBodyShape(body_param);
     auto& kin_char = GetKinChar();
     const Eigen::MatrixXd& joint_mat = mScene->GetCharacter()->GetJointMat();
@@ -116,6 +128,8 @@ void cDrawSceneImitate::ChangeBodyShape(Eigen::VectorXd &body_param) {
     cRetOptImpl::tParam param;
     param.joint_mat = &joint_mat;
     param.motion_mat = &motion_mat;
+    param.joint_names = mScene->GetCharacter()->GetJointNames();
+    param.link_names  = mScene->GetCharacter()->GetBodyNames();
     mScene->RunRetargeting(param);
 }
 

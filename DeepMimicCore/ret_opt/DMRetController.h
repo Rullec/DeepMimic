@@ -14,6 +14,9 @@ struct DeepMimicData {
     int     n_joints;
     int     n_frames;
 
+    std::vector<std::string>* joint_names;
+    std::vector<std::string>* link_names;
+
 };
 
 class DMRetController : public Controller {

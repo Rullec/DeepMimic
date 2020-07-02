@@ -85,6 +85,9 @@ public:
 	virtual std::string GetJointName(int id) const;
 	virtual std::string GetDrawShapeName(int id) const;
 
+	virtual std::vector<std::string>* GetJointNames();
+	virtual std::vector<std::string>* GetBodyNames();
+
 protected:
 	int mID;
 	Eigen::MatrixXd mJointMat;

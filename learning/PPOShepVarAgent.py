@@ -13,7 +13,9 @@ class PPOShapeVarAgent(PPOAgent):
 
         self.var_links = self.world.env.get_var_links()
         self.var_links_names_id_map = self.world.env.get_var_links_names_id_map()
+        self.all_fixed = False
 
+        self._is_all_vars_links_fixed()
         self._compute_unique_variable_size()
         self._compute_shape_bounds()
         self._init_state_of_body_shape()
@@ -51,6 +53,8 @@ class PPOShapeVarAgent(PPOAgent):
         return self.concat_state(s)
 
     def generate_new_body_shape(self):
+        if self.all_fixed:
+            return np.ones(self.body_shape_dim)
         sb_prime = self.shape_generator.generate_shape(sb_input=self.sb)
         self.sb = sb_prime
         if self.world.env.is_symmetric_var_mode():
@@ -122,3 +126,10 @@ class PPOShapeVarAgent(PPOAgent):
         # step 2. Update generator
         tar_vals = np.reshape(tar_vals, (-1, 1))
         return self.shape_generator.update(s_, v_target=tar_vals)
+
+    def _is_all_vars_links_fixed(self):
+        self.all_fixed = True
+        for link in self.var_links:
+            if not link.is_fixed:
+                self.all_fixed = False
+                break

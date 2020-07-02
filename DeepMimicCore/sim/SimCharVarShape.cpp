@@ -23,6 +23,13 @@ bool cSimCharVarShape::LoadVarLinksFile(const char *file) {
     Json::Value root;
     succ &= reader.parse(f_stream, root);
     auto& var_links_name = root["var_links"];
+//    std::cout << var_links_name.size() << std::endl;
+//    exit(1);
+    if (var_links_name.empty()) {
+        var_body_ids.clear();
+        var_draw_shape_ids.clear();
+        return succ;
+    }
 
     for(auto itr = var_links_name.begin(); itr != var_links_name.end(); ++itr) {
         auto links_name = itr->asString();
@@ -73,6 +80,7 @@ bool cSimCharVarShape::LoadVarLinksFile(const char *file) {
 
 void cSimCharVarShape::ChangeBodyShape(Eigen::VectorXd& param) {
 //    std::cout << "[log] cSimCharVarShape::ChangeBodyShape() is called\n";
+    assert (!var_body_ids.empty());
     assert(param.size() == 3 * var_joint_ids.size());
     cCharacter::Reset();
 

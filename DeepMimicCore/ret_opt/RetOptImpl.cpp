@@ -10,10 +10,12 @@
 
 void cRetOptImpl::Run(cRetOptImpl::tParam param) {
     DeepMimicData data;
-    data.joint_mat = param.joint_mat;
-    data.motion = param.motion_mat;
-    data.n_frames = param.motion_mat->rows();
-
+    data.joint_mat  = param.joint_mat;
+    data.motion     = param.motion_mat;
+    data.n_joints   = param.joint_mat->rows();
+    data.n_frames   = param.motion_mat->rows();
+    data.joint_names = param.joint_names;
+    data.link_names  = param.link_names;
 
     DMRetController* controller = new DMRetController();
     controller->RunDeepMimicShapeVarRetargeting(data);
