@@ -74,7 +74,7 @@ public:
 	virtual double GetVertSpacingZ() const;
 
 	virtual bool Output(const std::string& out_file) const;
-
+    virtual eObjType GetObjType() const {return eGround;}
 protected:
 
 	cRand mRand;

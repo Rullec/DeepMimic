@@ -250,6 +250,7 @@ class PPOAgent(PGAgent):
         
         adv = new_vals[exp_idx[:,0]] - vals[exp_idx[:,0]]
         new_vals = np.clip(new_vals, self.val_min, self.val_max)
+        vals_sb = self._compute_v_sb(start_idx, end_idx, new_vals)
 
         adv_mean = np.mean(adv)
         adv_std = np.std(adv)
@@ -281,14 +282,14 @@ class PPOAgent(PGAgent):
                 actor_batch = exp_idx[actor_batch]
                 critic_batch_vals = new_vals[critic_batch]
                 actor_batch_adv = adv[actor_batch[:,1]]
+                val_batch_sb = vals_sb[critic_batch]
 
                 critic_s = self.replay_buffer.get('states', critic_batch)
                 critic_g = self.replay_buffer.get('goals', critic_batch) if self.has_goal() else None
 
                 # update critic
                 curr_critic_loss = self._update_critic(critic_s, critic_g, critic_batch_vals)
-
-                curr_generator_loss = self._update_generator(critic_s, critic_g, critic_batch_vals)
+                curr_generator_loss = self._update_generator(critic_s, critic_g, val_batch_sb)
 
                 actor_s = self.replay_buffer.get("states", actor_batch[:,0])
                 actor_g = self.replay_buffer.get("goals", actor_batch[:,0]) if self.has_goal() else None    # 必须得有goal,不然怎么mimic?
@@ -495,3 +496,14 @@ class PPOAgent(PGAgent):
 
     def _update_generator(self, s, g, tar_vals):
         pass
+
+    def _compute_v_sb(self, start_idx, end_idx, vals):
+        curr_idx = start_idx
+        v_sb = np.zeros_like(vals)
+        while curr_idx < end_idx:
+            idx0 = curr_idx - start_idx
+            idx1 = self.replay_buffer.get_path_end(curr_idx) - start_idx
+
+            v_sb[idx0: idx1] = np.mean(vals[idx0:idx1])
+            curr_idx = idx1 + start_idx + 1
+        return v_sb

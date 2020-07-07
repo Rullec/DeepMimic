@@ -381,6 +381,7 @@ public:
     void            LoadJointMat(const char* file, mat& joint_mat);
     void 			LoadModelFromJointMat(const char* file);
     void            LoadModelFromJointMat(mat& joint_mat);
+    virtual void	ClearController();
 
 protected:
     void			Init();
@@ -443,7 +444,6 @@ protected:
     //=================================================================
     void			BatchModifyMultiProc(std::vector<double>& ans, int n_freedom, int n_frame, int freedom_id, double v, int start, int end);
 
-    void 			ClearController();
 
 
     BaseRender			*render;

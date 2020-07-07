@@ -4,11 +4,31 @@
 
 #include "RetOptImpl.h"
 #include "DMRetController.h"
+#include "NormalShapeMotionMemPool.h"
 #include <iostream>
 #include <fstream>
 #include <cmath>
 
-void cRetOptImpl::Run(cRetOptImpl::tParam param) {
+cRetOptImpl::cRetOptImpl() {
+    controller = new DMRetController("data/0704/tp/110602.tp");
+    shape_motion_pool = new NormalShapeMotionMemPool(100, 1.8e-3);
+}
+
+cRetOptImpl::~cRetOptImpl() {
+    delete controller;
+}
+
+
+void cRetOptImpl::Run(cRetOptImpl::tParam& param) {
+    // 1. search in the pool
+    cShapeMotionNode* node = shape_motion_pool->FindNearestOne(param.body_shape_param);
+    if (node) {
+        std::cout << "[log] Find valid closest motion\n";
+        std::cout << "pool.size(): " << shape_motion_pool->GetLength() << std::endl;
+        *(param.motion_mat) = node->motion_mat;
+        return;
+    }
+
     DeepMimicData data;
     data.joint_mat  = param.joint_mat;
     data.motion     = param.motion_mat;
@@ -17,9 +37,11 @@ void cRetOptImpl::Run(cRetOptImpl::tParam param) {
     data.joint_names = param.joint_names;
     data.link_names  = param.link_names;
 
-    DMRetController* controller = new DMRetController();
+
     controller->RunDeepMimicShapeVarRetargeting(data);
-    delete controller;
+    controller->ClearController();
+
+    shape_motion_pool->Insert(param.body_shape_param, param.motion_mat);
 //    SaveJointMat("/home/ljf/playground/project/RobotControl/Data/joint_mat/0620/062001.txt", *(data.joint_mat));
 //    SaveMotionMat("/home/ljf/playground/project/RobotControl/Data/motion_mat/0620/062001.txt", *(data.motion));
 //    exit(-1);
@@ -56,3 +78,4 @@ void cRetOptImpl::SaveMotionMat(const char *file, const Eigen::MatrixXd &motion_
     fout << motion_mat << std::endl;
     fout.close();
 }
+

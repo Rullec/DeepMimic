@@ -1,5 +1,6 @@
 from learning.ppo_agent import PPOAgent
 from shapevar.shapegen.shape_gen import ShapeGen
+from shapevar.shapegen.shape_builder import build_shape_generator
 import numpy as np
 
 
@@ -29,6 +30,7 @@ class PPOShapeVarAgent(PPOAgent):
         lr_nn = shape_var_agent_data['lr_nn']
         lr_mu = shape_var_agent_data['lr_mu']
         k = shape_var_agent_data['k']
+        gen_type = shape_var_agent_data['type']
 
         # layers = [512, 256, 64]
         # l2_coeff = 1
@@ -36,8 +38,9 @@ class PPOShapeVarAgent(PPOAgent):
         # lr_mu = 1e-2
         # k = 1
         proposal_func = ShapeGen.UNIFORM_DISTRIBUTION
-        self.shape_generator = ShapeGen(self.n_unique_var_shape_size, self.lb, self.ub, layers, l2_coeff, proposal_func,
-                                        lr_nn, lr_mu, k)
+        self.shape_generator = build_shape_generator(gen_type)(self.n_unique_var_shape_size, self.lb, self.ub, layers, l2_coeff, proposal_func, lr_nn, lr_mu, k)
+        # self.shape_generator = ShapeGen(self.n_unique_var_shape_size, self.lb, self.ub, layers, l2_coeff, proposal_func,
+        #                                 lr_nn, lr_mu, k)
 
         self.generate_new_body_shape()
 
@@ -56,6 +59,7 @@ class PPOShapeVarAgent(PPOAgent):
         if self.all_fixed:
             return np.ones(self.body_shape_dim)
         sb_prime = self.shape_generator.generate_shape(sb_input=self.sb)
+        print(sb_prime)
         self.sb = sb_prime
         if self.world.env.is_symmetric_var_mode():
             sb_prime = self._recover_body_shape_param(sb_prime)

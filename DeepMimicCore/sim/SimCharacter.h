@@ -151,6 +151,7 @@ public:
 	virtual std::string GetCharFilename();
 
 	virtual void ChangeBodyShape(Eigen::VectorXd& body_param);
+	void CheckContact();
 protected:
 	std::shared_ptr<cMultiBody> mMultiBody;
 	std::vector<std::shared_ptr<cSimBodyLink>> mBodyParts;

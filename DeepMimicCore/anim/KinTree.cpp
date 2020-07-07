@@ -10,6 +10,45 @@ const int cKinTree::gRotDim = 4;
 const int cKinTree::gRootDim = gPosDim + gRotDim;
 const int cKinTree::gInvalidJointID = -1;
 
+std::vector<std::string> cKinTree::joint_names = {
+        "root_joint",
+        "Spine1_joint",
+        "vneck_joint",
+        "RightArm_joint",
+        "RightForeArm_joint",
+        "RightHand_joint",
+        "Neck_joint",
+        "Head_joint",
+        "LeftArm_joint",
+        "LeftForeArm_joint",
+        "LeftHand_joint",
+        "RightLeg_joint",
+        "RightFoot_joint",
+        "RFootTongue_joint",
+        "LeftLeg_joint",
+        "LeftFoot_joint",
+        "LFootTongue_joint"
+};
+std::vector<std::string> cKinTree::body_names = {
+        "root",
+        "Spine1",
+        "vneck",
+        "RightArm",
+        "RightForeArm",
+        "RightHand",
+        "Neck",
+        "Head",
+        "LeftArm",
+        "LeftForeArm",
+        "LeftHand",
+        "RightLeg",
+        "RightFoot",
+        "RFootTongue",
+        "LeftLeg",
+        "LeftFoot",
+        "LFootTongue"
+};
+
 // Json keys
 const std::string gJointTypeNames[cKinTree::eJointTypeMax] =
 {

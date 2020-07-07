@@ -19,13 +19,16 @@ struct DeepMimicData {
 
 };
 
+
 class DMRetController : public Controller {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     DMRetController();
+    DMRetController(const char* file);
 
     DMRetController(BaseRender *render);
     virtual void Test() override ;
+    virtual void ClearController();
     void TestDeepMimicShapeVarRetargeting();
     bool RunDeepMimicShapeVarRetargeting(DeepMimicData& data);
 protected:
