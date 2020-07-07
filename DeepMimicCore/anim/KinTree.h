@@ -244,7 +244,11 @@ public:
 	static std::string BuildJointJson(int id, const tJointDesc& joint_desc);
 
     static void SetBodyMass(Eigen::MatrixXd &body_def, double mass, int &part_id);
+    static void SetJointNames(std::vector<std::string>& _joint_names) {cKinTree::joint_names = _joint_names;}
+    static void SetBodyNames(std::vector<std::string>& _body_names) {cKinTree::body_names = _body_names;}
 
+    static std::string GetJointNames(int idx) {return joint_names[idx];}
+    static std::string GetBodyNames(int idx) {return body_names[idx];}
 protected:
 	static bool ParseJoint(const Json::Value& root, tJointDesc& out_joint_desc, std::string & out_joint_name);
 	static bool ParseJointType(const std::string& type_str, eJointType& out_joint_type);
@@ -273,5 +277,10 @@ protected:
 
 	static void CalcJointPoseDiff(const Eigen::MatrixXd& joint_mat, int joint_id, const Eigen::VectorXd& pose0, const Eigen::VectorXd& pose1, Eigen::VectorXd& out_diff);
 	static void CalcJointVelDiff(const Eigen::MatrixXd& joint_mat, int joint_id, const Eigen::VectorXd& vel0, const Eigen::VectorXd& vel1, Eigen::VectorXd& out_diff);
+
+
+
+    static std::vector<std::string> joint_names;
+    static std::vector<std::string> body_names;
 
 };

@@ -1191,6 +1191,7 @@ bool cSimCharacter::BuildBodyLinks()
 		curr_part->SetColMask(col_mask);
 
 		curr_part->Init(mWorld, mMultiBody, params);
+
 	}
 
 	return true;
@@ -1754,21 +1755,40 @@ void cSimCharacter::ChangeBodyShape(Eigen::VectorXd& param) {
 void cSimCharacter::UpdateBodyShape() {
     bool succ = true;
     mWorld->RemoveCharacter(*this);
+    mWorld->Reset();
     mJoints.clear();
     mBodyParts.clear();
     mCons.clear();
     mMultiBody.reset();
-//    mWorld->RemoveCharacter(*this);
+
+    InitDefaultState();
     mInvRootAttachRot = cMathUtil::EulerToQuaternion(cKinTree::GetAttachTheta(mJointMat, GetRootID()), eRotationOrder::XYZ).inverse();
+
     succ &= BuildMultiBody(mMultiBody);
     succ &= BuildJointLimits(mMultiBody);
     succ &= BuildBodyLinks();
     succ &= BuildJoints();
+
     mWorld->AddCharacter(*this);
 
     mVecBuffer0.resize(mMultiBody->getNumLinks() + 1);
     mVecBuffer1.resize(mMultiBody->getNumLinks() + 1);
     mRotBuffer.resize(mMultiBody->getNumLinks() + 1);
+}
+
+void cSimCharacter::CheckContact() {
+    std::cout << "=======contact checking start=======\n";
+    for (int i = 0; i < GetNumBodyParts(); ++i)
+    {
+        if (IsValidBodyPart(i))
+        {
+            if (IsInContact(i))
+            {
+                std::cout << GetBodyName(i) << ' ';
+            }
+        }
+    }
+    std::cout << "=======contact checking end=======\n";
 }
 
 void btvector2eigen(btAlignedObjectArray<btScalar> & r, Eigen::VectorXd &e)

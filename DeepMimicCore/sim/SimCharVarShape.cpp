@@ -87,12 +87,14 @@ void cSimCharVarShape::ChangeBodyShape(Eigen::VectorXd& param) {
     for(size_t i = 0; i < var_body_ids.size(); ++i) {
         tVector scale(param[i * 3], param[i * 3 + 1], param[i * 3 + 2], 0);
         tVector body_shape = cKinTree::GetBodySize(mBodyDefs0, var_body_ids[i]);
-        double mass = cKinTree::GetBodyMass(mBodyDefs0, var_body_ids[i]);
         body_shape.noalias() = body_shape.cwiseProduct(scale);
+
+        double mass = cKinTree::GetBodyMass(mBodyDefs0, var_body_ids[i]);
         mass *= scale[0] * scale[1] * scale[2];
         // 1. set shape param
+        // do not modify body mass for now
         cKinTree::SetBodySize(mBodyDefs, body_shape, var_body_ids[i]);
-        cKinTree::SetBodyMass(mBodyDefs, mass, var_body_ids[i]);
+//        cKinTree::SetBodyMass(mBodyDefs, mass, var_body_ids[i]);
         // 2. set attach param
         tVector body_attach_pt = cKinTree::GetBodyAttachPt(mBodyDefs0, var_body_ids[i]);
         body_attach_pt.noalias() = body_attach_pt.cwiseProduct(scale);
@@ -103,11 +105,11 @@ void cSimCharVarShape::ChangeBodyShape(Eigen::VectorXd& param) {
             cKinTree::SetDrawShapeAttachPt(mDrawShapeDefs, body_attach_pt, var_draw_shape_ids[i]);
         }
 
+        // todo: fix here by using child joint id
         tVector joint_attach_pt = cKinTree::GetJointAttachPt(mJointMat0, var_joint_ids[i] + 1);
         joint_attach_pt.noalias() = joint_attach_pt.cwiseProduct(scale);
         cKinTree::SetJointAttachPt(mJointMat, joint_attach_pt, var_joint_ids[i] + 1);
     }
-
     UpdateBodyShape();
 //    std::cout << "[log] cSimCharVarShape::ChangeBodyShape() finished\n";
 }

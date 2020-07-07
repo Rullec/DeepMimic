@@ -786,7 +786,7 @@ void cSceneSimChar::ResolveCharGroundIntersect(const std::shared_ptr<cSimCharact
 	{
 		// here is a root pos, uplift our body
 		tVector root_pos = out_char->GetRootPos();
-		root_pos[1] += -min_violation;	
+		root_pos[1] += -min_violation;
 		out_char->SetRootPos(root_pos);
 	}
 }
@@ -839,6 +839,7 @@ void cSceneSimChar::PostUpdateCharacters(double time_step)
 	{
 		const auto& curr_char = GetCharacter(i);
 		curr_char->PostUpdate(time_step);
+//		curr_char->CheckContact();
 	}
 }
 
@@ -1208,10 +1209,14 @@ void cSceneSimChar::ChangeBodyShape(Eigen::VectorXd &body_param) {
 //    return;
     const int n_char  = mChars.size();
     assert(n_char == 1);
-    auto curr_char    = mChars[0].get();
+    auto curr_char    = mChars[0];
     const int n_joint = curr_char->GetNumJoints();
     const int n_part  = curr_char->GetNumBodyParts();
     assert(n_joint > 0);
     assert(n_part > 0);
     curr_char->ChangeBodyShape(body_param);
+    SetFallContacts(mFallContactBodies, *curr_char);
+    curr_char->RegisterContacts(cWorld::eContactFlagCharacter, cWorld::eContactFlagEnvironment);
+    InitCharacterPos(curr_char);
+    curr_char->SetEnablejointTorqueControl(mEnableJointTorqueControl);
 }

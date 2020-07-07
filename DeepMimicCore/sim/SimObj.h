@@ -18,7 +18,12 @@ public:
 		eTypeStatic,
 		eTypeMax
 	};
-
+    enum eObjType {
+        eDefault,
+        eSimBodyLink,
+        eSimJoint,
+        eGround
+    };
 	virtual ~cSimObj();
 
 	virtual tVector GetPos() const;
@@ -67,6 +72,7 @@ public:
 
 	virtual const btCollisionShape* GetCollisionShape() const;
 
+	virtual eObjType GetObjType() const {return eDefault; };
 protected:
 	std::shared_ptr<cWorld> mWorld;
 	std::unique_ptr<btCollisionShape> mColShape;

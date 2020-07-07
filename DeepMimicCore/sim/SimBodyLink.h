@@ -40,7 +40,7 @@ public:
 	virtual void UpdateVel(const tVector& lin_vel, const tVector& ang_vel);
 	virtual const std::shared_ptr<cMultiBody>& GetMultBody() const;
 	virtual int GetJointID() const;
-
+    virtual cSimObj::eObjType GetObjType() const {return eSimBodyLink;}
 protected:
 	std::shared_ptr<cMultiBody> mMultiBody;
 	std::unique_ptr<btMultiBodyLinkCollider> mColObj;	// 从这个地方拿到当前mesh link的真正位置
