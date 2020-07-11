@@ -406,8 +406,9 @@ bool cCharacter::LoadSkeleton(const Json::Value& root)
 {
 	// set up joint info in mJointMat
 	mSkeletonJointsName.clear();
-	return cKinTree::Load(root, mJointMat, mSkeletonJointsName);
-
+	bool succ = cKinTree::Load(root, mJointMat, mSkeletonJointsName);
+    cKinTree::SetJointNames(mSkeletonJointsName);
+    return succ;
 }
 
 void cCharacter::InitDefaultState()

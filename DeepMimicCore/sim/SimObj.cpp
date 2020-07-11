@@ -254,3 +254,9 @@ const std::shared_ptr<cWorld>& cSimObj::GetWorld() const
 {
 	return mWorld;
 }
+
+btVector3 cSimObj::GetCollisionObjectWorldPos() {
+    const auto* obj = GetCollisionObject();
+    std::cout << "obj add: " << obj << std::endl;
+    return obj->getWorldTransform() * btVector3(0, 0, 0);
+}

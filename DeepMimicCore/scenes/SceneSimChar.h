@@ -188,4 +188,5 @@ protected:
 
 public:
     void ChangeBodyShape(Eigen::VectorXd &body_param) override;
+    void CheckCollisionStatus();
 };

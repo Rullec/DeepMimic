@@ -73,6 +73,11 @@ public:
 	virtual const btCollisionShape* GetCollisionShape() const;
 
 	virtual eObjType GetObjType() const {return eDefault; };
+
+	virtual btVector3 GetCollisionObjectWorldPos() ;
+
+    virtual const btCollisionObject* GetCollisionObjectPublicMethodForDebugging() const {return GetCollisionObject();}
+
 protected:
 	std::shared_ptr<cWorld> mWorld;
 	std::unique_ptr<btCollisionShape> mColShape;

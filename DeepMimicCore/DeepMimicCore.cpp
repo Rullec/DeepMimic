@@ -3,6 +3,7 @@
 #include "render/DrawUtil.h"
 #include "scenes/SceneBuilder.h"
 #include "scenes/DrawSceneImitate.h"
+#include "util/TimeUtil.hpp"
 
 // 这代码明摆着是visual studio搞出来的
 cDeepMimicCore::cDeepMimicCore(bool enable_draw)
@@ -58,10 +59,11 @@ void cDeepMimicCore::Init()
 	}
 	SetupScene();
 }
-
 void cDeepMimicCore::Update(double timestep)
 {
+    cTimeUtil::BeginAvgLazy("Core Update");
 	mScene->Update(timestep);
+	cTimeUtil::EndAvgLazy("Core Update");
 }
 
 void cDeepMimicCore::Reset()
@@ -756,4 +758,12 @@ bool cDeepMimicCore::GetBooleanArgs(const std::string &name) {
     bool out = false;
     mArgParser->ParseBool(name, out);
     return out;
+}
+
+double cDeepMimicCore::RecordTime(const std::string &name) const {
+    return cTimeUtil::GetAndClearTimeAvgLazy(name);
+}
+
+std::vector<std::string> cDeepMimicCore::GetTimerNames() {
+    return cTimeUtil::GetNames();
 }

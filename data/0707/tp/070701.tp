@@ -1,0 +1,67 @@
+<?xml version="1.0" ?>
+<tp version="0.1">
+    <number_of_frame>33</number_of_frame>
+    <robot_name>figure</robot_name>
+    <target_points>
+        <target>
+            <id>0</id>
+            <pose>0 -0.0448303 0.081323</pose>
+            <local_coordinate>1</local_coordinate>
+            <bind_object type="0">RFootTongue</bind_object>
+            <key_frame/>
+            <contact>
+                <uplifted>
+                    <st>11</st>
+                    <ed>25</ed>
+                </uplifted>
+            </contact>
+        </target>
+        <target>
+            <id>1</id>
+            <pose>0 -0.0250222 -0.0476939</pose>
+            <local_coordinate>1</local_coordinate>
+            <bind_object type="0">RFootTongue</bind_object>
+            <key_frame/>
+            <contact>
+                <uplifted>
+                    <st>5</st>
+                    <ed>24</ed>
+                </uplifted>
+            </contact>
+        </target>
+        <target>
+            <id>0</id>
+            <pose>0 -0.0224664 -0.0477887</pose>
+            <local_coordinate>1</local_coordinate>
+            <bind_object type="0">LFootTongue</bind_object>
+            <key_frame/>
+            <contact>
+                <uplifted>
+                    <st>0</st>
+                    <ed>9</ed>
+                </uplifted>
+                <uplifted>
+                    <st>26</st>
+                    <ed>32</ed>
+                </uplifted>
+            </contact>
+        </target>
+        <target>
+            <id>1</id>
+            <pose>0 -0.0473014 0.080663</pose>
+            <local_coordinate>1</local_coordinate>
+            <bind_object type="0">LFootTongue</bind_object>
+            <key_frame/>
+            <contact>
+                <uplifted>
+                    <st>0</st>
+                    <ed>10</ed>
+                </uplifted>
+                <uplifted>
+                    <st>25</st>
+                    <ed>32</ed>
+                </uplifted>
+            </contact>
+        </target>
+    </target_points>
+</tp>

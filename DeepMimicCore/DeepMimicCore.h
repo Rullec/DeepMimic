@@ -94,6 +94,9 @@ public:
     virtual std::string GetStringArgs(const std::string& name);
     virtual bool GetBooleanArgs(const std::string& name);
 
+    virtual double RecordTime(const std::string& name) const;
+    virtual std::vector<std::string> GetTimerNames();
+
 protected:
 	unsigned long int mRandSeed;
 

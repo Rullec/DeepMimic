@@ -1,5 +1,6 @@
 ﻿#include "SimBodyLink.h"
 #include "BulletDynamics/Featherstone/btMultiBodyLinkCollider.h"
+#include <iostream>
 
 cSimBodyLink::tParams::tParams()
 {
@@ -20,6 +21,7 @@ cSimBodyLink::cSimBodyLink()
 
 cSimBodyLink::~cSimBodyLink()
 {
+//    std::cout << "delete link: " << cKinTree::GetBodyNames(mJointID) << std::endl;
 	RemoveFromWorld();
 }
 

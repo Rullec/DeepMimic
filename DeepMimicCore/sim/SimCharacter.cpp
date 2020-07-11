@@ -11,6 +11,8 @@
 #include "util/JsonUtil.h"
 #include "util/BulletUtil.h"
 
+#include "util/TimeUtil.hpp"
+
 cSimCharacter::tParams::tParams()
 {
 	mID = gInvalidIdx;
@@ -132,7 +134,13 @@ void cSimCharacter::Update(double timestep)
 	}
 
 	// dont clear torques until next frame since they can be useful for visualization
-	UpdateJoints();	
+	UpdateJoints();
+
+//	std::cout <<  "-=-=-=-=-=-=-=-=-=-=-=-=\n";
+//    for(auto & mBodyPart : mBodyParts) {
+//        std::cout << GetBodyName(mBodyPart->GetJointID()) << " use count: " << mBodyPart.use_count() << std::endl;
+//    }
+//    std::cout <<  "-=-=-=-=-=-=-=-=-=-=-=-=\n";
 
 }
 
@@ -1163,6 +1171,7 @@ bool cSimCharacter::BuildJointLimits(std::shared_ptr<cMultiBody>& out_body)
 bool cSimCharacter::LoadBodyDefs(const std::string& char_file, Eigen::MatrixXd& out_body_defs)
 {
 	bool succ = cKinTree::LoadBodyDefs(char_file, out_body_defs, mBodyDefsName);
+	if (succ) cKinTree::SetBodyNames(mBodyDefsName);
 	int num_joints = GetNumJoints();
 	int num_body_defs = static_cast<int>(out_body_defs.rows());
 	assert(num_joints == num_body_defs);
@@ -1753,13 +1762,17 @@ void cSimCharacter::ChangeBodyShape(Eigen::VectorXd& param) {
 }
 
 void cSimCharacter::UpdateBodyShape() {
+    cTimeUtil::BeginAvgLazy("UpdateBodyShape");
     bool succ = true;
     mWorld->RemoveCharacter(*this);
     mWorld->Reset();
     mJoints.clear();
+
+    for(auto & mBodyPart : mBodyParts) {
+        mBodyPart.reset();
+    }
     mBodyParts.clear();
     mCons.clear();
-    mMultiBody.reset();
 
     InitDefaultState();
     mInvRootAttachRot = cMathUtil::EulerToQuaternion(cKinTree::GetAttachTheta(mJointMat, GetRootID()), eRotationOrder::XYZ).inverse();
@@ -1774,6 +1787,8 @@ void cSimCharacter::UpdateBodyShape() {
     mVecBuffer0.resize(mMultiBody->getNumLinks() + 1);
     mVecBuffer1.resize(mMultiBody->getNumLinks() + 1);
     mRotBuffer.resize(mMultiBody->getNumLinks() + 1);
+    cTimeUtil::EndAvgLazy("UpdateBodyShape");
+
 }
 
 void cSimCharacter::CheckContact() {

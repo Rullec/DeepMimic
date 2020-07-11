@@ -216,30 +216,51 @@ void cSceneSimChar::Update(double time_elapsed)
 
 	if (mPerturbParams.mEnableRandPerturbs)
 	{
+	    cTimeUtil::BeginAvgLazy("UpdateRandPerturb");
 		UpdateRandPerturb(time_elapsed);
-	}
+        cTimeUtil::EndAvgLazy("UpdateRandPerturb");
+    }
 
+	cTimeUtil::BeginAvgLazy("PreUpdate");
 	PreUpdate(time_elapsed);		// clear joint torque
+    cTimeUtil::EndAvgLazy("PreUpdate");
+
 	// 显示一下速度：是不是最开始的时候设置的速度太大了?
-
+    cTimeUtil::BeginAvgLazy("UpdateCharacters");
 	UpdateCharacters(time_elapsed);
-
+    cTimeUtil::EndAvgLazy("UpdateCharacters");
 	if(mEnableID)
 	{
 		mIDSolver->SetTimestep(time_elapsed);
 		mIDSolver->PreSim();
 	}
 
+    cTimeUtil::BeginAvgLazy("UpdateWorld");
 	UpdateWorld(time_elapsed);
-	UpdateGround(time_elapsed);
-	UpdateObjs(time_elapsed);
+    cTimeUtil::EndAvgLazy("UpdateWorld");
+
+    cTimeUtil::BeginAvgLazy("UpdateGround");
+    UpdateGround(time_elapsed);
+    cTimeUtil::EndAvgLazy("UpdateGround");
+
+    cTimeUtil::BeginAvgLazy("UpdateObjs");
+    UpdateObjs(time_elapsed);
+    cTimeUtil::EndAvgLazy("UpdateObjs");
+
+    cTimeUtil::BeginAvgLazy("UpdateJoints");
 	UpdateJoints(time_elapsed);
+	cTimeUtil::EndAvgLazy("UpdateJoints");
 
+	cTimeUtil::BeginAvgLazy("PostUpdateCharacters");
 	PostUpdateCharacters(time_elapsed);
-	PostUpdate(time_elapsed);
-	
-	if(mEnableID)	mIDSolver->PostSim();
+	cTimeUtil::EndAvgLazy("PostUpdateCharacters");
 
+	cTimeUtil::BeginAvgLazy("PostUpdate");
+	PostUpdate(time_elapsed);
+	cTimeUtil::EndAvgLazy("PostUpdate");
+
+	if(mEnableID)	mIDSolver->PostSim();
+    CheckCollisionStatus();
 	// cTimeUtil::End("sim update");
 }
 
@@ -1215,8 +1236,33 @@ void cSceneSimChar::ChangeBodyShape(Eigen::VectorXd &body_param) {
     assert(n_joint > 0);
     assert(n_part > 0);
     curr_char->ChangeBodyShape(body_param);
-    SetFallContacts(mFallContactBodies, *curr_char);
-    curr_char->RegisterContacts(cWorld::eContactFlagCharacter, cWorld::eContactFlagEnvironment);
-    InitCharacterPos(curr_char);
-    curr_char->SetEnablejointTorqueControl(mEnableJointTorqueControl);
+//    SetFallContacts(mFallContactBodies, *curr_char);
+//    curr_char->RegisterContacts(cWorld::eContactFlagCharacter, cWorld::eContactFlagEnvironment);
+//    InitCharacterPos(curr_char);
+//    curr_char->SetEnablejointTorqueControl(mEnableJointTorqueControl);
+}
+
+void cSceneSimChar::CheckCollisionStatus() {
+    return;
+    std::unique_ptr<btMultiBodyDynamicsWorld>& bt_world = mWorld->GetInternalWorld();	// 获取Internal world
+    int n_multibody =  bt_world->getNumMultibodies();
+    std::cout << "num_of_multibody: " << n_multibody << std::endl;
+    for(int i = 0; i < n_multibody; ++i) {
+        std::cout << "multi body " << i << " addr: " << bt_world->getMultiBody(i) << std::endl;
+    }
+    std::cout << "num of collision object: " << bt_world->getNumCollisionObjects() << std::endl;
+    const int n_char  = mChars.size();
+    assert(n_char == 1);
+    auto curr_char      = mChars[0];
+    const int n_joint   = curr_char->GetNumJoints();
+    int num_parts       = curr_char->GetNumBodyParts();
+    double min_violation = 0;
+    for (int b = 0; b < num_parts; ++b) {
+        // if this body part is valid
+        if (curr_char->IsValidBodyPart(b)) {
+            auto& part = curr_char->GetBodyPart(b);
+            btVector3 pos = part->GetCollisionObjectWorldPos();
+            std::cout << curr_char->GetBodyName(b) << ", pos: " << pos.x() << ", " << pos.y() << ", "  << pos.z()<< std::endl;
+        }
+    }
 }

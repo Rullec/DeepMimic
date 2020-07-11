@@ -109,6 +109,7 @@ const std::shared_ptr<cKinCharacter>& cDrawSceneImitate::GetKinChar() const
 }
 
 void cDrawSceneImitate::ChangeBodyShape(Eigen::VectorXd &body_param) {
+    mTracer.Clear();
     mScene->ChangeBodyShape(body_param);
 }
 
