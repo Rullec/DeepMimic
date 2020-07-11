@@ -76,10 +76,15 @@ void cContactManager::Update()
 	double world_scale = mWorld.GetScale();
 	double timestep = mWorld.GetTimeStep();
 	std::unique_ptr<btMultiBodyDynamicsWorld>& bt_world = mWorld.GetInternalWorld();	// 获取Internal world
-
-	int num_manifolds = bt_world->getDispatcher()->getNumManifolds();	// btDispatcher是什么?Mainfolds又是什么?
-	std::cout <<"num_mainfolds = " << num_manifolds << std::endl;
-
+	int n_multibody =  bt_world->getNumMultibodies();
+//	std::cout << "num_of_multibody: " << n_multibody << std::endl;
+//	for(int i = 0; i < n_multibody; ++i) {
+//	    std::cout << "multi body " << i << " addr: " << bt_world->getMultiBody(i) << std::endl;
+//	}
+//
+//    std::cout << "num of collision object: " << bt_world->getNumCollisionObjects() << std::endl;
+    int num_manifolds = bt_world->getDispatcher()->getNumManifolds();	// btDispatcher是什么?Mainfolds又是什么?
+//	std::cout <<"num_mainfolds = " << num_manifolds << std::endl;
 	auto print_contact = [](const cSimObj* sim_obj){
         if (sim_obj->GetObjType() == cSimObj::eSimBodyLink) {
             const auto* link0 = dynamic_cast<const cSimBodyLink*>(sim_obj);
@@ -94,7 +99,6 @@ void cContactManager::Update()
         }
 	};
 
-
 	// abort();
 	for (int i = 0; i < num_manifolds; ++i)
 	{
@@ -103,10 +107,8 @@ void cContactManager::Update()
 		const btCollisionObject* obj1 = static_cast<const btCollisionObject*>(mani->getBody1());	// 获取碰撞对象2
 
 		int num_contacts = mani->getNumContacts();	// 获取接触点个数
-		if (num_contacts > 0)
-		    std::cout << "there are " << num_contacts << " contact pts on manifold: " << i << std::endl;
-
-
+//		if (num_contacts > 0)
+//		    std::cout << "there are " << num_contacts << " contact pts on manifold: " << i << std::endl;
 
 		for (int j = 0; j < num_contacts; ++j)
 		{
@@ -128,20 +130,22 @@ void cContactManager::Update()
 				const cSimObj* sim_obj0 = static_cast<const cSimObj*>(obj0->getUserPointer());
 				const cSimObj* sim_obj1 = static_cast<const cSimObj*>(obj1->getUserPointer());
 
-				bool succ = false;
+//				bool succ = false;
+//
+//				if (sim_obj0->GetObjType() != cSimObj::eDefault && sim_obj1->GetObjType() != cSimObj::eDefault) {
+//				    succ = true;
+//				}
 
-				if (sim_obj0->GetObjType() != cSimObj::eDefault && sim_obj1->GetObjType() != cSimObj::eDefault) {
-				    succ = true;
-				}
-
-				if (succ) {
-				    print_contact(sim_obj0);
-				    std::cout << pt.m_positionWorldOnA.x() << ", " << pt.m_positionWorldOnA.y() << ", " << pt.m_positionWorldOnA.z();
-				    std::cout << "\n";
-                    print_contact(sim_obj1);
-                    std::cout << pt.m_positionWorldOnB.x() << ", " << pt.m_positionWorldOnB.y() << ", " << pt.m_positionWorldOnB.z();
-                    std::cout << "\n";
-				}
+//				if (succ) {
+//				    print_contact(sim_obj0);
+//				    std::cout << sim_obj0->GetCollisionObjectPublicMethodForDebugging() << std::endl;
+//				    std::cout << pt.m_positionWorldOnA.x() << ", " << pt.m_positionWorldOnA.y() << ", " << pt.m_positionWorldOnA.z();
+//				    std::cout << "\n";
+//                    print_contact(sim_obj1);
+//                    std::cout << sim_obj1->GetCollisionObjectPublicMethodForDebugging() << std::endl;
+//                    std::cout << pt.m_positionWorldOnB.x() << ", " << pt.m_positionWorldOnB.y() << ", " << pt.m_positionWorldOnB.z();
+//                    std::cout << "\n";
+//				}
 
 				const tContactHandle& h0 = sim_obj0->GetContactHandle();
 				const tContactHandle& h1 = sim_obj1->GetContactHandle();

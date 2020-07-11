@@ -68,6 +68,11 @@ void cObjTracer::Reset()
 void cObjTracer::Clear()
 {
 	ResetTimer();
+
+	for( auto trace: mTraces) {
+		trace.mParams.mObj.reset();
+	}
+
 	mTraces.clear();
 }
 

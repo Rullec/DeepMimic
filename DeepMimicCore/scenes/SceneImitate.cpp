@@ -841,14 +841,14 @@ double cSceneImitate::CalcRandKinResetTime()
 
 void cSceneImitate::ChangeBodyShape(Eigen::VectorXd &body_param) {
 //    return;
-//    bool is_fixed = true;
-//    for(int i = 0; i < body_param.size(); ++i) {
-//        if (abs(body_param[i] - 1) > 1e-5) {
-//            is_fixed = false;
-//            break;
-//        }
-//    }
-//    if (is_fixed) return ;
+    bool is_fixed = true;
+    for(int i = 0; i < body_param.size(); ++i) {
+        if (abs(body_param[i] - 1) > 1e-5) {
+            is_fixed = false;
+            break;
+        }
+    }
+    if (is_fixed) return ;
     cSceneSimChar::ChangeBodyShape(body_param);
     auto& kin_char = GetKinChar();
     const Eigen::MatrixXd& joint_mat = GetCharacter()->GetJointMat();
@@ -860,5 +860,5 @@ void cSceneImitate::ChangeBodyShape(Eigen::VectorXd &body_param) {
     param.link_names  = GetCharacter()->GetBodyNames();
     param.body_shape_param = body_param;
 
-    cSceneSimChar::RunRetargeting(param);
+//    cSceneSimChar::RunRetargeting(param);
 }

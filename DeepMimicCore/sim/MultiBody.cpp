@@ -1,5 +1,5 @@
 #include "MultiBody.h"
-
+#include <iostream>
 
 void cMultiBody::SpatialTransform(const btMatrix3x3 &rotation_matrix, const btVector3 &displacement, 
 							const btVector3 &top_in, const btVector3 &bottom_in, btVector3 &top_out, 
@@ -16,6 +16,7 @@ cMultiBody::cMultiBody(int n_links, btScalar mass, const btVector3 &inertia,
 
 cMultiBody::~cMultiBody()
 {
+//    std::cout << "delete multibody\n";
 }
 
 #include <iostream>

@@ -22,6 +22,8 @@ def read_log_file(filename):
         time_exp_count = []
         time_buffer = []
         time_exp_buffer = []
+        critic_loss = []
+        actor_loss = []
         for line in cont:
             if line.find("Train_Ret") != -1:
                 try:
@@ -39,6 +41,10 @@ def read_log_file(filename):
             if line.find("Timer") != -1: # get timer
                 time_buffer.append(line.split()[8][:-1])
                 time_exp_buffer.append(line.split()[11])
+            if line.find('Critic_Loss') != -1:
+                critic_loss.append(float(line.split()[3]))
+            if line.find('Actor_Loss') != -1:
+                actor_loss.append(float(line.split()[3]))
                 # print(line.split())
                 # print(time)
         print((time_count))
@@ -46,7 +52,7 @@ def read_log_file(filename):
         print((train_return))
         print((test_return))
         print('len: {}'.format(len(train_return)))
-        return train_return, test_return, time_count, time_exp_count
+        return train_return, test_return, time_count, time_exp_count, critic_loss, actor_loss
     #     cmd = "cat %s | grep -i train_return | awk '{print $4}' | grep -v =" % filename
     #     ret = subprocess.getoutput(cmd).split()
     #     ret = [float(i) for i in ret]
@@ -73,14 +79,18 @@ if __name__ =="__main__":
     
     # check file valid
     for filename in args:
-        train, test, time, time_exp= read_log_file(filename)
-        plt.subplot(1, 2, 1)
+        train, test, time, time_exp, c_loss, a_loss = read_log_file(filename)
+        plt.subplot(1, 3, 1)
         plt.plot(train, label = filename + " train_ret")
         plt.plot(test, label = filename + " test_ret")
         plt.legend()
-        plt.subplot(1, 2, 2)
+        plt.subplot(1, 3, 2)
         plt.plot(time, label = filename + " timer")
         plt.plot(time_exp, label = filename  + " timer exp")
+        plt.legend()
+        plt.subplot(1, 3, 3)
+        plt.plot(c_loss, label=filename+' c loss')
+        plt.plot(a_loss, label=filename+' a loss')
         plt.legend()
         # plt.legend([filename + " train_ret", filename + " test_ret", filename + " timer", ])
     # plt.legend(args)
