@@ -250,7 +250,7 @@ class PPOAgent(PGAgent):
         
         adv = new_vals[exp_idx[:,0]] - vals[exp_idx[:,0]]
         new_vals = np.clip(new_vals, self.val_min, self.val_max)
-        # vals_sb = self._compute_v_sb(start_idx, end_idx, new_vals)
+        vals_sb = self._compute_v_sb(start_idx, end_idx, new_vals)
 
         adv_mean = np.mean(adv)
         adv_std = np.std(adv)
@@ -261,10 +261,6 @@ class PPOAgent(PGAgent):
         actor_loss = 0
         actor_clip_frac = 0
         generator_loss = 0
-
-        timer_names = self._get_timer_names()
-
-        timer = np.zeros(len(timer_names))
 
         for e in range(self.epochs):
             # 对于每个epoch，先把idx shuffle
@@ -286,14 +282,14 @@ class PPOAgent(PGAgent):
                 actor_batch = exp_idx[actor_batch]
                 critic_batch_vals = new_vals[critic_batch]
                 actor_batch_adv = adv[actor_batch[:,1]]
-                # val_batch_sb = vals_sb[critic_batch]
+                val_batch_sb = vals_sb[critic_batch]
 
                 critic_s = self.replay_buffer.get('states', critic_batch)
                 critic_g = self.replay_buffer.get('goals', critic_batch) if self.has_goal() else None
 
                 # update critic
                 curr_critic_loss = self._update_critic(critic_s, critic_g, critic_batch_vals)
-                # curr_generator_loss = self._update_generator(critic_s, critic_g, val_batch_sb)
+                curr_generator_loss = self._update_generator(critic_s, critic_g, val_batch_sb)
 
                 actor_s = self.replay_buffer.get("states", actor_batch[:,0])
                 actor_g = self.replay_buffer.get("goals", actor_batch[:,0]) if self.has_goal() else None    # 必须得有goal,不然怎么mimic?
@@ -313,7 +309,7 @@ class PPOAgent(PGAgent):
                 critic_loss += curr_critic_loss
                 actor_loss += np.abs(curr_actor_loss)
                 actor_clip_frac += curr_actor_clip_frac
-                # generator_loss += curr_generator_loss
+                generator_loss += curr_generator_loss
 
                 if (shuffle_actor):
                     np.random.shuffle(exp_idx)
@@ -322,22 +318,14 @@ class PPOAgent(PGAgent):
         critic_loss /= total_batches
         actor_loss /= total_batches
         actor_clip_frac /= total_batches
-        # core_update_time = super()._record_time(timer_name='Core Update')
-        # sim_charactor_update_body_shape_time = super()._record_time("UpdateBodyShape")
+
         critic_loss = MPIUtil.reduce_avg(critic_loss)
         actor_loss = MPIUtil.reduce_avg(actor_loss)
         actor_clip_frac = MPIUtil.reduce_avg(actor_clip_frac)
-        # generator_loss = MPIUtil.reduce_avg(generator_loss)
-        # core_update_time = MPIUtil.reduce_sum(core_update_time) * 1e-3
-        # sim_charactor_update_body_shape_time = MPIUtil.reduce_sum(sim_charactor_update_body_shape_time) * 1e-3
+        generator_loss = MPIUtil.reduce_avg(generator_loss)
+
         critic_stepsize = self.critic_solver.get_stepsize()
         actor_stepsize = self.update_actor_stepsize(actor_clip_frac)
-
-        for i, name in enumerate(timer_names):
-            timer[i] = self._record_time(name)
-
-        for i, name in enumerate(timer_names):
-            timer[i] = MPIUtil.reduce_sum(timer[i]) * 1e-3
 
         self.logger.log_tabular('Critic_Loss', critic_loss)
         self.logger.log_tabular('Critic_Stepsize', critic_stepsize)
@@ -346,13 +334,7 @@ class PPOAgent(PGAgent):
         self.logger.log_tabular('Clip_Frac', actor_clip_frac)
         self.logger.log_tabular('Adv_Mean', adv_mean)
         self.logger.log_tabular('Adv_Std', adv_std)
-        # self.logger.log_tabular('Generator_Loss', generator_loss)
-
-        for i, name in enumerate(timer_names):
-            self.logger.log_tabular(name, timer[i])
-
-        # self.logger.log_tabular('Core_Update_Time', core_update_time)
-        # self.logger.log_tabular('Update_Body_Shape_Time', sim_charactor_update_body_shape_time)
+        self.logger.log_tabular('Generator_Loss', generator_loss)
         # if we want to save buffer in TRAIN mode
         # then we will save buffer to disk at here,
         # just before clearing the buffer

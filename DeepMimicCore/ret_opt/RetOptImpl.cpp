@@ -11,7 +11,7 @@
 
 cRetOptImpl::cRetOptImpl() {
     controller = new DMRetController("data/0707/tp/070701.tp");
-    shape_motion_pool = new NormalShapeMotionMemPool(100, 1.8e-3);
+    shape_motion_pool = new NormalShapeMotionMemPool(100, 1.8e-1);
 }
 
 cRetOptImpl::~cRetOptImpl() {
@@ -38,8 +38,8 @@ void cRetOptImpl::Run(cRetOptImpl::tParam& param) {
     data.link_names  = param.link_names;
 
 
-//    controller->RunDeepMimicShapeVarRetargeting(data);
-//    controller->ClearController();
+   controller->RunDeepMimicShapeVarRetargeting(data);
+   controller->ClearController();
 
     shape_motion_pool->Insert(param.body_shape_param, param.motion_mat);
 //    SaveJointMat("/home/ljf/playground/project/RobotControl/Data/joint_mat/0620/062001.txt", *(data.joint_mat));

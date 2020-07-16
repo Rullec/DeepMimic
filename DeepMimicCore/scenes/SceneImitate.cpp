@@ -860,5 +860,5 @@ void cSceneImitate::ChangeBodyShape(Eigen::VectorXd &body_param) {
     param.link_names  = GetCharacter()->GetBodyNames();
     param.body_shape_param = body_param;
 
-//    cSceneSimChar::RunRetargeting(param);
+    cSceneSimChar::RunRetargeting(param);
 }

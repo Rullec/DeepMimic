@@ -40,7 +40,7 @@
 --agent_files data/0709/agent/train_aj_shape_var.json
 --train_agents true
 
---output_path /data/ubuntu_data/DeepMimic/output/0710/
+--output_path /data/ubuntu_data/DeepMimic/output/0711/
 # --model_files output/0426/agent0_model_2020_07_04_10_58_50_484.85.ckpt
 # --model_files output/0426/agent0_model_2020_07_04_13_37_45_13.66.ckpt
 

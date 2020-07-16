@@ -216,49 +216,28 @@ void cSceneSimChar::Update(double time_elapsed)
 
 	if (mPerturbParams.mEnableRandPerturbs)
 	{
-	    cTimeUtil::BeginAvgLazy("UpdateRandPerturb");
 		UpdateRandPerturb(time_elapsed);
-        cTimeUtil::EndAvgLazy("UpdateRandPerturb");
-    }
+	}
 
-	cTimeUtil::BeginAvgLazy("PreUpdate");
 	PreUpdate(time_elapsed);		// clear joint torque
-    cTimeUtil::EndAvgLazy("PreUpdate");
-
 	// 显示一下速度：是不是最开始的时候设置的速度太大了?
-    cTimeUtil::BeginAvgLazy("UpdateCharacters");
+
 	UpdateCharacters(time_elapsed);
-    cTimeUtil::EndAvgLazy("UpdateCharacters");
+
 	if(mEnableID)
 	{
 		mIDSolver->SetTimestep(time_elapsed);
 		mIDSolver->PreSim();
 	}
 
-    cTimeUtil::BeginAvgLazy("UpdateWorld");
 	UpdateWorld(time_elapsed);
-    cTimeUtil::EndAvgLazy("UpdateWorld");
-
-    cTimeUtil::BeginAvgLazy("UpdateGround");
-    UpdateGround(time_elapsed);
-    cTimeUtil::EndAvgLazy("UpdateGround");
-
-    cTimeUtil::BeginAvgLazy("UpdateObjs");
-    UpdateObjs(time_elapsed);
-    cTimeUtil::EndAvgLazy("UpdateObjs");
-
-    cTimeUtil::BeginAvgLazy("UpdateJoints");
+	UpdateGround(time_elapsed);
+	UpdateObjs(time_elapsed);
 	UpdateJoints(time_elapsed);
-	cTimeUtil::EndAvgLazy("UpdateJoints");
 
-	cTimeUtil::BeginAvgLazy("PostUpdateCharacters");
 	PostUpdateCharacters(time_elapsed);
-	cTimeUtil::EndAvgLazy("PostUpdateCharacters");
-
-	cTimeUtil::BeginAvgLazy("PostUpdate");
 	PostUpdate(time_elapsed);
-	cTimeUtil::EndAvgLazy("PostUpdate");
-
+	
 	if(mEnableID)	mIDSolver->PostSim();
     CheckCollisionStatus();
 	// cTimeUtil::End("sim update");
@@ -1236,10 +1215,10 @@ void cSceneSimChar::ChangeBodyShape(Eigen::VectorXd &body_param) {
     assert(n_joint > 0);
     assert(n_part > 0);
     curr_char->ChangeBodyShape(body_param);
-//    SetFallContacts(mFallContactBodies, *curr_char);
-//    curr_char->RegisterContacts(cWorld::eContactFlagCharacter, cWorld::eContactFlagEnvironment);
-//    InitCharacterPos(curr_char);
-//    curr_char->SetEnablejointTorqueControl(mEnableJointTorqueControl);
+    // SetFallContacts(mFallContactBodies, *curr_char);
+    // curr_char->RegisterContacts(cWorld::eContactFlagCharacter, cWorld::eContactFlagEnvironment);
+    // InitCharacterPos(curr_char);
+    // curr_char->SetEnablejointTorqueControl(mEnableJointTorqueControl);
 }
 
 void cSceneSimChar::CheckCollisionStatus() {

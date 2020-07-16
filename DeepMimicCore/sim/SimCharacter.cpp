@@ -11,8 +11,6 @@
 #include "util/JsonUtil.h"
 #include "util/BulletUtil.h"
 
-#include "util/TimeUtil.hpp"
-
 cSimCharacter::tParams::tParams()
 {
 	mID = gInvalidIdx;
@@ -1762,7 +1760,6 @@ void cSimCharacter::ChangeBodyShape(Eigen::VectorXd& param) {
 }
 
 void cSimCharacter::UpdateBodyShape() {
-    cTimeUtil::BeginAvgLazy("UpdateBodyShape");
     bool succ = true;
     mWorld->RemoveCharacter(*this);
     mWorld->Reset();
@@ -1782,13 +1779,12 @@ void cSimCharacter::UpdateBodyShape() {
     succ &= BuildBodyLinks();
     succ &= BuildJoints();
 
+
     mWorld->AddCharacter(*this);
 
     mVecBuffer0.resize(mMultiBody->getNumLinks() + 1);
     mVecBuffer1.resize(mMultiBody->getNumLinks() + 1);
     mRotBuffer.resize(mMultiBody->getNumLinks() + 1);
-    cTimeUtil::EndAvgLazy("UpdateBodyShape");
-
 }
 
 void cSimCharacter::CheckContact() {

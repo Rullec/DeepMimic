@@ -60,8 +60,6 @@ class MCMCShapeGen(ShapeGen):
         for d in length:
             self.u *= 1 / d
 
-
-
     def _evaluate_stage(self, sb, sb_prime):
         if len(np.shape(sb)) == 1:
             sb = np.reshape(sb, [1, len(sb)])

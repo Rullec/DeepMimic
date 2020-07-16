@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import sys
 import subprocess
+
+
 # with open("plot.txt") as f:
 #     cont = f.readlines()
 #     num = []
@@ -24,6 +26,7 @@ def read_log_file(filename):
         time_exp_buffer = []
         critic_loss = []
         actor_loss = []
+        clip_frac = []
         for line in cont:
             if line.find("Train_Ret") != -1:
                 try:
@@ -38,21 +41,39 @@ def read_log_file(filename):
                     time_exp_buffer.clear()
             if line.find("Test_Ret") != -1:
                 test_return.append(float(line.split()[3]))
-            if line.find("Timer") != -1: # get timer
+            if line.find("Timer") != -1:  # get timer
                 time_buffer.append(line.split()[8][:-1])
                 time_exp_buffer.append(line.split()[11])
             if line.find('Critic_Loss') != -1:
                 critic_loss.append(float(line.split()[3]))
             if line.find('Actor_Loss') != -1:
                 actor_loss.append(float(line.split()[3]))
+            if line.find('Clip_Frac') != -1:
+                clip_frac.append(float(line.split()[3]))
                 # print(line.split())
                 # print(time)
-        print((time_count))
-        print(time_exp_count)
-        print((train_return))
-        print((test_return))
-        print('len: {}'.format(len(train_return)))
-        return train_return, test_return, time_count, time_exp_count, critic_loss, actor_loss
+        # print(time_count)
+        # print(time_exp_count)
+        # print(train_return)
+        # print(test_return)
+        t_last = time_count[0]
+        for i, t in enumerate(time_count):
+            if abs(t - t_last) > 1:
+                print('timer sudden change at {} itr, from {} to {} '.format(i, t_last, t))
+            t_last = t
+
+        tr_last = train_return[0]
+        for i, tr in enumerate(train_return):
+            if abs(tr - tr_last) > 20 and tr < tr_last:
+                print('train return sudden change at {} itr, from {} to {} '.format(i, tr_last, tr))
+                break
+            tr_last = tr
+
+        for i, a_loss in enumerate(actor_loss):
+            if a_loss > 0.4:
+                print('actor loss exploded {} itr, the value is {}'.format(i, a_loss))
+
+        return train_return, test_return, time_count, time_exp_count, critic_loss, actor_loss, clip_frac
     #     cmd = "cat %s | grep -i train_return | awk '{print $4}' | grep -v =" % filename
     #     ret = subprocess.getoutput(cmd).split()
     #     ret = [float(i) for i in ret]
@@ -68,29 +89,33 @@ def read_log_file(filename):
 
     #     return ret, times
 
-
     except FileExistsError:
         print("file %s is not exist" % filename)
         return None
 
-if __name__ =="__main__":
+
+if __name__ == "__main__":
     # print("succ")
-    args = sys.argv[1:] # file list
-    
+    args = sys.argv[1:]  # file list
+
     # check file valid
     for filename in args:
-        train, test, time, time_exp, c_loss, a_loss = read_log_file(filename)
-        plt.subplot(1, 3, 1)
-        plt.plot(train, label = filename + " train_ret")
-        plt.plot(test, label = filename + " test_ret")
+        train, test, time, time_exp, c_loss, a_loss, clip_frac = read_log_file(filename)
+        plt.subplot(2, 2, 1)
+        plt.plot(train, label=filename + " train_ret")
+        plt.plot(test, label=filename + " test_ret")
         plt.legend()
-        plt.subplot(1, 3, 2)
-        plt.plot(time, label = filename + " timer")
-        plt.plot(time_exp, label = filename  + " timer exp")
+        plt.subplot(2, 2, 2)
+        plt.plot(time, label=filename + " timer")
+        plt.plot(time_exp, label=filename + " timer exp")
         plt.legend()
-        plt.subplot(1, 3, 3)
-        plt.plot(c_loss, label=filename+' c loss')
-        plt.plot(a_loss, label=filename+' a loss')
+        plt.subplot(2, 2, 3)
+        plt.plot(c_loss, label=filename + ' c loss')
+        plt.plot(a_loss, label=filename + ' a loss')
+        plt.legend()
+
+        plt.subplot(2, 2, 4)
+        plt.plot(clip_frac, label=filename + ' clip_frac')
         plt.legend()
         # plt.legend([filename + " train_ret", filename + " test_ret", filename + " timer", ])
     # plt.legend(args)
