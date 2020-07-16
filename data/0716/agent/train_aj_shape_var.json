@@ -2,7 +2,7 @@
 	"AgentType": "PPO_SHAPE_VAR",
 
 	"ActorNet": "fc_2layers_1024units",
-	"ActorStepsize": 0.0000025,
+	"ActorStepsize": 0.0000005,
 	"ActorMomentum": 0.9,
 	"ActorWeightDecay": 0.0005,
 	"ActorInitOutputScale": 0.01,
@@ -25,6 +25,7 @@
 	"RatioClip": 0.2,
 	"NormAdvClip": 4,
 	"TDLambda": 0.95,
+	"TarClipFrac": 0.1,
 
 	"OutputIters": 10,
 	"IntOutputIters": 400,

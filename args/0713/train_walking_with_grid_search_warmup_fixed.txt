@@ -40,14 +40,14 @@
 --agent_files data/0710/agent/train_aj_shape_var_fixed.json
 --train_agents true
 
---output_path /data/ubuntu_data/DeepMimic/output/0710/
+--output_path /data/ubuntu_data/DeepMimic/output/0711/
 # --model_files output/0426/agent0_model_2020_07_04_10_58_50_484.85.ckpt
 # --model_files output/0426/agent0_model_2020_07_04_13_37_45_13.66.ckpt
 
 #---------------------- Inverse Dyanmics config-------------------
+--enable_inverse_dynamic_solving false
 --inverse_dynamic_config_file args/0426/id_conf_fullbody.json
 
 --var_links true
 --var_links_files data/0709/characters/var_links.json
 --is_symmetric_var true
---enable_inverse_dynamic_solving false

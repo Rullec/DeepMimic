@@ -201,9 +201,3 @@ class DeepMimicEnv(Env):
 
     def get_var_links_names_id_map(self):
         pass
-
-    def record_time(self, timer_name):
-        return self._core.RecordTime(timer_name)
-
-    def get_timer_names(self):
-        return self._core.GetTimerNames()

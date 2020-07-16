@@ -852,9 +852,3 @@ class RLAgent(ABC):
 
     def concat_state(self, s):
         return s
-
-    def _record_time(self, timer_name):
-        return self.world.env.record_time(timer_name)
-
-    def _get_timer_names(self):
-        return self.world.env.get_timer_names()

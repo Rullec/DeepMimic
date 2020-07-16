@@ -42,7 +42,7 @@
 	},
 	"ShapeVarAgent":
 	{
-		"type": "GRID_SEARCH",
+		"type": "FIXED_GEN",
 		"layers": [512, 256, 64],
 		"l2_coeff": 1,
 		"lr_nn": 1e-3,

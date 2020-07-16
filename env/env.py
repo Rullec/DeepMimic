@@ -238,11 +238,3 @@ class Env(ABC):
     @abstractmethod
     def get_var_links_names_id_map(self):
         pass
-
-    @abstractmethod
-    def record_time(self, timer_name):
-        pass
-
-    @abstractmethod
-    def get_timer_names(self):
-        pass

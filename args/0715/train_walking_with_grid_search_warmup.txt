@@ -1,13 +1,13 @@
 --scene imitate
 
---time_lim_min 0.5
---time_lim_max 0.5
---time_lim_exp 0.2
+--time_lim_min 14
+--time_lim_max 14
+--time_lim_exp 3.55
 
 --time_end_lim_min 20
 --time_end_lim_max 20
 --time_end_lim_exp 5
---anneal_samples 32000000
+--anneal_samples 2000000
 
 --num_update_substeps 10
 --num_sim_substeps 2
@@ -37,12 +37,28 @@
 --reward_file data/0420/rewards/reward_weight.json
 --enable_pdtarget_solve_test false
 
---agent_files data/0710/agent/train_aj_shape_var_fixed.json
+# train on 121 0713 1417
+# a_lr = 2.5e-5
+# --agent_files data/0713/agent/train_aj_shape_var_larger_a_lr.json
+
+# train on 121 0714 1555
+# a_lr = 1e-6
+# --agent_files data/0713/agent/train_aj_shape_var.json
+
+# train on 114 0713 1230
+# --agent_files data/0713/agent/train_aj_shape_var_larger_a_lr.json
+
+# train on 114 0714 1630
+# again the train return drop suddenly ad 6000+ itr
+# --agent_files data/0713/agent/train_aj_shape_var.json
+
+# train on 114 015 2132
+--agent_files data/0715/agent/train_aj_shape_var.json
 --train_agents true
 
---output_path /data/ubuntu_data/DeepMimic/output/0710/
+--output_path /data/ubuntu_data/DeepMimic/output/0715/
 # --model_files output/0426/agent0_model_2020_07_04_10_58_50_484.85.ckpt
-# --model_files output/0426/agent0_model_2020_07_04_13_37_45_13.66.ckpt
+--model_files /data/ubuntu_data/DeepMimic/output/0714/agent0_model_2020_07_15_17_30_39_214.02.ckpt
 
 #---------------------- Inverse Dyanmics config-------------------
 --inverse_dynamic_config_file args/0426/id_conf_fullbody.json
