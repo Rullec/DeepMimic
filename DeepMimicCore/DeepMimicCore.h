@@ -22,6 +22,7 @@ public:
 	virtual void Reset();
 
 	virtual double GetTime() const;
+    virtual double GetMaxTime() const;
 	virtual std::string GetName() const;
 	virtual bool EnableDraw() const;
 
@@ -89,6 +90,7 @@ public:
 	// =========================================================================
 	// For Body Shape Variation
 	virtual void ChangeBodyShape(const std::vector<double>& body_param);
+	virtual void DumpMotionPool(const char* dir);
     // =========================================================================
 
     virtual std::string GetStringArgs(const std::string& name);

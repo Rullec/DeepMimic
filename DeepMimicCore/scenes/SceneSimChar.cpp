@@ -12,6 +12,9 @@
 #include <util/TimeUtil.hpp>
 #include <iostream>
 #include <fstream>
+#include "util/json/json.h"
+
+
 using namespace std;
 
 const int gDefaultCharID = 0;
@@ -1244,4 +1247,8 @@ void cSceneSimChar::CheckCollisionStatus() {
             std::cout << curr_char->GetBodyName(b) << ", pos: " << pos.x() << ", " << pos.y() << ", "  << pos.z()<< std::endl;
         }
     }
+}
+
+void cSceneSimChar::DumpMotionPool(const char *dir) {
+
 }

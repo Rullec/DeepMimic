@@ -68,10 +68,11 @@ public:
 	
 	virtual tVector GetCycleRootDelta() const;
     virtual Eigen::MatrixXd& GetMotionFrames() {return mMotion.GetFrames();}
-
+    virtual Eigen::MatrixXd& GetStdMotionFrames() {return mMotionFrames0;}
 protected:
 	double mTime;
 	cMotion mMotion;
+	tMatrixXd mMotionFrames0;
 
 	tVector mCycleRootDelta;
 	tVector mOrigin;

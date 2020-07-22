@@ -757,3 +757,11 @@ bool cDeepMimicCore::GetBooleanArgs(const std::string &name) {
     mArgParser->ParseBool(name, out);
     return out;
 }
+
+double cDeepMimicCore::GetMaxTime() const {
+    return mScene->GetMaxTime();
+}
+
+void cDeepMimicCore::DumpMotionPool(const char *file) {
+    mScene->DumpMotionPool(file);
+}

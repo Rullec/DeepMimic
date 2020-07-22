@@ -542,3 +542,7 @@ std::vector<std::string> *cCharacter::GetJointNames() {
 std::vector<std::string> *cCharacter::GetBodyNames() {
     return &mBodyDefsName;
 }
+
+const Eigen::MatrixXd &cCharacter::GetStdJointMat() const {
+    return mJointMat0;
+}

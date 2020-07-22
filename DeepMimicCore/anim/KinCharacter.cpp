@@ -117,6 +117,7 @@ bool cKinCharacter::LoadMotion(const std::string& motion_file)
 		Pose(mTime);
 		mPose0 = GetPose();
 		mVel0 = GetVel();
+		mMotionFrames0 = mMotion.GetFrames();
 	}
 
 	if (!succ)

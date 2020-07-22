@@ -37,13 +37,11 @@
 --reward_file data/0420/rewards/reward_weight.json
 --enable_pdtarget_solve_test true
 
---agent_files data/0709/agent/train_aj_shape_var.json
+--agent_files data/0716/agent/train_aj_shape_var_mcmc.json
 --train_agents false
 
---output_path /data/ubuntu_data/DeepMimic/output/0713/
-# --model_files /data/ubuntu_data/DeepMimic/output/0714/agent0_model_2020_07_15_12_53_47_137.68.ckpt
---model_files /data/ubuntu_data/DeepMimic/output/0715/agent0_model_2020_07_16_09_05_01_225.09.ckpt
-
+--output_path /data/ubuntu_data/DeepMimic/output/0716/
+--model_files /data/ubuntu_data/DeepMimic/output/0716/agent0_model_2020_07_18_08_59_32_255.39.ckpt
 #---------------------- Inverse Dyanmics config-------------------
 --enable_inverse_dynamic_solving false
 --inverse_dynamic_config_file args/0426/id_conf_fullbody.json

@@ -79,6 +79,8 @@ public:
 
 	virtual std::string GetName() const;
 
+    void DumpMotionPool(const char *file) override;
+
 protected:
 
 	struct tPerturbParams

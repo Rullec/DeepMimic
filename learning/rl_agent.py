@@ -114,10 +114,12 @@ class RLAgent(ABC):
 
         '''
         self.train_return = 0.0
+        self.train_return_per_sec = 0.0
         self.test_episodes = int(0)
         self.test_episode_count = int(0)
         self.test_return = 0.0
         self.avg_test_return = 0.0
+        self.avg_train_return_per_sec = 0.0
 
         self.exp_anneal_samples = 320000
         self.exp_params_beg = ExpParams()
@@ -704,6 +706,7 @@ class RLAgent(ABC):
         valid_path = path_id != MathUtil.INVALID_IDX
 
         if valid_path:
+
             self.train_return = path.calc_return()
             # print("calculate train_return = %.2f" % self.train_return)
             if self._need_normalizer_update:
@@ -759,8 +762,14 @@ class RLAgent(ABC):
                 iters = self._get_iters_per_update()
 
                 # it seems that all evaluations are under MPI
+                t = self.world.env.get_max_timer()
+                self.train_return_per_sec = self.train_return / t
+
                 avg_train_return = MPIUtil.reduce_avg(self.train_return)
+                train_return_per_sec = MPIUtil.reduce_avg(self.train_return_per_sec)
+
                 self.avg_train_return = avg_train_return
+                self.avg_train_return_per_sec = train_return_per_sec
 
                 # for these so many iters (per update?)
                 for i in range(iters):
@@ -784,6 +793,7 @@ class RLAgent(ABC):
                     self.logger.log_tabular("Wall_Time", wall_time)
                     self.logger.log_tabular("Samples", self._total_sample_count)
                     self.logger.log_tabular("Train_Return", avg_train_return)
+                    self.logger.log_tabular("Train_Return_Per_Sec", self.avg_train_return_per_sec)
                     self.logger.log_tabular("Test_Return", self.avg_test_return)
                     self.logger.log_tabular("State_Mean", s_mean)
                     self.logger.log_tabular("State_Std", s_std)

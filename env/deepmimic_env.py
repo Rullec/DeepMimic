@@ -201,3 +201,9 @@ class DeepMimicEnv(Env):
 
     def get_var_links_names_id_map(self):
         pass
+
+    def get_max_timer(self):
+        return self._core.GetMaxTime()
+
+    def dump_shape_pool(self, dump_dir):
+        return self._core.DumpMotionPool(dump_dir)

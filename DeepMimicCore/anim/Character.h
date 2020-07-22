@@ -21,6 +21,7 @@ public:
 
 	virtual int GetNumDof() const;
 	virtual const Eigen::MatrixXd& GetJointMat() const;
+	virtual const Eigen::MatrixXd& GetStdJointMat() const;
 	virtual int GetNumJoints() const;
 
 	virtual const Eigen::VectorXd& GetPose() const;

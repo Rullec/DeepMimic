@@ -1,5 +1,6 @@
 from learning.ppo_agent import PPOAgent
 from shapevar.shapegen.shape_gen import ShapeGen
+from shapevar.shapegen.mcmc_shape_gen import MCMCShapeGen
 from shapevar.shapegen.shape_builder import build_shape_generator
 import numpy as np
 
@@ -7,6 +8,7 @@ import numpy as np
 class PPOShapeVarAgent(PPOAgent):
     NAME = 'PPO_SHAPE_VAR'
     SHAPE_VAR_AGENT_KEY = 'ShapeVarAgent'
+    DUMP_SHAPE_DIR = 'ShapeDumpingDir'
 
     def __init__(self, world, id, json_data):
         super().__init__(world, id, json_data)
@@ -25,12 +27,18 @@ class PPOShapeVarAgent(PPOAgent):
         assert PPOShapeVarAgent.SHAPE_VAR_AGENT_KEY in json_data
         shape_var_agent_data = json_data[PPOShapeVarAgent.SHAPE_VAR_AGENT_KEY]
 
+        if PPOShapeVarAgent.DUMP_SHAPE_DIR in json_data:
+            self.enable_shape_dumping = True
+            self.shape_dumping_dir = json_data[PPOShapeVarAgent.DUMP_SHAPE_DIR]
+
         layers = shape_var_agent_data['layers']
         l2_coeff = shape_var_agent_data['l2_coeff']
         lr_nn = shape_var_agent_data['lr_nn']
         lr_mu = shape_var_agent_data['lr_mu']
         k = shape_var_agent_data['k']
         gen_type = shape_var_agent_data['type']
+        lr_decay_rate  = 1 if 'lr_decay_rate' not in shape_var_agent_data else shape_var_agent_data['lr_decay_rate']
+        lr_decay_steps = 1e+10 if 'lr_decay_steps' not in shape_var_agent_data else shape_var_agent_data['lr_decay_steps']
 
         # layers = [512, 256, 64]
         # l2_coeff = 1
@@ -41,8 +49,16 @@ class PPOShapeVarAgent(PPOAgent):
         self.shape_generator = build_shape_generator(gen_type)(self.n_unique_var_shape_size, self.lb, self.ub, layers, l2_coeff, proposal_func, lr_nn, lr_mu, k)
         # self.shape_generator = ShapeGen(self.n_unique_var_shape_size, self.lb, self.ub, layers, l2_coeff, proposal_func,
         #                                 lr_nn, lr_mu, k)
+        if gen_type == MCMCShapeGen.NAME:
+            self.shape_generator.lr_decay_rate = lr_decay_rate
+            self.shape_generator.lr_decay_steps = lr_decay_steps
 
+        val_offset, val_scale = self._calc_val_offset_scale(self.discount)
+        self.shape_generator.norm_mean = -val_offset
+        self.shape_generator.norm_std = 1 / val_scale
+        self.shape_generator.init_network()
         self.generate_new_body_shape()
+
 
     def reshape_state(self, s):
         s = np.hstack([s, self.sb])
@@ -137,3 +153,11 @@ class PPOShapeVarAgent(PPOAgent):
             if not link.is_fixed:
                 self.all_fixed = False
                 break
+
+    def log_generator_lr(self):
+        if self.shape_generator.NAME == MCMCShapeGen.NAME:
+            self.logger.log_tabular('MCMC_Gen_Lr', self.shape_generator.current_lr)
+
+    def dump_shape_pool(self):
+        if self.enable_shape_dumping:
+            self.world.env.dump_shape_pool(self.shape_dumping_dir)

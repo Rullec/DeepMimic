@@ -335,6 +335,7 @@ class PPOAgent(PGAgent):
         self.logger.log_tabular('Adv_Mean', adv_mean)
         self.logger.log_tabular('Adv_Std', adv_std)
         self.logger.log_tabular('Generator_Loss', generator_loss)
+        self.log_generator_lr()
         # if we want to save buffer in TRAIN mode
         # then we will save buffer to disk at here,
         # just before clearing the buffer
@@ -342,7 +343,7 @@ class PPOAgent(PGAgent):
             self.replay_buffer.save()
 
         self.replay_buffer.clear()
-
+        # self.dump_shape_pool()
         return
 
     def _get_iters_per_update(self):
@@ -502,8 +503,14 @@ class PPOAgent(PGAgent):
         v_sb = np.zeros_like(vals)
         while curr_idx < end_idx:
             idx0 = curr_idx - start_idx
-            idx1 = self.replay_buffer.get_path_end(curr_idx) - start_idx
+            idx1 = self.replay_buffer.get_path_end(curr_idx) - start_idx + 1
 
             v_sb[idx0: idx1] = np.mean(vals[idx0:idx1])
-            curr_idx = idx1 + start_idx + 1
+            curr_idx = idx1 + start_idx
         return v_sb
+
+    def log_generator_lr(self):
+        pass
+
+    def dump_shape_pool(self):
+        pass

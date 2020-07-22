@@ -33,3 +33,6 @@ class ShapeGen(metaclass=ABCMeta):
         # sb_prime = sb_prime * (self.shape_ub - self.shape_lb) + self.shape_lb
         sb_prime = np.reshape(sb_prime, (1, self.shape_dim))
         return sb_prime
+
+    def init_network(self):
+        pass

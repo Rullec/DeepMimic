@@ -14,6 +14,7 @@ public:
     virtual void Insert(cShapeMotionNode& node) = 0;
     virtual cShapeMotionNode* FindNearestOne(Eigen::VectorXd& param) = 0;
     virtual unsigned int GetLength() {return length;}
+    virtual cShapeMotionNode * GetShapeMotionNode(int id) {return nullptr;}
 protected:
     unsigned int length;
 };

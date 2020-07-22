@@ -147,3 +147,7 @@ void cScene::RunRetargeting(cRetOptImpl::tParam &param) {
     }
     mRetOptImpl->Run(param);
 }
+
+double cScene::GetMaxTime() const {
+    return mTimer.GetMaxTime();
+}

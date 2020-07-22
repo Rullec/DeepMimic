@@ -1,0 +1,34 @@
+{
+    "var_links": [
+        "RightLeg",
+        "RightFoot",
+        "LeftLeg",
+        "LeftFoot"
+    ],
+    "Attribute": {
+        "RightLeg": {
+            "lb": [0.9, 0.9, 0.9],
+            "ub": [1.1, 1.1, 1.1],
+            "SymLink": "RightLeg",
+            "is_fixed": false
+        },
+        "RightFoot": {
+            "lb": [0.9, 0.9, 0.9],
+            "ub": [1.1, 1.1, 1.1],
+            "SymLink": "RightFoot",
+            "is_fixed": false
+        },
+        "LeftLeg": {
+            "lb": [0.9, 0.9, 0.9],
+            "ub": [1.1, 1.1, 1.1],
+            "SymLink": "RightLeg",
+            "is_fixed": false
+        },
+        "LeftFoot": {
+            "lb": [0.9, 0.9, 0.9],
+            "ub": [1.1, 1.1, 1.1],
+            "SymLink": "RightFoot",
+            "is_fixed": false
+        }
+    }
+}

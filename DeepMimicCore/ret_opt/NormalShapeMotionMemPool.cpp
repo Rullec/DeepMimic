@@ -44,7 +44,12 @@ void NormalShapeMotionMemPool::Insert(Eigen::VectorXd &body_shape_param, Eigen::
 }
 
 unsigned int NormalShapeMotionMemPool::GetLength() {
-    return is_full ? length : curr_idx+1;
+    return is_full ? length : curr_idx;
+}
+
+cShapeMotionNode *NormalShapeMotionMemPool::GetShapeMotionNode(int id) {
+    assert(id < length);
+    return &pool[id];
 }
 
 
