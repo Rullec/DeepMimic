@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(DeepMimicCore)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 # please use soft linkage to set your python headers & libs
 set(PYTHON_INC ./include/include/python3.6m)
@@ -10,11 +10,11 @@ link_directories(${PYTHON_LIB_PATH})
 include_directories(${PYTHON_INC})
 
 if(APPLE)
-    set(PYTHON_INC /Users/xudong/anaconda3/envs/spinningup/include/python3.6m)
-    set(PYTHON_LIB /Users/xudong/anaconda3/envs/spinningup/lib -lpython3.6m)
-    set(EIGEN_INC /Users/xudong/Projects/include/)
-    set(BULLTER_INC /Users/xudong/Projects/bullet3/src)
+    # set(PYTHON_INC /Users/liujiafeng/anaconda3/envs/deepmimic/include/python3.6m)
+    # set(PYTHON_LIB /Users/liujiafeng/anaconda3/envs/deepmimic/lib -lpython3.6m)
     # find_package(GLEW REQUIRED)
+    set(PYTHON_LIB libpython3.6m.dylib)
+    
     find_package(PkgConfig REQUIRED)
 
     # glew
@@ -27,13 +27,13 @@ if(APPLE)
 
     # glut
     FIND_LIBRARY(GLUT_LIBRARY GLUT )
-    link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/BulletDynamics)
-    link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/BulletCollision)
-    link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/LinearMath)
-    link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/Bullet3Collision)
-    link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/Bullet3Common)
-    link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/BulletInverseDynamics)
-    link_directories(/Users/xudong/Projects/bullet3/build_cmake/Extras/InverseDynamics)
+    # link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/BulletDynamics)
+    # link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/BulletCollision)
+    # link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/LinearMath)
+    # link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/Bullet3Collision)
+    # link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/Bullet3Common)
+    # link_directories(/Users/xudong/Projects/bullet3/build_cmake/src/BulletInverseDynamics)
+    # link_directories(/Users/xudong/Projects/bullet3/build_cmake/Extras/InverseDynamics)
 endif()
 
 # find opengl packages
@@ -56,9 +56,8 @@ include_directories(${include_dir})
 # find bullet packages
 find_package(Bullet REQUIRED)
 if (Bullet_FOUND)
-    message(STATUS ${BULLET_INCLUDE_DIRS})
     include_directories(${BULLET_INCLUDE_DIRS})
-    message(STATUS ${BULLET_LIBRARIES})
+    link_directories(/usr/local/lib/)
 endif()
 
 #different build type
@@ -123,19 +122,29 @@ add_custom_command(TARGET Main
     )
 
 # move the .dylib in build folder to .so in the parent folder
-if(UNIX)
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.so)
-        add_custom_command(TARGET _DeepMimicCore
-            PRE_BUILD
-            COMMAND rm -f ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.so
-            )
+if(APPLE)
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.dylib)
+    add_custom_command(TARGET _DeepMimicCore
+        PRE_BUILD
+        COMMAND rm -f ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.dylib
+        )
     endif()
     add_custom_command(TARGET _DeepMimicCore
-        POST_BUILD
-        COMMAND mv ./_DeepMimicCore.so ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.so
+    POST_BUILD
+    COMMAND mv ./_DeepMimicCore.dylib ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.dylib
+    )
+else()
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.so)
+    add_custom_command(TARGET _DeepMimicCore
+        PRE_BUILD
+        COMMAND rm -f ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.so
         )
+    endif()
+    add_custom_command(TARGET _DeepMimicCore
+    POST_BUILD
+    COMMAND mv ./_DeepMimicCore.so ${CMAKE_CURRENT_SOURCE_DIR}/../_DeepMimicCore.so
+    )
 endif()
-
 #INSTALL(
 #        TARGETS _DeepMimicCore
 #        LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../

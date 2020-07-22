@@ -40,6 +40,7 @@ external/
 Backup/
 data/intermediate/
 
+DeepMimicCore/include/*
 DeepMimicCore/DeepMimicCore.py
 DeepMimicCore/Main
 Main
