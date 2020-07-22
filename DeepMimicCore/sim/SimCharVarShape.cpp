@@ -114,18 +114,3 @@ void cSimCharVarShape::ChangeBodyShape(Eigen::VectorXd& param) {
 //    std::cout << "[log] cSimCharVarShape::ChangeBodyShape() finished\n";
 }
 
-void cSimCharVarShape::ChangeBodyShape(Eigen::VectorXd &param, Eigen::MatrixXd &joint_mat) {
-    assert (!var_body_ids.empty());
-    assert(param.size() == 3 * var_joint_ids.size());
-
-    for(size_t i = 0; i < var_body_ids.size(); ++i) {
-        tVector scale(param[i * 3], param[i * 3 + 1], param[i * 3 + 2], 0);
-
-        // todo: fix here by using child joint id
-        tVector joint_attach_pt = cKinTree::GetJointAttachPt(mJointMat0, var_joint_ids[i] + 1);
-        joint_attach_pt.noalias() = joint_attach_pt.cwiseProduct(scale);
-        cKinTree::SetJointAttachPt(joint_mat, joint_attach_pt, var_joint_ids[i] + 1);
-    }
-}
-
-

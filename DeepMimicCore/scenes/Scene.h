@@ -32,7 +32,6 @@ public:
 	virtual void Shutdown();
 	virtual bool IsDone() const;
 	virtual double GetTime() const;
-	virtual double GetMaxTime() const;
 
 	virtual bool HasRandSeed() const;
 	virtual void SetRandSeed(unsigned long seed);
@@ -47,7 +46,6 @@ public:
 	// For Body Shape Variation
 	virtual void ChangeBodyShape(Eigen::VectorXd &body_param) {}
 	virtual void RunRetargeting(cRetOptImpl::tParam& param);
-	virtual void DumpMotionPool(const char* file) {}
     // ========================================================
 
 protected:

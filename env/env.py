@@ -238,9 +238,3 @@ class Env(ABC):
     @abstractmethod
     def get_var_links_names_id_map(self):
         pass
-
-    def get_max_timer(self):
-        pass
-
-    def dump_shape_pool(self, dump_dir):
-        pass

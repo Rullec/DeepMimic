@@ -17,9 +17,7 @@ public:
     void                Insert(cShapeMotionNode &node) override;
     cShapeMotionNode *  FindNearestOne(Eigen::VectorXd& param) override;
 
-    virtual unsigned int GetLength() override;
-
-    cShapeMotionNode *GetShapeMotionNode(int id) override;
+    unsigned int GetLength() override;
 
 protected:
     double                      thresh;

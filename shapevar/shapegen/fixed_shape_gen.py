@@ -10,7 +10,7 @@ class FixedShapeGen(ShapeGen):
         super().__init__(shape_dim, shape_lb, shape_ub, nn_layers, l2_coeff, proposal, lr_nn, lr_mu, k)
 
     def generate_shape(self, sb_input):
-        return np.ones_like(self.shape_ub) * 1.
+        return np.ones_like(self.shape_ub) * 0.9
 
     def update(self, sb_input, v_target):
         return 0

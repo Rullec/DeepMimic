@@ -52,8 +52,6 @@ public:
 
 	virtual void ChangeBodyShape(Eigen::VectorXd &body_param) override;
 
-    void DumpMotionPool(const char *file) override;
-
 protected:
 
 	std::string mMotionFile;

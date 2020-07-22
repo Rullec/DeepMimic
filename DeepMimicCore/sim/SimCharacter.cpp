@@ -1759,10 +1759,6 @@ void cSimCharacter::ChangeBodyShape(Eigen::VectorXd& param) {
     return;
 }
 
-void cSimCharacter::ChangeBodyShape(Eigen::VectorXd &body_param, Eigen::MatrixXd &joint_mat) {
-    return;
-}
-
 void cSimCharacter::UpdateBodyShape() {
     bool succ = true;
     mWorld->RemoveCharacter(*this);

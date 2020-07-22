@@ -8,14 +8,10 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
-#include <dirent.h>
 
 cRetOptImpl::cRetOptImpl() {
     controller = new DMRetController("data/0707/tp/070701.tp");
-//    shape_motion_pool = new NormalShapeMotionMemPool(100, 1.8e-1);
-    shape_motion_pool = new NormalShapeMotionMemPool(100, 1.8e-3);
-
-    std_joint_mat_set = false;
+    shape_motion_pool = new NormalShapeMotionMemPool(100, 1.8e-1);
 }
 
 cRetOptImpl::~cRetOptImpl() {
@@ -83,42 +79,3 @@ void cRetOptImpl::SaveMotionMat(const char *file, const Eigen::MatrixXd &motion_
     fout.close();
 }
 
-void cRetOptImpl::DumpMotionPool(const char *dir) {
-    // 1. judge dir existing
-    auto dir_result = opendir(dir);
-    if (dir_result == nullptr) {
-        std::cout << "[Error] please set correct motion logging dir" << std::endl;
-        return;
-    }
-    // 2. save std joint mat
-    std::string std_joint_mat_dir(dir);
-    std_joint_mat_dir.append("/std_joint.txt");
-    SaveJointMat(std_joint_mat_dir.data(), std_joint_mat);
-    // 3. loop over motion pool and log skeleton and motion
-    auto pool_size = shape_motion_pool->GetLength();
-    for(auto i = 0; i < pool_size; ++i) {
-        auto* p = shape_motion_pool->GetShapeMotionNode(i);
-        std::string motion_path(dir);// + "/motion_i.txt");
-        motion_path.append("/motion_");
-        motion_path.append(std::to_string(i));
-        motion_path.append(".txt");
-        SaveMotionMat(motion_path.data(), p->motion_mat);
-
-        std::string skeleton_path(dir);
-        skeleton_path.append("/joint_");
-        skeleton_path.append(std::to_string(i));
-        skeleton_path.append(".txt");
-        SaveShapeParam(skeleton_path.data(), p->body_shape_param);
-    }
-}
-
-void cRetOptImpl::SaveShapeParam(const char *file, const Eigen::VectorXd& param) {
-    std::fstream fout(file, std::ios::out);
-    if (!fout.is_open()) {
-        std::cerr << "[Error] cannot open file: " << file << std::endl;
-        exit(-1);
-    }
-    fout << param.rows() << " " << param.cols() << std::endl;
-    fout << param << std::endl;
-    fout.close();
-}
