@@ -1,0 +1,6 @@
+--scene kin_char
+
+--character_backend FEATHERSTONE
+--character_backend_bak GENERALIZED
+--character_file data/0424/characters/skeleton_042302_revised.json
+--motion_file data/0424/motions/walk_motion_042601.txt

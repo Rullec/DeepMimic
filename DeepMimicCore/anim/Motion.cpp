@@ -243,6 +243,7 @@ void cMotion::CalcFrameVel(double time, cMotion::tFrame& out_vel, bool force_mir
 		CalcIndexPhase(time, idx, phase);
 		auto vel0 = vel_frame->row(idx);
 		auto vel1 = vel_frame->row(idx + 1);
+		// get interpolation frame velocity of pose
 		out_vel = (1 - phase) * vel0 + phase * vel1;
 	}
 }

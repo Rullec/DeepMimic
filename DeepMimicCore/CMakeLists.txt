@@ -49,7 +49,7 @@ endif(NOT OPENGL_FOUND)
 include_directories(${OpenGL_INCLUDE_DIRS})
 link_directories(${OpenGL_LIBRARY_DIRS})
 add_definitions(${OpenGL_DEFINITIONS})
-add_definitions(-DBT_USE_DOUBLE_PRECISION  -std=c++17 -march=native)
+add_definitions(-DBT_USE_DOUBLE_PRECISION -std=c++17 -march=native)
 
 set(include_dir ${PYTHON_INC} ${EIGEN_INC} ${BULLTER_INC} ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${include_dir})
@@ -64,7 +64,7 @@ else()
     message(STATUS "Build type: release(default)")
     add_definitions("-O3 -fPIC")
 endif()
-add_definitions("-Wno-overloaded-virtual -Wno-unused-variable -Wno-reorder -Wno-int-to-pointer-cast -Wno-unused-but-set-variable -Wno-sign-compare -Wno-deprecated-declarations -Wno-unused-value -Werror=return-type")
+add_definitions("-Wno-inconsistent-missing-override -Wno-overloaded-virtual -Wno-unused-variable -Wno-reorder -Wno-int-to-pointer-cast -Wno-sign-compare -Wno-deprecated-declarations -Wno-unused-value -Werror=return-type")
 
 add_subdirectory(util/json)
 add_subdirectory(util)
@@ -75,7 +75,7 @@ add_subdirectory(sim)
 
 
 
-set(libs ${OPENGL_LIBRARIES} GLEW  BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils BulletDynamics stdc++)
+set(libs ${OPENGL_LIBRARIES} GLEW  BulletCollision LinearMath Bullet3Common BulletInverseDynamics BulletInverseDynamicsUtils BulletDynamics BulletGenDynamics stdc++)
 if(APPLE)
     set(libs ${libs} ${GLUT_LIBRARY} )
 else()

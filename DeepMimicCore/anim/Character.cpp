@@ -35,7 +35,7 @@ int cCharacter::GetID() const
 	return mID;
 }
 
-bool cCharacter::Init(const std::string& char_file, bool load_draw_shapes)
+bool cCharacter::Init(const std::string &char_file, bool load_draw_shapes)
 {
 	Clear();
 
@@ -292,7 +292,7 @@ tQuaternion cCharacter::CalcJointWorldRotation(int joint_id) const
 	return cMathUtil::AxisAngleToQuaternion(axis, theta);
 }
 
-double cCharacter::CalcJointChainLength(int joint_id)
+double cCharacter::CalcJointChainLength(int joint_id) const
 {
 	auto chain = cKinTree::FindJointChain(mJointMat, GetRootID(), joint_id);
 	return cKinTree::CalcChainLength(mJointMat, chain);

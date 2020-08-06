@@ -16,8 +16,8 @@ cMeshUtil::tRayTestResult::tRayTestResult()
 	mIntersect.setZero();
 }
 
-void cMeshUtil::BuildDrawMesh(const float* pos_data, int pos_size, const int* idx_data, int idx_size,
-								cDrawMesh* out_mesh)
+void cMeshUtil::BuildDrawMesh(const float *pos_data, int pos_size, const int *idx_data, int idx_size,
+							  cDrawMesh *out_mesh)
 {
 	const int face_dim = 3;
 	std::vector<float> norm_data;
@@ -75,13 +75,13 @@ void cMeshUtil::BuildDrawMesh(const float* pos_data, int pos_size, const int* id
 	}
 
 	BuildDrawMesh(pos_data, pos_size, norm_data.data(), static_cast<int>(norm_data.size()),
-					coord_data.data(), static_cast<int>(coord_data.size()), idx_data, idx_size,
-					out_mesh);
+				  coord_data.data(), static_cast<int>(coord_data.size()), idx_data, idx_size,
+				  out_mesh);
 }
 
-void cMeshUtil::BuildDrawMesh(const float* pos_data, int pos_size, const float* norm_data, int norm_size,
-								const float* coord_data, int coord_size, const int* idx_data, int idx_size,
-								cDrawMesh* out_mesh)
+void cMeshUtil::BuildDrawMesh(const float *pos_data, int pos_size, const float *norm_data, int norm_size,
+							  const float *coord_data, int coord_size, const int *idx_data, int idx_size,
+							  cDrawMesh *out_mesh)
 {
 	out_mesh->Init(1);
 
@@ -91,30 +91,30 @@ void cMeshUtil::BuildDrawMesh(const float* pos_data, int pos_size, const float* 
 	attr_info.mDataOffset = 0;
 	attr_info.mDataStride = 0;
 	attr_info.mNumComp = gPosDim;
-	out_mesh->LoadVBuffer(attr_info.mAttribNumber, sizeof(float) * pos_size, (GLubyte*) pos_data, 0, 1, &attr_info);
+	out_mesh->LoadVBuffer(attr_info.mAttribNumber, sizeof(float) * pos_size, (GLubyte *)pos_data, 0, 1, &attr_info);
 
 	attr_info.mAttribNumber = eAttributeNormal;
 	attr_info.mAttribSize = sizeof(norm_data[0]);
 	attr_info.mDataOffset = 0;
 	attr_info.mDataStride = 0;
 	attr_info.mNumComp = gNormDim;
-	out_mesh->LoadVBuffer(attr_info.mAttribNumber, sizeof(float) * norm_size, (GLubyte*) norm_data, 0, 1, &attr_info);
-	
+	out_mesh->LoadVBuffer(attr_info.mAttribNumber, sizeof(float) * norm_size, (GLubyte *)norm_data, 0, 1, &attr_info);
+
 	attr_info.mAttribNumber = eAttributeCoord;
 	attr_info.mAttribSize = sizeof(coord_data[0]);
 	attr_info.mDataOffset = 0;
 	attr_info.mDataStride = 0;
 	attr_info.mNumComp = gCoordDim;
-	out_mesh->LoadVBuffer(attr_info.mAttribNumber, sizeof(float) * coord_size, (GLubyte*) coord_data, 0, 1, &attr_info);
+	out_mesh->LoadVBuffer(attr_info.mAttribNumber, sizeof(float) * coord_size, (GLubyte *)coord_data, 0, 1, &attr_info);
 
-	out_mesh->LoadIBuffer(idx_size, sizeof(int), (int*) idx_data);
+	out_mesh->LoadIBuffer(idx_size, sizeof(int), (int *)idx_data);
 }
 
-cMeshUtil::tVertex cMeshUtil::GetVertex(int v, const cDrawMesh& mesh)
+cMeshUtil::tVertex cMeshUtil::GetVertex(int v, const cDrawMesh &mesh)
 {
-	const float* pos_data = mesh.GetData(eAttributePosition);
-	const float* norm_data = mesh.GetData(eAttributeNormal);
-	const float* coord_data = mesh.GetData(eAttributeCoord);
+	const float *pos_data = mesh.GetData(eAttributePosition);
+	const float *norm_data = mesh.GetData(eAttributeNormal);
+	const float *coord_data = mesh.GetData(eAttributeCoord);
 
 	tVertex vert;
 	vert.mPosition = tVector(pos_data[v * gPosDim], pos_data[v * gPosDim + 1], pos_data[v * gPosDim + 2], 0);
@@ -124,13 +124,13 @@ cMeshUtil::tVertex cMeshUtil::GetVertex(int v, const cDrawMesh& mesh)
 	return vert;
 }
 
-cMeshUtil::tFace cMeshUtil::GetFace(int f, const cDrawMesh& mesh)
+cMeshUtil::tFace cMeshUtil::GetFace(int f, const cDrawMesh &mesh)
 {
-	const int* idx_data = mesh.GetIdxData();
+	const int *idx_data = mesh.GetIdxData();
 	return tFace(idx_data[f * gVertsPerTriangle], idx_data[f * gVertsPerTriangle + 1], idx_data[f * gVertsPerTriangle + 2]);
 }
 
-void cMeshUtil::ExpandFaces(const cDrawMesh& mesh, std::shared_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::ExpandFaces(const cDrawMesh &mesh, std::shared_ptr<cDrawMesh> &out_mesh)
 {
 	int num_faces = mesh.GetNumFaces();
 
@@ -159,7 +159,7 @@ void cMeshUtil::ExpandFaces(const cDrawMesh& mesh, std::shared_ptr<cDrawMesh>& o
 			new_pos_data[i1 * gPosDim + i] = v1.mPosition[i];
 			new_pos_data[i2 * gPosDim + i] = v2.mPosition[i];
 		}
-		
+
 		for (int i = 0; i < gNormDim; ++i)
 		{
 			new_norm_data[i0 * gNormDim + i] = normal[i];
@@ -180,14 +180,14 @@ void cMeshUtil::ExpandFaces(const cDrawMesh& mesh, std::shared_ptr<cDrawMesh>& o
 	}
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
-	BuildDrawMesh(new_pos_data.data(), static_cast<int>(new_pos_data.size()), 
-				new_norm_data.data(), static_cast<int>(new_norm_data.size()), 
-				new_coord_data.data(), static_cast<int>(new_coord_data.size()), 
-				new_idx_data.data(), static_cast<int>(new_idx_data.size()),
-				out_mesh.get());
+	BuildDrawMesh(new_pos_data.data(), static_cast<int>(new_pos_data.size()),
+				  new_norm_data.data(), static_cast<int>(new_norm_data.size()),
+				  new_coord_data.data(), static_cast<int>(new_coord_data.size()),
+				  new_idx_data.data(), static_cast<int>(new_idx_data.size()),
+				  out_mesh.get());
 }
 
-void cMeshUtil::RayTest(const tVector& start, const tVector& end, const cDrawMesh& mesh, std::vector<tRayTestResult>& out_result)
+void cMeshUtil::RayTest(const tVector &start, const tVector &end, const cDrawMesh &mesh, std::vector<tRayTestResult> &out_result)
 {
 	out_result.clear();
 	int num_faces = mesh.GetNumFaces();
@@ -212,8 +212,7 @@ void cMeshUtil::RayTest(const tVector& start, const tVector& end, const cDrawMes
 	}
 }
 
-
-void cMeshUtil::BuildPointMesh(std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildPointMesh(std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const int num_verts = 1;
 	const int pos_len = num_verts * gPosDim;
@@ -222,18 +221,15 @@ void cMeshUtil::BuildPointMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 	const int idx_len = num_verts;
 
 	const float vert_data[pos_len] =
-	{
-		0, 0, 0
-	};
+		{
+			0, 0, 0};
 
 	const float norm_data[norm_len] =
-	{
-		0, 0, 1
-	};
+		{
+			0, 0, 1};
 
 	const float coord_data[coord_len] = {
-		0, 0
-	};
+		0, 0};
 
 	int idx_data[idx_len];
 	for (int i = 0; i < idx_len; ++i)
@@ -245,7 +241,7 @@ void cMeshUtil::BuildPointMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 	BuildDrawMesh(vert_data, pos_len, norm_data, norm_len, coord_data, coord_len, idx_data, idx_len, out_mesh.get());
 }
 
-void cMeshUtil::BuildLineMesh(std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildLineMesh(std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const int num_verts = 2;
 	const int pos_len = num_verts * gPosDim;
@@ -254,21 +250,18 @@ void cMeshUtil::BuildLineMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 	const int idx_len = num_verts;
 
 	const float vert_data[pos_len] =
-	{
-		0, 0, 0,
-		1, 0, 0
-	};
+		{
+			0, 0, 0,
+			1, 0, 0};
 
 	const float norm_data[norm_len] =
-	{
-		0, 0, 1,
-		0, 0, 1
-	};
+		{
+			0, 0, 1,
+			0, 0, 1};
 
 	const float coord_data[coord_len] = {
 		0, 0,
-		1, 0
-	};
+		1, 0};
 
 	int idx_data[idx_len];
 	for (int i = 0; i < idx_len; ++i)
@@ -280,36 +273,33 @@ void cMeshUtil::BuildLineMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 	BuildDrawMesh(vert_data, pos_len, norm_data, norm_len, coord_data, coord_len, idx_data, idx_len, out_mesh.get());
 }
 
-void cMeshUtil::BuildQuadMesh(std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildQuadMesh(std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const int num_verts = 4;
-	const int pos_len = num_verts  * gPosDim;
+	const int pos_len = num_verts * gPosDim;
 	const int norm_len = num_verts * gNormDim;
 	const int coord_len = num_verts * gCoordDim;
 	const int idx_len = num_verts;
 
 	const float vert_data[pos_len] =
-	{
-		0, 0, 0,
-		1, 0, 0,
-		1, 1, 0,
-		0, 1, 0
-	};
+		{
+			0, 0, 0,
+			1, 0, 0,
+			1, 1, 0,
+			0, 1, 0};
 
 	const float norm_data[norm_len] =
-	{ 
-		0, 0, 1,
-		0, 0, 1,
-		0, 0, 1,
-		0, 0, 1
-	};
+		{
+			0, 0, 1,
+			0, 0, 1,
+			0, 0, 1,
+			0, 0, 1};
 
-	const float coord_data[coord_len] = { 
+	const float coord_data[coord_len] = {
 		0, 0,
 		1, 0,
 		1, 1,
-		0, 1
-	};
+		0, 1};
 
 	int idx_data[idx_len];
 	for (int i = 0; i < idx_len; ++i)
@@ -321,7 +311,7 @@ void cMeshUtil::BuildQuadMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 	BuildDrawMesh(vert_data, pos_len, norm_data, norm_len, coord_data, coord_len, idx_data, idx_len, out_mesh.get());
 }
 
-void cMeshUtil::BuildBoxSolidMesh(std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildBoxSolidMesh(std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const int num_faces = 6;
 	const int vert_size = num_faces * 6 * gPosDim;
@@ -370,53 +360,123 @@ void cMeshUtil::BuildBoxSolidMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 		-0.5, 0.5, 0.5,
 		-0.5, 0.5, 0.5,
 		-0.5, -0.5, 0.5,
-		0.5, -0.5, 0.5
-	};
+		0.5, -0.5, 0.5};
 
 	const float norm_data[vert_size] = {
-		0, 1, 0, // top
-		0, 1, 0,
-		0, 1, 0,
-		0, 1, 0,
-		0, 1, 0,
-		0, 1, 0,
+		0,
+		1,
+		0, // top
+		0,
+		1,
+		0,
+		0,
+		1,
+		0,
+		0,
+		1,
+		0,
+		0,
+		1,
+		0,
+		0,
+		1,
+		0,
 
-		0, -1, 0, // bottom
-		0, -1, 0,
-		0, -1, 0,
-		0, -1, 0,
-		0, -1, 0,
-		0, -1, 0,
+		0,
+		-1,
+		0, // bottom
+		0,
+		-1,
+		0,
+		0,
+		-1,
+		0,
+		0,
+		-1,
+		0,
+		0,
+		-1,
+		0,
+		0,
+		-1,
+		0,
 
-		1, 0, 0, // front
-		1, 0, 0,
-		1, 0, 0,
-		1, 0, 0,
-		1, 0, 0,
-		1, 0, 0,
+		1,
+		0,
+		0, // front
+		1,
+		0,
+		0,
+		1,
+		0,
+		0,
+		1,
+		0,
+		0,
+		1,
+		0,
+		0,
+		1,
+		0,
+		0,
 
-		-1, 0, 0, // back
-		-1, 0, 0,
-		-1, 0, 0,
-		-1, 0, 0,
-		-1, 0, 0,
-		-1, 0, 0,
+		-1,
+		0,
+		0, // back
+		-1,
+		0,
+		0,
+		-1,
+		0,
+		0,
+		-1,
+		0,
+		0,
+		-1,
+		0,
+		0,
+		-1,
+		0,
+		0,
 
-		0, 0, -1, // left
-		0, 0, -1,
-		0, 0, -1,
-		0, 0, -1,
-		0, 0, -1,
-		0, 0, -1,
+		0,
+		0,
+		-1, // left
+		0,
+		0,
+		-1,
+		0,
+		0,
+		-1,
+		0,
+		0,
+		-1,
+		0,
+		0,
+		-1,
+		0,
+		0,
+		-1,
 
-		0, 0, 1, // right
-		0, 0, 1,
-		0, 0, 1,
-		0, 0, 1,
-		0, 0, 1,
-		0, 0, 1,
+		0,
+		0,
+		1, // right
+		0,
+		0,
+		1,
+		0,
+		0,
+		1,
+		0,
+		0,
+		1,
+		0,
+		0,
+		1,
+		0,
+		0,
+		1,
 	};
-
 
 	const float coord_data[coord_size] = {
 		0, 0, // top
@@ -459,8 +519,7 @@ void cMeshUtil::BuildBoxSolidMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 		0, 1,
 		0, 1,
 		0, 0,
-		1, 0
-	};
+		1, 0};
 
 	int idx_data[idx_size];
 	for (int i = 0; i < idx_size; ++i)
@@ -472,7 +531,7 @@ void cMeshUtil::BuildBoxSolidMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 	BuildDrawMesh(vert_data, vert_size, norm_data, norm_size, coord_data, coord_size, idx_data, idx_size, out_mesh.get());
 }
 
-void cMeshUtil::BuildBoxWireMesh(std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildBoxWireMesh(std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const int num_edges = 12;
 	const int vert_size = num_edges * 2 * gPosDim;
@@ -504,13 +563,12 @@ void cMeshUtil::BuildBoxWireMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 
 		-0.5, -0.5, -0.5, // back
 		-0.5, 0.5, -0.5,
-		
+
 		0.5, 0.5, -0.5, // left
 		0.5, -0.5, -0.5,
-		
+
 		-0.5, 0.5, 0.5, // right
-		-0.5, -0.5, 0.5
-	};
+		-0.5, -0.5, 0.5};
 
 	const float norm_data[vert_size] = {
 		0, 1, 0, // top
@@ -541,9 +599,7 @@ void cMeshUtil::BuildBoxWireMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 		0, 0, -1,
 
 		0, 0, 1, // right
-		0, 0, 1
-	};
-
+		0, 0, 1};
 
 	const float coord_data[vert_size] = {
 		0, 0, // top
@@ -566,7 +622,7 @@ void cMeshUtil::BuildBoxWireMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 
 		0, 0, // front
 		0, 1,
-		
+
 		0, 0, // back
 		0, 1,
 
@@ -574,8 +630,7 @@ void cMeshUtil::BuildBoxWireMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 		0, 0,
 
 		0, 1, // right
-		0, 0
-	};
+		0, 0};
 
 	int idx_data[idx_size];
 	for (int i = 0; i < idx_size; ++i)
@@ -587,7 +642,7 @@ void cMeshUtil::BuildBoxWireMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 	BuildDrawMesh(vert_data, vert_size, norm_data, norm_size, coord_data, coord_size, idx_data, idx_size, out_mesh.get());
 }
 
-void cMeshUtil::BuildSphereMesh(int stacks, int slices, std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildSphereMesh(int stacks, int slices, std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const float r = 1;
 	int num_triangles = 2 * slices * (stacks - 1);
@@ -668,7 +723,7 @@ void cMeshUtil::BuildSphereMesh(int stacks, int slices, std::unique_ptr<cDrawMes
 				coord_data.push_back(u2);
 				coord_data.push_back(v2);
 			}
-			
+
 			if (i != 0)
 			{
 				pos_data.push_back(x2);
@@ -707,13 +762,13 @@ void cMeshUtil::BuildSphereMesh(int stacks, int slices, std::unique_ptr<cDrawMes
 	}
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
-	BuildDrawMesh(pos_data.data(), static_cast<int>(pos_data.size()), 
-					norm_data.data(), static_cast<int>(norm_data.size()),
-					coord_data.data(), static_cast<int>(coord_data.size()),
-					idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
+	BuildDrawMesh(pos_data.data(), static_cast<int>(pos_data.size()),
+				  norm_data.data(), static_cast<int>(norm_data.size()),
+				  coord_data.data(), static_cast<int>(coord_data.size()),
+				  idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
 }
 
-void cMeshUtil::BuildSphereWireSimpleMesh(int stacks, int slices, std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildSphereWireSimpleMesh(int stacks, int slices, std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const float r = 1;
 	int slices0 = 4;
@@ -834,12 +889,12 @@ void cMeshUtil::BuildSphereWireSimpleMesh(int stacks, int slices, std::unique_pt
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
 	BuildDrawMesh(pos_data.data(), static_cast<int>(pos_data.size()),
-		norm_data.data(), static_cast<int>(norm_data.size()),
-		coord_data.data(), static_cast<int>(coord_data.size()),
-		idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
+				  norm_data.data(), static_cast<int>(norm_data.size()),
+				  coord_data.data(), static_cast<int>(coord_data.size()),
+				  idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
 }
 
-void cMeshUtil::BuildDiskMesh(int slices, std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildDiskMesh(int slices, std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const int num_verts = 2 + slices;
 
@@ -881,12 +936,12 @@ void cMeshUtil::BuildDiskMesh(int slices, std::unique_ptr<cDrawMesh>& out_mesh)
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
 	BuildDrawMesh(pos_data.data(), static_cast<int>(pos_data.size()),
-					norm_data.data(), static_cast<int>(norm_data.size()),
-					coord_data.data(), static_cast<int>(coord_data.size()),
-					idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
+				  norm_data.data(), static_cast<int>(norm_data.size()),
+				  coord_data.data(), static_cast<int>(coord_data.size()),
+				  idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
 }
 
-void cMeshUtil::BuildTriangleMesh(std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildTriangleMesh(std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const float side_len = 1;
 	const float h = std::sqrt(0.75 * side_len * side_len);
@@ -897,33 +952,29 @@ void cMeshUtil::BuildTriangleMesh(std::unique_ptr<cDrawMesh>& out_mesh)
 	const int idx_len = num_verts;
 
 	const float vert_data[vert_len] =
-	{
-		-0.5f * side_len, -0.5f * h, 0.f,
-		0.5f * side_len, -0.5f * h, 0.f,
-		0.f, 0.5f * h, 0.f
-	};
+		{
+			-0.5f * side_len, -0.5f * h, 0.f,
+			0.5f * side_len, -0.5f * h, 0.f,
+			0.f, 0.5f * h, 0.f};
 
 	const float norm_data[norm_len] =
-	{
-		0, 0, 1,
-		0, 0, 1,
-		0, 0, 1
-	};
-
+		{
+			0, 0, 1,
+			0, 0, 1,
+			0, 0, 1};
 
 	const float coord_data[coord_len] = {
 		0, 0,
 		1, 0,
-		0.5, 1
-	};
+		0.5, 1};
 
-	int idx_data[idx_len] = { 0, 1, 2 };
+	int idx_data[idx_len] = {0, 1, 2};
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
 	BuildDrawMesh(vert_data, vert_len, norm_data, norm_len, coord_data, coord_len, idx_data, idx_len, out_mesh.get());
 }
 
-void cMeshUtil::BuildCylinder(int slices, std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildCylinder(int slices, std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const float r = 1.f;
 	const float h = 1.f;
@@ -933,7 +984,7 @@ void cMeshUtil::BuildCylinder(int slices, std::unique_ptr<cDrawMesh>& out_mesh)
 	std::vector<float> norm_data(num_verts * gNormDim);
 	std::vector<float> coord_data(num_verts * gCoordDim);
 	std::vector<int> idx_data(num_verts);
-	
+
 	for (int i = 0; i < slices; ++i)
 	{
 		double theta0 = (i * 2 * M_PI) / slices;
@@ -1068,12 +1119,12 @@ void cMeshUtil::BuildCylinder(int slices, std::unique_ptr<cDrawMesh>& out_mesh)
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
 	BuildDrawMesh(pos_data.data(), static_cast<int>(pos_data.size()),
-				norm_data.data(), static_cast<int>(norm_data.size()),
-				coord_data.data(), static_cast<int>(coord_data.size()),
-				idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
+				  norm_data.data(), static_cast<int>(norm_data.size()),
+				  coord_data.data(), static_cast<int>(coord_data.size()),
+				  idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
 }
 
-void cMeshUtil::BuildCylinderWireSimple(int slices, std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildCylinderWireSimple(int slices, std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const float r = 1.f;
 	const float h = 1.f;
@@ -1084,7 +1135,7 @@ void cMeshUtil::BuildCylinderWireSimple(int slices, std::unique_ptr<cDrawMesh>& 
 	std::vector<float> norm_data(num_verts * gNormDim);
 	std::vector<float> coord_data(num_verts * gCoordDim);
 	std::vector<int> idx_data(num_verts);
-	
+
 	for (int i = 0; i < slices; ++i)
 	{
 		double theta0 = (i * 2 * M_PI) / slices;
@@ -1185,12 +1236,12 @@ void cMeshUtil::BuildCylinderWireSimple(int slices, std::unique_ptr<cDrawMesh>& 
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
 	BuildDrawMesh(pos_data.data(), static_cast<int>(pos_data.size()),
-				norm_data.data(), static_cast<int>(norm_data.size()),
-				coord_data.data(), static_cast<int>(coord_data.size()),
-				idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
+				  norm_data.data(), static_cast<int>(norm_data.size()),
+				  coord_data.data(), static_cast<int>(coord_data.size()),
+				  idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
 }
 
-void cMeshUtil::BuildConeWireSimple(int slices, std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildConeWireSimple(int slices, std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const float r = 1.f;
 	const float h = 1.f;
@@ -1282,12 +1333,12 @@ void cMeshUtil::BuildConeWireSimple(int slices, std::unique_ptr<cDrawMesh>& out_
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
 	BuildDrawMesh(pos_data.data(), static_cast<int>(pos_data.size()),
-		norm_data.data(), static_cast<int>(norm_data.size()),
-		coord_data.data(), static_cast<int>(coord_data.size()),
-		idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
+				  norm_data.data(), static_cast<int>(norm_data.size()),
+				  coord_data.data(), static_cast<int>(coord_data.size()),
+				  idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
 }
 
-void cMeshUtil::BuildCone(int slices, std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildCone(int slices, std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const float r = 1.f;
 	const float h = 1.f;
@@ -1330,7 +1381,7 @@ void cMeshUtil::BuildCone(int slices, std::unique_ptr<cDrawMesh>& out_mesh)
 		pos_data[pos_offset + 6] = x1;
 		pos_data[pos_offset + 7] = 0;
 		pos_data[pos_offset + 8] = z1;
-		
+
 		norm_data[norm_offset] = n2[0];
 		norm_data[norm_offset + 1] = n2[1];
 		norm_data[norm_offset + 2] = n2[2];
@@ -1387,12 +1438,12 @@ void cMeshUtil::BuildCone(int slices, std::unique_ptr<cDrawMesh>& out_mesh)
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
 	BuildDrawMesh(pos_data.data(), static_cast<int>(pos_data.size()),
-		norm_data.data(), static_cast<int>(norm_data.size()),
-		coord_data.data(), static_cast<int>(coord_data.size()),
-		idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
+				  norm_data.data(), static_cast<int>(norm_data.size()),
+				  coord_data.data(), static_cast<int>(coord_data.size()),
+				  idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
 }
 
-void cMeshUtil::BuildCapsuleMesh(int stacks, int slices, std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildCapsuleMesh(int stacks, int slices, std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const float r = 1;
 	const float h = 1;
@@ -1585,12 +1636,12 @@ void cMeshUtil::BuildCapsuleMesh(int stacks, int slices, std::unique_ptr<cDrawMe
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
 	BuildDrawMesh(pos_data.data(), static_cast<int>(pos_data.size()),
-		norm_data.data(), static_cast<int>(norm_data.size()),
-		coord_data.data(), static_cast<int>(coord_data.size()),
-		idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
+				  norm_data.data(), static_cast<int>(norm_data.size()),
+				  coord_data.data(), static_cast<int>(coord_data.size()),
+				  idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
 }
 
-void cMeshUtil::BuildCapsuleWireSimpleMesh(int stacks, int slices, std::unique_ptr<cDrawMesh>& out_mesh)
+void cMeshUtil::BuildCapsuleWireSimpleMesh(int stacks, int slices, std::unique_ptr<cDrawMesh> &out_mesh)
 {
 	const float r = 0.1;
 	const float h = 0.21;
@@ -1687,7 +1738,7 @@ void cMeshUtil::BuildCapsuleWireSimpleMesh(int stacks, int slices, std::unique_p
 		pos_data.push_back(x1);
 		pos_data.push_back(y1 + 0.5 * h);
 		pos_data.push_back(z1);
-		
+
 		norm_data.push_back(x0);
 		norm_data.push_back(y0);
 		norm_data.push_back(z0);
@@ -1700,7 +1751,7 @@ void cMeshUtil::BuildCapsuleWireSimpleMesh(int stacks, int slices, std::unique_p
 		norm_data.push_back(x1);
 		norm_data.push_back(y1);
 		norm_data.push_back(z1);
-		
+
 		coord_data.push_back(u0);
 		coord_data.push_back(v0);
 		coord_data.push_back(u1);
@@ -1747,21 +1798,21 @@ void cMeshUtil::BuildCapsuleWireSimpleMesh(int stacks, int slices, std::unique_p
 
 	out_mesh = std::unique_ptr<cDrawMesh>(new cDrawMesh());
 	BuildDrawMesh(pos_data.data(), static_cast<int>(pos_data.size()),
-		norm_data.data(), static_cast<int>(norm_data.size()),
-		coord_data.data(), static_cast<int>(coord_data.size()),
-		idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
+				  norm_data.data(), static_cast<int>(norm_data.size()),
+				  coord_data.data(), static_cast<int>(coord_data.size()),
+				  idx_data.data(), static_cast<int>(idx_data.size()), out_mesh.get());
 }
 
-bool cMeshUtil::LoadObj(const std::string& path, cDrawMesh& out_mesh)
+bool cMeshUtil::LoadObj(const std::string &path, cDrawMesh &out_mesh)
 {
 	bool succ = false;
 
 	int data_size = 0;
 	int num_indices = 0;
 	int num_attrib;
-	unsigned char* data = nullptr;
-	int* indices = nullptr;
-	obj_attrib_info* attr_info = nullptr;
+	unsigned char *data = nullptr;
+	int *indices = nullptr;
+	obj_attrib_info *attr_info = nullptr;
 
 	cObjLoader obj_loader = cObjLoader(path);
 	obj_loader.objExportGLSeparate(data_size, data, num_indices, indices, num_attrib, attr_info);
@@ -1770,20 +1821,19 @@ bool cMeshUtil::LoadObj(const std::string& path, cDrawMesh& out_mesh)
 	succ = num_attrib >= 1;
 
 	int pos_size = 0;
-	const float* pos_data = nullptr;
-	const obj_attrib_info& pos_attrib = attr_info[0];
+	const float *pos_data = nullptr;
+	const obj_attrib_info &pos_attrib = attr_info[0];
 	assert(pos_attrib.attrib_size == gPosDim * sizeof(float));
 	pos_size = static_cast<int>(obj_loader.vertices.size());
-	pos_data = reinterpret_cast<const float*>(&data[pos_attrib.data_offset]);
+	pos_data = reinterpret_cast<const float *>(&data[pos_attrib.data_offset]);
 
 	BuildDrawMesh(pos_data, pos_size, indices, num_indices, &out_mesh);
 
 	return succ;
 }
 
-
-bool cMeshUtil::RayIntersectTriangle(const tVector& start, const tVector& end, const tVector& v0, const tVector& v1, const tVector& v2,
-									tVector& out_pos)
+bool cMeshUtil::RayIntersectTriangle(const tVector &start, const tVector &end, const tVector &v0, const tVector &v1, const tVector &v2,
+									 tVector &out_pos)
 {
 	tVector d = end - start;
 	tVector e1 = v1 - v0;

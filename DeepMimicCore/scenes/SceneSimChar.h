@@ -2,187 +2,197 @@
 
 #include "scenes/DrawScene.h"
 
-#include "sim/World.h"
-#include "sim/SimCharBuilder.h"
-#include "sim/Perturb.h"
-#include "sim/Ground.h"
-#include "sim/CtrlBuilder.h"
-#include "sim/SimJoint.h"
+#include "sim/Controller/CtrlBuilder.h"
+#include "sim/SimItems/SimCharBuilder.h"
+#include "sim/SimItems/SimJoint.h"
+#include "sim/World/Ground.h"
+#include "sim/World/Perturb.h"
+#include "sim/World/World.h"
 #include "util/IndexBuffer.h"
 
 class cIDSolver;
-// class cOnlineIDSolver;
-// class cOfflineIDSolver;
 class cSceneSimChar : virtual public cScene
 {
 public:
-	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-	struct tObjEntry
-	{
-		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    struct tObjEntry
+    {
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-		std::shared_ptr<cSimRigidBody> mObj;
-		double mEndTime;
-		tVector mColor;
-		bool mPersist;
+        std::shared_ptr<cSimRigidBody> mObj;
+        double mEndTime;
+        tVector mColor;
+        bool mPersist;
 
-		tObjEntry();
-		bool IsValid() const;
-	};
+        tObjEntry();
+        bool IsValid() const;
+    };
 
-	struct tJointEntry
-	{
-		std::shared_ptr<cSimJoint> mJoint;
+    struct tJointEntry
+    {
+        std::shared_ptr<cSimJoint> mJoint;
 
-		tJointEntry();
-		bool IsValid() const;
-	};
+        tJointEntry();
+        bool IsValid() const;
+    };
 
-	cSceneSimChar();
-	virtual ~cSceneSimChar();
+    cSceneSimChar();
+    virtual ~cSceneSimChar();
 
-	virtual void ParseArgs(const std::shared_ptr<cArgParser>& parser);
-	virtual void Init();
-	virtual void Clear();
-	virtual void Update(double time_elapsed);
+    virtual void ParseArgs(const std::shared_ptr<cArgParser> &parser);
+    virtual void Init();
+    virtual void Clear();
+    virtual void Update(double time_elapsed);
 
-	virtual int GetNumChars() const;
-	virtual const std::shared_ptr<cSimCharacter>& GetCharacter() const;
-	virtual const std::shared_ptr<cSimCharacter>& GetCharacter(int char_id) const;
-	virtual const std::shared_ptr<cWorld>& GetWorld() const;
-	virtual tVector GetCharPos() const;
-	virtual const std::shared_ptr<cGround>& GetGround() const;
-	virtual const tVector& GetGravity() const;
-	virtual bool LoadControlParams(const std::string& param_file, const std::shared_ptr<cSimCharacter>& out_char);
+    virtual int GetNumChars() const;
+    virtual const std::shared_ptr<cSimCharacterBase> &GetCharacter() const;
+    virtual const std::shared_ptr<cSimCharacterBase> &
+    GetCharacter(int char_id) const;
+    virtual const std::shared_ptr<cWorldBase> &GetWorld() const;
+    virtual tVector GetCharPos() const;
+    virtual const std::shared_ptr<cGround> &GetGround() const;
+    virtual const tVector &GetGravity() const;
+    virtual bool
+    LoadControlParams(const std::string &param_file,
+                      const std::shared_ptr<cSimCharacterBase> &out_char);
 
-	virtual void AddPerturb(const tPerturb& perturb);
-	virtual void ApplyRandForce(double min_force, double max_force, 
-								double min_dur, double max_dur, cSimObj* obj);
-	virtual void ApplyRandForce();
-	virtual void ApplyRandForce(int char_id);
-	virtual void RayTest(const tVector& beg, const tVector& end, cWorld::tRayTestResult& out_result) const;
+    virtual void AddPerturb(const tPerturb &perturb);
+    virtual void ApplyRandForce(double min_force, double max_force,
+                                double min_dur, double max_dur, cSimObj *obj);
+    virtual void ApplyRandForce();
+    virtual void ApplyRandForce(int char_id);
+    virtual void RayTest(const tVector &beg, const tVector &end,
+                         cWorldBase::tRayTestResult &out_result) const;
 
-	virtual void SetGroundParamBlend(double lerp);
-	virtual int GetNumParamSets() const;
-	virtual void OutputCharState(const std::string& out_file) const;
-	virtual void OutputGround(const std::string& out_file) const;
-	virtual void ResolveCharGroundIntersect();
+    virtual void SetGroundParamBlend(double lerp);
+    virtual int GetNumParamSets() const;
+    virtual void OutputCharState(const std::string &out_file) const;
+    virtual void OutputGround(const std::string &out_file) const;
+    virtual void ResolveCharGroundIntersect();
 
-	virtual void SpawnProjectile();
-	virtual void SpawnBigProjectile();
-	virtual int GetNumObjs() const;
-	virtual const std::shared_ptr<cSimRigidBody>& GetObj(int id) const;
-	virtual const tObjEntry& GetObjEntry(int id) const;
+    virtual void SpawnProjectile();
+    virtual void SpawnBigProjectile();
+    virtual int GetNumObjs() const;
+    virtual const std::shared_ptr<cSimRigidBody> &GetObj(int id) const;
+    virtual const tObjEntry &GetObjEntry(int id) const;
 
-	virtual void SetRandSeed(unsigned long seed);
+    virtual void SetRandSeed(unsigned long seed);
 
-	virtual std::string GetName() const;
+    virtual std::string GetName() const;
 
 protected:
+    struct tPerturbParams
+    {
+        bool mEnableRandPerturbs;
+        double mTimer;
+        double mTimeMin;
+        double mTimeMax;
+        double mNextTime;
+        double mMinPerturb;
+        double mMaxPerturb;
+        double mMinDuration;
+        double mMaxDuration;
+        std::vector<int> mPerturbPartIDs;
 
-	struct tPerturbParams
-	{
-		bool mEnableRandPerturbs;
-		double mTimer;
-		double mTimeMin;
-		double mTimeMax;
-		double mNextTime;
-		double mMinPerturb;
-		double mMaxPerturb;
-		double mMinDuration;
-		double mMaxDuration;
-		std::vector<int> mPerturbPartIDs;
+        tPerturbParams();
+    };
 
-		tPerturbParams();
-	};
+    static const double gGroundSpawnOffset;
 
-	static const double gGroundSpawnOffset;
+    cWorldBase::tParams mWorldParams;
 
-	cWorld::tParams mWorldParams;
+    std::vector<cSimCharacterBase::tParams> mCharParams;
+    std::vector<cCtrlBuilder::tCtrlParams> mCtrlParams;
+    bool mEnableContactFall;
+    bool mEnableRandCharPlacement;
+    bool mEnableTorqueRecord;
+    bool mEnablePDTargetSolveTest;
+    std::string mTorqueRecordFile;
+    bool mEnableJointTorqueControl;
+    std::vector<int> mFallContactBodies; // 这是一个int列表，功能暂时不明。
 
-	std::vector<cSimCharacter::tParams> mCharParams;
-	std::vector<cCtrlBuilder::tCtrlParams> mCtrlParams;
-	bool mEnableContactFall;
-	bool mEnableRandCharPlacement;
-	bool mEnableTorqueRecord;
-	bool mEnablePDTargetSolveTest; 
-	std::string mTorqueRecordFile;
-	bool mEnableJointTorqueControl;
-	std::vector<int> mFallContactBodies;	// 这是一个int列表，功能暂时不明。
+    std::shared_ptr<cWorldBase> mWorld;
+    std::shared_ptr<cGround> mGround;
+    std::vector<std::shared_ptr<cSimCharacterBase>> mChars;
+    std::vector<cSimCharBuilder::eCharType> mCharTypes;
 
-	std::shared_ptr<cWorld> mWorld;
-	std::shared_ptr<cGround> mGround;
-	std::vector<std::shared_ptr<cSimCharacter>> mChars;
-	std::vector<cSimCharBuilder::eCharType> mCharTypes;
+    cGround::tParams mGroundParams;
+    tPerturbParams mPerturbParams;
 
-	cGround::tParams mGroundParams;
-	tPerturbParams mPerturbParams;
+    cIndexBuffer<tObjEntry, Eigen::aligned_allocator<tObjEntry>> mObjs;
+    // cIndexBuffer<tJointEntry> mJoints;
 
-	cIndexBuffer<tObjEntry, Eigen::aligned_allocator<tObjEntry>> mObjs;
-	cIndexBuffer<tJointEntry> mJoints;
+    // inverse dynamics info
+    bool mEnableID;
+    std::string mIDInfoPath;
+    std::shared_ptr<cIDSolver> mIDSolver;
 
-	// inverse dynamics info
-	// parse for inverse dynamics solving
-	bool mEnableID;
-	std::string mIDInfoPath;
-	std::shared_ptr<cIDSolver> mIDSolver;
-	// std::shared_ptr<cOnlineIDSolver> mOnlineIDSolver;
-	// std::shared_ptr<cOfflineIDSolver> mOfflineIDSolver;
+    virtual bool
+    ParseCharTypes(const std::shared_ptr<cArgParser> &parser,
+                   std::vector<cSimCharBuilder::eCharType> &out_types) const;
+    virtual bool
+    ParseCharParams(const std::shared_ptr<cArgParser> &parser,
+                    std::vector<cSimCharacterBase::tParams> &out_params) const;
+    virtual bool ParseCharCtrlParams(
+        const std::shared_ptr<cArgParser> &parser,
+        std::vector<cCtrlBuilder::tCtrlParams> &out_params) const;
 
+    virtual void BuildWorld();
+    virtual bool BuildCharacters();
+    virtual void BuildGround();
+    virtual bool BuildController(const cCtrlBuilder::tCtrlParams &ctrl_params,
+                                 std::shared_ptr<cCharController> &out_ctrl);
 
-	virtual bool ParseCharTypes(const std::shared_ptr<cArgParser>& parser, std::vector<cSimCharBuilder::eCharType>& out_types) const;
-	virtual bool ParseCharParams(const std::shared_ptr<cArgParser>& parser, std::vector<cSimCharacter::tParams>& out_params) const;
-	virtual bool ParseCharCtrlParams(const std::shared_ptr<cArgParser>& parser, std::vector<cCtrlBuilder::tCtrlParams>& out_params) const;
-	
-	virtual void BuildWorld();
-	virtual bool BuildCharacters();
-	virtual void BuildGround();
-	virtual bool BuildController(const cCtrlBuilder::tCtrlParams& ctrl_params, std::shared_ptr<cCharController>& out_ctrl);
+    virtual void SetFallContacts(const std::vector<int> &fall_bodies,
+                                 std::shared_ptr<cSimCharacterBase> &out_char) const;
+    virtual void InitCharacterPos();
+    virtual void
+    InitCharacterPos(const std::shared_ptr<cSimCharacterBase> &out_char);
+    virtual void
+    InitCharacterPosFixed(const std::shared_ptr<cSimCharacterBase> &out_char);
+    virtual void BuildInverseDynamic();
+    virtual void
+    SetCharRandPlacement(const std::shared_ptr<cSimCharacterBase> &out_char);
+    virtual void
+    CalcCharRandPlacement(const std::shared_ptr<cSimCharacterBase> &out_char,
+                          tVector &out_pos, tQuaternion &out_rot);
+    virtual void ResolveCharGroundIntersect(
+        const std::shared_ptr<cSimCharacterBase> &out_char) const;
 
-	virtual void SetFallContacts(const std::vector<int>& fall_bodies, cSimCharacter& out_char) const;
-	virtual void InitCharacterPos();
-	virtual void InitCharacterPos(const std::shared_ptr<cSimCharacter>& out_char);
-	virtual void InitCharacterPosFixed(const std::shared_ptr<cSimCharacter>& out_char);
-	virtual void BuildInverseDynamic();
-	virtual void SetCharRandPlacement(const std::shared_ptr<cSimCharacter>& out_char);
-	virtual void CalcCharRandPlacement(const std::shared_ptr<cSimCharacter>& out_char, tVector& out_pos, tQuaternion& out_rot);
-	virtual void ResolveCharGroundIntersect(const std::shared_ptr<cSimCharacter>& out_char) const;
+    virtual void UpdateWorld(double time_step);
+    virtual void UpdateCharacters(double time_step);
+    virtual void PostUpdateCharacters(double time_step);
+    virtual void UpdateGround(double time_elapsed);
+    virtual void UpdateRandPerturb(double time_step);
 
-	virtual void UpdateWorld(double time_step);
-	virtual void UpdateCharacters(double time_step);
-	virtual void PostUpdateCharacters(double time_step);
-	virtual void UpdateGround(double time_elapsed);
-	virtual void UpdateRandPerturb(double time_step);
+    virtual void ResetScene();
+    virtual void ResetCharacters();
+    virtual void ResetWorld();
+    virtual void ResetGround();
 
-	virtual void ResetScene();
-	virtual void ResetCharacters();
-	virtual void ResetWorld();
-	virtual void ResetGround();
+    virtual void PreUpdate(double timestep);
+    virtual void PostUpdate(double timestep);
 
-	virtual void PreUpdate(double timestep);
-	virtual void PostUpdate(double timestep);
+    virtual int
+    GetRandPerturbPartID(const std::shared_ptr<cSimCharacterBase> &character);
+    virtual void GetViewBound(tVector &out_min, tVector &out_max) const;
+    virtual void ParseGroundParams(const std::shared_ptr<cArgParser> &parser,
+                                   cGround::tParams &out_params) const;
 
-	virtual int GetRandPerturbPartID(const std::shared_ptr<cSimCharacter>& character);
-	virtual void GetViewBound(tVector& out_min, tVector& out_max) const;
-	virtual void ParseGroundParams(const std::shared_ptr<cArgParser>& parser, cGround::tParams& out_params) const;
+    virtual void UpdateObjs(double timestep);
+    // virtual void ClearJointForces();
+    virtual void ClearObjs();
+    virtual void CleanObjs();
+    virtual int AddObj(const tObjEntry &obj_entry);
+    virtual void RemoveObj(int handle);
 
-	virtual void UpdateObjs(double timestep);
-	virtual void UpdateJoints(double timestep);
-	virtual void ClearJointForces();
-	virtual void ClearObjs();
-	virtual void CleanObjs();
-	virtual int AddObj(const tObjEntry& obj_entry);
-	virtual void RemoveObj(int handle);
+    virtual bool HasFallen(const cSimCharacterBase &sim_char) const;
 
-	virtual void ClearJoints();
-	virtual int AddJoint(const tJointEntry& joint_entry);
-	virtual void RemoveJoint(int handle);
-	virtual int GetNumJoints() const;
-	virtual bool HasFallen(const cSimCharacter& sim_char) const;
+    virtual void SpawnProjectile(double density, double min_size,
+                                 double max_size, double min_speed,
+                                 double max_speed, double y_offset,
+                                 double life_time);
 
-	virtual void SpawnProjectile(double density, double min_size, double max_size,
-									double min_speed, double max_speed, double y_offset, double life_time);
-
-	virtual void ResetRandPertrub();
+    virtual void ResetRandPertrub();
 };

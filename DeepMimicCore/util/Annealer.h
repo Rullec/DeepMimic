@@ -3,26 +3,26 @@
 class cAnnealer
 {
 public:
-	enum eType
-	{
-		eTypeLinear,
-		eTypePow,
-		eTypeMax
-	};
+    enum eType
+    {
+        eTypeLinear,
+        eTypePow,
+        eTypeMax
+    };
 
-	struct tParams
-	{
-		eType mType;
-		double mPow;
-		tParams();
-	};
+    struct tParams
+    {
+        eType mType;
+        double mPow;
+        tParams();
+    };
 
-	cAnnealer();
-	virtual ~cAnnealer();
+    cAnnealer();
+    virtual ~cAnnealer();
 
-	virtual void Init(const tParams& params);
-	virtual double Eval(double t);
+    virtual void Init(const tParams &params);
+    virtual double Eval(double t);
 
 protected:
-	tParams mParams;
+    tParams mParams;
 };

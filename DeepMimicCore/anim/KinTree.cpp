@@ -3,7 +3,8 @@
 #include <iostream>
 
 #include "util/FileUtil.h"
-#include "sim/RBDUtil.h"
+#include "sim/Controller/RBDModel.h"
+#include "sim/Controller/RBDUtil.h"
 
 const int cKinTree::gPosDim = 3;
 const int cKinTree::gRotDim = 4;
@@ -1755,8 +1756,7 @@ double cKinTree::CalcHeading(const Eigen::MatrixXd& joint_mat, const Eigen::Vect
 	tQuaternion root_rot = cKinTree::GetRootRot(joint_mat, pose);	// 获取root的旋转: 是个四元数
 	tVector rot_dir = cMathUtil::QuatRotVec(root_rot, ref_dir);		// 把这个vec按照root的旋转进行旋转。 
 	double heading = std::atan2(-rot_dir[2], rot_dir[0]);			// y = -rot_dir[2], x = rot_dir[0],计算反三角
-	// 计算的是一个弧度制的角度，但为什么是-rot_dir[2]
-	// 总而言之，返回的角度就是一个theta: 如果把铰链旋转这个theta，就会变成世界坐标系
+
 	return heading;
 }
 
@@ -1766,14 +1766,15 @@ tQuaternion cKinTree::CalcHeadingRot(const Eigen::MatrixXd& joint_mat, const Eig
 	return cMathUtil::AxisAngleToQuaternion(tVector(0, 1, 0, 0), heading);
 }
 
+/**
+ * \brief			calculate the rotation matrix which can rotate the orientation of the skeleton to be parallel to the vector (0, 0, 1)
+*/
 tMatrix cKinTree::BuildHeadingTrans(const Eigen::MatrixXd& joint_mat, const Eigen::VectorXd& pose)
 {
 	// build "heading"的变换? head是指向头顶的(0, 1, 0)
 	double heading = CalcHeading(joint_mat, pose);
 	tVector axis = tVector(0, 1, 0, 0);
-	tMatrix mat = cMathUtil::RotateMat(axis, -heading);	// 绕Y轴旋转theta的旋转矩阵: 这个旋转矩阵完成从世界坐标系到root局部坐标系的变换。
-	// 也就相当于一个物体的矩阵表示X在世界坐标系，然后矩阵表示左乘这个mat以后(mat * X) = new_X
-	// new_X就是物体在局部坐标系(root坐标系)下面的表示。
+	tMatrix mat = cMathUtil::RotateMat(axis, -heading);
 	return mat;
 }
 
@@ -1787,14 +1788,10 @@ tMatrix cKinTree::BuildOriginTrans(const Eigen::MatrixXd& joint_mat, const Eigen
 	// origin is the point right under the root of the character on the xz plane with x-axis
 	// aligned along the character's heading
 	tVector origin = GetRootPos(joint_mat, pose);	// 获取世界坐标系下root joint位置在xoz平面上的投影，称为origin: 也就是从joint坐标系到世界坐标系的变换
-	//std::cout << "root pos = " << origin.transpose() << std::endl;
 	origin[1] = 0;									// 例如此时origin = [0, 0.89, 0], 之后就是[0, 0, 0], 相当于抹平了Y轴变换
-	tMatrix rot_mat = BuildHeadingTrans(joint_mat, pose);	// 世界坐标系到root局部坐标系的旋转变换: 只绕头顶(Y)上旋转
-	//std::cout << "rot_mat = \n" << rot_mat << std::endl;
+	tMatrix rot_mat = BuildHeadingTrans(joint_mat, pose);	// rotate the orientation of the skeleton to be parallel with vector (0, 0, 1)
 	tMatrix trans_mat = cMathUtil::TranslateMat(-origin);	// 世界坐标系到root坐标系的平移
-	//std::cout << "trans_mat = \n" << trans_mat << std::endl;
 	tMatrix mat = rot_mat * trans_mat;
-	//std::cout << "total_mat = \n" << mat << std::endl;
 	return mat;	// 世界坐标系到root坐标系的变换
 }
 
