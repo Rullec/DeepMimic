@@ -27,7 +27,7 @@
 --fall_contact_bodies 0
 
 #----------------PD params and motion data----------------
---char_ctrls ct_pd
+--char_ctrls ct_pd_gen
 --char_ctrl_files data/0424/controllers/humanoid3d_ctrl_skeleton_0424_1_obj.txt
 --motion_file data/0424/motions/walk_motion_042401_1_obj.txt
 --sync_char_root_pos true

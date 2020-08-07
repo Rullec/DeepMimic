@@ -61,6 +61,7 @@ cSceneSimChar::cSceneSimChar()
     mEnableJointTorqueControl = true;
     // mIDInfo.clear();
 
+    mWorldParams.mGenWorldConfig = "args/world_config/sim_config.json";
     mWorldParams.mNumSubsteps = 1;
     mWorldParams.mScale = 1;
     mWorldParams.mGravity = gGravity;
@@ -137,38 +138,19 @@ void cSceneSimChar::Init()
         ResetRandPertrub();
     }
 
-    // 在这里建造地面　+ 角色结构
     BuildWorld();
-
-    // 建造地面(地面有什么可建造的呢)
     BuildGround();
-
-    // 建造角色结构
     BuildCharacters();
 
-    // 初始化角色位置
-    // auto & sim_char = GetCharacter(0);
-    // std::cout <<"begin init char pos \n";
-    // std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
-    // std::cout << "root rot = " <<
-    // sim_char->GetRootRotation().coeffs().transpose() << std::endl; std::cout
-    // << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
-
+    // Init the position of our character, accoridng to the ref motion
     InitCharacterPos();
-    // std::cout <<"after init char pos ";
-    // std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
-    // std::cout << "root rot = " <<
-    // sim_char->GetRootRotation().coeffs().transpose() << std::endl; std::cout
-    // << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
 
-    // exit(1);
     ResolveCharGroundIntersect();
 
     // build inverse dynamic
     BuildInverseDynamic();
 
     ClearObjs();
-
     // std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
     // std::cout << "root rot = " <<
     // sim_char->GetRootRotation().coeffs().transpose() << std::endl; std::cout

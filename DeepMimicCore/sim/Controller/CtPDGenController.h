@@ -17,6 +17,15 @@ public:
 
     virtual const tVectorXd &GetCurAction();
 
+    virtual void
+    BuildStateOffsetScale(Eigen::VectorXd &out_offset,
+                          Eigen::VectorXd &out_scale) const override;
+    virtual void BuildActionBounds(Eigen::VectorXd &out_min,
+                                   Eigen::VectorXd &out_max) const override;
+    virtual void
+    BuildActionOffsetScale(Eigen::VectorXd &out_offset,
+                           Eigen::VectorXd &out_scale) const override;
+
 protected:
     tVectorXd mGravity;
     tVectorXd mCurAction, mCurPDTargetPose;

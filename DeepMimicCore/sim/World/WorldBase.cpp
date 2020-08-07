@@ -3,6 +3,7 @@
 cWorldBase::tParams::tParams()
 {
     mWorldType = gWorldType[eWorldType::INVALID_WORLD_TYPE];
+    mGenWorldConfig = "";
     mNumSubsteps = 1;
     mScale = 1;
     mGravity = gGravity;

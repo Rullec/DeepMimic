@@ -1,6 +1,7 @@
+// #include "BulletDynamics/Dynamics/btDynamicsWorld.h"
 #include "sim/World/WorldBase.h"
-#include "BulletDynamics/Dynamics/btDynamicsWorld.h"
 
+class btGeneralizeWorld;
 class cGenWorld : virtual public cWorldBase
 {
 public:
@@ -17,8 +18,8 @@ public:
                                     int col_filter_group,
                                     int col_filter_mask) override;
     virtual void RemoveCollisionObject(btCollisionObject *col_obj) override;
-    virtual void AddCharacter(cSimCharacter &sim_char) override;
-    virtual void RemoveCharacter(cSimCharacter &sim_char) override;
+    virtual void AddCharacter(cSimCharacterBase *sim_char) override;
+    virtual void RemoveCharacter(cSimCharacterBase *sim_char) override;
 
     virtual void Constrain(cSimRigidBody &obj) override;
     virtual void Constrain(cSimRigidBody &obj, const tVector &linear_factor,
@@ -52,15 +53,15 @@ public:
     virtual void SetDefaultAngularDamping(double damping) override;
     virtual double GetDefaultAngularDamping() const override;
 
-    // yuck, avoid using this
-    virtual std::shared_ptr<btDynamicsWorld> GetInternalWorld()override;
+    virtual btDynamicsWorld * GetInternalWorld() override;
 
     // object interface
     virtual btBoxShape *BuildBoxShape(const tVector &box_sizee) const override;
     virtual btCapsuleShape *BuildCapsuleShape(double radius,
                                               double height) const override;
     virtual btStaticPlaneShape *
-    BuildPlaneShape(const tVector &normal, const tVector &origin) const override;
+    BuildPlaneShape(const tVector &normal,
+                    const tVector &origin) const override;
     virtual btSphereShape *BuildSphereShape(double radius) const override;
     virtual btCylinderShape *BuildCylinderShape(double radius,
                                                 double height) const override;
@@ -72,5 +73,6 @@ public:
     virtual tVector GetSizeCylinder(const cSimObj &obj) const override;
 
 protected:
-    std::shared_ptr<btDynamicsWorld> mSimWorld;
+    btGeneralizeWorld * mbtGenWorld;
+    btDynamicsWorld * mbtDynamicsWorldInternal;
 };

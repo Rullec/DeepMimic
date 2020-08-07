@@ -68,8 +68,8 @@ void cContactManager::Update()
     }
     double world_scale = mMultibodyWorld->GetScale();
     double timestep = mMultibodyWorld->GetTimeStep();
-    std::shared_ptr<btMultiBodyDynamicsWorld> bt_world =
-        std::dynamic_pointer_cast<btMultiBodyDynamicsWorld>(
+    btMultiBodyDynamicsWorld *bt_world =
+        dynamic_cast<btMultiBodyDynamicsWorld *>(
             mMultibodyWorld->GetInternalWorld()); // 获取Internal world
 
     btDispatcher *dispacher = bt_world->getDispatcher();

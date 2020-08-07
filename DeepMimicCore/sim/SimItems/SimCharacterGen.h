@@ -4,7 +4,7 @@
 
 class cSimBodyLinkGen;
 class cSimBodyJointGen;
-class cSimCharacterGen : public cSimCharacterBase, protected cRobotModelDynamics
+class cSimCharacterGen : public cSimCharacterBase, public cRobotModelDynamics
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;

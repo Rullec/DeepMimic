@@ -20,7 +20,7 @@ cIDSolver::cIDSolver(cSceneImitate *imitate_scene, eIDSolverType type)
     mSimChar = Downcast(imitate_scene->GetCharacter(0)).get();
     mKinChar = imitate_scene->GetKinChar().get();
     mWorld = dynamic_cast<btMultiBodyDynamicsWorld *>(
-        imitate_scene->GetWorld()->GetInternalWorld().get());
+        imitate_scene->GetWorld()->GetInternalWorld());
     assert(mSimChar != nullptr);
     assert(mWorld != nullptr);
 

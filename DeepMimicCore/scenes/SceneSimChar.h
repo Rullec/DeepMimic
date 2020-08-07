@@ -7,7 +7,7 @@
 #include "sim/SimItems/SimJoint.h"
 #include "sim/World/Ground.h"
 #include "sim/World/Perturb.h"
-#include "sim/World/World.h"
+#include "sim/World/FeaWorld.h"
 #include "util/IndexBuffer.h"
 
 class cIDSolver;

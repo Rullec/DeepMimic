@@ -20,13 +20,12 @@ class cSimBox;
 class cSimCapsule;
 class cSimPlane;
 class cSimSphere;
-class cSimCharacter;
+class cSimCharacterBase;
 
 // Featherstone simulation world
 class cFeaWorld : virtual public cWorldBase
 {
 public:
-
     cFeaWorld();
     virtual ~cFeaWorld();
     virtual void Init(const tParams &params) override final;
@@ -41,8 +40,8 @@ public:
                                     int col_filter_mask) override final;
     virtual void
     RemoveCollisionObject(btCollisionObject *col_obj) override final;
-    virtual void AddCharacter(cSimCharacter &sim_char) override final;
-    virtual void RemoveCharacter(cSimCharacter &sim_char) override final;
+    virtual void AddCharacter(cSimCharacterBase *sim_char) override final;
+    virtual void RemoveCharacter(cSimCharacterBase *sim_char) override final;
 
     virtual void Constrain(cSimRigidBody &obj) override final;
     virtual void Constrain(cSimRigidBody &obj, const tVector &linear_factor,
@@ -76,8 +75,7 @@ public:
     virtual void SetDefaultAngularDamping(double damping) override final;
     virtual double GetDefaultAngularDamping() const override final;
 
-    // yuck, avoid using this
-    virtual std::shared_ptr<btDynamicsWorld> GetInternalWorld() override;
+    virtual btDynamicsWorld *GetInternalWorld() override;
 
     // object interface
     virtual btBoxShape *
@@ -98,8 +96,7 @@ public:
     virtual tVector GetSizeCylinder(const cSimObj &obj) const override final;
 
 protected:
-    std::shared_ptr<btMultiBodyDynamicsWorld> mSimWorld;
+    btMultiBodyDynamicsWorld *mSimWorld;
     virtual void BuildConsFactor(tVector &out_linear_factor,
                                  tVector &out_angular_factor);
 };
-

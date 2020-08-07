@@ -900,7 +900,7 @@ bool cSimCharacter::BuildSimBody(const tParams &params)
         succ &= BuildBodyLinks();
         succ &= BuildJoints();
 
-        mWorld->AddCharacter(*this);
+        mWorld->AddCharacter(this);
 
         mVecBuffer0.resize(mMultiBody->getNumLinks() + 1);
         mVecBuffer1.resize(mMultiBody->getNumLinks() + 1);
@@ -1392,7 +1392,7 @@ void cSimCharacter::RemoveFromWorld()
 {
     if (mWorld != nullptr)
     {
-        mWorld->RemoveCharacter(*this);
+        mWorld->RemoveCharacter(this);
         mJoints.clear();
         mBodyParts.clear();
         mCons.clear();

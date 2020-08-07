@@ -1,5 +1,5 @@
-#include "sim/World/LCPWorld.h"
-#include "sim/World/World.h"
+#include "sim/World/GenWorld.h"
+#include "sim/World/FeaWorld.h"
 #include "sim/World/WorldBase.h"
 
 class cWorldBuilder

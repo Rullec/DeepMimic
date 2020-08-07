@@ -1,4 +1,5 @@
-#include "sim/World/LCPWorld.h"
+﻿#include "FeaWorld.h"
+
 #include "BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h"
 #include "BulletDynamics/Featherstone/btMultiBodyConstraintSolver.h"
 #include "BulletDynamics/MLCPSolvers/btDantzigSolver.h"
@@ -16,16 +17,16 @@
 #include <iostream>
 using namespace std;
 
-cGenWorld::cGenWorld() : cWorldBase()
+cFeaWorld::cFeaWorld() : cWorldBase()
 {
     mDefaultLinearDamping = 0;
     mDefaultAngularDamping = 0;
     mTimeStep = 0;
 }
 
-cGenWorld::~cGenWorld() {}
+cFeaWorld::~cFeaWorld() {}
 
-void cGenWorld::Init(const tParams &params)
+void cFeaWorld::Init(const tParams &params)
 {
     mParams = params;
 
@@ -39,14 +40,13 @@ void cGenWorld::Init(const tParams &params)
 
     auto solver = new btMultiBodyConstraintSolver();
     mSolver = std::unique_ptr<btSequentialImpulseConstraintSolver>(solver);
-    mSimWorld =
-        std::unique_ptr<btMultiBodyDynamicsWorld>(new btMultiBodyDynamicsWorld(
-            mCollisionDispatcher.get(), mBroadPhase.get(), solver,
-            mCollisionConfig.get()));
+    mSimWorld = new btMultiBodyDynamicsWorld(mCollisionDispatcher.get(),
+                                             mBroadPhase.get(), solver,
+                                             mCollisionConfig.get());
 
-    // btContactSolverInfo &info = mSimWorld->getSolverInfo();
-    // info.m_solverMode = SOLVER_SIMD | SOLVER_USE_2_FRICTION_DIRECTIONS |
-    //                     SOLVER_FRICTION_SEPARATE | SOLVER_USE_WARMSTARTING;
+    btContactSolverInfo &info = mSimWorld->getSolverInfo();
+    info.m_solverMode = SOLVER_SIMD | SOLVER_USE_2_FRICTION_DIRECTIONS |
+                        SOLVER_FRICTION_SEPARATE | SOLVER_USE_WARMSTARTING;
 
     SetGravity(params.mGravity);
 
@@ -54,7 +54,7 @@ void cGenWorld::Init(const tParams &params)
     mPerturbManager.Clear();
 }
 
-void cGenWorld::Reset()
+void cFeaWorld::Reset()
 {
     mTimeStep = 0;
     mContactManager.Reset();
@@ -74,9 +74,9 @@ void cGenWorld::Reset()
     }
 }
 
-void cGenWorld::Update(double time_elapsed)
+void cFeaWorld::Update(double time_elapsed)
 {
-    // std::cout <<"void cLCPWorld::Update(double time_elapsed)" << std::endl;
+    // std::cout <<"void cWorld::Update(double time_elapsed)" << std::endl;
     time_elapsed = std::max(0.0, time_elapsed);
     mPerturbManager.Update(time_elapsed); // 似乎对于扰动有一个统一的管理。
 
@@ -94,7 +94,7 @@ void cGenWorld::Update(double time_elapsed)
     mContactManager.Update();
 }
 
-void cGenWorld::AddRigidBody(cSimRigidBody &obj)
+void cFeaWorld::AddRigidBody(cSimRigidBody &obj)
 {
     const std::unique_ptr<btRigidBody> &body = obj.GetSimBody();
 
@@ -108,13 +108,13 @@ void cGenWorld::AddRigidBody(cSimRigidBody &obj)
     Constrain(obj);
 }
 
-void cGenWorld::RemoveRigidBody(cSimRigidBody &obj)
+void cFeaWorld::RemoveRigidBody(cSimRigidBody &obj)
 {
     mSimWorld->removeRigidBody(obj.GetSimBody().get());
 }
 
-void cGenWorld::AddCollisionObject(btCollisionObject *col_obj,
-                                int col_filter_group, int col_filter_mask)
+void cFeaWorld::AddCollisionObject(btCollisionObject *col_obj,
+                                   int col_filter_group, int col_filter_mask)
 {
     col_filter_mask |= cContactManager::gFlagRayTest;
     // std::cout << "[log] add collision obj: " <<
@@ -125,60 +125,66 @@ void cGenWorld::AddCollisionObject(btCollisionObject *col_obj,
     mSimWorld->addCollisionObject(col_obj, col_filter_group, col_filter_mask);
 }
 
-void cGenWorld::RemoveCollisionObject(btCollisionObject *col_obj)
+void cFeaWorld::RemoveCollisionObject(btCollisionObject *col_obj)
 {
     mSimWorld->removeCollisionObject(col_obj);
 }
 
-void cGenWorld::AddCharacter(cSimCharacter &sim_char)
+void cFeaWorld::AddCharacter(cSimCharacterBase *sim_charbase)
 {
-    // sim_char.SetLinearDamping(mDefaultLinearDamping);
-    // sim_char.SetAngularDamping(mDefaultAngularDamping);
-    // mSimWorld->addMultiBody(sim_char.GetMultiBody().get());
+    cSimCharacter *sim_char = dynamic_cast<cSimCharacter *>(sim_charbase);
+    MIMIC_ASSERT(sim_char != nullptr &&
+                 "cFeaWorld can only contain raw charcter");
+    sim_char->SetLinearDamping(mDefaultLinearDamping);
+    sim_char->SetAngularDamping(mDefaultAngularDamping);
+    mSimWorld->addMultiBody(sim_char->GetMultiBody().get());
 
-    // const auto &constraints = sim_char.GetConstraints();
-    // for (int c = 0; c < static_cast<int>(constraints.size()); ++c)
-    // {
-    //     mSimWorld->addMultiBodyConstraint(constraints[c].get());
-    // }
+    const auto &constraints = sim_char->GetConstraints();
+    for (int c = 0; c < static_cast<int>(constraints.size()); ++c)
+    {
+        mSimWorld->addMultiBodyConstraint(constraints[c].get());
+    }
 }
 
-void cGenWorld::RemoveCharacter(cSimCharacter &sim_char)
+void cFeaWorld::RemoveCharacter(cSimCharacterBase *sim_charbase)
 {
-    // const auto &constraints = sim_char.GetConstraints();
-    // for (int c = 0; c < static_cast<int>(constraints.size()); ++c)
-    // {
-    //     mSimWorld->removeMultiBodyConstraint(constraints[c].get());
-    // }
+    cSimCharacter *sim_char = dynamic_cast<cSimCharacter *>(sim_charbase);
+    MIMIC_ASSERT(sim_char != nullptr &&
+                 "cFeaWorld can only contain raw charcter");
+    const auto &constraints = sim_char->GetConstraints();
+    for (int c = 0; c < static_cast<int>(constraints.size()); ++c)
+    {
+        mSimWorld->removeMultiBodyConstraint(constraints[c].get());
+    }
 
-    // mSimWorld->removeMultiBody(sim_char.GetMultiBody().get());
+    mSimWorld->removeMultiBody(sim_char->GetMultiBody().get());
 }
 
-void cGenWorld::Constrain(cSimRigidBody &obj)
+void cFeaWorld::Constrain(cSimRigidBody &obj)
 {
     Constrain(obj, tVector::Ones(), tVector::Ones());
 }
 
-void cGenWorld::Constrain(cSimRigidBody &obj, const tVector &linear_factor,
-                       const tVector &angular_factor)
+void cFeaWorld::Constrain(cSimRigidBody &obj, const tVector &linear_factor,
+                          const tVector &angular_factor)
 {
-    // auto &body = obj.GetSimBody();
-    // tVector lin_f = tVector::Ones();
-    // tVector ang_f = tVector::Ones();
-    // // BuildConsFactor(lin_f, ang_f);
+    auto &body = obj.GetSimBody();
+    tVector lin_f = tVector::Ones();
+    tVector ang_f = tVector::Ones();
+    BuildConsFactor(lin_f, ang_f);
 
-    // lin_f = lin_f.cwiseProduct(linear_factor);
-    // ang_f = ang_f.cwiseProduct(angular_factor);
+    lin_f = lin_f.cwiseProduct(linear_factor);
+    ang_f = ang_f.cwiseProduct(angular_factor);
 
-    // body->setLinearFactor(btVector3(static_cast<btScalar>(lin_f[0]),
-    //                                 static_cast<btScalar>(lin_f[1]),
-    //                                 static_cast<btScalar>(lin_f[2])));
-    // body->setAngularFactor(btVector3(static_cast<btScalar>(ang_f[0]),
-    //                                  static_cast<btScalar>(ang_f[1]),
-    //                                  static_cast<btScalar>(ang_f[2])));
+    body->setLinearFactor(btVector3(static_cast<btScalar>(lin_f[0]),
+                                    static_cast<btScalar>(lin_f[1]),
+                                    static_cast<btScalar>(lin_f[2])));
+    body->setAngularFactor(btVector3(static_cast<btScalar>(ang_f[0]),
+                                     static_cast<btScalar>(ang_f[1]),
+                                     static_cast<btScalar>(ang_f[2])));
 }
 
-void cGenWorld::RemoveConstraint(tConstraintHandle &handle)
+void cFeaWorld::RemoveConstraint(tConstraintHandle &handle)
 {
     if (handle.IsValid())
     {
@@ -187,45 +193,45 @@ void cGenWorld::RemoveConstraint(tConstraintHandle &handle)
     handle.Clear();
 }
 
-void cGenWorld::AddJoint(const cSimJoint &joint)
+void cFeaWorld::AddJoint(const cSimJoint &joint)
 {
-    // const auto &cons = joint.GetCons();
-    // const auto &mult_body_cons = joint.GetMultBodyCons();
-    // assert(cons == nullptr || mult_body_cons == nullptr);
-    // if (cons != nullptr)
-    // {
-    //     mSimWorld->addConstraint(cons.get(), joint.EnableAdjacentCollision());
-    // }
+    const auto &cons = joint.GetCons();
+    const auto &mult_body_cons = joint.GetMultBodyCons();
+    assert(cons == nullptr || mult_body_cons == nullptr);
+    if (cons != nullptr)
+    {
+        mSimWorld->addConstraint(cons.get(), joint.EnableAdjacentCollision());
+    }
 
-    // if (mult_body_cons != nullptr)
-    // {
-    //     mSimWorld->addMultiBodyConstraint(mult_body_cons.get());
-    // }
+    if (mult_body_cons != nullptr)
+    {
+        mSimWorld->addMultiBodyConstraint(mult_body_cons.get());
+    }
 }
 
-void cGenWorld::RemoveJoint(cSimJoint &joint)
+void cFeaWorld::RemoveJoint(cSimJoint &joint)
 {
-    // const auto &cons = joint.GetCons();
-    // const auto &mult_body_cons = joint.GetMultBodyCons();
-    // if (cons != nullptr)
-    // {
-    //     mSimWorld->removeConstraint(cons.get());
-    // }
+    const auto &cons = joint.GetCons();
+    const auto &mult_body_cons = joint.GetMultBodyCons();
+    if (cons != nullptr)
+    {
+        mSimWorld->removeConstraint(cons.get());
+    }
 
-    // if (mult_body_cons != nullptr)
-    // {
-    //     mSimWorld->removeMultiBodyConstraint(mult_body_cons.get());
-    // }
+    if (mult_body_cons != nullptr)
+    {
+        mSimWorld->removeMultiBodyConstraint(mult_body_cons.get());
+    }
 }
 
-// void cLCPWorld::BuildConsFactor(tVector &out_linear_factor,
-//                              tVector &out_angular_factor)
-// {
-//     out_linear_factor = tVector::Ones();
-//     out_angular_factor = tVector::Ones();
-// }
+void cFeaWorld::BuildConsFactor(tVector &out_linear_factor,
+                                tVector &out_angular_factor)
+{
+    out_linear_factor = tVector::Ones();
+    out_angular_factor = tVector::Ones();
+}
 
-void cGenWorld::SetGravity(const tVector &gravity)
+void cFeaWorld::SetGravity(const tVector &gravity)
 {
     double scale = GetScale();
     mSimWorld->setGravity(btVector3(static_cast<btScalar>(gravity[0] * scale),
@@ -233,32 +239,32 @@ void cGenWorld::SetGravity(const tVector &gravity)
                                     static_cast<btScalar>(gravity[2] * scale)));
 }
 
-cContactManager::tContactHandle cGenWorld::RegisterContact(int contact_flags,
-                                                        int filter_flags)
+cContactManager::tContactHandle cFeaWorld::RegisterContact(int contact_flags,
+                                                           int filter_flags)
 {
     return mContactManager.RegisterContact(contact_flags, filter_flags);
 }
 
-void cGenWorld::UpdateContact(const cContactManager::tContactHandle &handle)
+void cFeaWorld::UpdateContact(const cContactManager::tContactHandle &handle)
 {
     mContactManager.UpdateContact(handle);
 }
 
 const tEigenArr<cContactManager::tContactPt> &
-cGenWorld::GetContactPts(const cContactManager::tContactHandle &handle) const
+cFeaWorld::GetContactPts(const cContactManager::tContactHandle &handle) const
 {
     return mContactManager.GetContactPts(handle);
 }
 
-cContactManager &cGenWorld::GetContactManager() { return mContactManager; }
+cContactManager &cFeaWorld::GetContactManager() { return mContactManager; }
 
-bool cGenWorld::IsInContact(const cContactManager::tContactHandle &handle) const
+bool cFeaWorld::IsInContact(const cContactManager::tContactHandle &handle) const
 {
     return mContactManager.IsInContact(handle);
 }
 
-void cGenWorld::RayTest(const tVector &beg, const tVector &end,
-                     tRayTestResults &results) const
+void cFeaWorld::RayTest(const tVector &beg, const tVector &end,
+                        tRayTestResults &results) const
 {
     btScalar scale = static_cast<btScalar>(GetScale());
     btVector3 bt_beg = scale * btVector3(static_cast<btScalar>(beg[0]),
@@ -284,45 +290,48 @@ void cGenWorld::RayTest(const tVector &beg, const tVector &end,
     }
 }
 
-void cGenWorld::AddPerturb(const tPerturb &perturb)
+void cFeaWorld::AddPerturb(const tPerturb &perturb)
 {
     mPerturbManager.AddPerturb(perturb);
 }
 
-const cPerturbManager &cGenWorld::GetPerturbManager() const
+const cPerturbManager &cFeaWorld::GetPerturbManager() const
 {
     return mPerturbManager;
 }
 
-tVector cGenWorld::GetGravity() const
+tVector cFeaWorld::GetGravity() const
 {
     double scale = GetScale();
     btVector3 bt_gravity = mSimWorld->getGravity();
     return tVector(bt_gravity[0], bt_gravity[1], bt_gravity[2], 0) / scale;
 }
 
-double cGenWorld::GetScale() const { return mParams.mScale; }
+double cFeaWorld::GetScale() const { return mParams.mScale; }
 
-double cGenWorld::GetTimeStep() const { return mTimeStep; }
+double cFeaWorld::GetTimeStep() const { return mTimeStep; }
 
-void cGenWorld::SetDefaultLinearDamping(double damping)
+void cFeaWorld::SetDefaultLinearDamping(double damping)
 {
     mDefaultLinearDamping = damping;
 }
 
-double cGenWorld::GetDefaultLinearDamping() const { return mDefaultLinearDamping; }
+double cFeaWorld::GetDefaultLinearDamping() const
+{
+    return mDefaultLinearDamping;
+}
 
-void cGenWorld::SetDefaultAngularDamping(double damping)
+void cFeaWorld::SetDefaultAngularDamping(double damping)
 {
     mDefaultAngularDamping = damping;
 }
 
-double cGenWorld::GetDefaultAngularDamping() const
+double cFeaWorld::GetDefaultAngularDamping() const
 {
     return mDefaultAngularDamping;
 }
 
-btBoxShape *cGenWorld::BuildBoxShape(const tVector &box_size) const
+btBoxShape *cFeaWorld::BuildBoxShape(const tVector &box_size) const
 {
     btScalar scale = static_cast<btScalar>(GetScale());
     return new btBoxShape(scale *
@@ -331,15 +340,15 @@ btBoxShape *cGenWorld::BuildBoxShape(const tVector &box_size) const
                                     static_cast<btScalar>(box_size[2] * 0.5)));
 }
 
-btCapsuleShape *cGenWorld::BuildCapsuleShape(double radius, double height) const
+btCapsuleShape *cFeaWorld::BuildCapsuleShape(double radius, double height) const
 {
     btScalar scale = static_cast<btScalar>(GetScale());
     return new btCapsuleShape(static_cast<btScalar>(scale * radius),
                               static_cast<btScalar>(scale * height));
 }
 
-btStaticPlaneShape *cGenWorld::BuildPlaneShape(const tVector &normal,
-                                            const tVector &origin) const
+btStaticPlaneShape *cFeaWorld::BuildPlaneShape(const tVector &normal,
+                                               const tVector &origin) const
 {
     btVector3 bt_normal = btVector3(static_cast<btScalar>(normal[0]),
                                     static_cast<btScalar>(normal[1]),
@@ -354,13 +363,14 @@ btStaticPlaneShape *cGenWorld::BuildPlaneShape(const tVector &normal,
     return new btStaticPlaneShape(bt_normal, w);
 }
 
-btSphereShape *cGenWorld::BuildSphereShape(double radius) const
+btSphereShape *cFeaWorld::BuildSphereShape(double radius) const
 {
     btScalar scale = static_cast<btScalar>(GetScale());
     return new btSphereShape(static_cast<btScalar>(scale * radius));
 }
 
-btCylinderShape *cGenWorld::BuildCylinderShape(double radius, double height) const
+btCylinderShape *cFeaWorld::BuildCylinderShape(double radius,
+                                               double height) const
 {
     btScalar scale = static_cast<btScalar>(GetScale());
     return new btCylinderShape(
@@ -369,7 +379,7 @@ btCylinderShape *cGenWorld::BuildCylinderShape(double radius, double height) con
                   static_cast<btScalar>(scale * radius)));
 }
 
-tVector cGenWorld::GetSizeBox(const cSimObj &obj) const
+tVector cFeaWorld::GetSizeBox(const cSimObj &obj) const
 {
     assert(obj.GetShape() == cShape::eShapeBox);
     const btBoxShape *box_shape =
@@ -380,7 +390,7 @@ tVector cGenWorld::GetSizeBox(const cSimObj &obj) const
            scale;
 }
 
-tVector cGenWorld::GetSizeCapsule(const cSimObj &obj) const
+tVector cFeaWorld::GetSizeCapsule(const cSimObj &obj) const
 {
     assert(obj.GetShape() == cShape::eShapeCapsule);
     const btCapsuleShape *shape =
@@ -393,7 +403,7 @@ tVector cGenWorld::GetSizeCapsule(const cSimObj &obj) const
     return tVector(2 * r, 2 * (h + r), 2 * r, 0);
 }
 
-tVector cGenWorld::GetSizePlane(const cSimObj &obj) const
+tVector cFeaWorld::GetSizePlane(const cSimObj &obj) const
 {
     assert(obj.GetShape() == cShape::eShapePlane);
     const btStaticPlaneShape *shape =
@@ -404,7 +414,7 @@ tVector cGenWorld::GetSizePlane(const cSimObj &obj) const
     return tVector(n[0], n[1], n[2], c / scale);
 }
 
-tVector cGenWorld::GetSizeSphere(const cSimObj &obj) const
+tVector cFeaWorld::GetSizeSphere(const cSimObj &obj) const
 {
     assert(obj.GetShape() == cShape::eShapeSphere);
     const btSphereShape *ball_shape =
@@ -416,7 +426,7 @@ tVector cGenWorld::GetSizeSphere(const cSimObj &obj) const
     return tVector(d, d, d, 0);
 }
 
-tVector cGenWorld::GetSizeCylinder(const cSimObj &obj) const
+tVector cFeaWorld::GetSizeCylinder(const cSimObj &obj) const
 {
     assert(obj.GetShape() == cShape::eShapeCylinder);
     const btCylinderShape *shape =
@@ -429,10 +439,10 @@ tVector cGenWorld::GetSizeCylinder(const cSimObj &obj) const
     return tVector(2 * r, h, 2 * r, 0);
 }
 
-std::shared_ptr<btDynamicsWorld> cGenWorld::GetInternalWorld()
+btDynamicsWorld *cFeaWorld::GetInternalWorld()
 {
     // auto a = dynamic_cast<btDynamicsWorld *>(mSimWorld.get());
 
     // return std::unique_ptr<btDynamicsWorld>(a);
-    return std::dynamic_pointer_cast<btDynamicsWorld>(mSimWorld);
+    return dynamic_cast<btDynamicsWorld *>(mSimWorld);
 }

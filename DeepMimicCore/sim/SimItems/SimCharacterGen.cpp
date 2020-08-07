@@ -5,6 +5,7 @@
 #include "BulletGenDynamics/btGenModel/RootJoint.h"
 #include "SimBodyJointGen.h"
 #include "SimBodyLinkGen.h"
+#include "sim/World/GenWorld.h"
 #include "util/LogUtil.hpp"
 #include <iostream>
 
@@ -45,11 +46,18 @@ bool cSimCharacterGen::Init(const std::shared_ptr<cWorldBase> &world,
     mWorld = world;
     cRobotModelDynamics::Init(params.mCharFile.c_str(), world->GetScale(),
                               ModelType::JSON);
-    btDiscreteDynamicsWorld *dis_world =
-        dynamic_cast<btDiscreteDynamicsWorld *>(
-            world->GetInternalWorld().get());
-    MIMIC_ASSERT(nullptr != dis_world);
-    cRobotModelDynamics::InitSimVars(dis_world, true, true);
+    auto gen_world = std::dynamic_pointer_cast<cGenWorld>(world);
+    MIMIC_ASSERT(gen_world != nullptr &&
+                 "cSimCharGen can only be managed in Generalized world");
+
+    cRobotModelDynamics::InitSimVars(gen_world->GetInternalWorld(), true,
+                                     true);
+    world->AddCharacter(this);
+
+    SetComputeSecondDerive(true);
+    SetDampingCoeff(0, 0);
+    SetAngleClamp(false);
+    SetMaxVel(100);
 
     // std::cout << "q size = " << mq.size() << std::endl;
     // std::cout << "qdot size = " << mqdot.size() << std::endl;
@@ -426,13 +434,11 @@ tVector cSimCharacterGen::GetSize() const { return tVector::Zero(); }
 
 const cSimBodyJoint &cSimCharacterGen::GetJoint(int joint_id) const
 {
-    MIMIC_ERROR("no");
-    return *(new cSimBodyJoint());
+    return *(static_cast<cSimBodyJoint *>(mJointGenArray[joint_id].get()));
 }
 cSimBodyJoint &cSimCharacterGen::GetJoint(int joint_id)
 {
-    MIMIC_ERROR("no");
-    return *(new cSimBodyJoint());
+    return *(static_cast<cSimBodyJoint *>(mJointGenArray[joint_id].get()));
 }
 void cSimCharacterGen::GetChildJoint(int joint_id,
                                      Eigen::VectorXd &out_child_id)

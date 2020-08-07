@@ -17,7 +17,7 @@ class cSimBox;
 class cSimCapsule;
 class cSimPlane;
 class cSimSphere;
-class cSimCharacter;
+class cSimCharacterBase;
 
 class btTypedConstraint;
 enum eWorldType
@@ -48,6 +48,7 @@ public:
 
         tParams();
         std::string mWorldType;
+        std::string mGenWorldConfig;
         int mNumSubsteps;
         double mScale;
         tVector mGravity;
@@ -82,8 +83,8 @@ public:
                                     int col_filter_group,
                                     int col_filter_mask) = 0;
     virtual void RemoveCollisionObject(btCollisionObject *col_obj) = 0;
-    virtual void AddCharacter(cSimCharacter &sim_char) = 0;
-    virtual void RemoveCharacter(cSimCharacter &sim_char) = 0;
+    virtual void AddCharacter(cSimCharacterBase *sim_char) = 0;
+    virtual void RemoveCharacter(cSimCharacterBase *sim_char) = 0;
 
     virtual void Constrain(cSimRigidBody &obj) = 0;
     virtual void Constrain(cSimRigidBody &obj, const tVector &linear_factor,
@@ -116,7 +117,7 @@ public:
     virtual double GetDefaultLinearDamping() const = 0;
     virtual void SetDefaultAngularDamping(double damping) = 0;
     virtual double GetDefaultAngularDamping() const = 0;
-    virtual std::shared_ptr<btDynamicsWorld> GetInternalWorld() = 0;
+    virtual btDynamicsWorld *GetInternalWorld() = 0;
 
     // object interface
     virtual btBoxShape *BuildBoxShape(const tVector &box_sizee) const = 0;

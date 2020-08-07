@@ -69,8 +69,8 @@ set(
     World/ObjTracer.cpp
     World/Perturb.cpp
     World/PerturbManager.cpp
-    World/World.cpp
-    World/LCPWorld.cpp
+    World/FeaWorld.cpp
+    World/GenWorld.cpp
     World/WorldBuilder.cpp
     World/WorldBase.cpp
 )

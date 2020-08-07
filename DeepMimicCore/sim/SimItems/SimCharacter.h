@@ -9,7 +9,7 @@
 #include "sim/SimItems/SimBodyLink.h"
 #include "sim/SimItems/SimCharacterBase.h"
 #include "sim/SimItems/SimObj.h"
-#include "sim/World/World.h"
+#include "sim/World/FeaWorld.h"
 
 class cSimCharacter : public virtual cSimCharacterBase
 {

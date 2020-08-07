@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "anim/Shape.h"
-#include "sim/World/World.h"
+#include "sim/World/FeaWorld.h"
 #include <memory>
 
 class cSimObj

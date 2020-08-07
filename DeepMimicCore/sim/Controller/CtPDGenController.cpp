@@ -18,6 +18,21 @@ void cCtPDGenController::SetGravity(const tVector &g) { mGravity = g; }
 
 std::string cCtPDGenController::GetName() const { return "ct_pd_gen"; }
 
+void cCtPDGenController::BuildStateOffsetScale(Eigen::VectorXd &out_offset,
+                                               Eigen::VectorXd &out_scale) const
+{
+    MIMIC_WARN("hasn't been implemented");
+}
+void cCtPDGenController::BuildActionBounds(Eigen::VectorXd &out_min,
+                                           Eigen::VectorXd &out_max) const
+{
+    MIMIC_WARN("hasn't been implemented");
+}
+void cCtPDGenController::BuildActionOffsetScale(
+    Eigen::VectorXd &out_offset, Eigen::VectorXd &out_scale) const
+{
+    MIMIC_WARN("hasn't been implemented");
+}
 const tVectorXd &cCtPDGenController::GetCurAction() { return mCurAction; }
 
 bool cCtPDGenController::ParseParams(const Json::Value &json)
