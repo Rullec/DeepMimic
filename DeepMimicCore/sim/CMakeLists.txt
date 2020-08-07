@@ -26,14 +26,15 @@ set(CONTROLLER_SRC
 )
 
 set(
-    IDSOLVER_SRC
-    IDSolver/BuildIDSolver.cpp
-    IDSolver/DisplayIDSolver.cpp
-    IDSolver/IDSolver.cpp
-    IDSolver/InteractiveIDSolver.cpp
-    IDSolver/OfflineSolveIDSolver.cpp
-    IDSolver/OnlineIDSolver.cpp
-    IDSolver/SampleIDSolver.cpp    
+    TrajManager_SRC
+    TrajManager/BuildIDSolver.cpp
+    TrajManager/DisplayIDSolver.cpp
+    TrajManager/IDSolver.cpp
+    TrajManager/InteractiveIDSolver.cpp
+    TrajManager/OfflineSolveIDSolver.cpp
+    TrajManager/OnlineIDSolver.cpp
+    TrajManager/SampleIDSolver.cpp    
+    TrajManager/TrajRecorder.cpp    
 )
 
 set(
@@ -74,6 +75,6 @@ set(
     World/WorldBuilder.cpp
     World/WorldBase.cpp
 )
-set(DIR_SRCS ${CONTROLLER_SRC} ${IDSOLVER_SRC} ${SIMITEMS_SRC} ${WORLD_SRC})
+set(DIR_SRCS ${CONTROLLER_SRC} ${TrajManager_SRC} ${SIMITEMS_SRC} ${WORLD_SRC})
 add_library(SIM ${DIR_SRCS} )
 target_link_libraries(SIM ${MPI_LIBRARIES} UTIL)

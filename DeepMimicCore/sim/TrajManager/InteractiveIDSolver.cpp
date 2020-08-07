@@ -364,10 +364,10 @@ cInteractiveIDSolver::SaveTraj(tSaveInfo &mSaveInfo,
     switch (mTrajFileVersion)
     {
     case eTrajFileVersion::V1:
-        root = SaveTrajV1(mSaveInfo);
+        SaveTrajV1(mSaveInfo, root);
         break;
     case eTrajFileVersion::V2:
-        root = SaveTrajV2(mSaveInfo);
+        SaveTrajV2(mSaveInfo, root);
         break;
     default:
         mLogger->error("SaveTraj unsupported traj file version %d",
@@ -398,20 +398,10 @@ cInteractiveIDSolver::SaveTraj(tSaveInfo &mSaveInfo,
  * \param mSaveInfo
  * \param path              target save location
  */
-const Json::Value cInteractiveIDSolver::SaveTrajV1(tSaveInfo &mSaveInfo) const
+void cInteractiveIDSolver::SaveTrajV1(tSaveInfo &mSaveInfo, Json::Value &root)
 {
 
-#ifndef IGNORE_TRAJ_VERISION
-    if (mTrajFileVersion != eTrajFileVersion::V1)
-    {
-        mLogger->error("SaveTrajV1 is called but not the spcified traj "
-                       "file version is %d",
-                       static_cast<int>(mTrajFileVersion));
-        exit(1);
-    }
-#endif
-
-    Json::Value root, single_frame;
+    Json::Value single_frame;
     root["epoch"] = mSaveInfo.mCurEpoch;
     root["list"] = Json::Value(Json::arrayValue);
     root["version"] = 1;
@@ -468,7 +458,8 @@ const Json::Value cInteractiveIDSolver::SaveTrajV1(tSaveInfo &mSaveInfo) const
         // set up external force & torques info
         single_frame["external_force"] = Json::arrayValue;
         single_frame["external_torque"] = Json::arrayValue;
-        for (int link_id = 0; link_id < mNumLinks; link_id++)
+        int num_links = mSaveInfo.mExternalForces[frame_id].size();
+        for (int link_id = 0; link_id < num_links; link_id++)
         {
             for (int idx = 0; idx < 4; idx++)
             {
@@ -481,8 +472,7 @@ const Json::Value cInteractiveIDSolver::SaveTrajV1(tSaveInfo &mSaveInfo) const
 
         // set up truth joint torques
         single_frame["truth_joint_force"] = Json::arrayValue;
-        assert(mNumLinks - 1 == mSaveInfo.mTruthJointForces[frame_id].size());
-        for (int i = 0; i < mNumLinks - 1; i++)
+        for (int i = 0; i < num_links - 1; i++)
         {
             for (int j = 0; j < 4; j++)
                 single_frame["truth_joint_force"].append(
@@ -515,7 +505,6 @@ const Json::Value cInteractiveIDSolver::SaveTrajV1(tSaveInfo &mSaveInfo) const
         // append to the whole list
         root["list"].append(single_frame);
     }
-    return root;
 }
 
 /**
@@ -524,8 +513,9 @@ const Json::Value cInteractiveIDSolver::SaveTrajV1(tSaveInfo &mSaveInfo) const
  * \param path              target save location
  *
  */
-const Json::Value cInteractiveIDSolver::SaveTrajV2(
-    tSaveInfo &mSaveInfo) const // save trajectories for simplified version
+void cInteractiveIDSolver::SaveTrajV2(
+    tSaveInfo &mSaveInfo,
+    Json::Value &root) // save trajectories for simplified version
 {
     /*  .traj v2 is simplified version compared with v1.
         Only save these keywords in v2:
@@ -539,17 +529,7 @@ const Json::Value cInteractiveIDSolver::SaveTrajV2(
         8. action
     */
 
-#ifndef IGNORE_TRAJ_VERISION
-    if (eTrajFileVersion::V2 != mTrajFileVersion)
-    {
-        mLogger->error(
-            "SaveTrajV2 is called but now the mTrajFileVersion is %{}",
-            static_cast<int>(mTrajFileVersion));
-        exit(1);
-    }
-#endif
-
-    Json::Value root, single_frame;
+    Json::Value single_frame;
     root["epoch"] = mSaveInfo.mCurEpoch;
     root["list"] = Json::Value(Json::arrayValue);
     root["version"] = 2;
@@ -603,8 +583,6 @@ const Json::Value cInteractiveIDSolver::SaveTrajV2(
 
         root["list"].append(single_frame);
     }
-
-    return root;
 }
 
 /**

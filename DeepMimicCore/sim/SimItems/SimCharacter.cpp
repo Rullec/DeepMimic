@@ -20,6 +20,7 @@ Downcast(const std::shared_ptr<cSimCharacterBase> &base)
 }
 
 cSimCharacter::cSimCharacter()
+    : cSimCharacterBase(eSimCharacterType::Featherstone)
 {
     mFriction = 0.9;
     mEnableContactFall = true;
@@ -539,7 +540,8 @@ int cSimCharacter::GetParentJoint(int joint_id)
     return cKinTree::GetParent(mJointMat, joint_id);
 }
 
-// const std::shared_ptr<cSimBodyLink> &cSimCharacter::GetBodyPart(int idx) const
+// const std::shared_ptr<cSimBodyLink> &cSimCharacter::GetBodyPart(int idx)
+// const
 // {
 //     return mBodyParts[idx];
 // }

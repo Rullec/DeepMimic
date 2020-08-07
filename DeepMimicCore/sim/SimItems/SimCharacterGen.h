@@ -208,7 +208,7 @@ protected:
     // std::vector<Link *> mLinkArray;
     // std::vector<Joint *> mJointArray;
     std::vector<std::shared_ptr<cSimBodyLinkGen>> mLinkGenArray;
-    std::vector<std::shared_ptr<cSimBodyJointGen>> mJointGenArray;
+    std::vector<std::shared_ptr<cSimBodyJointGen>> mJointGenArray;    
 
     // // used to form the return value in `GetBodyPart`
     // std::vector<std::shared_ptr<cSimBodyLink>> mLinkBaseArray;

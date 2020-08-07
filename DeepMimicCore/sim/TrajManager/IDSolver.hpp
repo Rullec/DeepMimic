@@ -6,7 +6,7 @@
 #include <map>
 #include <util/LogUtil.hpp>
 #include <util/MathUtil.h>
-#define MAX_FRAME_NUM 10000
+#include "TrajRecorder.h"
 
 enum eIDSolverType
 {
@@ -20,21 +20,6 @@ enum eIDSolverType
 
 const std::string gIDSolverTypeStr[] = {
     "Invalid", "Online", "Display", "OfflineSolve", "Sample",
-};
-
-struct tContactForceInfo
-{
-    int mId; // applied link id in Inverse Dynamics order but not deepmimic
-             // order
-    tVector mPos, mForce;
-    bool mIsSelfCollision; // Does this contact belong to the self collision in
-                           // this character?
-    tContactForceInfo()
-    {
-        mIsSelfCollision = false;
-        mId = -1;
-        mPos = mForce = tVector::Zero();
-    }
 };
 
 class btMultiBody;

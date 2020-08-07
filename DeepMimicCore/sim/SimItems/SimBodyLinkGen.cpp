@@ -45,6 +45,7 @@ tMatrix cSimBodyLinkGen::GetLocalTransform() const
 /**
  * \brief               Init the wrapper of Link in RobotModelDyanmcis
  */
+#include <iostream>
 void cSimBodyLinkGen::Init(const std::shared_ptr<cWorldBase> &world,
                            cRobotModelDynamics *multibody, int link_id)
 {
@@ -53,6 +54,9 @@ void cSimBodyLinkGen::Init(const std::shared_ptr<cWorldBase> &world,
     mLinkId = link_id;
     mLink = static_cast<Link *>(multibody->GetLinkById(link_id));
     mLinkCollider = multibody->GetLinkCollider(link_id);
+    mLinkCollider->setUserPointer(this);
+    // std::cout << "init link gen ptr = " << mLinkCollider->getUserPointer()
+    //           << std::endl;
 
     // dont' need to init variables of cSimBodyLink
     mWorld = world;

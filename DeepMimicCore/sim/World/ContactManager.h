@@ -5,6 +5,9 @@
 
 class cWorldBase;
 
+/**
+ * \brief    manage the contact info for character & simobjs
+ */
 class cContactManager
 {
 public:
@@ -13,6 +16,7 @@ public:
     const static short gFlagNone = 0;
     const static short gFlagRayTest = 1;
 
+    // each bodypart and rigid body has its own contact handle, use to storage the id & flags
     struct tContactHandle
     {
         int mID;
@@ -23,16 +27,18 @@ public:
         bool IsValid() const;
     };
 
+    // info of a single contact point
     struct tContactPt
     {
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
         tContactPt();
 
-        tVector mPos;
-        tVector mForce;
+        bool mIsSelfCollision;  // self collision flag, only works in Multibody case.
+        tVector mPos;       // contact position in world frame
+        tVector mForce;     // contact force in world frame
     };
 
-    cContactManager(cWorldBase * world);
+    cContactManager(cWorldBase *world);
     virtual ~cContactManager();
 
     virtual void Init();
@@ -60,11 +66,13 @@ protected:
         tEigenArr<tContactPt> mContactPts;
     };
 
-    cWorldBase * mWorld;
-    tEigenArr<tContactEntry> mContactEntries;
+    cWorldBase *mWorld;
+    tEigenArr<tContactEntry> mContactEntries; // each links has the same entry, collect all these entries together
 
     virtual int RegisterNewID();
     virtual void ClearContacts();
     virtual bool IsValidContact(const tContactHandle &h0,
                                 const tContactHandle &h1) const;
+    virtual void UpdateContactInFeaWorld();
+    virtual void UpdateContactInGenWorld();
 };

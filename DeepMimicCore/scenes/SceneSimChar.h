@@ -11,6 +11,7 @@
 #include "util/IndexBuffer.h"
 
 class cIDSolver;
+class cTrajRecorder;
 class cSceneSimChar : virtual public cScene
 {
 public:
@@ -128,6 +129,11 @@ protected:
     std::string mIDInfoPath;
     std::shared_ptr<cIDSolver> mIDSolver;
 
+    // traj recoder info
+    bool mEnableTrajRecord;
+    std::string mTrajRecorderConfig;
+    cTrajRecorder * mTrajRecorder;
+
     virtual bool
     ParseCharTypes(const std::shared_ptr<cArgParser> &parser,
                    std::vector<cSimCharBuilder::eCharType> &out_types) const;
@@ -151,7 +157,7 @@ protected:
     InitCharacterPos(const std::shared_ptr<cSimCharacterBase> &out_char);
     virtual void
     InitCharacterPosFixed(const std::shared_ptr<cSimCharacterBase> &out_char);
-    virtual void BuildInverseDynamic();
+    virtual void BuildTrajManager();
     virtual void
     SetCharRandPlacement(const std::shared_ptr<cSimCharacterBase> &out_char);
     virtual void

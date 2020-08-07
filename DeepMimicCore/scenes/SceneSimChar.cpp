@@ -1,9 +1,10 @@
 ﻿#include "SceneSimChar.h"
 #include "SceneImitate.h"
 #include "sim/Controller/DeepMimicCharController.h"
-#include "sim/IDSolver/BuildIDSolver.hpp"
 #include "sim/SimItems/SimBox.h"
 #include "sim/SimItems/SimCharacter.h"
+#include "sim/TrajManager/BuildIDSolver.hpp"
+#include "sim/TrajManager/TrajRecorder.h"
 #include "sim/World/GroundBuilder.h"
 #include "sim/World/GroundPlane.h"
 #include "sim/World/WorldBuilder.h"
@@ -59,7 +60,9 @@ cSceneSimChar::cSceneSimChar()
     mEnablePDTargetSolveTest = false;
     mTorqueRecordFile = "";
     mEnableJointTorqueControl = true;
-    // mIDInfo.clear();
+    mEnableID = false;
+    mEnableTrajRecord = false;
+    mTrajRecorder = nullptr;
 
     mWorldParams.mGenWorldConfig = "args/world_config/sim_config.json";
     mWorldParams.mNumSubsteps = 1;
@@ -127,6 +130,17 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
         ;
         exit(1);
     }
+
+    mEnableTrajRecord = false;
+    mTrajRecorderConfig = "";
+    mArgParser->ParseBool("enable_traj_recoder", mEnableTrajRecord);
+    mArgParser->ParseString("traj_recorder_config", mTrajRecorderConfig);
+    if (mEnableTrajRecord == true &&
+        false == cFileUtil::ExistsFile(mTrajRecorderConfig))
+    {
+        MIMIC_ERROR("traj recorder config {} doesn't exist",
+                    mTrajRecorderConfig);
+    }
 }
 
 void cSceneSimChar::Init()
@@ -147,8 +161,7 @@ void cSceneSimChar::Init()
 
     ResolveCharGroundIntersect();
 
-    // build inverse dynamic
-    BuildInverseDynamic();
+    BuildTrajManager();
 
     ClearObjs();
     // std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
@@ -193,6 +206,11 @@ void cSceneSimChar::Update(double time_elapsed)
         mIDSolver->SetTimestep(time_elapsed);
         mIDSolver->PreSim();
     }
+    if (mEnableTrajRecord)
+    {
+        mTrajRecorder->SetTimestep(time_elapsed);
+        mTrajRecorder->PreSim();
+    }
 
     UpdateWorld(time_elapsed);
     UpdateGround(time_elapsed);
@@ -203,7 +221,10 @@ void cSceneSimChar::Update(double time_elapsed)
 
     if (mEnableID)
         mIDSolver->PostSim();
-
+    if (mEnableTrajRecord)
+    {
+        mTrajRecorder->PostSim();
+    }
     // cTimeUtil::End("sim update");
 }
 
@@ -603,63 +624,53 @@ void cSceneSimChar::InitCharacterPosFixed(
     out_char->SetRootPos(root_pos);
 }
 
-void cSceneSimChar::BuildInverseDynamic()
+/**
+ * \brief               Build Inverse Dynamic Solver or Trajecotry manager
+ */
+void cSceneSimChar::BuildTrajManager()
 {
-    if (!mEnableID)
+    if (true == mEnableID)
     {
-        mIDSolver = nullptr;
-        return;
+        // build inverse dynamics
+        auto sim_char = this->GetCharacter(0);
+
+        auto scene_imitate_ptr = dynamic_cast<cSceneImitate *>(this);
+        if (scene_imitate_ptr == nullptr)
+        {
+            std::cout << "[error] cSceneSimChar::BuildTrajManager can only "
+                         "be finished when cSceneImitate is instanced\n";
+            exit(1);
+        }
+        auto kin_char = scene_imitate_ptr->GetKinChar();
+        mIDSolver = BuildIDSolver(mIDInfoPath, scene_imitate_ptr);
+
+        // offline mode: read trajectory from files, then solve it.
+        // online mode for debug: start with the simulation at the same time,
+        // record each state and solve them at onece then compare the desired ID
+        // result and the ideal one. It will be very easy to debug.
+        if (eIDSolverType::OfflineSolve == mIDSolver->GetType())
+            std::cout << "[log] Inverse Dynamics runs in offlineSolve mode."
+                      << std::endl;
+        else if (eIDSolverType::Online == mIDSolver->GetType())
+            std::cout << "[log] Inverse Dynamics runs in online mode."
+                      << std::endl;
+        else if (eIDSolverType::Display == mIDSolver->GetType())
+            std::cout << "[log] Inverse Dynamics runs in display mode."
+                      << std::endl;
+        else
+        {
+            std::cout << "unrecognized ID solver mode = "
+                      << mIDSolver->GetType() << std::endl;
+            exit(1);
+        }
     }
 
-    // build inverse dynamics
-    auto sim_char = this->GetCharacter(0);
-
-    auto scene_imitate_ptr = dynamic_cast<cSceneImitate *>(this);
-    if (scene_imitate_ptr == nullptr)
+    if (true == mEnableTrajRecord)
     {
-        std::cout << "[error] cSceneSimChar::BuildInverseDynamic can only "
-                     "be finished when cSceneImitate is instanced\n";
-        exit(1);
+        mTrajRecorder = new cTrajRecorder(dynamic_cast<cSceneImitate *>(this),
+                                          mTrajRecorderConfig);
     }
-    auto kin_char = scene_imitate_ptr->GetKinChar();
-    // std::cout <<"get kin char succ = " << kin_char->GetID() << std::endl;
-    // exit(0);
-    mIDSolver = BuildIDSolver(mIDInfoPath, scene_imitate_ptr);
-    // mOnlineIDSolver = std::shared_ptr<cOnlineIDSolver>(new
-    // cOnlineIDSolver(sim_char.get(),
-    // sim_char->GetWorld()->GetInternalWorld().get())); mOfflineIDSolver =
-    // std::shared_ptr<cOfflineIDSolver>(new cOfflineIDSolver(sim_char.get(),
-    // sim_char->GetWorld()->GetInternalWorld().get(),
-    // "./args/0311/id_conf_offline.json"));
-    // std::shared_ptr<cOnlineIDSolver>(new cOnlineIDSolver(sim_char.get(),
-    // sim_char->GetWorld()->GetInternalWorld().get()));
-
-    // from json vec to Eigen::VectorXd
-    // auto JsonVec2Eigen = [](Json::Value root)->Eigen::VectorXd
-    // {
-    // 	Eigen::VectorXd vec(root.size());
-    // 	for (int i = 0; i < vec.size(); i++) vec[i] = root[i].asDouble();
-    // 	return vec;
-    // };
-
-    // offline mode: read trajectory from files, then solve it.
-    // online mode for debug: start with the simulation at the same time, record
-    // each state and solve them at onece then compare the desired ID result and
-    // the ideal one. It will be very easy to debug.
-    if (eIDSolverType::OfflineSolve == mIDSolver->GetType())
-        std::cout << "[log] Inverse Dynamics runs in offlineSolve mode."
-                  << std::endl;
-    else if (eIDSolverType::Online == mIDSolver->GetType())
-        std::cout << "[log] Inverse Dynamics runs in online mode." << std::endl;
-    else if (eIDSolverType::Display == mIDSolver->GetType())
-        std::cout << "[log] Inverse Dynamics runs in display mode."
-                  << std::endl;
-    else
-    {
-        std::cout << "unrecognized ID solver mode = " << mIDSolver->GetType()
-                  << std::endl;
-        exit(1);
-    }
+    //
 }
 
 void cSceneSimChar::SetCharRandPlacement(
@@ -827,6 +838,7 @@ void cSceneSimChar::UpdateRandPerturb(double time_step)
 // extern int reset_cnt;
 void cSceneSimChar::ResetScene()
 {
+    MIMIC_DEBUG("reset scene!");
     cScene::ResetScene();
     if (mPerturbParams.mEnableRandPerturbs)
     {
@@ -840,6 +852,8 @@ void cSceneSimChar::ResetScene()
     ResolveCharGroundIntersect();
     if (mEnableID)
         mIDSolver->Reset();
+    if (mEnableTrajRecord)
+        mTrajRecorder->Reset();
 }
 
 void cSceneSimChar::ResetCharacters()

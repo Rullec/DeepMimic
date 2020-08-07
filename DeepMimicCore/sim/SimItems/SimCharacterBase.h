@@ -10,6 +10,13 @@
 #include "sim/SimItems/SimObj.h"
 #include "sim/World/WorldBase.h"
 
+enum eSimCharacterType
+{
+    Generalized,
+    Featherstone,
+    NUM_SIMCHAR_TYPE
+};
+
 class cSimCharacterBase : public virtual cCharacter, public virtual cSimObj
 {
 public:
@@ -30,7 +37,7 @@ public:
         bool mEnableContactFall;
     };
 
-    cSimCharacterBase();
+    cSimCharacterBase(eSimCharacterType type);
     virtual ~cSimCharacterBase() = 0;
 
     virtual bool Init(const std::shared_ptr<cWorldBase> &world,
@@ -94,7 +101,7 @@ public:
     GetContactPts() const = 0;
     virtual const cContactManager::tContactHandle &GetContactHandle() const = 0;
     virtual const void GetTotalContactPts(Eigen::VectorXd &) const = 0;
-
+    virtual eSimCharacterType GetCharType();
     virtual bool HasFallen() const = 0;
     virtual bool HasStumbled() const = 0;
     virtual bool HasVelExploded(double vel_threshold = 100.0) const = 0;
@@ -186,4 +193,6 @@ protected:
     virtual bool CheckFallContact() const = 0;
     virtual const btCollisionObject *GetCollisionObject() const = 0;
     virtual btCollisionObject *GetCollisionObject() = 0;
+
+    eSimCharacterType mSimcharType;
 };

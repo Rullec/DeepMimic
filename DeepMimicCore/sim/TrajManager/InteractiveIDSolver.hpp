@@ -1,11 +1,9 @@
 #pragma once
 #include "IDSolver.hpp"
-
 /*  Interactive Inverse Dynamic Solver is inherited from the functional IDSolver
     It offers IO operation, such as loading / exporting trajectories or train
    data, and create an uniform data storage for its subclass.
 */
-
 namespace Json
 {
 class Value;
@@ -18,67 +16,21 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     explicit cInteractiveIDSolver(cSceneImitate *imitate_scene,
                                   eIDSolverType type, const std::string &conf);
-    virtual ~cInteractiveIDSolver();
 
+    virtual ~cInteractiveIDSolver();
+    static void
+    SaveTrajV1(tSaveInfo &mSaveInfo,
+               Json::Value &root); // save trajectories for full version
+    static void
+    SaveTrajV2(tSaveInfo &mSaveInfo,
+               Json::Value &root); // save trajectories for simplified version
 protected:
-    enum eTrajFileVersion
-    {
-        UNSET,
-        V1,
-        V2,
-    };
     eTrajFileVersion mTrajFileVersion;
     // this struct are used to storage "trajectory" infos when we are sampling
     // the controller. joint force ground truth, contact info... Nearly
     // everything is included. this struct can be exported to "*.traj" or normal
     // DeepMimic motion data "*.txt"
-    struct tSaveInfo
-    {
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-        std::string mSaveTrajRoot = "";
-        std::string mSaveMotionRoot = "";
-        int mCurEpoch = 0;
-        int mCurFrameId = 0;
-        std::vector<tVector> mTruthJointForces[MAX_FRAME_NUM];
-        std::vector<tVector> mSolvedJointForces[MAX_FRAME_NUM];
-        tVectorXd mBuffer_q[MAX_FRAME_NUM], mBuffer_u[MAX_FRAME_NUM],
-            mBuffer_u_dot[MAX_FRAME_NUM];
-        std::vector<tMatrix>
-            mLinkRot[MAX_FRAME_NUM]; // local to world rotation mats
-        std::vector<tVector>
-            mLinkPos[MAX_FRAME_NUM]; // link COM pos in world frame
-        std::vector<tVector>
-            mLinkVel[MAX_FRAME_NUM]; // link COM vel in world frame
-        std::vector<tVector>
-            mLinkOmega[MAX_FRAME_NUM]; // link angular momentum in world frame
-        std::vector<tVector>
-            mLinkDiscretVel[MAX_FRAME_NUM]; // link COM vel in world frame
-                                            // calculated from differential of
-                                            // link positions
-        std::vector<tVector>
-            mLinkDiscretOmega[MAX_FRAME_NUM]; // link angular momentum in world
-                                              // frame  from differential of
-                                              // link rotation
-        tVectorXd
-            mTruthAction[MAX_FRAME_NUM]; // the current action recorded from the
-                                         // controller of this char
-        tVectorXd
-            mTruthPDTarget[MAX_FRAME_NUM]; // the current action recorded from
-                                           // the controller of this char
 
-        double mTimesteps[MAX_FRAME_NUM]; // timesteps
-        double mRewards[MAX_FRAME_NUM];   // rewards
-        double
-            mRefTime[MAX_FRAME_NUM]; // current time in kinchar reference motion
-        cMotion *mMotion;
-        std::vector<tContactForceInfo> mContactForces[MAX_FRAME_NUM];
-        std::vector<tVector> mExternalForces[MAX_FRAME_NUM],
-            mExternalTorques[MAX_FRAME_NUM];
-        tVector mLinearMomentum[MAX_FRAME_NUM],
-            mAngularMomentum[MAX_FRAME_NUM]; // linear, ang momentum for each
-                                             // frame
-        tVectorXd mCharPoses[MAX_FRAME_NUM];
-    };
     tSaveInfo mSaveInfo; // instantiated
 
     // load mode: Set up different flag when we load different data.
@@ -225,10 +177,6 @@ protected:
     std::string
     SaveTraj(tSaveInfo &mSaveInfo, const std::string &traj_dir,
              const std::string &traj_rootname) const; // save trajectories
-    const Json::Value SaveTrajV1(
-        tSaveInfo &mSaveInfo) const; // save trajectories for full version
-    const Json::Value SaveTrajV2(
-        tSaveInfo &mSaveInfo) const; // save trajectories for simplified version
     void PrintLoadInfo(tLoadInfo &load_info, const std::string &,
                        bool disable_root = true) const;
     void LoadMotion(const std::string &path,

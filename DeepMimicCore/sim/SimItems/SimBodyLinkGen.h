@@ -57,7 +57,7 @@ public:
 protected:
     cRobotModelDynamics *mRobotModel;
     Link *mLink;
-    cRobotCollider *mLinkCollider;
+    btGenRobotCollider *mLinkCollider;
     int mLinkId;
 
     virtual const std::shared_ptr<cWorldBase> &GetWorld() const override;

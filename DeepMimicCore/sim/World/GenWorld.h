@@ -2,6 +2,7 @@
 #include "sim/World/WorldBase.h"
 
 class btGeneralizeWorld;
+struct btGenContactForce;
 class cGenWorld : virtual public cWorldBase
 {
 public:
@@ -53,7 +54,7 @@ public:
     virtual void SetDefaultAngularDamping(double damping) override;
     virtual double GetDefaultAngularDamping() const override;
 
-    virtual btDynamicsWorld * GetInternalWorld() override;
+    virtual btDynamicsWorld *GetInternalWorld() override;
 
     // object interface
     virtual btBoxShape *BuildBoxShape(const tVector &box_sizee) const override;
@@ -71,8 +72,9 @@ public:
     virtual tVector GetSizePlane(const cSimObj &obj) const override;
     virtual tVector GetSizeSphere(const cSimObj &obj) const override;
     virtual tVector GetSizeCylinder(const cSimObj &obj) const override;
+    virtual std::vector<btGenContactForce *> GetContactInfo() const;
 
 protected:
-    btGeneralizeWorld * mbtGenWorld;
-    btDynamicsWorld * mbtDynamicsWorldInternal;
+    btGeneralizeWorld *mbtGenWorld;
+    btDynamicsWorld *mbtDynamicsWorldInternal;
 };

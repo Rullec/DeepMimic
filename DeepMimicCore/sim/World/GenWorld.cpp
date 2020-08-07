@@ -18,7 +18,7 @@
 #include <iostream>
 using namespace std;
 
-cGenWorld::cGenWorld() : cWorldBase()
+cGenWorld::cGenWorld() : cWorldBase(eWorldType::GENERALIZED_WORLD)
 {
     mDefaultLinearDamping = 0;
     mDefaultAngularDamping = 0;
@@ -48,8 +48,9 @@ void cGenWorld::Reset()
     mTimeStep = 0;
     mContactManager.Reset();
     mPerturbManager.Clear();
-
     MIMIC_WARN("world reset hasn't been fully implemented yet");
+
+    mbtGenWorld->Reset();
     // mSimWorld->clearForces();
     // mSolver->reset();
     // mBroadPhase->resetPool(mCollisionDispatcher.get());
@@ -105,7 +106,7 @@ void cGenWorld::AddRigidBody(cSimRigidBody &obj)
 void cGenWorld::RemoveRigidBody(cSimRigidBody &obj)
 {
     // mSimWorld->removeRigidBody(obj.GetSimBody().get());
-    MIMIC_INFO("RemoveRigidBody hasn't been implemenbted\n");
+    MIMIC_INFO("RemoveRigidBody hasn't been implemented\n");
 }
 
 void cGenWorld::AddCollisionObject(btCollisionObject *col_obj,
@@ -437,4 +438,9 @@ tVector cGenWorld::GetSizeCylinder(const cSimObj &obj) const
 btDynamicsWorld *cGenWorld::GetInternalWorld()
 {
     return mbtDynamicsWorldInternal;
+}
+
+std::vector<btGenContactForce *> cGenWorld::GetContactInfo() const
+{
+    return mbtGenWorld->GetContactInfo();
 }

@@ -17,7 +17,7 @@
 #include <iostream>
 using namespace std;
 
-cFeaWorld::cFeaWorld() : cWorldBase()
+cFeaWorld::cFeaWorld() : cWorldBase(eWorldType::FEATHERSTONE_WORLD)
 {
     mDefaultLinearDamping = 0;
     mDefaultAngularDamping = 0;

@@ -1,6 +1,5 @@
 #include "sim/SimItems/SimCharacterBase.h"
 
-
 cSimCharacterBase::tParams::tParams()
 {
     mID = gInvalidIdx;
@@ -11,12 +10,11 @@ cSimCharacterBase::tParams::tParams()
     mEnableContactFall = true;
 }
 
-cSimCharacterBase::cSimCharacterBase()
+cSimCharacterBase::cSimCharacterBase(eSimCharacterType type)
 {
-    
+    mSimcharType = type;
 }
 
-cSimCharacterBase::~cSimCharacterBase()
-{
+cSimCharacterBase::~cSimCharacterBase() {}
 
-}
+eSimCharacterType cSimCharacterBase::GetCharType() { return mSimcharType; }

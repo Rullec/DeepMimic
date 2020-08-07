@@ -31,6 +31,7 @@ tVector ConvertEulerAngleVelToAxisAngleVel(const tVector &ea_vel)
 }
 
 cSimCharacterGen::cSimCharacterGen()
+    : cSimCharacterBase(eSimCharacterType::Generalized)
 {
     mController = nullptr;
     mLinkGenArray.clear();
@@ -42,16 +43,17 @@ cSimCharacterGen::cSimCharacterGen()
 bool cSimCharacterGen::Init(const std::shared_ptr<cWorldBase> &world,
                             const cSimCharacterBase::tParams &params)
 {
-    MIMIC_DEBUG("init generalized char, world sclae is {}", world->GetScale());
+    MIMIC_DEBUG("init generalized char, world scale is {}", world->GetScale());
     mWorld = world;
+    mCharFilename = params.mCharFile;
+
     cRobotModelDynamics::Init(params.mCharFile.c_str(), world->GetScale(),
                               ModelType::JSON);
     auto gen_world = std::dynamic_pointer_cast<cGenWorld>(world);
     MIMIC_ASSERT(gen_world != nullptr &&
                  "cSimCharGen can only be managed in Generalized world");
 
-    cRobotModelDynamics::InitSimVars(gen_world->GetInternalWorld(), true,
-                                     true);
+    cRobotModelDynamics::InitSimVars(gen_world->GetInternalWorld(), true, true);
     world->AddCharacter(this);
 
     SetComputeSecondDerive(true);
@@ -471,7 +473,13 @@ std::shared_ptr<cSimBodyLink> cSimCharacterGen::GetRootPart() const
 
 void cSimCharacterGen::RegisterContacts(int contact_flags, int filter_flags)
 {
-    MIMIC_WARN("for generalized character, register contact doesn' work");
+    for (int i = 0; i < static_cast<int>(mLinkGenArray.size()); ++i)
+    {
+        if (IsValidBodyPart(i))
+        {
+            mLinkGenArray[i]->RegisterContact(contact_flags, filter_flags);
+        }
+    }
 }
 void cSimCharacterGen::UpdateContact(int contact_flags, int filter_flags)
 {
@@ -664,11 +672,7 @@ short cSimCharacterGen::GetColMask() const
 }
 void cSimCharacterGen::SetColMask(short col_mask) {}
 void cSimCharacterGen::SetEnablejointTorqueControl(bool v_) {}
-std::string cSimCharacterGen::GetCharFilename()
-{
-    MIMIC_ERROR("no");
-    return "";
-}
+std::string cSimCharacterGen::GetCharFilename() { return mCharFilename; }
 
 bool cSimCharacterGen::LoadBodyDefs(const std::string &char_file,
                                     Eigen::MatrixXd &out_body_defs)
@@ -697,6 +701,8 @@ bool cSimCharacterGen::BuildBodyLinks()
         // mLinkBaseArray.push_back(std::dynamic_pointer_cast<cSimBodyLink>(link));
 
         link->Init(this->mWorld, this, i);
+        std::cout << "link handle id = " << link->GetContactHandle().mID
+                  << std::endl;
     }
     return true;
 }

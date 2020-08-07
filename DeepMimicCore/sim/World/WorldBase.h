@@ -75,7 +75,7 @@ public:
     virtual void Init(const tParams &params) = 0;
     virtual void Reset() = 0;
     virtual void Update(double time_elapsed) = 0;
-
+    virtual eWorldType GetWorldType();
     virtual void AddRigidBody(cSimRigidBody &obj) = 0;
     virtual void RemoveRigidBody(cSimRigidBody &obj) = 0;
 
@@ -143,6 +143,7 @@ protected:
     };
 
     tParams mParams;
+    eWorldType mType;
     double mTimeStep;
     double mDefaultLinearDamping;
     double mDefaultAngularDamping;
@@ -157,5 +158,5 @@ protected:
     cPerturbManager mPerturbManager;
     // virtual int GetNumConstriants() const;
 
-    cWorldBase() : mContactManager(this){};
+    cWorldBase(eWorldType type);
 };

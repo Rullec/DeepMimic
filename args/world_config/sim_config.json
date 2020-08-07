@@ -18,5 +18,7 @@
     "mb_update_velocity_without_coriolis": true,
     "enable_perturb" : false,
     "enable_pause_when_max_vel": false,
+    "enable_pd_control": false,
+    "controller_path" : "invalid",
     "lcp_config_path": "./args/world_config/lcp_config.json"
 }

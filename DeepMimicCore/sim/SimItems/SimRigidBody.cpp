@@ -185,7 +185,6 @@ btCollisionObject *cSimRigidBody::GetCollisionObject()
 void cSimRigidBody::Init(const std::shared_ptr<cWorldBase> &world)
 {
     RemoveFromWorld();
-    mSimBody->setUserPointer(this);
     AddToWorld(world);
     DisableDeactivation();
 }
