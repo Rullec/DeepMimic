@@ -27,7 +27,11 @@ void cTrajRecorder::PreSim()
 /**
  * \brief               Record info after simulation
  */
-void cTrajRecorder::PostSim() { mSaveInfo.mCurFrameId++; }
+void cTrajRecorder::PostSim()
+{
+    mSaveInfo.mCurFrameId++;
+    ReadContactInfo();
+}
 
 /**
  * \brief               Reset & save current trajectory per episode
@@ -70,7 +74,24 @@ void cTrajRecorder::ParseConfig(const std::string &conf)
 
 void cTrajRecorder::ReadContactInfoGen()
 {
-    MIMIC_ERROR("hasn't been implemented")
+    int num_of_links = mSimChar->GetNumBodyParts();
+    auto &cur_contact_info = mSaveInfo.mContactForces[mSaveInfo.mCurFrameId];
+    cur_contact_info.clear();
+
+    tContactForceInfo pt_info;
+    for (int i = 0; i < num_of_links; i++)
+    {
+        for (auto &pt : mSimChar->GetBodyPart(i)->GetContactPts())
+        {
+            pt_info.mId = i;
+            pt_info.mIsSelfCollision = pt.mIsSelfCollision;
+            pt_info.mForce = pt.mForce;
+            pt_info.mPos = pt.mPos;
+            cur_contact_info.push_back(pt_info);
+        }
+    }
+    MIMIC_INFO("record {} contact points in traj recorder",
+               cur_contact_info.size());
 }
 void cTrajRecorder::ReadContactInfoRaw()
 {
