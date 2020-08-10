@@ -128,6 +128,29 @@ bool cContactManager::IsInContact(const tContactHandle &handle) const
     return false;
 }
 
+/**
+ * \brief           has this body got contacted with the ground?
+ */
+bool cContactManager::IsInContactGenGround(const tContactHandle &handle) const
+{
+    if (handle.IsValid())
+    {
+        for (const auto &x : mContactEntries[handle.mID].mContactPts)
+        {
+            if (x.mIsSelfCollision == true)
+                continue;
+            else
+            {
+                // here, this contact got collision with other objects.
+                // we assume here in not other objects except ground in the
+                // scene and it contacted  with ground indeed,  return true;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 const tEigenArr<cContactManager::tContactPt> &
 cContactManager::GetContactPts(const tContactHandle &handle) const
 {
@@ -308,7 +331,7 @@ void cContactManager::UpdateContactInGenWorld()
 
     std::vector<btGenContactForce *> contact_points =
         gen_world->GetContactInfo();
-    MIMIC_DEBUG("total contact num {}", contact_points.size());
+    // MIMIC_DEBUG("total contact num {}", contact_points.size());
     tContactPt pt_buf;
     for (auto x : contact_points)
     {
@@ -326,7 +349,8 @@ void cContactManager::UpdateContactInGenWorld()
         pt_buf.mIsSelfCollision = x->mIsSelfCollision;
         int link_id = link->GetContactHandle().mID;
         mContactEntries[link_id].mContactPts.push_back(pt_buf);
-        // MIMIC_DEBUG("add contact point for multibody link {}, contact force {}",
+        // MIMIC_DEBUG("add contact point for multibody link {}, contact force
+        // {}",
         //             link->GetJointID(), x->mForce.transpose());
         // std::cout << "" << link->GetJointID()
         //           << " force = " << x->mForce.transpose() << std::endl;

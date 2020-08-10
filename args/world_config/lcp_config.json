@@ -6,7 +6,7 @@
     "enable_convert_mat_test": false,
     "enable_lcp_calculation": true,
     "enable_contact_lcp": true,
-    "enable_frictional_lcp": false,
+    "enable_frictional_lcp": true,
     "enable_joint_limit_lcp": true,
     "use_lcp_result": true,
     "enable_sequential_impulse_calculation": false,
@@ -17,6 +17,6 @@
     "enable_si_lcp_comparision": false,
     "enable_debug_output": false,
     "diagonal_eps" : 0.001,
-    "mu": 0.5,
+    "mu": 0.8,
     "num_of_friction_cone": 4
 }

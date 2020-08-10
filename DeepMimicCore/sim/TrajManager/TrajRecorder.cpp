@@ -5,6 +5,7 @@
 #include "sim/World/GenWorld.h"
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
+#include <iostream>
 
 cTrajRecorder::cTrajRecorder(cSceneImitate *scene, const std::string &conf)
 {
@@ -21,6 +22,8 @@ cTrajRecorder::~cTrajRecorder() {}
  */
 void cTrajRecorder::PreSim()
 {
+    std::cout << "frame " << mSaveInfo.mCurFrameId
+              << " pose = " << mSimChar->GetPose().transpose() << std::endl;
     mSaveInfo.mCharPoses[mSaveInfo.mCurFrameId] = mSimChar->GetPose();
 }
 
@@ -31,6 +34,9 @@ void cTrajRecorder::PostSim()
 {
     mSaveInfo.mCurFrameId++;
     ReadContactInfo();
+
+    if (mRecordMaxFrame == mSaveInfo.mCurFrameId)
+        Reset();
 }
 
 /**
@@ -41,10 +47,9 @@ void cTrajRecorder::Reset()
     Json::Value root;
     cInteractiveIDSolver::SaveTrajV2(mSaveInfo, root);
 
-    std::string name =
-        cFileUtil::GetFilename(mSimChar->GetCharFilename()) + "_traj.json";
-    cJsonUtil::WriteJson(name, root, true);
-    MIMIC_INFO("cTrajRecoder::Reset finished, save traj to {}, exit", name);
+    cJsonUtil::WriteJson(mTrajSavePath, root, true);
+    MIMIC_INFO("cTrajRecoder::Reset finished, save traj to {}, exit",
+               mTrajSavePath);
     exit(1);
 }
 
@@ -68,6 +73,8 @@ void cTrajRecorder::ParseConfig(const std::string &conf)
     Json::Value root;
     cJsonUtil::LoadJson(conf, root);
     mTrajSavePath = cJsonUtil::ParseAsString("traj_save_filename", root);
+    mRecordMaxFrame = cJsonUtil::ParseAsInt("record_max_frame", root);
+
     MIMIC_DEBUG("trajectory recoder parse config: get traj save path{}",
                 mTrajSavePath);
 }
@@ -92,6 +99,12 @@ void cTrajRecorder::ReadContactInfoGen()
     }
     MIMIC_INFO("record {} contact points in traj recorder",
                cur_contact_info.size());
+
+    MIMIC_WARN("link id += 1 in order to get matched with RobotControl");
+    for (auto &x : cur_contact_info)
+    {
+        x.mId += 1;
+    }
 }
 void cTrajRecorder::ReadContactInfoRaw()
 {

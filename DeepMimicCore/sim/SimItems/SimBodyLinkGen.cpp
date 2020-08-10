@@ -217,6 +217,7 @@ bool cSimBodyLinkGen::IsEndEffector() const
 
 bool cSimBodyLinkGen::IsInContact() const
 {
-    MIMIC_WARN("simbody link gen isincontact return false");
-    return false;
+    return mWorld->IsInContact(mContactHandle);
 }
+
+std::string cSimBodyLinkGen::GetName() const { return mLink->GetName(); }

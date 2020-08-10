@@ -12,17 +12,32 @@
 tVector ConvertAxisAngleVelToEulerAngleVel(const tVector &aa_vel)
 {
     MIMIC_ASSERT(std::fabs(aa_vel[3]) < 1e-10);
-    double dt = 1e-4;
-    return cMathUtil::AxisAngleToEuler(aa_vel.normalized(),
-                                       aa_vel.norm() * dt) /
-           dt;
+    // double dt = 1e-4;
+    // return cMathUtil::AxisAngleToEuler(aa_vel.normalized(),
+    //                                    aa_vel.norm() * dt) /
+    //        dt;
+    {
+        // std::cout
+        // << "----------convert axis angle vel to euler angle vel---------\n";
+        double dt = 1e-2;
+        // std::cout << "input aa_vel = " << aa_vel.transpose() << std::endl;
+        // std::cout << "aa vel norm = " << aa_vel.norm() << std::endl;
+        tVector axis = aa_vel.normalized();
+        double theta = aa_vel.norm() * dt;
+        // std::cout << "axis = " << axis.transpose() << std::endl;
+        // std::cout << "theta = " << theta << std::endl;
+        tVector euler_vel = cMathUtil::AxisAngleToEuler(axis, theta) / dt;
+        // std::cout << "euler vel = " << euler_vel.transpose() << std::endl;
+
+        return euler_vel;
+    }
 }
 
 tVector ConvertEulerAngleVelToAxisAngleVel(const tVector &ea_vel)
 {
     MIMIC_ASSERT(std::fabs(ea_vel[3]) < 1e-10);
     // std::cout << "euler anble vel = " << ea_vel.transpose() << std::endl;
-    double dt = 1e-4;
+    double dt = 1e-2;
 
     tVector aa_vel =
         cMathUtil::EulerangleToAxisAngle(ea_vel * dt, eRotationOrder::XYZ) / dt;
@@ -33,6 +48,7 @@ tVector ConvertEulerAngleVelToAxisAngleVel(const tVector &ea_vel)
 cSimCharacterGen::cSimCharacterGen()
     : cSimCharacterBase(eSimCharacterType::Generalized)
 {
+    mEnableContactFall = true;
     mController = nullptr;
     mLinkGenArray.clear();
     mJointGenArray.clear();
@@ -179,7 +195,7 @@ int cSimCharacterGen::GetParamOffset(int joint_id) const
 int cSimCharacterGen::GetRootID() const { return 0; }
 
 /**
- * \brief           Get the position of root link in world frame
+ * \brief           Get the position of root joint in world frame
  */
 tVector cSimCharacterGen::GetRootPos() const
 {
@@ -187,7 +203,7 @@ tVector cSimCharacterGen::GetRootPos() const
     auto root_joint = mJointGenArray[root_id];
     MIMIC_ASSERT(cKinTree::eJointType::eJointTypeNone == root_joint->GetType());
 
-    return mLinkGenArray[root_id]->GetPos();
+    return mJointGenArray[root_id]->CalcWorldPos();
 }
 
 /**
@@ -254,8 +270,10 @@ const Eigen::MatrixXd &cSimCharacterGen::GetBodyDefs() const
  */
 void cSimCharacterGen::SetRootPos(const tVector &pos)
 {
-    mq.segment(0, 3) = pos.segment(0, 3);
-    Apply(mq, false);
+    mPose.segment(0, 3) = pos.segment(0, 3);
+    SetPose(mPose);
+    // mq.segment(0, 3) = pos.segment(0, 3);
+    // Apply(mq, false);
 }
 
 /**
@@ -263,8 +281,9 @@ void cSimCharacterGen::SetRootPos(const tVector &pos)
  */
 void cSimCharacterGen::SetRootRotation(const tVector &axis, double theta)
 {
-    tQuaternion q = cMathUtil::AxisAngleToQuaternion(axis, theta);
-    SetRootTransform(GetRootPos(), q);
+
+    tQuaternion root_qua = cMathUtil::AxisAngleToQuaternion(axis, theta);
+    SetRootTransform(GetRootPos(), root_qua);
 }
 
 void cSimCharacterGen::SetRootRotation(const tQuaternion &q_)
@@ -326,12 +345,17 @@ void cSimCharacterGen::SetRootTransform(const tVector &pos,
     qdot.segment(0, 3) = new_link_vel.segment(0, 3) -
                          link->GetJKv().block(0, 3, 3, 3) * qdot.segment(3, 3);
     Setqdot(qdot);
+
+    // 5. update Pose and Vel
+    BuildPose(mPose);
+    BuildVel(mVel);
 }
 
 void cSimCharacterGen::SetRootVel(const tVector &vel)
 {
     mqdot.segment(0, 3) = vel.segment(0, 3);
     Setqdot(mqdot);
+    BuildVel(mVel);
 }
 
 void cSimCharacterGen::SetRootAngVel(const tVector &ang_vel)
@@ -343,6 +367,7 @@ void cSimCharacterGen::SetRootAngVel(const tVector &ang_vel)
                               .inverse() *
                           ang_vel.segment(0, 3);
     Setqdot(mqdot);
+    BuildVel(mVel);
 }
 
 tQuaternion cSimCharacterGen::CalcHeadingRot() const
@@ -365,11 +390,85 @@ void cSimCharacterGen::SetPose(const Eigen::VectorXd &pose)
 {
     tVectorXd q = ConvertPoseToq(pose);
     SetqAndqdot(q, mqdot);
+
+    // verify
+    tVectorXd res_pose = ConvertqToPose(q);
+    tVectorXd diff = res_pose - pose;
+    double norm = diff.norm();
+    if (norm > 1e-6 && pose.norm() > 1e-10)
+    {
+        MIMIC_DEBUG("SetPose goal {}", pose.transpose());
+        MIMIC_DEBUG("SetPose result {}", res_pose.transpose());
+        MIMIC_DEBUG("SetPose result q {}", q.transpose());
+        MIMIC_DEBUG("SetPose diff {}", diff.transpose());
+        MIMIC_ERROR("SetPose diff norm {}", norm);
+
+        // when the pose is totally zero, ignore this assert
+    }
+    // std::cout << "SetPose: q = " << q.transpose() << std::endl;
 }
 void cSimCharacterGen::SetVel(const Eigen::VectorXd &vel)
 {
     tVectorXd qdot = ConvertPosevelToqdot(vel);
     Setqdot(qdot);
+    // std::cout << "set qdot = " << qdot.transpose() << std::endl;
+    // verify
+    tVectorXd res_vel = ConvertqdotToPoseVel(qdot);
+    tVectorXd diff = res_vel - vel;
+    double norm = diff.norm();
+    if (norm > 1e-6)
+    {
+        MIMIC_DEBUG("SetVel goal {}", vel.transpose());
+        MIMIC_DEBUG("SetVel result {}", res_vel.transpose());
+        MIMIC_DEBUG("SetVel diff {}", diff.transpose());
+        MIMIC_DEBUG("SetVel diff norm {}", norm);
+        int dof_st = 0;
+        for (int i = 0; i < GetNumOfJoint(); i++)
+        {
+            int pose_size = -1;
+            auto joint = GetJointById(i);
+            switch (joint->GetJointType())
+            {
+            case JointType::FIXED_JOINT:
+                pose_size = 0;
+                break;
+            case JointType::REVOLUTE_JOINT:
+                pose_size = 1;
+                break;
+            case JointType::SPHERICAL_JOINT:
+                pose_size = 4;
+                break;
+            case JointType::NONE_JOINT:
+                pose_size = 7;
+                break;
+            default:
+                MIMIC_ERROR("unsupported");
+                break;
+            }
+            if (diff.segment(dof_st, pose_size).norm() > 1e-6)
+            {
+                MIMIC_WARN("Joint {} {} convert vel to qdot failed", i,
+                           joint->GetName());
+                tVectorXd target_vel = vel.segment(dof_st, pose_size);
+                tVectorXd result_vel = res_vel.segment(dof_st, pose_size);
+                tVectorXd new_res_vel = ConvertAxisAngleVelToEulerAngleVel(
+                    target_vel.segment(0, 4));
+                std::cout << "target vel = " << target_vel.transpose()
+                          << std::endl;
+                std::cout << "res vel = " << result_vel.transpose()
+                          << std::endl;
+                std::cout << "new res vel = " << new_res_vel.transpose()
+                          << std::endl;
+                tVectorXd new_target_vel =
+                    ConvertEulerAngleVelToAxisAngleVel(new_res_vel);
+                std::cout << "new target vel = " << new_target_vel.transpose()
+                          << std::endl;
+                exit(1);
+            }
+            dof_st += pose_size;
+        }
+        MIMIC_ASSERT(norm < 1e-6);
+    }
 }
 
 tVector cSimCharacterGen::CalcJointPos(int joint_id) const
@@ -529,7 +628,9 @@ bool cSimCharacterGen::HasFallen() const
     {
         fallend |= CheckFallContact();
     }
-    return false;
+    if (fallend)
+        MIMIC_INFO("The CharacterGen have fallen");
+    return fallend;
 }
 bool cSimCharacterGen::HasStumbled() const
 {
@@ -538,7 +639,20 @@ bool cSimCharacterGen::HasStumbled() const
 }
 bool cSimCharacterGen::HasVelExploded(double vel_threshold /* = 100.0*/) const
 {
-    return IsMaxVel();
+    bool is_max_vel = IsCartesianMaxVel(vel_threshold);
+    if (is_max_vel)
+        MIMIC_INFO("cSimCharacterGen cartesian velocity exploded to {}",
+                   vel_threshold);
+
+    return is_max_vel;
+    // bool is_max_vel = IsGeneralizedMaxVel();
+    // if (is_max_vel)
+    // {
+    //     std::cout << "multibody is max vel, qdot = " << mqdot.transpose()
+    //               << std::endl;
+    // }
+
+    // return is_max_vel;
 }
 
 bool cSimCharacterGen::IsValidBodyPart(int idx) const
@@ -701,8 +815,8 @@ bool cSimCharacterGen::BuildBodyLinks()
         // mLinkBaseArray.push_back(std::dynamic_pointer_cast<cSimBodyLink>(link));
 
         link->Init(this->mWorld, this, i);
-        std::cout << "link handle id = " << link->GetContactHandle().mID
-                  << std::endl;
+        // std::cout << "link handle id = " << link->GetContactHandle().mID
+        //           << std::endl;
     }
     return true;
 }
@@ -796,9 +910,11 @@ bool cSimCharacterGen::CheckFallContact() const
         if (IsValidBodyPart(b) && EnableBodyPartFallContact(b))
         {
             const auto &curr_part = GetBodyPart(b);
-            bool has_contact = curr_part->IsInContact();
+            bool has_contact = curr_part->IsInContactGenGround();
             if (has_contact)
             {
+                MIMIC_INFO("body {} {} has contact with ground!", b,
+                           curr_part->GetName());
                 return true;
             }
         }

@@ -1,3 +1,4 @@
 {
-    "traj_save_filename" : "test_traj.json"
+    "traj_save_filename": "./logs/tmp/test_traj.json",
+    "record_max_frame": 2
 }

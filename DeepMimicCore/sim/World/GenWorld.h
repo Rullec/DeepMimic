@@ -37,6 +37,10 @@ public:
     UpdateContact(const cContactManager::tContactHandle &handle) override;
     virtual bool
     IsInContact(const cContactManager::tContactHandle &handle) const override;
+
+    virtual bool IsInContactGenGround(
+        const cContactManager::tContactHandle &handle) const;
+
     virtual const tEigenArr<cContactManager::tContactPt> &
     GetContactPts(const cContactManager::tContactHandle &handle) const override;
     virtual cContactManager &GetContactManager() override;

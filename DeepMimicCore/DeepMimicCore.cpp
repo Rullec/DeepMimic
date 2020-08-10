@@ -3,6 +3,7 @@
 #include "render/DrawUtil.h"
 #include "scenes/DrawSceneImitate.h"
 #include "scenes/SceneBuilder.h"
+#include "sim/SimItems/SimCharacterGen.h"
 #include "util/LogUtil.hpp"
 
 cDeepMimicCore::cDeepMimicCore(bool enable_draw)

@@ -1,5 +1,6 @@
 ﻿#include "SimObj.h"
 #include <iostream>
+#include <sim/World/GenWorld.h>
 using namespace std;
 
 cSimObj::cSimObj() : mWorld(nullptr)
@@ -191,6 +192,14 @@ bool cSimObj::IsInContact() const
     return in_contact;
 }
 
+bool cSimObj::IsInContactGenGround() const
+{
+    bool in_contact =
+        std::dynamic_pointer_cast<cGenWorld>(mWorld)->IsInContactGenGround(
+            mContactHandle);
+    return in_contact;
+}
+
 const tEigenArr<cContactManager::tContactPt> &cSimObj::GetContactPts() const
 {
     return mWorld->GetContactPts(mContactHandle);
@@ -229,3 +238,5 @@ const btCollisionShape *cSimObj::GetCollisionShape() const
 }
 
 const std::shared_ptr<cWorldBase> &cSimObj::GetWorld() const { return mWorld; }
+
+std::string cSimObj::GetName() const { return "null"; }

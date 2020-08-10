@@ -91,6 +91,7 @@ protected:
     cSceneImitate *mScene;
     tSaveInfo mSaveInfo;
     std::string mTrajSavePath;
+    int mRecordMaxFrame;
     virtual void ParseConfig(const std::string &conf);
     virtual void ReadContactInfo();
     virtual void ReadContactInfoGen();

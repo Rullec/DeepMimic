@@ -53,7 +53,8 @@ public:
     virtual bool GetEnableFallContact();
     virtual bool IsEndEffector() const;
     virtual bool IsInContact() const;
-    
+    virtual std::string GetName() const;
+
 protected:
     cRobotModelDynamics *mRobotModel;
     Link *mLink;

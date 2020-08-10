@@ -3,6 +3,7 @@
 #include "sim/Controller/DeepMimicCharController.h"
 #include "sim/SimItems/SimBox.h"
 #include "sim/SimItems/SimCharacter.h"
+#include "sim/SimItems/SimCharacterGen.h"
 #include "sim/TrajManager/BuildIDSolver.hpp"
 #include "sim/TrajManager/TrajRecorder.h"
 #include "sim/World/GroundBuilder.h"
@@ -99,6 +100,7 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
 
     std::string sim_mode_str = "";
     parser->ParseInt("num_sim_substeps", mWorldParams.mNumSubsteps);
+    MIMIC_ASSERT(mWorldParams.mNumSubsteps == 1 && "In order to do InverseDynamics, sim_substeps are forced to be 1");
     parser->ParseDouble("world_scale", mWorldParams.mScale);
     parser->ParseVector("gravity", mWorldParams.mGravity);
     parser->ParseString("world_type", mWorldParams.mWorldType);
@@ -156,15 +158,14 @@ void cSceneSimChar::Init()
     BuildGround();
     BuildCharacters();
 
+    auto &cur_char = GetCharacter();
+    auto multibody = dynamic_cast<cSimCharacterGen *>(cur_char.get());
     // Init the position of our character, accoridng to the ref motion
     InitCharacterPos();
-
     ResolveCharGroundIntersect();
-
     BuildTrajManager();
-
     ClearObjs();
-    // std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
+
     // std::cout << "root rot = " <<
     // sim_char->GetRootRotation().coeffs().transpose() << std::endl; std::cout
     // << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
@@ -183,9 +184,19 @@ void cSceneSimChar::Clear()
 
 void cSceneSimChar::Update(double time_elapsed)
 {
+    // MIMIC_DEBUG("timestep = {}", time_elapsed);
     auto &sim_char = GetCharacter();
+    auto multibody = dynamic_cast<cSimCharacterGen *>(sim_char.get());
+    // std::cout << "[update] pose 0 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
+    // std::cout << "[update] q 0 = " << multibody->Getq().transpose()
+    //           << std::endl;
+    // std::cout << "[update] qdot 0 = " << multibody->Getqdot().transpose()
+    //           << std::endl;
+    // exit(0);
     cScene::Update(time_elapsed);
-
+    // std::cout << "[update] pose 1 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
     if (time_elapsed < 0)
     {
         return;
@@ -196,11 +207,15 @@ void cSceneSimChar::Update(double time_elapsed)
         UpdateRandPerturb(time_elapsed);
     }
 
+    // std::cout << "[update] pose 2 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
     PreUpdate(time_elapsed); // clear joint torque
     // 显示一下速度：是不是最开始的时候设置的速度太大了?
-
+    // std::cout << "[update] pose 3 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
     UpdateCharacters(time_elapsed);
-
+    // std::cout << "[update] pose 4 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
     if (mEnableID)
     {
         mIDSolver->SetTimestep(time_elapsed);
@@ -211,14 +226,26 @@ void cSceneSimChar::Update(double time_elapsed)
         mTrajRecorder->SetTimestep(time_elapsed);
         mTrajRecorder->PreSim();
     }
-
+    // std::cout << "[update] pose 5 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
     UpdateWorld(time_elapsed);
+    // std::cout << "[update] pose 6 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
     UpdateGround(time_elapsed);
     UpdateObjs(time_elapsed);
-
+    // std::cout << "[update] pose 7 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
+    // std::cout << "[update] q 7 = " << multibody->Getq().transpose()
+    //           << std::endl;
     PostUpdateCharacters(time_elapsed);
+    // std::cout << "[update] pose 7.5 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
+    // std::cout << "[update] q 7.5 = " << multibody->Getq().transpose()
+    //           << std::endl;
+    // exit(1);
     PostUpdate(time_elapsed);
-
+    // std::cout << "[update] pose 8 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
     if (mEnableID)
         mIDSolver->PostSim();
     if (mEnableTrajRecord)
@@ -409,8 +436,9 @@ bool cSceneSimChar::BuildCharacters()
             curr_char->RegisterContacts(cFeaWorld::eContactFlagCharacter,
                                         cFeaWorld::eContactFlagEnvironment);
 
+            // std::cout << "[init] pose 0 = " << curr_char->GetPose().transpose()
+            //           << std::endl;
             InitCharacterPos(curr_char);
-
             if (i < mCtrlParams.size())
             {
                 auto ctrl_params = mCtrlParams[i];
@@ -446,7 +474,8 @@ bool cSceneSimChar::BuildCharacters()
         // set up other setting
         curr_char->SetEnablejointTorqueControl(mEnableJointTorqueControl);
     }
-
+    // std::cout << "[init] pose 1 = " << GetCharacter()->GetPose().transpose()
+    //           << std::endl;
     return succ;
 }
 
@@ -679,6 +708,8 @@ void cSceneSimChar::SetCharRandPlacement(
     tVector rand_pos = tVector::Zero();
     tQuaternion rand_rot = tQuaternion::Identity();
     CalcCharRandPlacement(out_char, rand_pos, rand_rot);
+    // MIMIC_DEBUG("SetCharRandPlacement, root pos {}, root rot {}",
+    //             rand_pos.transpose(), rand_rot.coeffs().transpose());
     out_char->SetRootTransform(rand_pos, rand_rot);
 }
 
@@ -692,10 +723,14 @@ void cSceneSimChar::CalcCharRandPlacement(
     tVector rand_pos;
     tQuaternion rand_rot;
     mGround->SamplePlacement(tVector::Zero(), rand_pos, rand_rot);
-
+    // std::cout << "ground sample random pos = " << rand_pos.transpose()
+    //           << std::endl;
+    // std::cout << "raw out pos = " << out_pos.transpose() << std::endl;
+    // std::cout << "get char pos = " << char_pos.transpose() << std::endl;
     out_pos = rand_pos;
     out_pos[1] += char_pos[1];
     out_rot = rand_rot * char_rot;
+    // std::cout << "new out pos = " << out_pos.transpose() << std::endl;
 }
 
 void cSceneSimChar::ResolveCharGroundIntersect()

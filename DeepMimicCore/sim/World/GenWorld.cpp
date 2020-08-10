@@ -48,22 +48,7 @@ void cGenWorld::Reset()
     mTimeStep = 0;
     mContactManager.Reset();
     mPerturbManager.Clear();
-    MIMIC_WARN("world reset hasn't been fully implemented yet");
-
     mbtGenWorld->Reset();
-    // mSimWorld->clearForces();
-    // mSolver->reset();
-    // mBroadPhase->resetPool(mCollisionDispatcher.get());
-
-    // btOverlappingPairCache *pair_cache =
-    //     mSimWorld->getBroadphase()->getOverlappingPairCache();
-    // btBroadphasePairArray &pair_array =
-    // pair_cache->getOverlappingPairArray(); for (int i = 0; i <
-    // pair_array.size(); ++i)
-    // {
-    //     pair_cache->cleanOverlappingPair(pair_array[i],
-    //                                      mSimWorld->getDispatcher());
-    // }
 }
 
 void cGenWorld::Update(double time_elapsed)
@@ -260,6 +245,11 @@ bool cGenWorld::IsInContact(const cContactManager::tContactHandle &handle) const
     return mContactManager.IsInContact(handle);
 }
 
+bool cGenWorld::IsInContactGenGround(
+    const cContactManager::tContactHandle &handle) const
+{
+    return mContactManager.IsInContactGenGround(handle);
+}
 void cGenWorld::RayTest(const tVector &beg, const tVector &end,
                         tRayTestResults &results) const
 {

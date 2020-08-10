@@ -1,4 +1,5 @@
 ﻿#include "RLScene.h"
+#include "util/LogUtil.hpp"
 #include <iostream>
 using namespace std;
 
@@ -32,26 +33,24 @@ bool cRLScene::IsEpisodeEnd() const
     // std::cout <<"[end] bool cRLScene::IsEpisodeEnd() const" << std::endl;
     bool is_end = cScene::IsEpisodeEnd();
     if (is_end == true)
-        {
-            cTimer::tParams a = mTimer.GetParams();
-            std::cout << "[end] Timer said terminated, episode done, timer = "
-                      << mTimer.GetMaxTime() << ", exp = " << a.mTimeExp
-                      << std::endl;
-        }
+    {
+        cTimer::tParams a = mTimer.GetParams();
+        MIMIC_INFO("Timer said terminated, episode done, timer = {}, exp = {}",
+                   mTimer.GetMaxTime(), a.mTimeExp);
+    }
     eTerminate termin = eTerminateNull;
     for (int i = 0; i < GetNumAgents(); ++i)
+    {
+        termin = CheckTerminate(i); // 调用check Terminate函数
+        if (termin !=
+            eTerminateNull) // 只要不是无法判断，那么episode就是结束了。
         {
-            termin = CheckTerminate(i); // 调用check Terminate函数
-            if (termin !=
-                eTerminateNull) // 只要不是无法判断，那么episode就是结束了。
-                {
-                    is_end = true;
-                    std::cout
-                        << "[end] CheckTerminate said terminated, episode done"
-                        << std::endl;
-                    break;
-                }
+            is_end = true;
+
+            MIMIC_INFO("Agent said terminated, episode done");
+            break;
         }
+    }
     return is_end;
 }
 

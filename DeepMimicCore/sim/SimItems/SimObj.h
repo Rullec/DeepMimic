@@ -42,6 +42,7 @@ public:
     virtual void UpdateContact(int contact_flags, int filter_flags);
     virtual const cContactManager::tContactHandle &GetContactHandle() const;
     virtual bool IsInContact() const;
+    virtual bool IsInContactGenGround() const;
     virtual const tEigenArr<cContactManager::tContactPt> &GetContactPts() const;
 
     virtual void ApplyForce(const tVector &force) = 0;
@@ -61,6 +62,7 @@ public:
     virtual void CalcAABB(tVector &out_min, tVector &out_max) const;
 
     virtual const btCollisionShape *GetCollisionShape() const;
+    virtual std::string GetName() const;
 
 protected:
     std::shared_ptr<cWorldBase> mWorld;

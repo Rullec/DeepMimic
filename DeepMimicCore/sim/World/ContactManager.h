@@ -51,6 +51,7 @@ public:
     virtual int GetNumEntries() const;
     virtual int GetNumTotalContactPts() const;
     virtual bool IsInContact(const tContactHandle &handle) const;
+    virtual bool IsInContactGenGround(const tContactHandle &handle) const;
     virtual const tEigenArr<tContactPt> &
     GetContactPts(const tContactHandle &handle) const;
     virtual const tEigenArr<tContactPt> &GetContactPts(int handle_id) const;

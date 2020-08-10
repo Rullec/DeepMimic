@@ -1,6 +1,7 @@
 ﻿#include "SceneImitate.h"
 #include "sim/Controller/CtController.h"
 #include "sim/Controller/RBDUtil.h"
+#include "sim/SimItems/SimCharacterGen.h"
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
 #include <cstdio>
@@ -642,15 +643,42 @@ void cSceneImitate::SyncCharacters()
     const Eigen::VectorXd &vel = kin_char->GetVel();
 
     const auto &sim_char = GetCharacter();
-
+    auto multibody = dynamic_cast<cSimCharacterGen *>(sim_char.get());
     // std::cout <<"------------begin sync char\n";
     // std::cout << "pose = " << sim_char->GetPose().transpose() << std::endl;
     // std::cout << "root rot = " <<
     // sim_char->GetRootRotation().coeffs().transpose() << std::endl; std::cout
     // << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
-
+    // std::cout << "[sync] before sync pose = " << sim_char->GetPose().transpose()
+    //           << std::endl;
+    // std::cout << "[sync] before sync q = " << multibody->Getq().transpose()
+    //           << std::endl;
+    // std::cout << "[sync] before sync vel = " << sim_char->GetVel().transpose()
+    //           << std::endl;
+    // std::cout << "[sync] target pose = " << pose.transpose() << std::endl;
+    // std::cout << "[sync] target vel = " << vel.transpose() << std::endl;
     sim_char->SetPose(pose);
     sim_char->SetVel(vel);
+    // std::cout << "[sync] after sync pose = " << sim_char->GetPose().transpose()
+    //           << std::endl;
+    // std::cout << "[sync] after sync vel = " << sim_char->GetVel().transpose()
+    //           << std::endl;
+    // std::cout << "[sync] after sync q = " << multibody->Getq().transpose()
+    //           << std::endl;
+    // verify the set pose & vel works
+    {
+        tVectorXd pose_diff = pose - sim_char->GetPose(),
+                  vel_diff = vel - sim_char->GetVel();
+        double pose_diff_norm = pose_diff.norm(),
+               vel_diff_norm = vel_diff.norm();
+        double eps = 1e-8;
+        // MIMIC_DEBUG("[sync] SetPose diff {}", pose_diff_norm);
+        // MIMIC_DEBUG("[sync] SetVel diff {}", vel_diff_norm);
+        MIMIC_ASSERT(pose_diff_norm < eps);
+        MIMIC_ASSERT(vel_diff_norm < eps);
+        // MIMIC_ASSERT((pose - sim_char->GetPose).norm() < 1e-16);
+        // MIMIC_ASSERT((vel - sim_char->GetPose).norm() < 1e-16);
+    }
 
     const auto &ctrl = sim_char->GetController();
     auto ct_ctrl = dynamic_cast<cCtController *>(ctrl.get());

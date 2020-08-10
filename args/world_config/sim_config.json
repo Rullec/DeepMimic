@@ -6,8 +6,8 @@
     "mb_damping2": 0,
     "mb_scale": 2,
     "enable_RK4_for_multibody": false,
-    "mb_zero_init_pose": true,
-    "mb_zero_init_pose_vel": true,
+    "mb_zero_init_pose": false,
+    "mb_zero_init_pose_vel": false,
     "mb_test_jacobian": false,
     "mb_enable_collect_frame_info": false,
     "mb_collect_frame_num": 50,
@@ -17,8 +17,8 @@
     "mb_max_vel" : 100,
     "mb_update_velocity_without_coriolis": true,
     "enable_perturb" : false,
-    "enable_pause_when_max_vel": false,
     "enable_pd_control": false,
-    "controller_path" : "invalid",
+    "controller_path": "./args/world_config/pd_config.json",
+    "enable_pause_when_max_vel": false,
     "lcp_config_path": "./args/world_config/lcp_config.json"
 }

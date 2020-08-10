@@ -9,7 +9,7 @@
 --time_end_lim_exp 5
 --anneal_samples 32000000
 
---num_update_substeps 10
+--num_update_substeps 1
 --num_sim_substeps 2
 # --world_type featherstone
 --world_type generalized
@@ -49,7 +49,7 @@
 --model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
 
 #---------------------- TrajRecoder config(deprecated for Generalized backend) -------------------
---enable_traj_recoder true
+--enable_traj_recoder false
 --traj_recorder_config args/0630/traj_recorder_config.json
 
 #---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------
