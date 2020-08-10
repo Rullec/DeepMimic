@@ -3,7 +3,7 @@
     "add_multibody": true,
     "add_obj": false,
     "enable_ground": true,
-    "ground_height": -2,
+    "ground_height": 0,
     "multibody_path_bak2": "/home/xudong/Projects/DeepMimic/data/0424/characters/skeleton_042302_revised_0_obj.json",
     "multibody_path_bak12": "/home/xudong/Projects/DeepMimic/data/0720/characters/link_1.json",
     "multibody_path_bak1": "/home/xudong/Projects/DeepMimic/data/0720/characters/link_2.json",

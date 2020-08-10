@@ -1,6 +1,7 @@
 #include "TrajRecorder.h"
 #include "InteractiveIDSolver.hpp"
 #include "scenes/SceneImitate.h"
+#include "sim/SimItems/SimCharacterGen.h"
 #include "sim/World/FeaWorld.h"
 #include "sim/World/GenWorld.h"
 #include "util/FileUtil.h"
@@ -22,9 +23,18 @@ cTrajRecorder::~cTrajRecorder() {}
  */
 void cTrajRecorder::PreSim()
 {
-    std::cout << "frame " << mSaveInfo.mCurFrameId
-              << " pose = " << mSimChar->GetPose().transpose() << std::endl;
     mSaveInfo.mCharPoses[mSaveInfo.mCurFrameId] = mSimChar->GetPose();
+
+    // auto gen_char = dynamic_cast<cSimCharacterGen *>(mSimChar);
+    // if (gen_char != nullptr)
+    // {
+    //     std::cout << "-----------------------------frame "
+    //               << mSaveInfo.mCurFrameId << "----------------------\n";
+    //     std::cout << "q = " << gen_char->Getq().transpose() << std::endl;
+    //     std::cout << "qdot = " << gen_char->Getqdot().transpose() << std::endl;
+    //     std::cout << "M = \n" << gen_char->GetMassMatrix() << std::endl;
+    //     std::cout << "C = \n" << gen_char->GetCoriolisMatrix() << std::endl;
+    // }
 }
 
 /**
@@ -32,11 +42,15 @@ void cTrajRecorder::PreSim()
  */
 void cTrajRecorder::PostSim()
 {
-    mSaveInfo.mCurFrameId++;
     ReadContactInfo();
 
+    mSaveInfo.mCurFrameId++;
     if (mRecordMaxFrame == mSaveInfo.mCurFrameId)
+    {
+        MIMIC_INFO("record frames exceed the upper bound {}, reset",
+                   mSaveInfo.mCurFrameId);
         Reset();
+    }
 }
 
 /**
@@ -124,5 +138,18 @@ void cTrajRecorder::ReadContactInfo()
     default:
         break;
     }
-    MIMIC_DEBUG("read contact info finished");
+
+    const auto &current_forces =
+        mSaveInfo.mContactForces[mSaveInfo.mCurFrameId];
+    int frame = mSaveInfo.mCurFrameId;
+    if (current_forces.size())
+    {
+        MIMIC_DEBUG("frame {} num of contacts {}", frame,
+                    current_forces.size());
+        for (int i = 0; i < current_forces.size(); i++)
+        {
+            MIMIC_DEBUG("contact {} force = {}", i,
+                        current_forces[i].mForce.transpose());
+        }
+    }
 }

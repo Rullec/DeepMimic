@@ -132,6 +132,8 @@ void cDrawCharacter::DrawCharShapes(const cCharacter &character,
         }
         else
         {
+            // std::cout << "shape " << i << " parent world trans = \n"
+            //           << parent_world_trans << std::endl;
             cDrawCharacter::DrawShape(curr_def, parent_world_trans, fill_tint,
                                       line_col);
         }

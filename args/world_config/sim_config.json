@@ -4,7 +4,7 @@
     "rigid_damping": 0,
     "mb_damping1": 0,
     "mb_damping2": 0,
-    "mb_scale": 2,
+    "mb_scale": 1,
     "enable_RK4_for_multibody": false,
     "mb_zero_init_pose": false,
     "mb_zero_init_pose_vel": false,

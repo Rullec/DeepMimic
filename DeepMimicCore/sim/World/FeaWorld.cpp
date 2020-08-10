@@ -104,7 +104,7 @@ void cFeaWorld::AddRigidBody(cSimRigidBody &obj)
 
     obj.SetDamping(mDefaultLinearDamping, mDefaultAngularDamping);
     mSimWorld->addRigidBody(body.get(), col_group, col_mask);
-
+    body.get()->setUserPointer(&obj);
     Constrain(obj);
 }
 

@@ -100,7 +100,9 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
 
     std::string sim_mode_str = "";
     parser->ParseInt("num_sim_substeps", mWorldParams.mNumSubsteps);
-    MIMIC_ASSERT(mWorldParams.mNumSubsteps == 1 && "In order to do InverseDynamics, sim_substeps are forced to be 1");
+    MIMIC_ASSERT(
+        mWorldParams.mNumSubsteps == 1 &&
+        "In order to do InverseDynamics, sim_substeps are forced to be 1");
     parser->ParseDouble("world_scale", mWorldParams.mScale);
     parser->ParseVector("gravity", mWorldParams.mGravity);
     parser->ParseString("world_type", mWorldParams.mWorldType);
@@ -436,7 +438,8 @@ bool cSceneSimChar::BuildCharacters()
             curr_char->RegisterContacts(cFeaWorld::eContactFlagCharacter,
                                         cFeaWorld::eContactFlagEnvironment);
 
-            // std::cout << "[init] pose 0 = " << curr_char->GetPose().transpose()
+            // std::cout << "[init] pose 0 = " <<
+            // curr_char->GetPose().transpose()
             //           << std::endl;
             InitCharacterPos(curr_char);
             if (i < mCtrlParams.size())
@@ -601,14 +604,13 @@ void cSceneSimChar::SetFallContacts(
     std::shared_ptr<cSimCharacterBase> &out_char) const
 {
     // 这个函数负责注册fall bodies
+    for (int i = 0; i < out_char->GetNumBodyParts(); ++i)
+    {
+        out_char->SetBodyPartFallContact(i, false);
+    }
     int num_fall_bodies = static_cast<int>(fall_bodies.size());
     if (num_fall_bodies > 0) // 如果这个这个目标不是空的
     {
-        for (int i = 0; i < out_char->GetNumBodyParts(); ++i)
-        {
-            out_char->SetBodyPartFallContact(i, false);
-        }
-
         for (int i = 0; i < num_fall_bodies; ++i)
         {
             int b = fall_bodies[i];

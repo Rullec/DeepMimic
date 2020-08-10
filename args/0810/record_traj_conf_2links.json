@@ -1,0 +1,4 @@
+{
+    "traj_save_filename": "./logs/tmp/test_traj_2links.json",
+    "record_max_frame": 1000
+}
