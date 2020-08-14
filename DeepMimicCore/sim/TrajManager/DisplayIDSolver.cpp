@@ -38,8 +38,8 @@ void cDisplayIDSolver::PostSim()
         const int cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mTotalFrame;
         const tVectorXd &q = mLoadInfo.mPoseMat.row(cur_frame);
         // std::cout <<"q = " << q.transpose() << std::endl;
-        SetGeneralizedPos(q);
-        RecordMultibodyInfo(mLoadInfo.mLinkRot[cur_frame],
+        SetGeneralizedPos(mSimChar, q);
+        RecordMultibodyInfo(mSimChar, mLoadInfo.mLinkRot[cur_frame],
                             mLoadInfo.mLinkPos[cur_frame]);
 
         if (mLoadInfo.mEnableOutputMotionInfo == true)
@@ -209,7 +209,7 @@ void cDisplayIDSolver::Parseconfig(const std::string &conf)
     const int &cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPoseMat.rows();
     mLogger->info("cDisplayIDSolver display mode: cur frame {}", cur_frame);
     const tVectorXd &q = mLoadInfo.mPoseMat.row(cur_frame);
-    SetGeneralizedPos(q);
-    RecordMultibodyInfo(mLoadInfo.mLinkRot[cur_frame],
+    SetGeneralizedPos(mSimChar, q);
+    RecordMultibodyInfo(mSimChar, mLoadInfo.mLinkRot[cur_frame],
                         mLoadInfo.mLinkPos[cur_frame]);
 }

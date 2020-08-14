@@ -11,7 +11,8 @@ public:
     virtual void Init(const cWorldBase::tParams &params) override;
     virtual void Reset() override;
     virtual void Update(double time_elapsed) override;
-
+    virtual void PostUpdate() override final;
+    
     virtual void AddRigidBody(cSimRigidBody &obj) override;
     virtual void RemoveRigidBody(cSimRigidBody &obj) override;
 

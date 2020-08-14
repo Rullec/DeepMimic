@@ -96,5 +96,5 @@ protected:
 };
 
 const std::string gCharCtrlStr[cCtrlBuilder::eCharCtrl::NUM_CTRL_TYPE] = {
-    "eCharCtrlNone", "eCharCtrlCt", "eCharCtrlCtPD", "eCharCtrlCtVel",
-    "eCharCtrlMax"};
+    "eCharCtrlNone",    "eCharCtrlCt",    "eCharCtrlCtPD",
+    "eCharCtrlCtPDGen", "eCharCtrlCtVel", "eCharCtrlMax"};

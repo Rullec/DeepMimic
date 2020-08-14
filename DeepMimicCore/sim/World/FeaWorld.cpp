@@ -94,6 +94,11 @@ void cFeaWorld::Update(double time_elapsed)
     mContactManager.Update();
 }
 
+void cFeaWorld::PostUpdate()
+{
+    // do nothing
+}
+
 void cFeaWorld::AddRigidBody(cSimRigidBody &obj)
 {
     const std::unique_ptr<btRigidBody> &body = obj.GetSimBody();

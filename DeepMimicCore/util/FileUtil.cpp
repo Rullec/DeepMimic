@@ -22,7 +22,7 @@ FILE *cFileUtil::OpenFile(const char *path, const char *mode)
     f = fopen(path, mode);
     if (f == nullptr)
     {
-        printf("[log] cFileUtil::OpenFile\": Failed to open %s!\n", path);
+        MIMIC_ERROR("Failed to open {}", path);
         // assert(false); // failed to open file
     }
     return f;

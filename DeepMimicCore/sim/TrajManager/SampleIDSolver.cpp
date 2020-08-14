@@ -92,7 +92,7 @@ void cSampleIDSolver::PreSim()
 
     // for(auto & x : mSaveInfo.mTruthJointForces[cur_frame]) std::cout <<
     // x.transpose() << std::endl;
-    RecordGeneralizedInfo(mSaveInfo.mBuffer_q[cur_frame],
+    RecordGeneralizedInfo(mSimChar, mSaveInfo.mBuffer_q[cur_frame],
                           mSaveInfo.mBuffer_u[cur_frame]);
 
     // double reward = mScene->CalcReward(0);
@@ -101,9 +101,10 @@ void cSampleIDSolver::PreSim()
     // only record momentum in PreSim for the first frame
     if (0 == cur_frame)
     {
-        RecordMultibodyInfo(
-            mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame],
-            mSaveInfo.mLinkOmega[cur_frame], mSaveInfo.mLinkVel[cur_frame]);
+        RecordMultibodyInfo(mSimChar, mSaveInfo.mLinkRot[cur_frame],
+                            mSaveInfo.mLinkPos[cur_frame],
+                            mSaveInfo.mLinkOmega[cur_frame],
+                            mSaveInfo.mLinkVel[cur_frame]);
         RecordReward(mSaveInfo.mRewards[cur_frame]);
         RecordRefTime(mSaveInfo.mRefTime[cur_frame]);
         // CalcMomentum(mSaveInfo.mLinkPos[cur_frame],
@@ -167,7 +168,7 @@ void cSampleIDSolver::PostSim()
     const int cur_frame = mSaveInfo.mCurFrameId;
 
     // record the post generalized info
-    RecordGeneralizedInfo(mSaveInfo.mBuffer_q[cur_frame],
+    RecordGeneralizedInfo(mSimChar, mSaveInfo.mBuffer_q[cur_frame],
                           mSaveInfo.mBuffer_u[cur_frame]);
 
     // q dot dot
@@ -186,7 +187,7 @@ void cSampleIDSolver::PostSim()
 
     // record multibody info
     RecordMultibodyInfo(
-        mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame],
+        mSimChar, mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame],
         mSaveInfo.mLinkOmega[cur_frame], mSaveInfo.mLinkVel[cur_frame]);
 
     // record rewards for this frame

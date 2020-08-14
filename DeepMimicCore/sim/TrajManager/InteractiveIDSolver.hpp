@@ -33,47 +33,6 @@ protected:
 
     tSaveInfo mSaveInfo; // instantiated
 
-    // load mode: Set up different flag when we load different data.
-    // It takes an effect on the behavior of our ID Solver
-    enum eLoadMode
-    {
-        INVALID,
-        LOAD_MOTION,
-        LOAD_TRAJ
-    };
-
-    // load info struct. Namely it is used for storaging the loaded info from
-    // fril.
-    struct tLoadInfo
-    {
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-        std::string mLoadPath = "";
-        eLoadMode mLoadMode = eLoadMode::INVALID;
-        Eigen::MatrixXd mPoseMat, mVelMat, mAccelMat, mActionMat, mPDTargetMat,
-            mCharPoseMat;
-        cMotion *mMotion = nullptr;
-        tVectorXd mTimesteps, mRewards, mMotionRefTime;
-        std::vector<std::vector<tContactForceInfo>> mContactForces;
-        std::vector<std::vector<tMatrix>>
-            mLinkRot; // local to world rotation mats
-        std::vector<std::vector<tVector>>
-            mLinkPos; // link COM pos in world frame
-        std::vector<std::vector<tVector>> mExternalForces,
-            mExternalTorques; // external forces applied on each link
-        std::vector<std::vector<tVector>>
-            mTruthJointForces; // The ground truth joint torques loaded from
-                               // some .traj files will be storaged here. mostly
-                               // for debug purpose
-        int mTotalFrame = 0;
-        int mCurFrame = 0;
-        bool mEnableOutputMotionInfo =
-            false; // if this option is set to true, when the tLoadInfo is
-                   // loaded from the disk, the Loadfunc will export a summary
-                   // report about the loaded info
-        std::string mOutputMotionInfoPath =
-            ""; // used accompany with the last one, it points out the location
-                // of report file that will be overwritted.
-    };
     struct tLoadInfo mLoadInfo; // work for display and solve mode
 
     // This struct are used in the derived cSampleIDSolver.
@@ -164,16 +123,10 @@ protected:
     // load and save methods
     // Note that which will be called among V1 and V2 is fully determined by the
     // variable mTrajFileVersion DO NOT mannually call V1 and V2 functions
+    // v2 for simplified format
     void LoadTraj(tLoadInfo &load_info,
                   const std::string
                       &path); // load our custom trajectroy "*.traj" generally
-    void LoadTrajV1(tLoadInfo &load_info,
-                    const std::string &path); // load our custon trajectroy
-                                              // "*.traj" v1 for full format
-    void
-    LoadTrajV2(tLoadInfo &load_info,
-               const std::string &path); // load our custon trajectroy "*.traj"
-                                         // v2 for simplified format
     std::string
     SaveTraj(tSaveInfo &mSaveInfo, const std::string &traj_dir,
              const std::string &traj_rootname) const; // save trajectories

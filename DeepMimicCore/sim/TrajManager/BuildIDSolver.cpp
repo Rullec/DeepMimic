@@ -23,7 +23,7 @@ std::shared_ptr<cIDSolver> BuildIDSolver(const std::string &conf,
 
     // 1. check type
     const std::string mode_str = ID_JSON_VALUE["IDMode"].asString();
-    eIDSolverType type = eIDSolverType::INVALID;
+    eIDSolverType type = eIDSolverType::INVALID_IDSOLVER;
     for (int i = 0; i < eIDSolverType::SOLVER_TYPE_NUM; i++)
     {
         // std::cout << gIDSolverTypeStr[i] <<" " << mode_str <<" " <<
@@ -34,7 +34,7 @@ std::shared_ptr<cIDSolver> BuildIDSolver(const std::string &conf,
             break;
         }
     }
-    if (type == eIDSolverType::INVALID)
+    if (type == eIDSolverType::INVALID_IDSOLVER)
     {
         std::cout << "[error] BuildIDSolver failed: invalid solver type "
                   << mode_str << std::endl;

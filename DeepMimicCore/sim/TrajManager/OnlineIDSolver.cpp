@@ -101,8 +101,8 @@ void cOnlineIDSolver::PreSim()
 
     // record info
     RecordJointForces(mJointForces);
-    RecordGeneralizedInfo(mBuffer_q[mFrameId], mBuffer_u[mFrameId]);
-    RecordMultibodyInfo(mLinkRot, mLinkPos);
+    RecordGeneralizedInfo(mSimChar, mBuffer_q[mFrameId], mBuffer_u[mFrameId]);
+    RecordMultibodyInfo(mSimChar, mLinkRot, mLinkPos);
     // std::cout <<"online sovler presim record " << mFrameId << std::endl;
     // std::ofstream fout("test1.txt", std::ios::app);
     // fout <<"presim frame id = " << mFrameId;
@@ -119,7 +119,7 @@ void cOnlineIDSolver::PostSim()
 {
     mFrameId++;
 
-    RecordGeneralizedInfo(mBuffer_q[mFrameId], mBuffer_u[mFrameId]);
+    RecordGeneralizedInfo(mSimChar, mBuffer_q[mFrameId], mBuffer_u[mFrameId]);
     // record contact forces
     RecordContactForces(mContactForces, mCurTimestep, mWorldId2InverseId);
 
@@ -412,12 +412,12 @@ void cOnlineIDSolver::Reset()
 }
 
 void cOnlineIDSolver::SolveIDSingleStep(
-    std::vector<tVector> &solved_joint_forces,
-    const std::vector<tContactForceInfo> &contact_forces,
-    const std::vector<tVector> &link_pos, const std::vector<tMatrix> &link_rot,
+    tEigenArr<tVector> &solved_joint_forces,
+    const tEigenArr<tContactForceInfo> &contact_forces,
+    const tEigenArr<tVector> &link_pos, const tEigenArr<tMatrix> &link_rot,
     const tVectorXd &buf_q, const tVectorXd &buf_u, const tVectorXd &buf_u_dot,
-    int frame_id, const std::vector<tVector> &external_forces,
-    const std::vector<tVector> &external_torques) const
+    int frame_id, const tEigenArr<tVector> &external_forces,
+    const tEigenArr<tVector> &external_torques) const
 {
     if (mEnableSolveID == false)
         return;

@@ -71,6 +71,11 @@ void cGenWorld::Update(double time_elapsed)
     mContactManager.Update();
 }
 
+void cGenWorld::PostUpdate()
+{
+    // clear force after each step
+    mbtGenWorld->ClearForce();
+}
 void cGenWorld::AddRigidBody(cSimRigidBody &obj)
 {
     // MIMIC_WARN("AddRigidBody hasn't been implemenbted\n");

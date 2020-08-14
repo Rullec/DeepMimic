@@ -558,8 +558,7 @@ std::shared_ptr<cSimBodyLink> cSimCharacterGen::GetBodyPart(int idx) const
 
 tVector cSimCharacterGen::GetBodyPartPos(int idx) const
 {
-    MIMIC_ERROR("no");
-    return tVector::Zero();
+    return GetBodyPart(idx)->GetPos();
 }
 tVector cSimCharacterGen::GetBodyPartVel(int idx) const
 {
@@ -710,7 +709,13 @@ void cSimCharacterGen::ApplyForce(const tVector &force, const tVector &lo_pos)
 }
 void cSimCharacterGen::ApplyTorque(const tVector &torque) {}
 void cSimCharacterGen::ClearForces() {}
-void cSimCharacterGen::ApplyControlForces(const Eigen::VectorXd &tau) {}
+void cSimCharacterGen::ApplyControlForces(const Eigen::VectorXd &tau)
+{
+    MIMIC_ASSERT(GetNumOfFreedom() == tau.size());
+    mGenForce += tau;
+    // MIMIC_INFO("ApplyControlForces hasn't been implement, tau = {}",
+    //            tau.transpose());
+}
 void cSimCharacterGen::PlayPossum() {}
 
 tVector cSimCharacterGen::GetPartColor(int part_id) const

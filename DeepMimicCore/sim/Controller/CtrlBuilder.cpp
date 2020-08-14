@@ -1,7 +1,7 @@
 #include "sim/Controller/CtrlBuilder.h"
-#include "sim/Controller/CtPDGenController.h"
 #include "sim/Controller/CtController.h"
 #include "sim/Controller/CtPDController.h"
+#include "sim/Controller/CtPDGenController.h"
 #include "sim/Controller/CtVelController.h"
 #include "util/LogUtil.hpp"
 #include <iostream>
@@ -55,7 +55,7 @@ bool cCtrlBuilder::BuildController(const tCtrlParams &params,
                                    std::shared_ptr<cCharController> &out_ctrl)
 {
     bool succ = true;
-    MIMIC_INFO("build controller type", gCharCtrlStr[params.mCharCtrl]);
+    MIMIC_INFO("build controller type {}", gCharCtrlStr[params.mCharCtrl]);
     switch (params.mCharCtrl)
     {
     case eCharCtrlNone:

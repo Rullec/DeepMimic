@@ -418,6 +418,10 @@ void cCtCtrlUtil::BuildBoundsPDSpherical(const Eigen::MatrixXd &joint_mat,
 #endif
 }
 
+/**
+ * \brief                       For revolute joint offset = -0.5 * (lim_hgih + lim_low), scale =  1 / (2 * (lim_high - lim_low))
+ *          I still don't know Why.
+*/
 void cCtCtrlUtil::BuildOffsetScalePDRevolute(const Eigen::MatrixXd &joint_mat,
                                              int joint_id,
                                              Eigen::VectorXd &out_offset,

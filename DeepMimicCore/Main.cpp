@@ -38,6 +38,22 @@ std::unique_ptr<cDeepMimicCore> gCore;
 
 void SetupDeepMimicCore()
 {
+    auto convert_to_vector_double = [](const std::vector<double> &vec) {
+        // const tVectorXd ret = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(
+        //     vec.data(), vec.size());
+        // std::vector<double> a = {1, 2, 3, 4};
+        const Eigen::VectorXd ret =
+            Eigen::Map<const Eigen::VectorXd, Eigen::Unaligned>(vec.data(),
+                                                                vec.size());
+        return ret;
+    };
+    auto convert_to_vector_int = [](const std::vector<int> &vec) {
+        // Eigen::VectorXi ret(vec.data(), vec.size());
+        const Eigen::VectorXi ret =
+            Eigen::Map<const Eigen::VectorXi, Eigen::Unaligned>(vec.data(),
+                                                                vec.size());
+        return ret;
+    };
     bool enable_draw = true;
     gCore = std::unique_ptr<cDeepMimicCore>(new cDeepMimicCore(enable_draw));
     gCore->ParseArgs(gArgs); // 参数解析ok
@@ -73,6 +89,46 @@ void SetupDeepMimicCore()
 
         int xx = 0;
         ++xx;
+        // std::cout << "action space = " << action_space << std::endl;
+        // std::cout << "state size = " << action_space << std::endl;
+        // std::cout << "goal size = " << action_space << std::endl;
+        // std::cout << "action size = " << action_space << std::endl;
+        // std::cout << "action space = " << action_space << std::endl;
+        // std::cout << "num actions = " << action_space << std::endl;
+        // std::cout << "--------------------\n";
+        // std::cout << "state offset = "
+        //           << convert_to_vector_double(s_offset).transpose()
+        //           << std::endl;
+        // std::cout << "state scale = "
+        //           << convert_to_vector_double(s_scale).transpose() <<
+        //           std::endl;
+        // std::cout << "g offset = "
+        //           << convert_to_vector_double(g_offset).transpose()
+        //           << std::endl;
+        // std::cout << "g scale = "
+        //           << convert_to_vector_double(g_scale).transpose() <<
+        //           std::endl;
+        // std::cout << "action offset = "
+        //           << convert_to_vector_double(a_offset).transpose()
+        //           << std::endl;
+        // std::cout << "action scale = "
+        //           << convert_to_vector_double(a_scale).transpose() <<
+        //           std::endl;
+
+        // std::cout << "action min = "
+        //           << convert_to_vector_double(action_min).transpose()
+        //           << std::endl;
+        // std::cout << "action max = "
+        //           << convert_to_vector_double(action_max).transpose()
+        //           << std::endl;
+        // std::cout << "state norm groups = "
+        //           << convert_to_vector_int(state_norm_groups).transpose()
+        //           << std::endl;
+        // std::cout << "goal norm groups = "
+        //           << convert_to_vector_int(goal_norm_groups).transpose()
+        //           << std::endl;
+
+        // exit(0);
     }
 }
 

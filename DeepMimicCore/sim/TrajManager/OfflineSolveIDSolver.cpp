@@ -7,8 +7,8 @@
 #include "util/BulletUtil.h"
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
-#include "util/TimeUtil.hpp"
 #include "util/LogUtil.hpp"
+#include "util/TimeUtil.hpp"
 #include <iostream>
 #ifdef __APPLE__
 #include <mpi.h>
@@ -217,7 +217,7 @@ void cOfflineIDSolver::SingleTrajSolve(
     // std::cout <<"[debug] cOfflineIDSolver::OfflineSolve: motion total frame =
     // " << mLoadInfo.mTotalFrame << std::endl;
     tVectorXd old_q, old_u;
-    RecordGeneralizedInfo(old_q, old_u);
+    RecordGeneralizedInfo(mSimChar, old_q, old_u);
 
     mCharController->SetInitTime(mLoadInfo.mMotionRefTime[0] -
                                  mLoadInfo.mTimesteps[0]);
@@ -289,8 +289,8 @@ void cOfflineIDSolver::SingleTrajSolve(
     // 2. calculate link pos and link rot from generalized info
     for (int frame_id = 0; frame_id < mLoadInfo.mTotalFrame; frame_id++)
     {
-        SetGeneralizedPos(mLoadInfo.mPoseMat.row(frame_id));
-        RecordMultibodyInfo(mLoadInfo.mLinkRot[frame_id],
+        SetGeneralizedPos(mSimChar, mLoadInfo.mPoseMat.row(frame_id));
+        RecordMultibodyInfo(mSimChar, mLoadInfo.mLinkRot[frame_id],
                             mLoadInfo.mLinkPos[frame_id]);
     }
     // exit(0);
@@ -302,6 +302,7 @@ void cOfflineIDSolver::SingleTrajSolve(
                       mLoadInfo.mTimesteps[0]); // training policy: random init
     mKinChar->Update(0); // update mKinChar inner status by Update(0)
     SetGeneralizedPos(
+        mSimChar,
         mLoadInfo.mPoseMat.row(0)); // set up the sim char pos from mLoadInfo
     mSimChar->PostUpdate(0);
     mScene
@@ -323,7 +324,7 @@ void cOfflineIDSolver::SingleTrajSolve(
 
         // 4.1 update the sim char
         mInverseModel->clearAllUserForcesAndMoments();
-        SetGeneralizedPos(mLoadInfo.mPoseMat.row(cur_frame));
+        SetGeneralizedPos(mSimChar, mLoadInfo.mPoseMat.row(cur_frame));
         SetGeneralizedVel(mLoadInfo.mVelMat.row(cur_frame));
         mSimChar->PostUpdate(0);
 
@@ -331,7 +332,7 @@ void cOfflineIDSolver::SingleTrajSolve(
         mCharController->RecordState(cur_ID_res.state);
 
         // 4.3 solve Inverse Dynamic for joint torques
-        std::vector<tVector> result;
+        tEigenArr<tVector> result;
         // SetGeneralizedInfo(mLoadInfo.mPoseMat.row(frame_id));
         // std::cout <<"log frame = " << cur_frame << std::endl;
         cIDSolver::SolveIDSingleStep(
@@ -731,7 +732,8 @@ void cOfflineIDSolver::BatchTrajsSolve(const std::string &path)
                 full_epoch_infos[i].sample_traj_filename);
             break;
         default:
-            MIMIC_ASSERT(mBatchTrajSolveConfig.mSolveTarget != eSolveTarget::INVALID_SOLVETARGET);
+            MIMIC_ASSERT(mBatchTrajSolveConfig.mSolveTarget !=
+                         eSolveTarget::INVALID_SOLVETARGET);
             break;
         }
         if (cFileUtil::ExistsFile(target_traj_filename_full) == false)

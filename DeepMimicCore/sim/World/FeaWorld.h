@@ -31,7 +31,7 @@ public:
     virtual void Init(const tParams &params) override final;
     virtual void Reset() override final;
     virtual void Update(double time_elapsed) override final;
-
+    virtual void PostUpdate() override final;
     virtual void AddRigidBody(cSimRigidBody &obj) override final;
     virtual void RemoveRigidBody(cSimRigidBody &obj) override final;
 

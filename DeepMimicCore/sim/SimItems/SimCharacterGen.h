@@ -148,6 +148,7 @@ public:
     virtual std::string GetJointName(int id) const override;
     virtual std::string GetDrawShapeName(int id) const override;
     virtual int GetNumJoints() const override;
+    virtual tVectorXd ConvertPoseToq(const tVectorXd &pose) const;
 
 protected:
     /// vars
@@ -201,14 +202,14 @@ protected:
     virtual void Setqdot(const tVectorXd &qdot) override;
     tVectorXd ConvertqToPose(const tVectorXd &pose) const;
     tVectorXd ConvertqdotToPoseVel(const tVectorXd &pose) const;
-    tVectorXd ConvertPoseToq(const tVectorXd &pose) const;
+
     tVectorXd ConvertPosevelToqdot(const tVectorXd &pose_vel) const;
 
     // buffer for storaging all links & joints
     // std::vector<Link *> mLinkArray;
     // std::vector<Joint *> mJointArray;
     std::vector<std::shared_ptr<cSimBodyLinkGen>> mLinkGenArray;
-    std::vector<std::shared_ptr<cSimBodyJointGen>> mJointGenArray;    
+    std::vector<std::shared_ptr<cSimBodyJointGen>> mJointGenArray;
 
     // // used to form the return value in `GetBodyPart`
     // std::vector<std::shared_ptr<cSimBodyLink>> mLinkBaseArray;

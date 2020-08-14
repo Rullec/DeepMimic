@@ -245,15 +245,16 @@ void cSceneSimChar::Update(double time_elapsed)
     // std::cout << "[update] q 7.5 = " << multibody->Getq().transpose()
     //           << std::endl;
     // exit(1);
-    PostUpdate(time_elapsed);
-    // std::cout << "[update] pose 8 = " << sim_char->GetPose().transpose()
-    //           << std::endl;
     if (mEnableID)
         mIDSolver->PostSim();
     if (mEnableTrajRecord)
     {
         mTrajRecorder->PostSim();
     }
+    PostUpdate(time_elapsed);
+    // std::cout << "[update] pose 8 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
+
     // cTimeUtil::End("sim update");
 }
 
@@ -930,7 +931,7 @@ void cSceneSimChar::PreUpdate(double timestep)
     // ClearJointForces();
 }
 
-void cSceneSimChar::PostUpdate(double timestep) {}
+void cSceneSimChar::PostUpdate(double timestep) { mWorld->PostUpdate(); }
 
 void cSceneSimChar::GetViewBound(tVector &out_min, tVector &out_max) const
 {

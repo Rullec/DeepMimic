@@ -1,16 +1,16 @@
 #pragma once
 #include "BulletInverseDynamics/IDConfig.hpp"
+#include "TrajRecorder.h"
 #include <BulletDynamics/Featherstone/btMultiBodyLink.h>
 #include <BulletInverseDynamics/MultiBodyTree.hpp>
 #include <BulletInverseDynamics/details/IDLinearMathInterface.hpp>
 #include <map>
 #include <util/LogUtil.hpp>
 #include <util/MathUtil.h>
-#include "TrajRecorder.h"
 
 enum eIDSolverType
 {
-    INVALID,
+    INVALID_IDSOLVER,
     Online,
     Display,
     OfflineSolve,
@@ -39,6 +39,23 @@ public:
     virtual void PreSim() = 0;
     virtual void PostSim() = 0;
     virtual void SetTimestep(double) = 0;
+    static void RecordMultibodyInfo(cSimCharacterBase *sim_char,
+                                    tEigenArr<tMatrix> &local_to_world_rot,
+                                    tEigenArr<tVector> &link_pos_world,
+                                    tEigenArr<tVector> &link_omega_world,
+                                    tEigenArr<tVector> &link_vel_world);
+    // static void RecordMultibodyInfo(cSimCharacterBase *simchar,
+    //                                 tEigenArr<tMatrix> &local_to_world_rot,
+    //                                 tEigenArr<tVector> &link_pos_world,
+    //                                 tEigenArr<tVector> &link_omega_world,
+    //                                 tEigenArr<tVector> &link_vel_world);
+    static void RecordMultibodyInfo(cSimCharacterBase *sim_char,
+                                    tEigenArr<tMatrix> &local_to_world_rot,
+                                    tEigenArr<tVector> &link_pos_world);
+    static void RecordGeneralizedInfo(cSimCharacterBase *sim_char, tVectorXd &q,
+                                      tVectorXd &q_dot);
+    static void SetGeneralizedPos(cSimCharacterBase *sim_char,
+                                  const tVectorXd &q);
 
 protected:
     tLogger mLogger;
@@ -63,61 +80,53 @@ protected:
     btVector3 *omega_buffer, *vel_buffer;
 
     // record functions
-    void RecordMultibodyInfo(std::vector<tMatrix> &local_to_world_rot,
-                             std::vector<tVector> &link_pos_world) const;
-    void RecordMultibodyInfo(std::vector<tMatrix> &local_to_world_rot,
-                             std::vector<tVector> &link_pos_world,
-                             std::vector<tVector> &link_omega_world,
-                             std::vector<tVector> &link_vel_world) const;
-    void RecordGeneralizedInfo(tVectorXd &q, tVectorXd &q_dot) const;
     void RecordReward(double &reward) const;
     void RecordRefTime(double &time) const;
-    void RecordJointForces(std::vector<tVector> &mJointForces) const;
+    void RecordJointForces(tEigenArr<tVector> &mJointForces) const;
     void RecordAction(tVectorXd &action) const; // ball joints are in aas
     void RecordPDTarget(
         tVectorXd &pd_target) const; // ball joints are in quaternions
-    void RecordContactForces(std::vector<tContactForceInfo> &mContactForces,
+    void RecordContactForces(tEigenArr<tContactForceInfo> &mContactForces,
                              double mCurTimestep,
                              std::map<int, int> &mWorldId2InverseId) const;
     void
-    ApplyContactForcesToID(const std::vector<tContactForceInfo> &mContactForces,
-                           const std::vector<tVector> &mLinkPos,
-                           const std::vector<tMatrix> &mLinkRot) const;
-    void ApplyExternalForcesToID(const std::vector<tVector> &link_poses,
-                                 const std::vector<tMatrix> &link_rot,
-                                 const std::vector<tVector> &ext_forces,
-                                 const std::vector<tVector> &ext_torques) const;
+    ApplyContactForcesToID(const tEigenArr<tContactForceInfo> &mContactForces,
+                           const tEigenArr<tVector> &mLinkPos,
+                           const tEigenArr<tMatrix> &mLinkRot) const;
+    void ApplyExternalForcesToID(const tEigenArr<tVector> &link_poses,
+                                 const tEigenArr<tMatrix> &link_rot,
+                                 const tEigenArr<tVector> &ext_forces,
+                                 const tEigenArr<tVector> &ext_torques) const;
 
     // set functions
-    void SetGeneralizedPos(const tVectorXd &q);
+
     void SetGeneralizedVel(const tVectorXd &q);
 
     // calculation funcs
     tVectorXd CalcGeneralizedVel(const tVectorXd &q_before,
                                  const tVectorXd &q_after,
                                  double timestep) const;
-    void CalcMomentum(const std::vector<tVector> &mLinkPos,
-                      const std::vector<tMatrix> &mLinkRot,
-                      const std::vector<tVector> &mLinkVel,
-                      const std::vector<tVector> &mLinkOmega,
+    void CalcMomentum(const tEigenArr<tVector> &mLinkPos,
+                      const tEigenArr<tMatrix> &mLinkRot,
+                      const tEigenArr<tVector> &mLinkVel,
+                      const tEigenArr<tVector> &mLinkOmega,
                       tVector &mLinearMomentum, tVector &mAngMomentum) const;
-    void
-    CalcDiscreteVelAndOmega(const std::vector<tVector> &mLinkPosCur,
-                            const std::vector<tMatrix> &mLinkRotCur,
-                            const std::vector<tVector> &mLinkPosNext,
-                            const std::vector<tMatrix> &mLinkRotNext,
-                            double timestep,
-                            std::vector<tVector> &mLinkDiscreteVel,
-                            std::vector<tVector> &mLinkDiscreteOmega) const;
+    void CalcDiscreteVelAndOmega(const tEigenArr<tVector> &mLinkPosCur,
+                                 const tEigenArr<tMatrix> &mLinkRotCur,
+                                 const tEigenArr<tVector> &mLinkPosNext,
+                                 const tEigenArr<tMatrix> &mLinkRotNext,
+                                 double timestep,
+                                 tEigenArr<tVector> &mLinkDiscreteVel,
+                                 tEigenArr<tVector> &mLinkDiscreteOmega) const;
 
     // solving single step
     virtual void
-    SolveIDSingleStep(std::vector<tVector> &solved_joint_forces,
-                      const std::vector<tContactForceInfo> &contact_forces,
-                      const std::vector<tVector> &link_pos,
-                      const std::vector<tMatrix> &link_rot,
+    SolveIDSingleStep(tEigenArr<tVector> &solved_joint_forces,
+                      const tEigenArr<tContactForceInfo> &contact_forces,
+                      const tEigenArr<tVector> &link_pos,
+                      const tEigenArr<tMatrix> &link_rot,
                       const tVectorXd &mBuffer_q, const tVectorXd &mBuffer_u,
                       const tVectorXd &mBuffer_u_dot, int frame_id,
-                      const std::vector<tVector> &mExternalForces,
-                      const std::vector<tVector> &mExternalTorques) const;
+                      const tEigenArr<tVector> &mExternalForces,
+                      const tEigenArr<tVector> &mExternalTorques) const;
 };

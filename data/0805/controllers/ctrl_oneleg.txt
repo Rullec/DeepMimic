@@ -24,6 +24,22 @@
 			"Kd": 8,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
+		},
+		{
+			"ID": 2,
+			"Name": "LeftFoot",
+			"Kp": 60,
+			"Kd": 6,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 3,
+			"Name": "LFootTongue",
+			"Kp": 40,
+			"Kd": 4,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
 		}
 	]
 }

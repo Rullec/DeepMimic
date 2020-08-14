@@ -3,6 +3,7 @@
 #include "scenes/SceneImitate.h"
 #include "sim/Controller/CtPDController.h"
 #include "sim/SimItems/SimCharacter.h"
+#include "sim/SimItems/SimCharacterGen.h"
 #include <iostream>
 #include <memory>
 #include <util/BulletUtil.h>
@@ -95,170 +96,222 @@ cIDSolver::~cIDSolver()
 
 eIDSolverType cIDSolver::GetType() { return mType; }
 
-void cIDSolver::RecordMultibodyInfo(std::vector<tMatrix> &local_to_world_rot,
-                                    std::vector<tVector> &link_pos_world) const
+void cIDSolver::RecordMultibodyInfo(cSimCharacterBase *sim_char,
+                                    tEigenArr<tMatrix> &local_to_world_rot,
+                                    tEigenArr<tVector> &link_pos_world)
 {
-    // std::cout <<"begin info \n";
-    assert(local_to_world_rot.size() == mNumLinks);
-    assert(link_pos_world.size() == mNumLinks);
-
-    for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
+    if (sim_char->GetCharType() == eSimCharacterType::Featherstone)
     {
-        // set up rot & pos
-        if (0 == ID_link_id)
+        int mNumLinks = sim_char->GetNumBodyParts();
+        auto mMultibody =
+            dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody();
+        assert(local_to_world_rot.size() == mNumLinks);
+        assert(link_pos_world.size() == mNumLinks);
+
+        for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
         {
-            local_to_world_rot[0] =
-                cMathUtil::RotMat(cBulletUtil::btQuaternionTotQuaternion(
-                    mMultibody->getWorldToBaseRot().inverse()));
-            link_pos_world[0] =
-                cBulletUtil::btVectorTotVector1(mMultibody->getBasePos());
+            // set up rot & pos
+            if (0 == ID_link_id)
+            {
+                local_to_world_rot[0] =
+                    cMathUtil::RotMat(cBulletUtil::btQuaternionTotQuaternion(
+                        mMultibody->getWorldToBaseRot().inverse()));
+                link_pos_world[0] =
+                    cBulletUtil::btVectorTotVector1(mMultibody->getBasePos());
+            }
+            else
+            {
+                int multibody_link_id = ID_link_id - 1;
+                auto &cur_trans = mMultibody->getLinkCollider(multibody_link_id)
+                                      ->getWorldTransform();
+                local_to_world_rot[ID_link_id] =
+                    cBulletUtil::btMatrixTotMatrix1(cur_trans.getBasis());
+                link_pos_world[ID_link_id] =
+                    cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
+            }
         }
-        else
+    }
+    else
+    {
+        int num_of_links = sim_char->GetNumBodyParts();
+        local_to_world_rot.resize(num_of_links);
+        link_pos_world.resize(num_of_links);
+        for (int i = 0; i < num_of_links; i++)
         {
-            int multibody_link_id = ID_link_id - 1;
-            auto &cur_trans = mMultibody->getLinkCollider(multibody_link_id)
-                                  ->getWorldTransform();
-            local_to_world_rot[ID_link_id] =
-                cBulletUtil::btMatrixTotMatrix1(cur_trans.getBasis());
-            link_pos_world[ID_link_id] =
-                cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
+            local_to_world_rot[i] =
+                cMathUtil::RotMat(sim_char->GetBodyPart(i)->GetRotation());
+            link_pos_world[i] = sim_char->GetBodyPartPos(i);
         }
     }
 }
 
-void cIDSolver::RecordMultibodyInfo(std::vector<tMatrix> &local_to_world_rot,
-                                    std::vector<tVector> &link_pos_world,
-                                    std::vector<tVector> &link_omega_world,
-                                    std::vector<tVector> &link_vel_world) const
+void cIDSolver::RecordMultibodyInfo(cSimCharacterBase *sim_char,
+                                    tEigenArr<tMatrix> &local_to_world_rot,
+                                    tEigenArr<tVector> &link_pos_world,
+                                    tEigenArr<tVector> &link_omega_world,
+                                    tEigenArr<tVector> &link_vel_world)
 {
-    // std::cout <<"begin info \n";
-    local_to_world_rot.resize(mNumLinks);
-    link_pos_world.resize(mNumLinks);
-    link_omega_world.resize(mNumLinks);
-    link_vel_world.resize(mNumLinks);
-
-    // std::cout <<" links num = " << mNumLinks << std::endl;
-
-    mMultibody->compTreeLinkVelocities(omega_buffer, vel_buffer);
-    for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
+    if (sim_char->GetCharType() == eSimCharacterType::Featherstone)
     {
-        // set up rot & pos
-        if (0 == ID_link_id)
+        int mNumLinks = sim_char->GetNumBodyParts();
+        // std::cout <<"begin info \n";
+        local_to_world_rot.resize(mNumLinks);
+        link_pos_world.resize(mNumLinks);
+        link_omega_world.resize(mNumLinks);
+        link_vel_world.resize(mNumLinks);
+
+        auto mMultibody =
+            dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody().get();
+        // std::cout <<" links num = " << mNumLinks << std::endl;
+        auto omega_buffer = new btVector3[mNumLinks];
+        auto vel_buffer = new btVector3[mNumLinks];
+        mMultibody->compTreeLinkVelocities(omega_buffer, vel_buffer);
+        for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
         {
-            local_to_world_rot[0] =
-                cMathUtil::RotMat(cBulletUtil::btQuaternionTotQuaternion(
-                    mMultibody->getWorldToBaseRot().inverse()));
-            link_pos_world[0] =
-                cBulletUtil::btVectorTotVector1(mMultibody->getBasePos());
-            link_vel_world[0] =
-                cBulletUtil::btVectorTotVector0(mMultibody->getBaseVel());
-            link_omega_world[0] =
-                cBulletUtil::btVectorTotVector0(mMultibody->getBaseOmega());
+            // set up rot & pos
+            if (0 == ID_link_id)
+            {
+                local_to_world_rot[0] =
+                    cMathUtil::RotMat(cBulletUtil::btQuaternionTotQuaternion(
+                        mMultibody->getWorldToBaseRot().inverse()));
+                link_pos_world[0] =
+                    cBulletUtil::btVectorTotVector1(mMultibody->getBasePos());
+                link_vel_world[0] =
+                    cBulletUtil::btVectorTotVector0(mMultibody->getBaseVel());
+                link_omega_world[0] =
+                    cBulletUtil::btVectorTotVector0(mMultibody->getBaseOmega());
+            }
+            else
+            {
+                int multibody_link_id = ID_link_id - 1;
+                auto &cur_trans = mMultibody->getLinkCollider(multibody_link_id)
+                                      ->getWorldTransform();
+                local_to_world_rot[ID_link_id] =
+                    cBulletUtil::btMatrixTotMatrix1(cur_trans.getBasis());
+                link_pos_world[ID_link_id] =
+                    cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
+                link_vel_world[ID_link_id] =
+                    cBulletUtil::btVectorTotVector0(quatRotate(
+                        cur_trans.getRotation(), vel_buffer[ID_link_id]));
+                link_omega_world[ID_link_id] =
+                    cBulletUtil::btVectorTotVector0(quatRotate(
+                        cur_trans.getRotation(), omega_buffer[ID_link_id]));
+            }
+            // std::cout <<"link " << ID_link_id <<" pos  = " <<
+            // link_pos_world[ID_link_id] .transpose() << std::endl;
+            delete omega_buffer;
+            delete vel_buffer;
         }
-        else
-        {
-            int multibody_link_id = ID_link_id - 1;
-            auto &cur_trans = mMultibody->getLinkCollider(multibody_link_id)
-                                  ->getWorldTransform();
-            local_to_world_rot[ID_link_id] =
-                cBulletUtil::btMatrixTotMatrix1(cur_trans.getBasis());
-            link_pos_world[ID_link_id] =
-                cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
-            link_vel_world[ID_link_id] = cBulletUtil::btVectorTotVector0(
-                quatRotate(cur_trans.getRotation(), vel_buffer[ID_link_id]));
-            link_omega_world[ID_link_id] = cBulletUtil::btVectorTotVector0(
-                quatRotate(cur_trans.getRotation(), omega_buffer[ID_link_id]));
-        }
-        // std::cout <<"link " << ID_link_id <<" pos  = " <<
-        // link_pos_world[ID_link_id] .transpose() << std::endl;
+    }
+    else
+    {
+        MIMIC_ERROR("Unsupported now");
     }
 }
 
-void cIDSolver::RecordGeneralizedInfo(tVectorXd &q, tVectorXd &q_dot) const
+void cIDSolver::RecordGeneralizedInfo(cSimCharacterBase *sim_char, tVectorXd &q,
+                                      tVectorXd &q_dot)
 {
-    q.resize(mDof), q_dot.resize(mDof);
-    q.setZero(), q_dot.setZero();
-    // root
-    if (mFloatingBase == true)
+    if (eSimCharacterType::Featherstone == sim_char->GetCharType())
     {
-        // q = [rot, pos], rot = euler angle in XYZ rot
-        tQuaternion world_to_base = cBulletUtil::btQuaternionTotQuaternion(
-            mMultibody->getWorldToBaseRot());
-        tVector euler_angle_rot = cMathUtil::QuaternionToEulerAngles(
-            world_to_base, eRotationOrder::XYZ);
-        // std::cout << "[debug] RecordGenInfo: world to base mat = \n" <<
-        // world_to_base.toRotationMatrix() << std::endl; std::cout <<
-        // "[debug] RecordGenInfo: world to base euler angle = \n" <<
-        // euler_angle_rot.transpose() << std::endl;
-
-        for (int i = 0; i < 3; i++)
-            q(i) = euler_angle_rot[i];
-        tVector pos =
-            cBulletUtil::btIDVectorTotVector0(mMultibody->getBasePos());
-        for (int i = 3; i < 6; i++)
-            q(i) = pos[i - 3];
-
-        // q_dot = [w, v]
-        tVector omega =
-            cBulletUtil::btVectorTotVector0(mMultibody->getBaseOmega());
-        tVector vel = cBulletUtil::btVectorTotVector0(mMultibody->getBaseVel());
-        for (int i = 0; i < 3; i++)
-            q_dot(i) = omega[i];
-        for (int i = 3; i < 6; i++)
-            q_dot(i) = vel[i - 3];
-    }
-
-    // other joints
-    for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks();
-         link_id++)
-    {
-        auto &cur_link = mMultibody->getLink(link_id);
-        int offset = cur_link.m_dofOffset;
+        auto mMultibody =
+            dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody();
+        int mDof = mMultibody->getNumDofs();
+        bool mFloatingBase = mMultibody->hasFixedBase() == false;
+        q.resize(mDof), q_dot.resize(mDof);
+        q.setZero(), q_dot.setZero();
+        // root
         if (mFloatingBase == true)
-            offset += 6;
-        switch (cur_link.m_jointType)
         {
-        case btMultibodyLink::eFeatherstoneJointType::eRevolute:
-        {
-            q(offset) = mMultibody->getJointPos(link_id);
-            q_dot(offset) = mMultibody->getJointVel(link_id);
-            break;
-        }
-        case btMultibodyLink::eFeatherstoneJointType::eSpherical:
-        {
-            // q: euler angle
-            // q_dot: omega
-            btScalar *bt_joint_pos = mMultibody->getJointPosMultiDof(link_id);
-            btScalar *bt_joint_vel = mMultibody->getJointVelMultiDof(link_id);
-
-            // local to parent frame��quaternion
-            tQuaternion joint_pos_q(bt_joint_pos[3], bt_joint_pos[0],
-                                    bt_joint_pos[1], bt_joint_pos[2]);
-            tVector joint_pos_euler = cMathUtil::QuaternionToEulerAngles(
-                joint_pos_q, eRotationOrder::ZYX);
-            tVector joint_vel =
-                tVector(bt_joint_vel[0], bt_joint_vel[1], bt_joint_vel[2], 0);
+            // q = [rot, pos], rot = euler angle in XYZ rot
+            tQuaternion world_to_base = cBulletUtil::btQuaternionTotQuaternion(
+                mMultibody->getWorldToBaseRot());
+            tVector euler_angle_rot = cMathUtil::QuaternionToEulerAngles(
+                world_to_base, eRotationOrder::XYZ);
+            // std::cout << "[debug] RecordGenInfo: world to base mat = \n" <<
+            // world_to_base.toRotationMatrix() << std::endl; std::cout <<
+            // "[debug] RecordGenInfo: world to base euler angle = \n" <<
+            // euler_angle_rot.transpose() << std::endl;
 
             for (int i = 0; i < 3; i++)
-            {
-                q(offset + i) = joint_pos_euler[i]; // in parent frame
+                q(i) = euler_angle_rot[i];
+            tVector pos =
+                cBulletUtil::btIDVectorTotVector0(mMultibody->getBasePos());
+            for (int i = 3; i < 6; i++)
+                q(i) = pos[i - 3];
 
-                q_dot(offset + i) = joint_vel[i]; // in parent frame
+            // q_dot = [w, v]
+            tVector omega =
+                cBulletUtil::btVectorTotVector0(mMultibody->getBaseOmega());
+            tVector vel =
+                cBulletUtil::btVectorTotVector0(mMultibody->getBaseVel());
+            for (int i = 0; i < 3; i++)
+                q_dot(i) = omega[i];
+            for (int i = 3; i < 6; i++)
+                q_dot(i) = vel[i - 3];
+        }
+
+        // other joints
+        for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks();
+             link_id++)
+        {
+            auto &cur_link = mMultibody->getLink(link_id);
+            int offset = cur_link.m_dofOffset;
+            if (mFloatingBase == true)
+                offset += 6;
+            switch (cur_link.m_jointType)
+            {
+            case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+            {
+                q(offset) = mMultibody->getJointPos(link_id);
+                q_dot(offset) = mMultibody->getJointVel(link_id);
+                break;
             }
-            break;
+            case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+            {
+                // q: euler angle
+                // q_dot: omega
+                btScalar *bt_joint_pos =
+                    mMultibody->getJointPosMultiDof(link_id);
+                btScalar *bt_joint_vel =
+                    mMultibody->getJointVelMultiDof(link_id);
+
+                // local to parent frame��quaternion
+                tQuaternion joint_pos_q(bt_joint_pos[3], bt_joint_pos[0],
+                                        bt_joint_pos[1], bt_joint_pos[2]);
+                tVector joint_pos_euler = cMathUtil::QuaternionToEulerAngles(
+                    joint_pos_q, eRotationOrder::ZYX);
+                tVector joint_vel = tVector(bt_joint_vel[0], bt_joint_vel[1],
+                                            bt_joint_vel[2], 0);
+
+                for (int i = 0; i < 3; i++)
+                {
+                    q(offset + i) = joint_pos_euler[i]; // in parent frame
+
+                    q_dot(offset + i) = joint_vel[i]; // in parent frame
+                }
+                break;
+            }
+            case btMultibodyLink::eFeatherstoneJointType::eFixed:
+            {
+                break;
+            }
+            default:
+            {
+                std::cout << "[error] cIDSolver::RecordGeneralizedInfo: "
+                             "unsupported joint type "
+                          << cur_link.m_jointType << std::endl;
+                exit(1);
+            }
+            }
         }
-        case btMultibodyLink::eFeatherstoneJointType::eFixed:
-        {
-            break;
-        }
-        default:
-        {
-            std::cout << "[error] cIDSolver::RecordGeneralizedInfo: "
-                         "unsupported joint type "
-                      << cur_link.m_jointType << std::endl;
-            exit(1);
-        }
-        }
+    }
+    else
+    {
+        auto gen_char = dynamic_cast<cSimCharacterGen *>(sim_char);
+        MIMIC_ASSERT(gen_char != nullptr);
+        q = gen_char->Getq();
+        q_dot = gen_char->Getqdot();
     }
 }
 
@@ -272,79 +325,89 @@ void cIDSolver::RecordRefTime(double &time) const
     time = mKinChar->GetTime();
 }
 
-void cIDSolver::SetGeneralizedPos(const tVectorXd &q)
+void cIDSolver::SetGeneralizedPos(cSimCharacterBase *sim_char,
+                                  const tVectorXd &q)
 {
-    assert(q.size() == mDof);
-    if (mFloatingBase == true)
+    if (sim_char->GetCharType() == eSimCharacterType::Featherstone)
     {
-        tVector root_pos, euler_angle_rot;
-        for (int i = 0; i < 3; i++)
-            euler_angle_rot[i] = q[i];
-        for (int i = 3; i < 6; i++)
-            root_pos[i - 3] = q[i];
-        tQuaternion world_to_base_rot = cMathUtil::EulerAnglesToQuaternion(
-            euler_angle_rot, eRotationOrder::XYZ);
-        mMultibody->setBasePos(cBulletUtil::tVectorTobtVector(root_pos));
-        mMultibody->setWorldToBaseRot(
-            cBulletUtil::tQuaternionTobtQuaternion(world_to_base_rot));
-    }
-
-    // other joints besides root
-    for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks();
-         link_id++)
-    {
-        auto &cur_link = mMultibody->getLink(link_id);
-        int offset = cur_link.m_dofOffset;
+        int mNumLinks = sim_char->GetNumBodyParts();
+        auto mMultibody =
+            dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody();
+        int mDof = mMultibody->getNumDofs();
+        bool mFloatingBase = !(mMultibody->hasFixedBase());
+        assert(q.size() == mDof);
         if (mFloatingBase == true)
-            offset += 6;
-        // std::cout <<"link id = " << link_id <<" type = " <<
-        // cur_link.m_jointType << std::endl;
-        switch (cur_link.m_jointType)
         {
-        case btMultibodyLink::eFixed:
+            tVector root_pos, euler_angle_rot;
+            for (int i = 0; i < 3; i++)
+                euler_angle_rot[i] = q[i];
+            for (int i = 3; i < 6; i++)
+                root_pos[i - 3] = q[i];
+            tQuaternion world_to_base_rot = cMathUtil::EulerAnglesToQuaternion(
+                euler_angle_rot, eRotationOrder::XYZ);
+            mMultibody->setBasePos(cBulletUtil::tVectorTobtVector(root_pos));
+            mMultibody->setWorldToBaseRot(
+                cBulletUtil::tQuaternionTobtQuaternion(world_to_base_rot));
+        }
+
+        // other joints besides root
+        for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks();
+             link_id++)
         {
-            break;
+            auto &cur_link = mMultibody->getLink(link_id);
+            int offset = cur_link.m_dofOffset;
+            if (mFloatingBase == true)
+                offset += 6;
+            // std::cout <<"link id = " << link_id <<" type = " <<
+            // cur_link.m_jointType << std::endl;
+            switch (cur_link.m_jointType)
+            {
+            case btMultibodyLink::eFixed:
+            {
+                break;
+            }
+            case btMultibodyLink::eRevolute:
+            {
+                mMultibody->setJointPos(link_id, q[offset]);
+                // q(offset) = mMultibody->getJointPos(link_id);
+                break;
+            }
+            case btMultibodyLink::eSpherical:
+            {
+                // std::cout << 1<< std::endl;
+                tVector joint_pos_euler;
+                joint_pos_euler.segment(0, 3) = q.segment(offset, 3);
+                // std::cout << 2<< std::endl;
+                tQuaternion rot_qua = cMathUtil::EulerAnglesToQuaternion(
+                    joint_pos_euler, eRotationOrder::ZYX);
+                // std::cout << 3<< std::endl;
+                btScalar bt_joint_pos[4] = {rot_qua.x(), rot_qua.y(),
+                                            rot_qua.z(), rot_qua.w()};
+                // std::cout << 4<< std::endl;
+                mMultibody->setJointPosMultiDof(link_id, bt_joint_pos);
+                break;
+            }
+            default:
+            {
+                std::cout << "[error] cIDSolver::SetGeneralizedInfo "
+                             "unsupported type = "
+                          << cur_link.m_jointType << std::endl;
+                exit(1);
+            }
+            }
         }
-        case btMultibodyLink::eRevolute:
-        {
-            mMultibody->setJointPos(link_id, q[offset]);
-            // q(offset) = mMultibody->getJointPos(link_id);
-            break;
-        }
-        case btMultibodyLink::eSpherical:
-        {
-            // std::cout << 1<< std::endl;
-            tVector joint_pos_euler;
-            joint_pos_euler.segment(0, 3) = q.segment(offset, 3);
-            // std::cout << 2<< std::endl;
-            tQuaternion rot_qua = cMathUtil::EulerAnglesToQuaternion(
-                joint_pos_euler, eRotationOrder::ZYX);
-            // std::cout << 3<< std::endl;
-            btScalar bt_joint_pos[4] = {rot_qua.x(), rot_qua.y(), rot_qua.z(),
-                                        rot_qua.w()};
-            // std::cout << 4<< std::endl;
-            mMultibody->setJointPosMultiDof(link_id, bt_joint_pos);
-            break;
-        }
-        default:
-        {
-            std::cout << "[error] cIDSolver::SetGeneralizedInfo "
-                         "unsupported type = "
-                      << cur_link.m_jointType << std::endl;
-            exit(1);
-        }
-        }
+        btAlignedObjectArray<btVector3> mVecBuffer0;
+        btAlignedObjectArray<btQuaternion> mRotBuffer;
+        mMultibody->updateCollisionObjectWorldTransforms(mRotBuffer,
+                                                         mVecBuffer0);
+        // tVectorXd q_test, q_dot_test;
+        // cIDSolver::RecordGeneralizedInfo(q_test, q_dot_test);
+        // std::cout << "given q = " << q.transpose() << std::endl;
+        // std::cout << "current after set q = " << q_test.transpose() <<
+        // std::endl; std::cout << "error = " << (q - q_test).norm() <<
+        // std::endl; std::cout <<"over cIDSolver::SetGeneralizedInfo done\n";
+        // exit(1);
     }
-    btAlignedObjectArray<btVector3> mVecBuffer0;
-    btAlignedObjectArray<btQuaternion> mRotBuffer;
-    mMultibody->updateCollisionObjectWorldTransforms(mRotBuffer, mVecBuffer0);
-    // tVectorXd q_test, q_dot_test;
-    // cIDSolver::RecordGeneralizedInfo(q_test, q_dot_test);
-    // std::cout << "given q = " << q.transpose() << std::endl;
-    // std::cout << "current after set q = " << q_test.transpose() << std::endl;
-    // std::cout << "error = " << (q - q_test).norm() << std::endl;
-    // std::cout <<"over cIDSolver::SetGeneralizedInfo done\n";
-    // exit(1);
 }
 
 void cIDSolver::SetGeneralizedVel(const tVectorXd &q)
@@ -435,7 +498,7 @@ void cIDSolver::SetGeneralizedVel(const tVectorXd &q)
     // exit(1);
 }
 
-void cIDSolver::RecordJointForces(std::vector<tVector> &mJointForces) const
+void cIDSolver::RecordJointForces(tEigenArr<tVector> &mJointForces) const
 {
     mJointForces.resize(mMultibody->getNumLinks());
     for (int i = 0; i < mMultibody->getNumLinks(); i++)
@@ -516,7 +579,7 @@ void cIDSolver::RecordPDTarget(tVectorXd &pd_target) const
 }
 
 void cIDSolver::RecordContactForces(
-    std::vector<tContactForceInfo> &mContactForces, double mCurTimestep,
+    tEigenArr<tContactForceInfo> &mContactForces, double mCurTimestep,
     std::map<int, int> &mWorldId2InverseId) const
 {
 
@@ -601,9 +664,9 @@ void cIDSolver::RecordContactForces(
 }
 
 void cIDSolver::ApplyContactForcesToID(
-    const std::vector<tContactForceInfo> &mContactForces,
-    const std::vector<tVector> &mLinkPos,
-    const std::vector<tMatrix> &mLinkRot) const
+    const tEigenArr<tContactForceInfo> &mContactForces,
+    const tEigenArr<tVector> &mLinkPos,
+    const tEigenArr<tMatrix> &mLinkRot) const
 {
     assert(mLinkRot.size() == mNumLinks);
     assert(mLinkPos.size() == mNumLinks);
@@ -659,13 +722,13 @@ void cIDSolver::ApplyContactForcesToID(
 }
 
 void cIDSolver::SolveIDSingleStep(
-    std::vector<tVector> &solved_joint_forces,
-    const std::vector<tContactForceInfo> &contact_forces,
-    const std::vector<tVector> &link_pos, const std::vector<tMatrix> &link_rot,
+    tEigenArr<tVector> &solved_joint_forces,
+    const tEigenArr<tContactForceInfo> &contact_forces,
+    const tEigenArr<tVector> &link_pos, const tEigenArr<tMatrix> &link_rot,
     const tVectorXd &mBuffer_q, const tVectorXd &mBuffer_u,
     const tVectorXd &mBuffer_u_dot, int frame_id,
-    const std::vector<tVector> &external_forces,
-    const std::vector<tVector> &external_torques) const
+    const tEigenArr<tVector> &external_forces,
+    const tEigenArr<tVector> &external_torques) const
 {
 
 // #define DEBUG_STEP
@@ -788,10 +851,9 @@ void cIDSolver::SolveIDSingleStep(
 }
 
 void cIDSolver::ApplyExternalForcesToID(
-    const std::vector<tVector> &link_poses,
-    const std::vector<tMatrix> &link_rot,
-    const std::vector<tVector> &ext_forces,
-    const std::vector<tVector> &ext_torques) const
+    const tEigenArr<tVector> &link_poses, const tEigenArr<tMatrix> &link_rot,
+    const tEigenArr<tVector> &ext_forces,
+    const tEigenArr<tVector> &ext_torques) const
 {
     // attention: mInverseModel MUST be set up well before it is called.
     assert(link_poses.size() == mNumLinks);
@@ -976,10 +1038,10 @@ tVectorXd cIDSolver::CalcGeneralizedVel(const tVectorXd &q_before,
    vel, omega, this function can calculate linear momentum and angular momentum
    for this character
 */
-void cIDSolver::CalcMomentum(const std::vector<tVector> &mLinkPos,
-                             const std::vector<tMatrix> &mLinkRot,
-                             const std::vector<tVector> &mLinkVel,
-                             const std::vector<tVector> &mLinkOmega,
+void cIDSolver::CalcMomentum(const tEigenArr<tVector> &mLinkPos,
+                             const tEigenArr<tMatrix> &mLinkRot,
+                             const tEigenArr<tVector> &mLinkVel,
+                             const tEigenArr<tVector> &mLinkOmega,
                              tVector &mLinearMomentum,
                              tVector &mAngMomentum) const
 {
@@ -993,7 +1055,7 @@ void cIDSolver::CalcMomentum(const std::vector<tVector> &mLinkPos,
     // 1. init all values
     std::vector<double> mass(mNumLinks);
     double total_mass = mSimChar->CalcTotalMass();
-    std::vector<tVector> inertia(mNumLinks);
+    tEigenArr<tVector> inertia(mNumLinks);
     tVector COM = tVector::Zero();
     for (int i = 0; i < mNumLinks; i++)
     {
@@ -1034,12 +1096,12 @@ void cIDSolver::CalcMomentum(const std::vector<tVector> &mLinkPos,
    each link COM in mLinkDiscreteVel and mLinkDiscreteOmega respectly
 */
 void cIDSolver::CalcDiscreteVelAndOmega(
-    const std::vector<tVector> &mLinkPosCur,
-    const std::vector<tMatrix> &mLinkRotCur,
-    const std::vector<tVector> &mLinkPosNext,
-    const std::vector<tMatrix> &mLinkRotNext, double timestep,
-    std::vector<tVector> &mLinkDiscreteVel,
-    std::vector<tVector> &mLinkDiscreteOmega) const
+    const tEigenArr<tVector> &mLinkPosCur,
+    const tEigenArr<tMatrix> &mLinkRotCur,
+    const tEigenArr<tVector> &mLinkPosNext,
+    const tEigenArr<tMatrix> &mLinkRotNext, double timestep,
+    tEigenArr<tVector> &mLinkDiscreteVel,
+    tEigenArr<tVector> &mLinkDiscreteOmega) const
 {
     mLinkDiscreteVel.resize(mNumLinks);
     mLinkDiscreteOmega.resize(mNumLinks);

@@ -23,6 +23,7 @@ set(CONTROLLER_SRC
     Controller/RBDModel.cpp
     Controller/RBDUtil.cpp
     Controller/ReverseController.cpp
+    Controller/ImpPDGenController.cpp
 )
 
 set(
