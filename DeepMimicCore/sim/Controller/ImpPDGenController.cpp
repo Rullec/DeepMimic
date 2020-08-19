@@ -93,7 +93,9 @@ void cPDCtrl::UpdateControlForce(double dt, tVectorXd &out_tau)
 
     // for underactutated system, the first 6 root doms should be ignored now
     PostProcessControlForce(out_tau);
-    // MIMIC_INFO("out tau = {}", out_tau.transpose());
+
+    // out_tau.setZero();
+    MIMIC_INFO("out tau = {}", out_tau.transpose());
 }
 
 /**

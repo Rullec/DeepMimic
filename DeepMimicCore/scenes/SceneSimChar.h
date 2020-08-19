@@ -5,9 +5,9 @@
 #include "sim/Controller/CtrlBuilder.h"
 #include "sim/SimItems/SimCharBuilder.h"
 #include "sim/SimItems/SimJoint.h"
+#include "sim/World/FeaWorld.h"
 #include "sim/World/Ground.h"
 #include "sim/World/Perturb.h"
-#include "sim/World/FeaWorld.h"
 #include "util/IndexBuffer.h"
 
 class cIDSolver;
@@ -112,7 +112,9 @@ protected:
     std::string mTorqueRecordFile;
     bool mEnableJointTorqueControl;
     std::vector<int> mFallContactBodies; // 这是一个int列表，功能暂时不明。
-
+    bool mEnableGuidedControl;
+    std::string mGuidedTrajFile;
+    
     std::shared_ptr<cWorldBase> mWorld;
     std::shared_ptr<cGround> mGround;
     std::vector<std::shared_ptr<cSimCharacterBase>> mChars;
@@ -132,7 +134,7 @@ protected:
     // traj recoder info
     bool mEnableTrajRecord;
     std::string mTrajRecorderConfig;
-    cTrajRecorder * mTrajRecorder;
+    cTrajRecorder *mTrajRecorder;
 
     virtual bool
     ParseCharTypes(const std::shared_ptr<cArgParser> &parser,
@@ -150,8 +152,9 @@ protected:
     virtual bool BuildController(const cCtrlBuilder::tCtrlParams &ctrl_params,
                                  std::shared_ptr<cCharController> &out_ctrl);
 
-    virtual void SetFallContacts(const std::vector<int> &fall_bodies,
-                                 std::shared_ptr<cSimCharacterBase> &out_char) const;
+    virtual void
+    SetFallContacts(const std::vector<int> &fall_bodies,
+                    std::shared_ptr<cSimCharacterBase> &out_char) const;
     virtual void InitCharacterPos();
     virtual void
     InitCharacterPos(const std::shared_ptr<cSimCharacterBase> &out_char);

@@ -29,10 +29,14 @@
 #----------------PD params and motion data----------------
 # --char_ctrls ct_pd
 --char_ctrls ct_pd_gen
---char_ctrl_files data/0805/controllers/controller_oneleg.txt
---motion_file data/0805/motions/motion_oneleg.txt
+--char_ctrl_files data/0805/controllers/ctrl_oneleg.txt
+--motion_file data/0805/motions/walk_motion_042401_leftleg.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
+
+#----------------Guided Action Controller-----------------
+--enable_guided_control false
+--guided_traj_file logs/tmp/test_traj_2links_solved.json
 
 #---imitate return adjust + angle_diff/torque log print---
 --enable_angle_diff_log false
@@ -48,9 +52,9 @@
 --output_path output/0426
 --model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
 
-#---------------------- TrajRecoder config(deprecated for Generalized backend) -------------------
---enable_traj_recoder false
---traj_recorder_config args/0810/record_traj_conf_2links.json
+#---------------------- TrajRecoder config -------------------
+--enable_traj_recoder true
+--traj_recorder_config args/0810/record_traj_conf_3links.json
 
 #---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------
 --enable_inverse_dynamic_solving false

@@ -1,5 +1,6 @@
 ﻿#include "SceneSimChar.h"
 #include "SceneImitate.h"
+#include "sim/Controller/CtPDGenController.h"
 #include "sim/Controller/DeepMimicCharController.h"
 #include "sim/SimItems/SimBox.h"
 #include "sim/SimItems/SimCharacter.h"
@@ -145,6 +146,10 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
         MIMIC_ERROR("traj recorder config {} doesn't exist",
                     mTrajRecorderConfig);
     }
+
+    // enable  guided control or not
+    mArgParser->ParseBool("enable_guided_control", mEnableGuidedControl);
+    mArgParser->ParseString("guided_traj_file", mGuidedTrajFile);
 }
 
 void cSceneSimChar::Init()
@@ -477,6 +482,16 @@ bool cSceneSimChar::BuildCharacters()
 
         // set up other setting
         curr_char->SetEnablejointTorqueControl(mEnableJointTorqueControl);
+
+        if (mEnableGuidedControl == true)
+        {
+            MIMIC_INFO("guided control enabled");
+            auto gen_ctrl = std::dynamic_pointer_cast<cCtPDGenController>(
+                curr_char->GetController());
+            MIMIC_ASSERT(gen_ctrl != nullptr);
+            gen_ctrl->SetGuidedControlInfo(mEnableGuidedControl,
+                                           mGuidedTrajFile);
+        }
     }
     // std::cout << "[init] pose 1 = " << GetCharacter()->GetPose().transpose()
     //           << std::endl;

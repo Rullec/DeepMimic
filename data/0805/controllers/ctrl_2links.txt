@@ -1,6 +1,4 @@
 {
-	"EnableLoadedAction" : true,
-	"GuidedTrajFile" : "logs/tmp/test_traj_2links_solved.json",
 	"UpdateRate": 30,
 	"EnablePhaseInput": true,
 	"RecordWorldRootPos": false,

@@ -310,8 +310,8 @@ void cIDSolver::RecordGeneralizedInfo(cSimCharacterBase *sim_char, tVectorXd &q,
     {
         auto gen_char = dynamic_cast<cSimCharacterGen *>(sim_char);
         MIMIC_ASSERT(gen_char != nullptr);
-        q = gen_char->Getq();
-        q_dot = gen_char->Getqdot();
+        q = gen_char->GetPose();
+        q_dot = gen_char->GetVel();
     }
 }
 

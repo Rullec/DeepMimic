@@ -13,7 +13,7 @@ cCtPDGenController::cCtPDGenController()
     mGravity.setZero();
     mCurAction.resize(0);
     mCurPDTargetPose.resize(0);
-    mEnableLoadedAction = false;
+    mEnableGuidedAction = false;
     mGuidedTrajFile = "";
     mInternalFrameId = 0;
     mLoadInfo = nullptr;
@@ -30,24 +30,37 @@ void cCtPDGenController::Init(cSimCharacterBase *character,
 {
     cCtController::Init(character, param_file);
 
-    // load the parameter file again
-    MIMIC_INFO("PDGenController is initialized {}", param_file);
-    Json::Value root;
-    MIMIC_ASSERT(cJsonUtil::LoadJson(param_file, root));
+    // // load the parameter file again
+    // MIMIC_INFO("PDGenController is initialized {}", param_file);
+    // Json::Value root;
+    // MIMIC_ASSERT(cJsonUtil::LoadJson(param_file, root));
 
-    mEnableLoadedAction = cJsonUtil::ParseAsBool("EnableLoadedAction", root);
+    // mEnableLoadedAction = cJsonUtil::ParseAsBool("EnableLoadedAction", root);
 
-    if (mEnableLoadedAction)
-    {
-        mGuidedTrajFile = cJsonUtil::ParseAsString("GuidedTrajFile", root);
+    // if (mEnableLoadedAction)
+    // {
+    //     mGuidedTrajFile = cJsonUtil::ParseAsString("GuidedTrajFile", root);
 
-        MIMIC_ASSERT(cFileUtil::ExistsFile(mGuidedTrajFile) &&
-                     "the traj file doesn't exist ");
-        MIMIC_INFO("ActionGuide enabled; traj file {}", mGuidedTrajFile);
-        mLoadInfo = new tLoadInfo();
-    }
+    //     MIMIC_ASSERT(cFileUtil::ExistsFile(mGuidedTrajFile) &&
+    //                  "the traj file doesn't exist ");
+    //     MIMIC_INFO("ActionGuide enabled; traj file {}", mGuidedTrajFile);
+    //     mLoadInfo = new tLoadInfo();
+    // }
 }
 
+void cCtPDGenController::SetGuidedControlInfo(bool enable,
+                                              const std::string &guide_file)
+{
+    MIMIC_INFO("set guided control info {} {}", enable, guide_file);
+    if (enable == true)
+    {
+        if (mLoadInfo != nullptr)
+            delete mLoadInfo;
+        mLoadInfo = new tLoadInfo();
+        mGuidedTrajFile = guide_file;
+        mEnableGuidedAction = enable;
+    }
+}
 void cCtPDGenController::Reset()
 {
     cCtController::Reset();
@@ -163,7 +176,7 @@ bool cCtPDGenController::ParseParams(const Json::Value &json)
 void cCtPDGenController::UpdateBuildTau(double time_step,
                                         Eigen::VectorXd &out_tau)
 {
-    if (mEnableLoadedAction == true)
+    if (mEnableGuidedAction == true)
     {
         UpdateBuildTauGuided(time_step, out_tau);
     }
@@ -193,17 +206,18 @@ void cCtPDGenController::UpdateBuildTauGuided(double time_step,
     // check initialize
     if (mInternalFrameId == 0)
     {
+        std::cout << "load traj frame id " << mInternalFrameId << std::endl;
         mLoadInfo->LoadTrajV2(this->mChar, mGuidedTrajFile);
         // for (int i = 0; i < mLoadInfo->mTotalFrame; i++)
         // {
         //     std::cout << "frame " << i
-        //               << " tau = " << mLoadInfo->mActionMat.row(i) <<
+        //               << " pose = " << mLoadInfo->mPoseMat.row(i) <<
         //               std::endl;
         // }
         // exit(1);
     }
 
-    // 2. fetch the control force
+    // 2. fetch & apply the control force
     if (mLoadInfo->mTotalFrame > mInternalFrameId)
     {
         out_tau = mLoadInfo->mActionMat.row(mInternalFrameId);
@@ -212,6 +226,17 @@ void cCtPDGenController::UpdateBuildTauGuided(double time_step,
     {
         MIMIC_WARN("frame {} has exceed the guided range", mInternalFrameId);
     }
+
+    // 3. compare the simulation result
+    tVectorXd raw_pose = mLoadInfo->mCharPoseMat.row(mInternalFrameId),
+              cur_pose = mChar->GetPose();
+    tVectorXd diff = raw_pose - cur_pose;
+    std::cout << "raw pose = " << raw_pose.transpose() << std::endl;
+    std::cout << "cur pose = " << cur_pose.transpose() << std::endl;
+    std::cout << "cur tau = " << out_tau.transpose() << std::endl;
+    std::cout << "pose diff = " << diff.transpose() << std::endl;
+    MIMIC_INFO("frame {} pose_diff norm {}, action norm {}", mInternalFrameId,
+               diff.norm(), out_tau.norm());
 }
 void cCtPDGenController::PostUpdateBuildTau() { mInternalFrameId++; }
 /**

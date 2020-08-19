@@ -35,13 +35,14 @@ public:
     BuildActionOffsetScale(Eigen::VectorXd &out_offset,
                            Eigen::VectorXd &out_scale) const override;
     virtual int GetActionSize() const override;
+    virtual void SetGuidedControlInfo(bool enable, const std::string &guide_file);
 
 protected:
     cImpPDGenController *mPDGenController;
     tVectorXd mGravity;
     tVectorXd mCurAction, mCurPDTargetPose;
     tLoadInfo *mLoadInfo;
-    bool mEnableLoadedAction;
+    bool mEnableGuidedAction;
     std::string mGuidedTrajFile;
     int mInternalFrameId; // internal frame id counting
     virtual bool ParseParams(const Json::Value &json);
