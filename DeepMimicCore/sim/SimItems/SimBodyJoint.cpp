@@ -1,6 +1,6 @@
 #include "SimBodyJoint.h"
 #include "BulletDynamics/Featherstone/btMultiBodyLink.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 #include <iostream>
 
 cSimBodyJoint::tParams::tParams()

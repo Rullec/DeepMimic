@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 10
---time_lim_max 10
+--time_lim_min 100
+--time_lim_max 100
 --time_lim_exp 0.2
 
 --time_end_lim_min 1
@@ -15,13 +15,13 @@
 --world_type generalized
 --world_scale 1
 --logging_level trace
---pause_at_first true
+--pause_at_first false
 --terrain_file data/terrain/plane.txt
 
 #-------------------------skeleton------------------------
 # --char_types general
 --char_types lagragian
---character_files data/0805/characters/skeleton_080501.json
+--character_files data/0805/characters/skeleton_legs.json
 --enable_joint_force_control true
 --enable_char_soft_contact false
 --fall_contact_bodies
@@ -29,15 +29,14 @@
 #----------------PD params and motion data----------------
 # --char_ctrls ct_pd
 --char_ctrls ct_pd_gen
---char_ctrl_files data/0805/controllers/ctrl_080501_spd.txt
-# --char_ctrl_files data/0805/controllers/ctrl_080501.txt
---motion_file data/0805/motions/fullbody_motion_drop.txt
+--char_ctrl_files data/0805/controllers/ctrl_legs.txt
+--motion_file data/0805/motions/motion_legs.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
 
 #----------------Guided Action Controller-----------------
 --enable_guided_control false
---guided_traj_file logs/tmp/test_traj_fullbody_solved.json
+--guided_traj_file logs/tmp/test_traj_2links_solved.json
 
 #---imitate return adjust + angle_diff/torque log print---
 --enable_angle_diff_log false
@@ -53,9 +52,9 @@
 --output_path output/0426
 --model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
 
-#---------------------- TrajRecoder config(deprecated for Generalized backend) -------------------
+#---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
---traj_recorder_config args/0810/record_traj_full.json
+--traj_recorder_config args/0810/record_traj_conf_3links.json
 
 #---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------
 --enable_inverse_dynamic_solving false

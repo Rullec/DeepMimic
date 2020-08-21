@@ -1,7 +1,7 @@
 #include "SimBodyJointGen.h"
 #include "BulletGenDynamics/btGenModel/Joint.h"
 #include "SimCharacterGen.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 
 cSimBodyJointGen::cSimBodyJointGen() {}
 cSimBodyJointGen::~cSimBodyJointGen() { Clear(); }

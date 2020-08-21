@@ -7,7 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <util/BulletUtil.h>
-#include <util/LogUtil.hpp>
+#include <util/LogUtil.h>
 
 extern const std::shared_ptr<cSimCharacter>
 Downcast(const std::shared_ptr<cSimCharacterBase> &base);

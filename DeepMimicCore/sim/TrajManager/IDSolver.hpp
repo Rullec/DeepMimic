@@ -5,7 +5,7 @@
 #include <BulletInverseDynamics/MultiBodyTree.hpp>
 #include <BulletInverseDynamics/details/IDLinearMathInterface.hpp>
 #include <map>
-#include <util/LogUtil.hpp>
+#include <util/LogUtil.h>
 #include <util/MathUtil.h>
 
 enum eIDSolverType

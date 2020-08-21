@@ -7,7 +7,7 @@
 #include "util/BulletUtil.h"
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 #include "util/TimeUtil.hpp"
 #include <iostream>
 #ifdef __APPLE__

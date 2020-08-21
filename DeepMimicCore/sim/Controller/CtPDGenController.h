@@ -39,7 +39,7 @@ public:
 
 protected:
     cImpPDGenController *mPDGenController;
-    tVectorXd mGravity;
+    tVector mGravity;
     tVectorXd mCurAction, mCurPDTargetPose;
     tLoadInfo *mLoadInfo;
     bool mEnableGuidedAction;

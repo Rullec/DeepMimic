@@ -1,5 +1,5 @@
 #include "sim/World/WorldBuilder.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 
 void cWorldBuilder::BuildWorld(std::shared_ptr<cWorldBase> &world,
                                const cWorldBase::tParams &params)

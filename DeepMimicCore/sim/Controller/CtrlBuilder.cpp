@@ -3,7 +3,7 @@
 #include "sim/Controller/CtPDController.h"
 #include "sim/Controller/CtPDGenController.h"
 #include "sim/Controller/CtVelController.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 #include <iostream>
 using namespace std;
 

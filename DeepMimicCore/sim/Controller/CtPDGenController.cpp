@@ -1,13 +1,15 @@
 #include "CtPDGenController.h"
 #include "ImpPDGenController.h"
 #include "sim/SimItems/SimCharacterBase.h"
+#include "sim/SimItems/SimCharacterGen.h"
 #include "sim/SimItems/SimJoint.h"
 #include "sim/TrajManager/TrajRecorder.h"
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 #include <iostream>
 
+static std::string pd_log = "pd_log.txt";
 cCtPDGenController::cCtPDGenController()
 {
     mGravity.setZero();
@@ -17,6 +19,7 @@ cCtPDGenController::cCtPDGenController()
     mGuidedTrajFile = "";
     mInternalFrameId = 0;
     mLoadInfo = nullptr;
+    cFileUtil::ClearFile(pd_log);
 }
 cCtPDGenController::~cCtPDGenController()
 {
@@ -191,10 +194,49 @@ void cCtPDGenController::UpdateBuildTau(double time_step,
 /**
  * \brief                   Update control force by PD control
  */
-void cCtPDGenController::UpdateBuildTauPD(double time_step,
-                                          Eigen::VectorXd &out_tau)
+void cCtPDGenController::UpdateBuildTauPD(double dt, Eigen::VectorXd &out_tau)
 {
-    UpdatePDCtrls(time_step, out_tau);
+
+    std::ofstream fout(pd_log, std::ios::app);
+    tVectorXd target_q, target_qdot;
+    fout << "---------------------\n";
+    mPDGenController->GetPDTarget_q(target_q, target_qdot);
+    fout << "target q = " << target_q.transpose() << std::endl;
+    fout << "target qdot = " << target_qdot.transpose() << std::endl;
+
+    // 1. Inverse dynamics to control the next pose
+    /*
+        M * (q_target - q_cur  - dt * qdot_cur) / (dt^2) - (Q_gravity - C * qdot
+       )
+    */
+    // {
+    //     auto gen_char = dynamic_cast<cSimCharacterGen *>(mChar);
+    //     target_q.segment(0, 6) = gen_char->Getq().segment(0, 6);
+    //     fout << "cur q = " << gen_char->Getq().transpose() << std::endl;
+    //     fout << "cur qdot = " << gen_char->Getqdot().transpose() <<
+    //     std::endl; tVectorXd residual_part =
+    //         (target_q - gen_char->Getq() - dt * gen_char->Getqdot());
+    //     tVectorXd Q_part = -gen_char->GetCoriolisMatrix() *
+    //     gen_char->Getqdot(); Q_part[1] += mGravity[1] *
+    //     gen_char->GetTotalMass(); out_tau =
+    //         gen_char->GetMassMatrix() * residual_part / (dt * dt) - Q_part;
+    //     out_tau.segment(0, 6).setZero();
+    //     const double torque_lim = 20;
+    //     fout << "raw tau = " << out_tau.transpose() << std::endl;
+    //     out_tau = out_tau.cwiseMax(-torque_lim);
+    //     out_tau = out_tau.cwiseMin(torque_lim);
+
+    //     fout << "limited tau = " << out_tau.transpose() << std::endl;
+    // }
+
+    // 2. PD control
+    {
+        auto gen_char = static_cast<cSimCharacterGen *>(mChar);
+        UpdatePDCtrls(dt, out_tau);
+        fout << "cur q = " << gen_char->Getq().transpose() << std::endl;
+        fout << "cur qdot = " << gen_char->Getqdot().transpose() << std::endl;
+        fout << "ctrl tau = " << out_tau.transpose() << std::endl;
+    }
 }
 
 /**
@@ -391,7 +433,10 @@ void cCtPDGenController::SetPDTargets(const Eigen::VectorXd &reduce_target_pose)
     auto gen_char = static_cast<cSimCharacterGen *>(mChar);
     tVectorXd q_goal = gen_char->ConvertPoseToq(full_target_pose),
               qdot_goal = tVectorXd::Zero(gen_char->Getqdot().size());
-    mPDGenController->SetPDTarget(q_goal, qdot_goal);
+    // std::cout << "target pose = " << full_target_pose.transpose() << std::endl;
+    // std::cout << "target q = " << q_goal.transpose() << std::endl;
+    // exit(1);
+    mPDGenController->SetPDTarget_q(q_goal, qdot_goal);
 }
 
 /**
@@ -600,8 +645,8 @@ void cCtPDGenController::ConvertActionToTargetPose(tVectorXd &out_theta) const
             tVector axis_agnle =
                 out_theta.segment(st_pos, param_size).segment(0, 4);
 
-            out_theta.segment(st_pos, param_size) =
-                cMathUtil::AxisAngleToQuaternion(axis_agnle).coeffs();
+            out_theta.segment(st_pos, param_size) = cMathUtil::QuatToVec(
+                cMathUtil::AxisAngleToQuaternion(axis_agnle));
             MIMIC_DEBUG("convert axis angle {} to quaternion {}",
                         axis_agnle.transpose(),
                         out_theta.segment(st_pos, param_size).transpose());

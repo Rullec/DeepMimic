@@ -4,7 +4,7 @@
 #include "scenes/DrawSceneImitate.h"
 #include "scenes/SceneBuilder.h"
 #include "sim/SimItems/SimCharacterGen.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 
 cDeepMimicCore::cDeepMimicCore(bool enable_draw)
 {

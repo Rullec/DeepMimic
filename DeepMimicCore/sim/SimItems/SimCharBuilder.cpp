@@ -1,7 +1,7 @@
 #include "SimCharBuilder.h"
 #include "sim/SimItems/SimCharGeneral.h"
 #include "sim/SimItems/SimCharacterGen.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 const std::string gCharName[cSimCharBuilder::eCharType::NUM_CHAR_TYPE] = {
     "invalid", "general", "lagragian"};
 

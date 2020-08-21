@@ -1,4 +1,4 @@
-#include "LogUtil.hpp"
+#include "LogUtil.h"
 #include <cstdarg>
 
 void cLogUtil::SetLoggingLevel(const std::string &level_name)

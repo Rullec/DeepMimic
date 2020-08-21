@@ -2,7 +2,7 @@
 #include "sim/SimItems/SimObj.h"
 #include "sim/World/WorldBase.h"
 #include "util/BulletUtil.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 #include <iostream>
 
 const int cContactManager::gInvalidID = -1;

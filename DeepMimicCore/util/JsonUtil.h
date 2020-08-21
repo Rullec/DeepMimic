@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LogUtil.hpp"
+#include "LogUtil.h"
 #include "MathUtil.h"
 #include "json/json.h"
 #include <string>

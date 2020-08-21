@@ -17,7 +17,8 @@ public:
 
     virtual void Clear();
     virtual void UpdateControlForce(double dt, tVectorXd &out_tau);
-    virtual void SetPDTarget(const tVectorXd &q, const tVectorXd &qdot);
+    virtual void SetPDTarget_q(const tVectorXd &q, const tVectorXd &qdot);
+    virtual void GetPDTarget_q(tVectorXd &q, tVectorXd &qdot) const;
 
 protected:
     tVectorXd mKp, mKd; // Kp & Kd controll parameter
@@ -28,5 +29,7 @@ protected:
     void VerifyController();
     int GetPDTargetSize();
     void CheckVelExplode();
-    void PostProcessControlForce(tVectorXd & out_tau);
+    void UpdateControlForceNative(double dt, tVectorXd &out_tau);
+    void UpdateControlForceSPD(double dt, tVectorXd &out_tau);
+    void PostProcessControlForce(tVectorXd &out_tau);
 };

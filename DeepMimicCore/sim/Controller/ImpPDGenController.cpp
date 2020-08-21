@@ -1,6 +1,6 @@
 #include "ImpPDGenController.h"
 #include "sim/SimItems/SimCharacterGen.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 #include <iostream>
 
 typedef cImpPDGenController cPDCtrl;
@@ -31,11 +31,24 @@ void cPDCtrl::Clear()
     mChar = nullptr;
 }
 
-void cPDCtrl::SetPDTarget(const tVectorXd &q, const tVectorXd &qdot)
+/**
+ * \brief               Get the Generalized coordinate PD target
+ */
+void cPDCtrl::GetPDTarget_q(tVectorXd &q, tVectorXd &qdot) const
+{
+    q = this->mTarget_q;
+    qdot = this->mTarget_qdot;
+}
+
+/**
+ * \brief               Set the generalized coordinate PD target
+ */
+void cPDCtrl::SetPDTarget_q(const tVectorXd &q, const tVectorXd &qdot)
 {
     MIMIC_ASSERT(q.size() == GetPDTargetSize());
     MIMIC_ASSERT(qdot.size() == GetPDTargetSize());
     mTarget_q = q;
+    // mTarget_q.setZero();
     mTarget_qdot = qdot;
 }
 
@@ -76,6 +89,7 @@ int cPDCtrl::GetPDTargetSize()
 /**
  * \brief           Calculate the control force
  */
+#define SPD
 void cPDCtrl::UpdateControlForce(double dt, tVectorXd &out_tau)
 {
     // 1. check the PD target "q" and "qdot" should the same as the dof of this
@@ -84,18 +98,20 @@ void cPDCtrl::UpdateControlForce(double dt, tVectorXd &out_tau)
                  mTarget_q.size() == GetPDTargetSize() &&
                  "the PD target has been set up well");
     CheckVelExplode();
-
-    tVectorXd q = mChar->Getq(), qdot = mChar->Getqdot(),
-              qddot = mChar->Getqddot();
-
-    out_tau = -mKp.cwiseProduct(q + dt * qdot - mTarget_q) -
-              mKd.cwiseProduct(qdot + dt * qddot - mTarget_qdot);
+#ifdef SPD
+    UpdateControlForceSPD(dt, out_tau);
+#else
+    UpdateControlForceNative(dt, out_tau);
+    std::cout << "native control force = " << out_tau.transpose() << std::endl;
+#endif
 
     // for underactutated system, the first 6 root doms should be ignored now
     PostProcessControlForce(out_tau);
 
     // out_tau.setZero();
     MIMIC_INFO("out tau = {}", out_tau.transpose());
+    // MIMIC_INFO("q = {}", q.transpose());
+    // exit(1);
 }
 
 /**
@@ -119,7 +135,6 @@ void cPDCtrl::InitGains(const tVectorXd &kp, const tVectorXd &kd)
         double joint_kp = kp[i], joint_kd = kd[i];
         auto joint = mChar->GetJointById(i);
         int joint_dof = joint->GetNumOfFreedom();
-
         mKp.segment(st_pos, joint_dof).fill(joint_kp);
         mKd.segment(st_pos, joint_dof).fill(joint_kd);
         st_pos += joint_dof;
@@ -147,8 +162,46 @@ void cPDCtrl::CheckVelExplode()
     }
 }
 
+/**
+ * \brief                   Update control forces natively PD
+ */
+void cPDCtrl::UpdateControlForceNative(double dt, tVectorXd &out_tau)
+{
+    tVectorXd q = mChar->Getq(), qdot = mChar->Getqdot(),
+              qddot = mChar->Getqddot();
+    out_tau =
+        mKp.cwiseProduct(mTarget_q - q) + mKd.cwiseProduct(mTarget_qdot - qdot);
+}
+
+/**
+ * \brief                   Stable PD
+ */
+void cPDCtrl::UpdateControlForceSPD(double dt, tVectorXd &out_tau)
+{
+    tVectorXd q_cur = mChar->Getq(), qdot_cur = mChar->Getqdot();
+    tVectorXd q_next_err = mTarget_q - (q_cur + dt * qdot_cur);
+    tVectorXd qdot_next_err = mTarget_qdot - qdot_cur;
+    Eigen::DiagonalMatrix<double, Eigen::Dynamic> Kp_mat = mKp.asDiagonal();
+    Eigen::DiagonalMatrix<double, Eigen::Dynamic> Kd_mat = mKd.asDiagonal();
+
+    tVectorXd Q =
+        mKp.cwiseProduct(q_next_err) + mKd.cwiseProduct(qdot_next_err);
+    // std::cout << "Q = " << Q.transpose() << std::endl;
+    tMatrixXd M = mChar->GetMassMatrix();
+    M += dt * Kd_mat;
+
+    tVectorXd qddot_pred =
+        M.inverse() * (Kp_mat * q_next_err + Kd_mat * qdot_next_err -
+                       mChar->GetCoriolisMatrix() * qdot_cur);
+    // std::cout << "qddot pred = " << qddot_pred.transpose() << std::endl;
+    out_tau = Kp_mat * q_next_err + Kd_mat * (qdot_next_err - dt * qddot_pred);
+    std::cout << "out tau SPD = " << out_tau.transpose() << std::endl;
+    // exit(1);
+}
+
 void cPDCtrl::PostProcessControlForce(tVectorXd &out_tau)
 {
+    // set the torque of root joint to zero
     auto root_joint = mChar->GetRoot();
     if (root_joint->GetJointType() == JointType::NONE_JOINT)
     {
@@ -156,4 +209,24 @@ void cPDCtrl::PostProcessControlForce(tVectorXd &out_tau)
         //            root_joint->GetNumOfFreedom());
         out_tau.segment(0, root_joint->GetNumOfFreedom()).setZero();
     }
+
+    // clamp the joint torque
+    int st_pos = 0;
+    int num_of_joints = mChar->GetNumOfJoint();
+    for (int i = 0; i < num_of_joints; i++)
+    {
+        auto &joint = mChar->GetJoint(i);
+        int joint_dof = mChar->GetJointById(i)->GetNumOfFreedom();
+
+        double torque_lim = joint.GetTorqueLimit();
+        // std::cout << "joint " << i << " torque lim = " << torque_lim
+        //           << std::endl;
+        double current_norm = out_tau.segment(st_pos, joint_dof).norm();
+        if (current_norm > torque_lim)
+        {
+            out_tau.segment(st_pos, joint_dof) *= torque_lim / current_norm;
+        }
+        st_pos += joint_dof;
+    }
+    MIMIC_ASSERT(out_tau.hasNaN() == false);
 }

@@ -1,7 +1,7 @@
 #include "MathUtil.h"
+#include "LogUtil.h"
 #include <iostream>
 #include <time.h>
-
 // const enum eRotationOrder gRotationOrder = eRotationOrder::XYZ;
 
 cRand cMathUtil::gRand = cRand();
@@ -1209,12 +1209,15 @@ tVector cMathUtil::QuaternionToEulerAngles(const tQuaternion &q,
     tVector res = tVector::Zero();
     double w = q.w(), x = q.x(), y = q.y(), z = q.z();
 
-    // please check the note for details
+    // handle the zero quaternion
     if (order == eRotationOrder::XYZ)
     {
         res[0] = std::atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y));
         res[1] = std::asin(2 * (w * y - z * x));
         res[2] = std::atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+        // MIMIC_INFO("w {} x {} y {} z {}", w, x, y, z);
+
+        // std::cout << "euler angle = " << res.transpose() << std::endl;
     }
     else if (order == eRotationOrder::ZYX)
     {

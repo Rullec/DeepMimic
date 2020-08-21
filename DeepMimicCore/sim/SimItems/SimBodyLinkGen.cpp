@@ -1,7 +1,7 @@
 #include "SimBodyLinkGen.h"
 #include "BulletGenDynamics/btGenModel/Link.h"
 #include "BulletGenDynamics/btGenModel/RobotCollider.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 
 cSimBodyLinkGen::cSimBodyLinkGen()
 {

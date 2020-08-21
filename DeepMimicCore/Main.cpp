@@ -6,7 +6,7 @@
 
 #include "render/DrawUtil.h"
 #include "render/TextureDesc.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 
 // Dimensions of the window we are drawing into.
 int gWinWidth = 800;
@@ -155,6 +155,7 @@ void UpdateFrameBuffer()
     }
 }
 
+tVectorXd global_action = tVectorXd::Zero(0);
 void Update(double time_elapsed)
 {
     int num_substeps = gCore->GetNumUpdateSubsteps(); // the simulation substeps
@@ -177,11 +178,21 @@ void Update(double time_elapsed)
                 // std::cout << std::endl;
                 ++gSampleCount;
 
+                if (global_action.size() == 0)
+                {
+                    // global_action =
+                    // tVectorXd::Zero(gCore->GetActionSize(id));
+                    global_action = tVectorXd::Random(gCore->GetActionSize(id));
+                }
+
                 std::vector<double> action(0);
                 for (int num = 0; num < gCore->GetActionSize(id); num++)
                 {
-                    action.push_back((std::rand() % 100) / 100.0);
+                    // action.push_back((std::rand() % 100) / 100.0);
+                    action.push_back(global_action[num]);
+                    // global_action[num] += 0.1;
                 }
+                // action[action.size() - 1] = 1.3;
                 gCore->SetAction(id, action);
             }
         }

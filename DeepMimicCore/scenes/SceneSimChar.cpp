@@ -88,6 +88,7 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     parser->ParseString("torque_record_file", mTorqueRecordFile);
     parser->ParseBool("enable_joint_force_control", mEnableJointTorqueControl);
     parser->ParseBool("enable_pdtarget_solve_test", mEnablePDTargetSolveTest);
+    parser->ParseBool("pause_at_first", mPauseAtFirst);
 
     succ &= ParseCharTypes(parser, mCharTypes);
     succ &= ParseCharParams(parser, mCharParams);
@@ -147,7 +148,7 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
                     mTrajRecorderConfig);
     }
 
-    // enable  guided control or not
+    // enable guided control or not
     mArgParser->ParseBool("enable_guided_control", mEnableGuidedControl);
     mArgParser->ParseString("guided_traj_file", mGuidedTrajFile);
 }
@@ -946,7 +947,15 @@ void cSceneSimChar::PreUpdate(double timestep)
     // ClearJointForces();
 }
 
-void cSceneSimChar::PostUpdate(double timestep) { mWorld->PostUpdate(); }
+extern bool gAnimating;
+void cSceneSimChar::PostUpdate(double timestep)
+{
+
+    mWorld->PostUpdate();
+    // MIMIC_WARN("poseupdate, get time {}, timestep {}", GetTime(), timestep);
+    if (mPauseAtFirst == true && std::fabs(GetTime() - timestep) < 1e-10)
+        gAnimating = false;
+}
 
 void cSceneSimChar::GetViewBound(tVector &out_min, tVector &out_max) const
 {

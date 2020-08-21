@@ -153,10 +153,10 @@ void cCtCtrlUtil::BuildOffsetScaleTorque(const Eigen::MatrixXd &joint_mat,
     double force_lim =
         cKinTree::GetForceLimit(joint_mat, joint_id); // torque的lim
 
-    std::cout << "joint " << joint_id << " torque lim = " << torque_lim
-              << std::endl;
-    std::cout << "joint " << joint_id << " force lim = " << force_lim
-              << std::endl;
+    // std::cout << "joint " << joint_id << " torque lim = " << torque_lim
+    //           << std::endl;
+    // std::cout << "joint " << joint_id << " force lim = " << force_lim
+    //           << std::endl;
 
     if (!std::isfinite(
             torque_lim)) //如果torque lim是无穷的话，就设置为缺省的300

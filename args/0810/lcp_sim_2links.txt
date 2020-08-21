@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 10
---time_lim_max 10
+--time_lim_min 100
+--time_lim_max 100
 --time_lim_exp 0.2
 
 --time_end_lim_min 1
@@ -33,7 +33,7 @@
 --motion_file data/0805/motions/walk_motion_042401_1_obj.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
---enable_guided_control true
+--enable_guided_control false
 --guided_traj_file logs/tmp/test_traj_2links_solved.json
 
 #---imitate return adjust + angle_diff/torque log print---
@@ -51,7 +51,7 @@
 --model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
 
 #---------------------- TrajRecoder config -------------------
---enable_traj_recoder true
+--enable_traj_recoder false
 --traj_recorder_config args/0810/record_traj_conf_2links.json
 
 #---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------

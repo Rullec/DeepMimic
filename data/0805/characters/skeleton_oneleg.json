@@ -342,7 +342,7 @@
             "LimLow2": -1.0,
             "Name": "LFootTongue",
             "Parent": 2,
-            "TorqueLim": 150.0,
+            "TorqueLim": 10.0,
             "Type": "spherical"
          }
       ]

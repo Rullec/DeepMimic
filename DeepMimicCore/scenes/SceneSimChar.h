@@ -109,12 +109,13 @@ protected:
     bool mEnableRandCharPlacement;
     bool mEnableTorqueRecord;
     bool mEnablePDTargetSolveTest;
+    bool mPauseAtFirst; // pause at the first frame
     std::string mTorqueRecordFile;
     bool mEnableJointTorqueControl;
     std::vector<int> mFallContactBodies; // 这是一个int列表，功能暂时不明。
     bool mEnableGuidedControl;
     std::string mGuidedTrajFile;
-    
+
     std::shared_ptr<cWorldBase> mWorld;
     std::shared_ptr<cGround> mGround;
     std::vector<std::shared_ptr<cSimCharacterBase>> mChars;

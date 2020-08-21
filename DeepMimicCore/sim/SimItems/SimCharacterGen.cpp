@@ -6,7 +6,7 @@
 #include "SimBodyJointGen.h"
 #include "SimBodyLinkGen.h"
 #include "sim/World/GenWorld.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 #include <iostream>
 
 tVector ConvertAxisAngleVelToEulerAngleVel(const tVector &aa_vel)
@@ -643,7 +643,8 @@ bool cSimCharacterGen::HasVelExploded(double vel_threshold /* = 100.0*/) const
         MIMIC_INFO("cSimCharacterGen cartesian velocity exploded to {}",
                    vel_threshold);
 
-    return is_max_vel;
+    // return is_max_vel;
+    return false;
     // bool is_max_vel = IsGeneralizedMaxVel();
     // if (is_max_vel)
     // {
@@ -1041,11 +1042,13 @@ tVectorXd cSimCharacterGen::ConvertqdotToPoseVel(const tVectorXd &qdot) const
 
 tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
 {
+    // std::cout << "------------convert begin-----------\n";
     tVectorXd q = tVectorXd::Zero(mq.size()); // pose in generalized coordinate
     int pose_idx = 0, q_idx = 0;
 
     // iteration on each joint
     // TODO: finish it here.
+    // std::cout << "pose = " << pose.transpose() << std::endl;
     int num_of_joints = GetNumOfJoint();
     for (int i = 0; i < num_of_joints; i++)
     {
@@ -1063,6 +1066,10 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
                     tQuaternion(w_x_y_z[0], w_x_y_z[1], w_x_y_z[2], w_x_y_z[3]),
                     eRotationOrder::XYZ)
                     .segment(0, 3);
+            // std::cout << "joint " << i << " none joint\n" << std::endl;
+            // std::cout << "q = " << q.segment(q_idx, 3).transpose() << std::endl;
+            // std::cout << "quaternion coef = " << w_x_y_z.transpose()
+            //           << std::endl;
             pose_idx += 4, q_idx += 3;
         }
         break;
@@ -1072,6 +1079,9 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
 
         {
             q[q_idx] = pose[pose_idx];
+            // std::cout << "joint " << i << " revolute joint\n" << std::endl;
+            // std::cout << "q = " << q.segment(q_idx, 1).transpose() << std::endl;
+            // std::cout << "pose coef = " << pose[pose_idx - 1] << std::endl;
             q_idx++, pose_idx++;
         }
         break;
@@ -1083,12 +1093,18 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
                     tQuaternion(w_x_y_z[0], w_x_y_z[1], w_x_y_z[2], w_x_y_z[3]),
                     eRotationOrder::XYZ)
                     .segment(0, 3);
+            // std::cout << "joint " << i << " spherical joint\n" << std::endl;
+            // std::cout << "q = " << q.segment(q_idx, 3).transpose() << std::endl;
+            // std::cout << "quaternion coef = " << w_x_y_z.transpose()
+            //           << std::endl;
             pose_idx += 4, q_idx += 3;
         }
         default:
             break;
         }
     }
+    // std::cout << "final q = " << q.transpose() << std::endl;
+    // std::cout << "------------convert end-----------\n";
     return q;
 }
 /**

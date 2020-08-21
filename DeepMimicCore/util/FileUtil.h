@@ -3,7 +3,7 @@
 #include "MathUtil.h"
 #include <fstream>
 #include <string>
-#include <util/LogUtil.hpp>
+#include <util/LogUtil.h>
 
 class cFileUtil
 {

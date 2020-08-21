@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 10
---time_lim_max 10
+--time_lim_min 100
+--time_lim_max 100
 --time_lim_exp 0.2
 
 --time_end_lim_min 1
@@ -15,7 +15,7 @@
 --world_type generalized
 --world_scale 1
 --logging_level trace
-
+--pause_at_first true
 --terrain_file data/terrain/plane.txt
 
 #-------------------------skeleton------------------------
@@ -53,7 +53,7 @@
 --model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
 
 #---------------------- TrajRecoder config -------------------
---enable_traj_recoder true
+--enable_traj_recoder false
 --traj_recorder_config args/0810/record_traj_conf_3links.json
 
 #---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------

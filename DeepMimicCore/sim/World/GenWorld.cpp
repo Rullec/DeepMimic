@@ -14,7 +14,7 @@
 #include "sim/SimItems/SimJoint.h"
 #include "sim/SimItems/SimPlane.h"
 #include "sim/SimItems/SimSphere.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 #include <iostream>
 using namespace std;
 
@@ -36,7 +36,9 @@ void cGenWorld::Init(const tParams &params)
     mbtGenWorld->Init(params.mGenWorldConfig);
     mbtDynamicsWorldInternal =
         dynamic_cast<btDynamicsWorld *>(mbtGenWorld->GetInternalWorld());
+    MIMIC_WARN("gravity ignored\n");
     SetGravity(params.mGravity);
+    // SetGravity(tVector::Zero());
 
     mContactManager.Init();
     mPerturbManager.Clear();
@@ -44,7 +46,6 @@ void cGenWorld::Init(const tParams &params)
 
 void cGenWorld::Reset()
 {
-
     mTimeStep = 0;
     mContactManager.Reset();
     mPerturbManager.Clear();

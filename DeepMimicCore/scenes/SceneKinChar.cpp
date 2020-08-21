@@ -1,5 +1,5 @@
 #include "SceneKinChar.h"
-#include "util/LogUtil.hpp"
+#include "util/LogUtil.h"
 
 cSceneKinChar::cSceneKinChar() {}
 
