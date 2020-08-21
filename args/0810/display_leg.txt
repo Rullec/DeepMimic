@@ -1,0 +1,7 @@
+--scene kin_char
+
+--logging_level trace
+--character_backend FEATHERSTONE
+--character_backend_bak GENERALIZED
+--character_file data/0805/characters/skeleton_oneleg.json
+--motion_file data/0805/motions/walk_motion_042401_leftleg.txt

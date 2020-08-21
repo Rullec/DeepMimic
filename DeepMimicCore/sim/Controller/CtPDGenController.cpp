@@ -433,8 +433,8 @@ void cCtPDGenController::SetPDTargets(const Eigen::VectorXd &reduce_target_pose)
     auto gen_char = static_cast<cSimCharacterGen *>(mChar);
     tVectorXd q_goal = gen_char->ConvertPoseToq(full_target_pose),
               qdot_goal = tVectorXd::Zero(gen_char->Getqdot().size());
-    // std::cout << "target pose = " << full_target_pose.transpose() << std::endl;
-    // std::cout << "target q = " << q_goal.transpose() << std::endl;
+    // std::cout << "target pose = " << full_target_pose.transpose() <<
+    // std::endl; std::cout << "target q = " << q_goal.transpose() << std::endl;
     // exit(1);
     mPDGenController->SetPDTarget_q(q_goal, qdot_goal);
 }
@@ -626,8 +626,8 @@ void cCtPDGenController::BuildJointActionOffsetScaleNone(
 }
 
 /**
- * \brief               Convert action (axis angle in spherical joints) to PD
- * Target pose(quaternion in spherical joints)
+ * \brief               Convert action (axis angle in spherical joints, [theta,
+ * ax, ay, az]) to PD Target pose(quaternion in spherical joints)
  */
 void cCtPDGenController::ConvertActionToTargetPose(tVectorXd &out_theta) const
 {
@@ -642,16 +642,67 @@ void cCtPDGenController::ConvertActionToTargetPose(tVectorXd &out_theta) const
         if (cKinTree::eJointType::eJointTypeSpherical == joint.GetType())
         {
             MIMIC_ASSERT(param_size == 4);
-            tVector axis_agnle =
+            tVector axis_angle =
                 out_theta.segment(st_pos, param_size).segment(0, 4);
+            double theta = axis_angle[0];
+            tVector axis = cMathUtil::Expand(axis_angle.segment(1, 3), 0);
 
             out_theta.segment(st_pos, param_size) = cMathUtil::QuatToVec(
-                cMathUtil::AxisAngleToQuaternion(axis_agnle));
-            MIMIC_DEBUG("convert axis angle {} to quaternion {}",
-                        axis_agnle.transpose(),
-                        out_theta.segment(st_pos, param_size).transpose());
+                cMathUtil::AxisAngleToQuaternion(axis, theta));
+            // MIMIC_DEBUG("convert axis angle {} to quaternion {}",
+            //             axis_angle.transpose(),
+            //             out_theta.segment(st_pos, param_size).transpose());
         }
 
         st_pos += param_size;
     }
+}
+
+void cCtPDGenController::ConvertTargetPoseToActionFullsize(tVectorXd &pd_target)
+{
+
+    // std::cout << "pd target size " << pd_target.size() << " act size "
+    //           << GetActionSize() << std::endl;
+    MIMIC_ASSERT(pd_target.size() == this->GetActionSize());
+    int num_of_joints = mChar->GetNumJoints();
+    int st_pos = 0;
+
+    // from the first joint
+    for (int i = 1; i < num_of_joints; i++)
+    {
+        int size = GetJointActionSize(i);
+        tVectorXd target_pose = pd_target.segment(st_pos, size);
+        // MIMIC_INFO("joint {}  target pose {}", i, target_pose.transpose());
+        ConvertTargetPoseToAction(i, target_pose);
+        pd_target.segment(st_pos, size) = target_pose;
+        // MIMIC_INFO("joint {}  action {}", i, target_pose.transpose());
+        st_pos += size;
+    }
+}
+
+void cCtPDGenController::ConvertTargetPoseToAction(
+    int joint_id, Eigen::VectorXd &out_theta) const
+{
+#if defined(ENABLE_PD_SPHERE_AXIS)
+    cKinTree::eJointType joint_type = GetJointType(joint_id);
+    if (joint_type == cKinTree::eJointTypeSpherical)
+    {
+        // raw input quaternion = [x, y, z, w]
+        // tQuaternion quater = tQuaternion(out_theta[3], out_theta[0],
+        // out_theta[1], out_theta[2]);
+
+        // 2020/05/12 revised by Xudong: now input quaternion should be [w,
+        // x, y, z]
+        tQuaternion quater = cMathUtil::VecToQuat(out_theta);
+
+        quater.normalize();
+        tVector axis_angle =
+            cMathUtil::QuaternionToAxisAngle(quater); //[theta, ax, ay, az]
+        out_theta[0] = axis_angle.norm();
+        axis_angle.normalize();
+        out_theta[1] = axis_angle[0];
+        out_theta[2] = axis_angle[1];
+        out_theta[3] = axis_angle[2];
+    }
+#endif
 }

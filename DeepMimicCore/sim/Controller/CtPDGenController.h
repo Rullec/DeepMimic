@@ -35,7 +35,9 @@ public:
     BuildActionOffsetScale(Eigen::VectorXd &out_offset,
                            Eigen::VectorXd &out_scale) const override;
     virtual int GetActionSize() const override;
-    virtual void SetGuidedControlInfo(bool enable, const std::string &guide_file);
+    virtual void SetGuidedControlInfo(bool enable,
+                                      const std::string &guide_file);
+    virtual void ConvertTargetPoseToActionFullsize(tVectorXd &pd_target);
 
 protected:
     cImpPDGenController *mPDGenController;
@@ -97,4 +99,7 @@ protected:
 
     virtual void SetPDTargets(const Eigen::VectorXd &targets);
     virtual int GetJointActionSize(int id) const;
+
+    void ConvertTargetPoseToAction(int joint_id,
+                                   Eigen::VectorXd &out_theta) const;
 };

@@ -112,7 +112,7 @@ protected:
     bool mPauseAtFirst; // pause at the first frame
     std::string mTorqueRecordFile;
     bool mEnableJointTorqueControl;
-    std::vector<int> mFallContactBodies; // 这是一个int列表，功能暂时不明。
+    std::vector<int> mFallContactBodies; // reset the scene when some bodies get contacted with ground
     bool mEnableGuidedControl;
     std::string mGuidedTrajFile;
 

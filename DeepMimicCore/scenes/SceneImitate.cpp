@@ -332,11 +332,12 @@ void cSceneImitate::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     parser->ParseBool("sync_char_root_rot", mSyncCharRootRot);
     parser->ParseBool("enable_root_rot_fail", mEnableRootRotFail);
     parser->ParseDouble("hold_end_frame", mHoldEndFrame);
+    parser->ParseBool("control_character_by_reference_motion",
+                      mSetMotionAsAction);
 
     // print angle diff log
     parser->ParseBool("enable_angle_diff_log", mEnableAngleDiffLog);
     parser->ParseString("angle_diff_dir", mAngleDiffDir);
-
     // read reward weight file
     parser->ParseString("reward_file", mRewardFile);
 }
@@ -348,6 +349,9 @@ void cSceneImitate::Init()
 
     cRLSceneSimChar::Init();
     InitRewardWeights();
+
+    if (mSetMotionAsAction)
+        SetMotionAsAction();
 }
 
 double cSceneImitate::CalcReward(int agent_id) const
@@ -516,6 +520,8 @@ bool cSceneImitate::BuildKinCharacter(
 void cSceneImitate::UpdateCharacters(double timestep)
 {
     UpdateKinChar(timestep);
+    if (mSetMotionAsAction == true)
+        SetMotionAsAction();
     cRLSceneSimChar::UpdateCharacters(timestep);
 }
 
@@ -649,17 +655,20 @@ void cSceneImitate::SyncCharacters()
     // std::cout << "root rot = " <<
     // sim_char->GetRootRotation().coeffs().transpose() << std::endl; std::cout
     // << "root pos = " << sim_char->GetRootPos().transpose() << std::endl;
-    // std::cout << "[sync] before sync pose = " << sim_char->GetPose().transpose()
+    // std::cout << "[sync] before sync pose = " <<
+    // sim_char->GetPose().transpose()
     //           << std::endl;
     // std::cout << "[sync] before sync q = " << multibody->Getq().transpose()
     //           << std::endl;
-    // std::cout << "[sync] before sync vel = " << sim_char->GetVel().transpose()
+    // std::cout << "[sync] before sync vel = " <<
+    // sim_char->GetVel().transpose()
     //           << std::endl;
     // std::cout << "[sync] target pose = " << pose.transpose() << std::endl;
     // std::cout << "[sync] target vel = " << vel.transpose() << std::endl;
     sim_char->SetPose(pose);
     sim_char->SetVel(vel);
-    // std::cout << "[sync] after sync pose = " << sim_char->GetPose().transpose()
+    // std::cout << "[sync] after sync pose = " <<
+    // sim_char->GetPose().transpose()
     //           << std::endl;
     // std::cout << "[sync] after sync vel = " << sim_char->GetVel().transpose()
     //           << std::endl;
@@ -891,4 +900,23 @@ double cSceneImitate::CalcRandKinResetTime()
     double dur = kin_char->GetMotionDuration();
     double rand_time = cMathUtil::RandDouble(0, dur);
     return rand_time;
+}
+
+/**
+ * \brief           Get the pose of kinchar, set this pose as the action of sim
+ * char
+ */
+extern tVectorXd global_action;
+#include "sim/Controller/CtPDGenController.h"
+#include "sim/SimItems/SimCharacterBase.h"
+void cSceneImitate::SetMotionAsAction()
+{
+    global_action =
+        mKinChar->GetPose().segment(7, mKinChar->GetPose().size() - 7);
+    // MIMIC_ASSERT(global_action.size() == GetActionSize(0));
+    // MIMIC_INFO("[imit] kin char pose {}", global_action.transpose());
+    dynamic_cast<cCtPDGenController *>(GetCharacter(0)->GetController().get())
+        ->ConvertTargetPoseToActionFullsize(global_action);
+    // convert pose to action (quaternion to axis angle)
+    MIMIC_WARN("Set the ref motion as the action");
 }

@@ -180,11 +180,11 @@ void Update(double time_elapsed)
 
                 if (global_action.size() == 0)
                 {
+                    global_action = tVectorXd::Zero(gCore->GetActionSize(id));
                     // global_action =
-                    // tVectorXd::Zero(gCore->GetActionSize(id));
-                    global_action = tVectorXd::Random(gCore->GetActionSize(id));
+                    // tVectorXd::Random(gCore->GetActionSize(id));
                 }
-
+                MIMIC_ASSERT(global_action.size() == gCore->GetActionSize(id));
                 std::vector<double> action(0);
                 for (int num = 0; num < gCore->GetActionSize(id); num++)
                 {
@@ -192,6 +192,8 @@ void Update(double time_elapsed)
                     action.push_back(global_action[num]);
                     // global_action[num] += 0.1;
                 }
+                MIMIC_INFO("main: set ref motion as action {}",
+                           global_action.transpose());
                 // action[action.size() - 1] = 1.3;
                 gCore->SetAction(id, action);
             }

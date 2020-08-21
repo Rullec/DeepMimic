@@ -190,6 +190,7 @@ void cSceneSimChar::Clear()
     ClearObjs();
 }
 
+
 void cSceneSimChar::Update(double time_elapsed)
 {
     // MIMIC_DEBUG("timestep = {}", time_elapsed);
@@ -582,7 +583,6 @@ bool cSceneSimChar::ParseCharCtrlParams(
 
     std::vector<std::string> char_ctrl_strs;
     parser->ParseStrings("char_ctrls", char_ctrl_strs);
-
     out_params.resize(num_ctrls);
     for (int i = 0; i < num_ctrls; ++i)
     {

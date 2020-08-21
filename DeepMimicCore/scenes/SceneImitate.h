@@ -68,6 +68,7 @@ protected:
     bool mEnableRootRotFail;
     bool mEnableAngleDiffLog;
     double mHoldEndFrame;
+    bool mSetMotionAsAction; // set reference motion as actions in each frame
     virtual bool BuildCharacters();
 
     virtual void
@@ -110,4 +111,5 @@ protected:
                                      const cKinCharacter &ref_char) const;
     virtual void DiffLogOutput(const cSimCharacterBase &sim_char,
                                const cKinCharacter &ref_char) const;
+    virtual void SetMotionAsAction();
 };

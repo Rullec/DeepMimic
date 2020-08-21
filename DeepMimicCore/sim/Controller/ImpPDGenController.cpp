@@ -92,6 +92,8 @@ int cPDCtrl::GetPDTargetSize()
 #define SPD
 void cPDCtrl::UpdateControlForce(double dt, tVectorXd &out_tau)
 {
+    // std::cout << "[cPDCtrl] cur target = " << mTarget_q.transpose()
+            //   << std::endl;
     // 1. check the PD target "q" and "qdot" should the same as the dof of this
     // character. they are in generalized coordinate
     MIMIC_ASSERT(mTarget_qdot.size() == GetPDTargetSize() &&
@@ -109,7 +111,7 @@ void cPDCtrl::UpdateControlForce(double dt, tVectorXd &out_tau)
     PostProcessControlForce(out_tau);
 
     // out_tau.setZero();
-    MIMIC_INFO("out tau = {}", out_tau.transpose());
+    // MIMIC_INFO("out tau = {}", out_tau.transpose());
     // MIMIC_INFO("q = {}", q.transpose());
     // exit(1);
 }
@@ -195,7 +197,7 @@ void cPDCtrl::UpdateControlForceSPD(double dt, tVectorXd &out_tau)
                        mChar->GetCoriolisMatrix() * qdot_cur);
     // std::cout << "qddot pred = " << qddot_pred.transpose() << std::endl;
     out_tau = Kp_mat * q_next_err + Kd_mat * (qdot_next_err - dt * qddot_pred);
-    std::cout << "out tau SPD = " << out_tau.transpose() << std::endl;
+    // std::cout << "out tau SPD = " << out_tau.transpose() << std::endl;
     // exit(1);
 }
 
