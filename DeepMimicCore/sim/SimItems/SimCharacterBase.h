@@ -101,7 +101,7 @@ public:
     GetContactPts() const = 0;
     virtual const cContactManager::tContactHandle &GetContactHandle() const = 0;
     virtual const void GetTotalContactPts(Eigen::VectorXd &) const = 0;
-    virtual eSimCharacterType GetCharType();
+    virtual eSimCharacterType GetCharType() const;
     virtual bool HasFallen() const = 0;
     virtual bool HasStumbled() const = 0;
     virtual bool HasVelExploded(double vel_threshold = 100.0) const = 0;

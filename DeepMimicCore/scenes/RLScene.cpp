@@ -1,5 +1,6 @@
 ﻿#include "RLScene.h"
 #include "util/LogUtil.h"
+#include "util/MPIUtil.h"
 #include <iostream>
 using namespace std;
 
@@ -35,8 +36,19 @@ bool cRLScene::IsEpisodeEnd() const
     if (is_end == true)
     {
         cTimer::tParams a = mTimer.GetParams();
-        MIMIC_INFO("Timer said terminated, episode done, timer = {}, exp = {}",
-                   mTimer.GetMaxTime(), a.mTimeExp);
+        if (cMPIUtil::IsInited() == false)
+        {
+            MIMIC_INFO("Timer said terminated, episode done, timer = {}, exp = "
+                       "{}, no mpi",
+                       mTimer.GetMaxTime(), a.mTimeExp);
+        }
+        else if (0 == cMPIUtil::GetWorldRank())
+        {
+            MIMIC_INFO("Timer said terminated, episode done, timer = {}, "
+                       "exp = {}, mpi rank {}",
+                       mTimer.GetMaxTime(), a.mTimeExp,
+                       cMPIUtil::GetWorldRank());
+        }
     }
     eTerminate termin = eTerminateNull;
     for (int i = 0; i < GetNumAgents(); ++i)

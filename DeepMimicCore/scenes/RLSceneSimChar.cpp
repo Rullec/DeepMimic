@@ -295,7 +295,7 @@ cRLSceneSimChar::GetController(int agent_id) const
     return mAgentReg.GetAgent(agent_id);
 }
 
-const cSimCharacterBase *cRLSceneSimChar::GetAgentChar(int agent_id) const
+cSimCharacterBase *cRLSceneSimChar::GetAgentChar(int agent_id) const
 {
     return mAgentReg.GetChar(agent_id);
 }

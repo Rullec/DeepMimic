@@ -26,6 +26,8 @@ cCtPDGenController::~cCtPDGenController()
 
     if (mLoadInfo != nullptr)
         delete mLoadInfo;
+    if (mPDGenController)
+        delete mPDGenController;
 }
 
 void cCtPDGenController::Init(cSimCharacterBase *character,
@@ -250,6 +252,8 @@ void cCtPDGenController::UpdateBuildTauGuided(double time_step,
     {
         std::cout << "load traj frame id " << mInternalFrameId << std::endl;
         mLoadInfo->LoadTrajV2(this->mChar, mGuidedTrajFile);
+        std::cout << "guided file = " << mGuidedTrajFile << std::endl;
+        exit(1);
         // for (int i = 0; i < mLoadInfo->mTotalFrame; i++)
         // {
         //     std::cout << "frame " << i

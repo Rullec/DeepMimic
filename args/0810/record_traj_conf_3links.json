@@ -1,4 +1,4 @@
 {
     "traj_save_filename": "./logs/tmp/test_traj_3links.json",
-    "record_max_frame": 600
+    "record_max_frame": 800
 }

@@ -9,6 +9,7 @@ class cSimCharacterGen : public cSimCharacterBase, public cRobotModelDynamics
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     cSimCharacterGen();
+    virtual ~cSimCharacterGen();
     virtual bool Init(const std::shared_ptr<cWorldBase> &world,
                       const cSimCharacterBase::tParams &params) override;
     virtual void Clear() override;
@@ -149,6 +150,11 @@ public:
     virtual std::string GetDrawShapeName(int id) const override;
     virtual int GetNumJoints() const override;
     virtual tVectorXd ConvertPoseToq(const tVectorXd &pose) const;
+    virtual void CalcCOMAndCOMVel(const tVectorXd &pose,
+                                  const tVectorXd &pose_vel, tVector &com,
+                                  tVector &com_vel);
+    virtual void SetqAndqdot(const tVectorXd &q,
+                             const tVectorXd &qdot) override;
 
 protected:
     /// vars
@@ -165,7 +171,7 @@ protected:
     virtual btCollisionShape *
     BuildCollisionShape(const cShape::eShape shape,
                         const tVector &shape_size) override;
-
+    virtual void InitParamMatrix(const std::string &char_file);
     virtual bool BuildJoints() override;
     virtual void BuildConsFactor(int joint_id, tVector &out_linear_factor,
                                  tVector &out_angular_factor) const override;
@@ -197,8 +203,6 @@ protected:
     virtual btCollisionObject *GetCollisionObject() override;
     void Test();
     eRotationOrder GetRotationOrder() const;
-    virtual void SetqAndqdot(const tVectorXd &q,
-                             const tVectorXd &qdot) override;
     virtual void Setqdot(const tVectorXd &qdot) override;
     tVectorXd ConvertqToPose(const tVectorXd &pose) const;
     tVectorXd ConvertqdotToPoseVel(const tVectorXd &pose) const;
@@ -210,7 +214,7 @@ protected:
     // std::vector<Joint *> mJointArray;
     std::vector<std::shared_ptr<cSimBodyLinkGen>> mLinkGenArray;
     std::vector<std::shared_ptr<cSimBodyJointGen>> mJointGenArray;
-
+    tMatrixXd mBodyDefs;
     // // used to form the return value in `GetBodyPart`
     // std::vector<std::shared_ptr<cSimBodyLink>> mLinkBaseArray;
     // std::vector<std::shared_ptr<cSimBodyJoint>> mJointBaseArray;

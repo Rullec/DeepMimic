@@ -39,7 +39,7 @@ public:
     virtual void PreSim() = 0;
     virtual void PostSim() = 0;
     virtual void SetTimestep(double) = 0;
-    static void RecordMultibodyInfo(cSimCharacterBase *sim_char,
+    static void RecordMultibodyInfo(const cSimCharacterBase *sim_char,
                                     tEigenArr<tMatrix> &local_to_world_rot,
                                     tEigenArr<tVector> &link_pos_world,
                                     tEigenArr<tVector> &link_omega_world,

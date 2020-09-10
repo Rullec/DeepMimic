@@ -5,11 +5,12 @@
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
 #include "util/TimeUtil.hpp"
-#ifdef __APPLE__
-#include <mpi.h>
-#else
-#include <mpi/mpi.h>
-#endif
+// #ifdef __APPLE__
+// #include <mpi.h>
+// #else
+// #include <mpi/mpi.h>
+// #endif
+#include "util/MPIUtil.h"
 #include <iostream>
 // #define SHOW_SAMPLE_COST
 
@@ -27,18 +28,16 @@ cSampleIDSolver::cSampleIDSolver(cSceneImitate *imitate_scene,
     mEnableSyncThetaDist = false;
     Parseconfig(config);
 
-    // 1. MPI init. We need to check initialized if we call this program by
-    // python agent. Second Initialized is prohibited.
-    int init_flag;
-    MPI_Initialized(&init_flag);
+    // 1. MPI init. We need to check initialized if we call this program \
+    // by python agent. Second Initialized is prohibited
+    int init_flag = cMPIUtil::IsInited();
+
     if (init_flag == false)
-        MPI_Init(NULL, NULL);
+        cMPIUtil::InitMPI();
 
-    int world_size;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    int world_size = cMPIUtil::GetCommSize();
 
-    int world_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    int world_rank = cMPIUtil::GetWorldRank();
 
     // clear the data dir
     if (mClearOldData == true)
@@ -49,7 +48,7 @@ cSampleIDSolver::cSampleIDSolver(cSceneImitate *imitate_scene,
         else
             cFileUtil::CreateDir(mSampleInfo.mSampleTrajsDir.c_str());
         cFileUtil::DeleteLock(mSampleInfo.mSampleTrajsDir);
-        MPI_Barrier(MPI_COMM_WORLD);
+        cMPIUtil::SetBarrier();
     }
 
     cTimeUtil::Begin("sample_traj");
@@ -57,7 +56,7 @@ cSampleIDSolver::cSampleIDSolver(cSceneImitate *imitate_scene,
     // exit(0);
 }
 
-cSampleIDSolver::~cSampleIDSolver() {}
+cSampleIDSolver::~cSampleIDSolver() { delete mSaveInfo.mMotion; }
 
 void cSampleIDSolver::PreSim()
 {
@@ -166,11 +165,11 @@ void cSampleIDSolver::PostSim()
     // mSaveInfo.mCurFrameId<<std::endl;
     mSaveInfo.mCurFrameId++;
     const int cur_frame = mSaveInfo.mCurFrameId;
-
+    // std::cout << "Pose1 = " << mSimChar->GetPose().transpose() << std::endl;
     // record the post generalized info
     RecordGeneralizedInfo(mSimChar, mSaveInfo.mBuffer_q[cur_frame],
                           mSaveInfo.mBuffer_u[cur_frame]);
-
+    // std::cout << "Pose2 = " << mSimChar->GetPose().transpose() << std::endl;
     // q dot dot
     if (cur_frame >= 2)
     {
@@ -179,24 +178,28 @@ void cSampleIDSolver::PostSim()
              mSaveInfo.mBuffer_u[cur_frame - 1]) /
             mSaveInfo.mTimesteps[cur_frame - 1];
     }
-
+    // std::cout << "Pose3 = " << mSimChar->GetPose().transpose() << std::endl;
     // record contact forces
     RecordContactForces(mSaveInfo.mContactForces[cur_frame - 1],
                         mSaveInfo.mTimesteps[cur_frame - 1],
                         mWorldId2InverseId);
-
+    // std::cout << "Pose4 = " << mSimChar->GetPose().transpose() << std::endl;
     // record multibody info
     RecordMultibodyInfo(
         mSimChar, mSaveInfo.mLinkRot[cur_frame], mSaveInfo.mLinkPos[cur_frame],
         mSaveInfo.mLinkOmega[cur_frame], mSaveInfo.mLinkVel[cur_frame]);
-
+    // std::cout << "Pose5 = " << mSimChar->GetPose().transpose() << std::endl;
     // record rewards for this frame
     RecordReward(mSaveInfo.mRewards[cur_frame]);
-
+    // std::cout << "Pose6 = " << mSimChar->GetPose().transpose() << std::endl;
     // record reference time now
     RecordRefTime(mSaveInfo.mRefTime[cur_frame]);
-
+    // std::cout << "Pose7 = " << mSimChar->GetPose().transpose() << std::endl;
     // character pose
+    tVectorXd pose = mSimChar->GetPose();
+    // std::cout << "Pose8 = " << mSimChar->GetPose().transpose() << std::endl;
+    // MIMIC_INFO("frame {} pose {} ", cur_frame,
+    // mSimChar->GetPose().transpose());
     mSaveInfo.mCharPoses[cur_frame] = mSimChar->GetPose();
 
     if (mEnableIDTest == false)
@@ -459,14 +462,12 @@ void cSampleIDSolver::Reset()
     // judge terminate
     if (mSummaryTable.mTotalEpochNum >= mSampleInfo.mSampleEpoches)
     {
-        int world_size;
-        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        int world_size = cMPIUtil::GetCommSize();
 
-        int world_rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-        mLogger->info("SampleIDSolver rank %d/%d sampled %d epoches done",
+        int world_rank = cMPIUtil::GetWorldRank();
+        mLogger->info("SampleIDSolver rank {}/{} sampled {} epoches done",
                       world_rank, world_size, mSummaryTable.mTotalEpochNum);
-        MPI_Barrier(MPI_COMM_WORLD);
+        cMPIUtil::SetBarrier();
 
         // then if possible, write down the theta distribution file
         if (mRecordThetaDist == true)
@@ -488,15 +489,19 @@ void cSampleIDSolver::Reset()
             {
                 // sync between processes by MPI
                 int h = mActionThetaDist.rows(), w = mActionThetaDist.cols();
-                MPI_Status status;
+                // MPI_Status status;
                 if (world_rank == 0)
                 {
                     Eigen::MatrixXd others_give_me_mat =
                         Eigen::MatrixXd::Zero(h, w);
                     for (int j = 1; j < world_size; j++)
                     {
-                        MPI_Recv(others_give_me_mat.data(), h * w, MPI_DOUBLE,
-                                 j, 0, MPI_COMM_WORLD, &status);
+                        others_give_me_mat.data();
+                        // MPI_Recv(others_give_me_mat.data(), h * w,
+                        // MPI_DOUBLE,
+                        //          j, 0, MPI_COMM_WORLD, &status);
+                        cMPIUtil::GetDoubleData(others_give_me_mat.data(),
+                                                h * w, j, 0);
                         mActionThetaDist += others_give_me_mat;
                         // std::cout <<"receve from " << j <<" \n" <<
                         // others_give_me_mat << std::endl;
@@ -506,13 +511,16 @@ void cSampleIDSolver::Reset()
                 else
                 {
                     // MPI_Send(&my_float, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-                    MPI_Send(mActionThetaDist.data(), h * w, MPI_DOUBLE, 0, 0,
-                             MPI_COMM_WORLD);
+                    // MPI_Send(mActionThetaDist.data(), h * w, MPI_DOUBLE, 0,
+                    // 0,
+                    //          MPI_COMM_WORLD);
+
+                    cMPIUtil::SendDoubleData(mActionThetaDist.data(), h * w, 0,
+                                             0);
                     // std::cout << world_rank << " sends \n" << my_mat <<
                     // std::endl;
                 }
-                MPI_Barrier(MPI_COMM_WORLD);
-
+                cMPIUtil::SetBarrier();
                 // only save this theta dist in process 0
                 if (world_rank == 0)
                 {
@@ -525,7 +533,7 @@ void cSampleIDSolver::Reset()
 
         mSummaryTable.WriteToDisk(mSampleInfo.mSummaryTableFilename);
 
-        MPI_Finalize();
+        cMPIUtil::Finalize();
         cTimeUtil::End("sample_traj");
         exit(0);
     }

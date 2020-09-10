@@ -211,6 +211,7 @@ bool cCtController::CheckNeedNewAction(double timestep) const
 {
     double curr_time = mTime;
     curr_time += mInitTimeOffset;
+    // MIMIC_DEBUG("check need new action update rate {}", mUpdateRate);
     bool new_action =
         cMathUtil::CheckNextInterval(timestep, curr_time, 1 / mUpdateRate);
     return new_action;

@@ -4,6 +4,7 @@ class cSceneImitate;
 class cSampleIDSolver : public cInteractiveIDSolver
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     explicit cSampleIDSolver(cSceneImitate *imitate_scene,
                              const std::string &config);
     virtual ~cSampleIDSolver();

@@ -79,32 +79,32 @@ void cDrawScene::ParseCamTrackMode(const std::shared_ptr<cArgParser> &parser,
     parser->ParseString("cam_track_mode", str);
 
     if (str != "")
+    {
+        if (str == "xz")
         {
-            if (str == "xz")
-                {
-                    out_mode = eCamTrackModeXZ;
-                }
-            else if (str == "y")
-                {
-                    out_mode = eCamTrackModeY;
-                }
-            else if (str == "xyz")
-                {
-                    out_mode = eCamTrackModeXYZ;
-                }
-            else if (str == "still")
-                {
-                    out_mode = eCamTrackModeStill;
-                }
-            else if (str == "fixed")
-                {
-                    out_mode = eCamTrackModeFixed;
-                }
-            else
-                {
-                    assert(false); // unsupported track mode
-                }
+            out_mode = eCamTrackModeXZ;
         }
+        else if (str == "y")
+        {
+            out_mode = eCamTrackModeY;
+        }
+        else if (str == "xyz")
+        {
+            out_mode = eCamTrackModeXYZ;
+        }
+        else if (str == "still")
+        {
+            out_mode = eCamTrackModeStill;
+        }
+        else if (str == "fixed")
+        {
+            out_mode = eCamTrackModeFixed;
+        }
+        else
+        {
+            assert(false); // unsupported track mode
+        }
+    }
 }
 
 void cDrawScene::Reshape(int w, int h)
@@ -139,68 +139,63 @@ void cDrawScene::UpdateCamera()
     eCamTrackMode mode = GetCamTrackMode();
     if (mode == eCamTrackModeXZ || mode == eCamTrackModeY ||
         mode == eCamTrackModeXYZ)
-        {
-            UpdateCameraTracking();
-        }
+    {
+        UpdateCameraTracking();
+    }
     else if (mode == eCamTrackModeStill)
-        {
-            UpdateCameraStill();
-        }
+    {
+        UpdateCameraStill();
+    }
 }
 
 void cDrawScene::UpdateCameraTracking()
 {
     eCamTrackMode mode = GetCamTrackMode();
     if (mode == eCamTrackModeXYZ)
-        {
-            tVector track_pos = GetCamTrackPos();
-            tVector focus_pos = mCamera.GetFocus();
-            tVector cam_pos = mCamera.GetPosition();
-            mCamera.TranslateFocus(track_pos);
-        }
+    {
+        tVector track_pos = GetCamTrackPos();
+        tVector focus_pos = mCamera.GetFocus();
+        tVector cam_pos = mCamera.GetPosition();
+        mCamera.TranslateFocus(track_pos);
+    }
     else if (mode == eCamTrackModeXZ || mode == eCamTrackModeY)
+    {
+        tVector track_pos = GetCamTrackPos();
+        tVector cam_focus = mCamera.GetFocus();
+
+        double cam_w = mCamera.GetWidth();
+        double cam_h = mCamera.GetHeight();
+        const double y_pad = std::min(0.5, 0.8 * 0.5 * cam_h);
+        const double x_pad = std::min(0.5, 0.8 * 0.5 * cam_w);
+
+        if (mode == eCamTrackModeXZ)
         {
-            tVector track_pos = GetCamTrackPos();
-            tVector cam_focus = mCamera.GetFocus();
+            cam_focus[0] = track_pos[0];
+            cam_focus[2] = track_pos[2];
 
-            double cam_w = mCamera.GetWidth();
-            double cam_h = mCamera.GetHeight();
-            const double y_pad = std::min(0.5, 0.8 * 0.5 * cam_h);
-            const double x_pad = std::min(0.5, 0.8 * 0.5 * cam_w);
-
-            if (mode == eCamTrackModeXZ)
-                {
-                    cam_focus[0] = track_pos[0];
-                    cam_focus[2] = track_pos[2];
-
-                    if (std::abs(track_pos[1] - cam_focus[1]) >
-                        ((0.5 * cam_h) - y_pad))
-                        {
-                            const double blend = 0.5;
-                            double tar_y =
-                                track_pos[1] + ((0.5 * cam_h) - y_pad);
-                            cam_focus[1] =
-                                (1 - blend) * cam_focus[1] + blend * tar_y;
-                        }
-                }
-            else
-                {
-                    cam_focus[1] = track_pos[1];
-
-                    const double blend = 0.5;
-                    double tar_delta = track_pos[0] - cam_focus[0];
-                    if (std::abs(tar_delta) > ((0.5 * cam_w) - x_pad))
-                        {
-                            double tar_x =
-                                track_pos[0] + cMathUtil::Sign(tar_delta) *
-                                                   ((0.95 * cam_w) - x_pad);
-                            cam_focus[0] =
-                                (1 - blend) * cam_focus[0] + blend * tar_x;
-                        }
-                }
-
-            mCamera.TranslateFocus(cam_focus);
+            if (std::abs(track_pos[1] - cam_focus[1]) > ((0.5 * cam_h) - y_pad))
+            {
+                const double blend = 0.5;
+                double tar_y = track_pos[1] + ((0.5 * cam_h) - y_pad);
+                cam_focus[1] = (1 - blend) * cam_focus[1] + blend * tar_y;
+            }
         }
+        else
+        {
+            cam_focus[1] = track_pos[1];
+
+            const double blend = 0.5;
+            double tar_delta = track_pos[0] - cam_focus[0];
+            if (std::abs(tar_delta) > ((0.5 * cam_w) - x_pad))
+            {
+                double tar_x = track_pos[0] + cMathUtil::Sign(tar_delta) *
+                                                  ((0.95 * cam_w) - x_pad);
+                cam_focus[0] = (1 - blend) * cam_focus[0] + blend * tar_x;
+            }
+        }
+
+        mCamera.TranslateFocus(cam_focus);
+    }
 }
 
 void cDrawScene::UpdateCameraStill()
@@ -222,28 +217,28 @@ void cDrawScene::UpdateCameraStill()
                   (track_pos[1] - cam_focus[1]) < -(0.5 * cam_h - pad_y);
 
     if (snap_x || snap_y)
+    {
+        tVector snap_pos = GetCamStillPos();
+        cam_focus[0] = snap_pos[0];
+        cam_focus[1] = snap_pos[1];
+
+        tVector pos_delta = track_pos - snap_pos;
+        if (std::abs(pos_delta[0]) > cam_still_snap_dist - pad_x)
         {
-            tVector snap_pos = GetCamStillPos();
-            cam_focus[0] = snap_pos[0];
-            cam_focus[1] = snap_pos[1];
-
-            tVector pos_delta = track_pos - snap_pos;
-            if (std::abs(pos_delta[0]) > cam_still_snap_dist - pad_x)
-                {
-                    cam_focus[0] += pos_delta[0];
-                }
-
-            if ((pos_delta[1]) > 0.5 * cam_h - pad_y ||
-                (pos_delta[1]) < -(0.5 * cam_h - pad_y))
-                {
-                    cam_focus[1] += pos_delta[1];
-                }
-
-            if (snap_x)
-                {
-                    cam_focus[0] += cam_still_snap_dist - pad_x;
-                }
+            cam_focus[0] += pos_delta[0];
         }
+
+        if ((pos_delta[1]) > 0.5 * cam_h - pad_y ||
+            (pos_delta[1]) < -(0.5 * cam_h - pad_y))
+        {
+            cam_focus[1] += pos_delta[1];
+        }
+
+        if (snap_x)
+        {
+            cam_focus[0] += cam_still_snap_dist - pad_x;
+        }
+    }
 
     mCamera.TranslateFocus(cam_focus);
 }
@@ -263,14 +258,14 @@ double cDrawScene::GetCamStillSnapDistX() const
     len = view_delta.norm();
 
     if (len > 0)
-        {
-            view_delta /= len;
-            double dot = view_delta.dot(axis);
-            double lerp = std::abs(dot);
-            lerp = std::pow(lerp, 4);
-            lerp = 1 - lerp;
-            dist = lerp * dist + (1 - lerp) * 0.5 * len;
-        }
+    {
+        view_delta /= len;
+        double dot = view_delta.dot(axis);
+        double lerp = std::abs(dot);
+        lerp = std::pow(lerp, 4);
+        lerp = 1 - lerp;
+        dist = lerp * dist + (1 - lerp) * 0.5 * len;
+    }
     return dist;
 }
 
@@ -284,13 +279,13 @@ void cDrawScene::ResetCamera()
 
     eCamTrackMode mode = GetCamTrackMode();
     if (mode == eCamTrackModeXZ || mode == eCamTrackModeY)
-        {
-            target_pos = GetCamTrackPos();
-        }
+    {
+        target_pos = GetCamTrackPos();
+    }
     else if (mode == eCamTrackModeStill)
-        {
-            target_pos = GetCamStillPos();
-        }
+    {
+        target_pos = GetCamStillPos();
+    }
 
     tVector cam_pos = GetDefaultCamFocus();
     cam_pos[0] = target_pos[0];
@@ -349,19 +344,19 @@ void cDrawScene::DrawScene()
     mShaderMesh->Unbind();
 
     if (mDrawInfo)
-        {
-            // info is drawn in screen space
-            cDrawUtil::PushMatrixProj();
-            cDrawUtil::LoadIdentityProj();
+    {
+        // info is drawn in screen space
+        cDrawUtil::PushMatrixProj();
+        cDrawUtil::LoadIdentityProj();
 
-            cDrawUtil::PushMatrixView();
-            cDrawUtil::LoadIdentityView();
+        cDrawUtil::PushMatrixView();
+        cDrawUtil::LoadIdentityView();
 
-            DrawInfo();
+        DrawInfo();
 
-            cDrawUtil::PopMatrixProj();
-            cDrawUtil::PopMatrixView();
-        }
+        cDrawUtil::PopMatrixProj();
+        cDrawUtil::PopMatrixView();
+    }
 }
 
 void cDrawScene::DrawGrid() const
@@ -428,15 +423,15 @@ void cDrawScene::DrawAxis() const
 
     tVector st(0, 0, 0, 1), ed, color;
     for (int i = 0; i < 3; i++)
-        {
-            ed = tVector::Zero();
-            ed[i] = 1.0;
-            ed[3] = 1.0;
-            color = ed;
-            color[3] = 0.5;
-            cDrawUtil::SetColor(color);
-            cDrawUtil::DrawArrow3D(st, ed, 0.1);
-        }
+    {
+        ed = tVector::Zero();
+        ed[i] = 1.0;
+        ed[3] = 1.0;
+        color = ed;
+        color[3] = 0.5;
+        cDrawUtil::SetColor(color);
+        cDrawUtil::DrawArrow3D(st, ed, 0.1);
+    }
 }
 
 void cDrawScene::DrawGround() const {}
@@ -503,9 +498,9 @@ void cDrawScene::InitRenderResources()
     succ &= LoadTextures();
 
     if (!succ)
-        {
-            printf("Failed to setup render resources\n");
-        }
+    {
+        printf("Failed to setup render resources\n");
+    }
 }
 
 bool cDrawScene::LoadTextures()

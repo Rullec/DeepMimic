@@ -20,6 +20,7 @@ tPerturb::tPerturb(ePerturb type, cSimObj *obj, const tVector &local_pos,
     mLocalPos = local_pos;
     mPerturb = perturb;
     mDuration = duration;
+    mLocalPos[3] = 1.0;
 }
 
 tPerturb::~tPerturb() {}

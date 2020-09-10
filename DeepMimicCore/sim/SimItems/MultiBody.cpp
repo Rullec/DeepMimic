@@ -48,8 +48,8 @@ void cMultiBody::compTreeLinkVelocities(btVector3 *omega, btVector3 *vel) const
         // COM of parent to COM of this link ���ڽ��ٶ�omega��˵��ֻ�Ǳ任��һ��
         // ���Ƕ������ٶ���˵��
         // top: angular terms, bottom: linear terms
-        SpatialTransform(btMatrix3x3(link.m_cachedRotParentToThis),
-                         link.m_cachedRVector, omega[parent + 1],
+        btMatrix3x3 global_trans = btMatrix3x3(link.m_cachedRotParentToThis);
+        SpatialTransform(global_trans, link.m_cachedRVector, omega[parent + 1],
                          vel[parent + 1], omega[i + 1], vel[i + 1]);
 
         // now add qidot * shat_i

@@ -1,4 +1,4 @@
 {
     "traj_save_filename": "./logs/tmp/test_traj_delete.json",
-    "record_max_frame": 500
+    "record_max_frame": 3
 }

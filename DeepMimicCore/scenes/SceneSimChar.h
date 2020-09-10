@@ -116,7 +116,7 @@ protected:
     bool mEnableGuidedControl;
     std::string mGuidedTrajFile;
 
-    std::shared_ptr<cWorldBase> mWorld;
+    std::shared_ptr<cWorldBase> mWorldBase;
     std::shared_ptr<cGround> mGround;
     std::vector<std::shared_ptr<cSimCharacterBase>> mChars;
     std::vector<cSimCharBuilder::eCharType> mCharTypes;

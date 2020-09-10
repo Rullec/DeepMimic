@@ -65,6 +65,9 @@ cSceneSimChar::cSceneSimChar()
     mEnableID = false;
     mEnableTrajRecord = false;
     mTrajRecorder = nullptr;
+    mEnableGuidedControl = false;
+    mGuidedTrajFile = "";
+    mPauseAtFirst = false;
 
     mWorldParams.mGenWorldConfig = "args/world_config/sim_config.json";
     mWorldParams.mNumSubsteps = 1;
@@ -184,12 +187,12 @@ void cSceneSimChar::Clear()
 {
     cScene::Clear();
 
+    // mWorldBase.reset();
     mChars.clear();
     mGround.reset();
     mFallContactBodies.clear();
     ClearObjs();
 }
-
 
 void cSceneSimChar::Update(double time_elapsed)
 {
@@ -264,7 +267,6 @@ void cSceneSimChar::Update(double time_elapsed)
 
     // cTimeUtil::End("sim update");
 }
-
 int cSceneSimChar::GetNumChars() const
 {
     return static_cast<int>(mChars.size());
@@ -283,7 +285,7 @@ cSceneSimChar::GetCharacter(int char_id) const
 
 const std::shared_ptr<cWorldBase> &cSceneSimChar::GetWorld() const
 {
-    return mWorld;
+    return mWorldBase;
 }
 
 tVector cSceneSimChar::GetCharPos() const
@@ -312,7 +314,7 @@ bool cSceneSimChar::LoadControlParams(
 
 void cSceneSimChar::AddPerturb(const tPerturb &perturb)
 {
-    mWorld->AddPerturb(perturb);
+    mWorldBase->AddPerturb(perturb);
 }
 
 void cSceneSimChar::ApplyRandForce(double min_force, double max_force,
@@ -375,7 +377,7 @@ void cSceneSimChar::RayTest(const tVector &beg, const tVector &end,
                             cFeaWorld::tRayTestResult &out_result) const
 {
     cFeaWorld::tRayTestResults results;
-    mWorld->RayTest(beg, end, results);
+    mWorldBase->RayTest(beg, end, results);
 
     out_result.mObj = nullptr;
     if (results.size() > 0)
@@ -438,7 +440,7 @@ bool cSceneSimChar::BuildCharacters()
         }
         cSimCharBuilder::CreateCharacter(char_type, curr_char);
 
-        succ &= curr_char->Init(mWorld, curr_params);
+        succ &= curr_char->Init(mWorldBase, curr_params);
         if (succ)
         {
             SetFallContacts(mFallContactBodies, curr_char);
@@ -597,15 +599,15 @@ bool cSceneSimChar::ParseCharCtrlParams(
 
 void cSceneSimChar::BuildWorld()
 {
-    cWorldBuilder::BuildWorld(mWorld, mWorldParams);
-    mWorld->Init(mWorldParams);
+    cWorldBuilder::BuildWorld(mWorldBase, mWorldParams);
+    mWorldBase->Init(mWorldParams);
 }
 
 void cSceneSimChar::BuildGround()
 {
     mGroundParams.mHasRandSeed = mHasRandSeed;
     mGroundParams.mRandSeed = mRandSeed;
-    cGroundBuilder::BuildGround(mWorld, mGroundParams, mGround);
+    cGroundBuilder::BuildGround(mWorldBase, mGroundParams, mGround);
 }
 
 bool cSceneSimChar::BuildController(
@@ -827,7 +829,10 @@ void cSceneSimChar::ResolveCharGroundIntersect(
     }
 }
 
-void cSceneSimChar::UpdateWorld(double time_step) { mWorld->Update(time_step); }
+void cSceneSimChar::UpdateWorld(double time_step)
+{
+    mWorldBase->Update(time_step);
+}
 
 void cSceneSimChar::UpdateCharacters(double time_step)
 {
@@ -892,7 +897,6 @@ void cSceneSimChar::UpdateRandPerturb(double time_step)
 // extern int reset_cnt;
 void cSceneSimChar::ResetScene()
 {
-    MIMIC_DEBUG("reset scene!");
     cScene::ResetScene();
     if (mPerturbParams.mEnableRandPerturbs)
     {
@@ -920,7 +924,7 @@ void cSceneSimChar::ResetCharacters()
     }
 }
 
-void cSceneSimChar::ResetWorld() { mWorld->Reset(); }
+void cSceneSimChar::ResetWorld() { mWorldBase->Reset(); }
 
 void cSceneSimChar::ResetGround()
 {
@@ -947,11 +951,10 @@ void cSceneSimChar::PreUpdate(double timestep)
     // ClearJointForces();
 }
 
-extern bool gAnimating;
+bool gAnimating = true;
 void cSceneSimChar::PostUpdate(double timestep)
 {
-
-    mWorld->PostUpdate();
+    mWorldBase->PostUpdate();
     // MIMIC_WARN("poseupdate, get time {}, timestep {}", GetTime(), timestep);
     if (mPauseAtFirst == true && std::fabs(GetTime() - timestep) < 1e-10)
         gAnimating = false;
@@ -1052,15 +1055,25 @@ bool cSceneSimChar::HasFallen(const cSimCharacterBase &sim_char) const
     mGround->CalcAABB(ground_aabb_min, ground_aabb_max); // 计算地面的aabb包围盒
     ground_aabb_min[1] = -std::numeric_limits<double>::infinity();
     ground_aabb_max[1] = std::numeric_limits<double>::infinity();
+    // std::cout << "has falled = " << fallen << std::endl;
+    // std::cout << "ground aabb min " << ground_aabb_min.transpose() <<
+    // std::endl; std::cout << "ground aabb max " << ground_aabb_max.transpose()
+    // << std::endl; std::cout << "root pos " << root_pos.transpose() <<
+    // std::endl;
     bool in_aabb =
         cMathUtil::ContainsAABB(root_pos, ground_aabb_min, ground_aabb_max);
+    // std::cout << "in aabb " << in_aabb << std::endl;
     if (false == in_aabb)
     {
-        std::cout << "[end] contact with groung, judged from AABB box "
+        std::cout << "[end] contact with ground, judged from AABB box "
                   << std::endl;
     }
     fallen |= !in_aabb;
 
+    if (fallen)
+    {
+        MIMIC_WARN("char has falled");
+    }
     return fallen;
 }
 
@@ -1171,7 +1184,7 @@ void cSceneSimChar::SpawnProjectile(double density, double min_size,
     params.mMass =
         density * params.mSize[0] * params.mSize[1] * params.mSize[2];
     std::shared_ptr<cSimBox> box = std::shared_ptr<cSimBox>(new cSimBox());
-    box->Init(mWorld, params);
+    box->Init(mWorldBase, params);
     box->UpdateContact(cFeaWorld::eContactFlagObject,
                        cContactManager::gFlagNone);
 

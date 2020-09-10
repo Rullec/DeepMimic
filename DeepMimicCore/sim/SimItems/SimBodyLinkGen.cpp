@@ -12,7 +12,10 @@ cSimBodyLinkGen::cSimBodyLinkGen()
     mEnableContactFall = true;
 }
 
-cSimBodyLinkGen::~cSimBodyLinkGen() {}
+cSimBodyLinkGen::~cSimBodyLinkGen()
+{
+    mLinkCollider->setCollisionShape(nullptr);
+}
 tVector cSimBodyLinkGen::GetPos() const
 {
 
@@ -37,9 +40,16 @@ tMatrix cSimBodyLinkGen::GetWorldTransform() const
 {
     return mLink->GetGlobalTransform();
 }
+
+/**
+ * \brief                   Get the transformation from world to local
+ *
+ * It's different from the definition of "local transform" in RobotModel which
+ * refers to the trasform from joint to child link
+ */
 tMatrix cSimBodyLinkGen::GetLocalTransform() const
 {
-    return mLink->GetLocalTransform();
+    return cMathUtil::InvRigidMat(mLink->GetGlobalTransform());
 }
 
 /**

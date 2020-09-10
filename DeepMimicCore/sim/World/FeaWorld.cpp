@@ -24,7 +24,14 @@ cFeaWorld::cFeaWorld() : cWorldBase(eWorldType::FEATHERSTONE_WORLD)
     mTimeStep = 0;
 }
 
-cFeaWorld::~cFeaWorld() {}
+cFeaWorld::~cFeaWorld()
+{
+    delete mBroadPhase.release();
+    delete mCollisionConfig.release();
+    delete mCollisionDispatcher.release();
+    delete mSolver.release();
+    delete mSimWorld;
+}
 
 void cFeaWorld::Init(const tParams &params)
 {

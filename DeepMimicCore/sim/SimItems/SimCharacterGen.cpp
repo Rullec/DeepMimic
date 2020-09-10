@@ -6,6 +6,7 @@
 #include "SimBodyJointGen.h"
 #include "SimBodyLinkGen.h"
 #include "sim/World/GenWorld.h"
+#include "util/JsonUtil.h"
 #include "util/LogUtil.h"
 #include <iostream>
 
@@ -55,7 +56,9 @@ cSimCharacterGen::cSimCharacterGen()
     // mLinkBaseArray.clear();
     // mJointBaseArray.clear();
 }
-
+cSimCharacterGen::~cSimCharacterGen() {
+    
+}
 bool cSimCharacterGen::Init(const std::shared_ptr<cWorldBase> &world,
                             const cSimCharacterBase::tParams &params)
 {
@@ -74,7 +77,7 @@ bool cSimCharacterGen::Init(const std::shared_ptr<cWorldBase> &world,
 
     SetComputeSecondDerive(true);
     SetDampingCoeff(0, 0);
-    SetAngleClamp(false);
+    // SetAngleClamp(false);
     SetMaxVel(100);
 
     // std::cout << "q size = " << mq.size() << std::endl;
@@ -82,12 +85,7 @@ bool cSimCharacterGen::Init(const std::shared_ptr<cWorldBase> &world,
     // First build links, then build joints
     BuildBodyLinks();
     BuildJoints();
-
-    InitDefaultState();
-    LoadDrawShapeDefs(params.mCharFile, mDrawShapeDefs);
-    // test SetRootTransform method
-    // Test();
-    // exit(0);
+    InitParamMatrix(mCharFilename);
     return true;
 }
 
@@ -257,10 +255,10 @@ tVector cSimCharacterGen::GetRootAngVel() const
 /**
  *  Should not be called for Generalized character
  */
+// #include <boost/stacktrace.hpp>
 const Eigen::MatrixXd &cSimCharacterGen::GetBodyDefs() const
 {
-    MIMIC_ASSERT_INFO(false, "this function should not be called\n");
-    return Eigen::MatrixXd::Zero(0, 0);
+    return mBodyDefs;
 }
 
 /**
@@ -501,18 +499,31 @@ tMatrix cSimCharacterGen::BuildJointWorldTrans(int joint_id) const
 
 tVector cSimCharacterGen::CalcCOM() const
 {
-    return cMathUtil::Expand(GetCoMPosition(), 1);
+    tVector COM = tVector::Zero();
+    double total_mass = 0;
+    for (int i = 0; i < GetNumOfLinks(); i++)
+    {
+        auto link = mLinkGenArray[i];
+        COM += link->GetPos() * link->GetMass();
+        total_mass += link->GetMass();
+    }
+    COM /= total_mass;
+    return COM;
 }
 
 tVector cSimCharacterGen::CalcCOMVel() const
 {
     tVector COM_vel = tVector::Zero();
+    double total_mass = 0;
     for (int i = 0; i < GetNumOfLinks(); i++)
     {
         auto link = mLinkGenArray[i];
         COM_vel += link->GetLinearVelocity() * link->GetMass();
+        total_mass += link->GetMass();
+        // std::cout << "link " << i << " vel "
+        //           << link->GetLinearVelocity().transpose() << std::endl;
     }
-
+    COM_vel /= total_mass;
     return COM_vel;
 }
 
@@ -625,10 +636,11 @@ bool cSimCharacterGen::HasFallen() const
     // character has falled to the ground)
     if (mEnableContactFall)
     {
-        fallend |= CheckFallContact();
+        fallend = CheckFallContact();
     }
     if (fallend)
         MIMIC_INFO("The CharacterGen have fallen");
+
     return fallend;
 }
 bool cSimCharacterGen::HasStumbled() const
@@ -797,8 +809,9 @@ std::string cSimCharacterGen::GetCharFilename() { return mCharFilename; }
 bool cSimCharacterGen::LoadBodyDefs(const std::string &char_file,
                                     Eigen::MatrixXd &out_body_defs)
 {
-    MIMIC_ERROR("no");
-    return false;
+    // Json::Value::Members names;
+    cKinTree::LoadBodyDefs(char_file, out_body_defs, mBodyDefsName);
+    return true;
 }
 
 bool cSimCharacterGen::BuildSimBody(const tParams &params)
@@ -834,8 +847,21 @@ cSimCharacterGen::BuildCollisionShape(const cShape::eShape shape,
     return nullptr;
 }
 
+/**
+ * \brief               Init the parameter matrix, (mJointmat, mBodyDefs)
+ */
+void cSimCharacterGen::InitParamMatrix(const std::string &char_file)
+{
+    Json::Value root;
+    MIMIC_ASSERT(cJsonUtil::LoadJson(char_file, root));
+    MIMIC_ASSERT(LoadSkeleton(root[gSkeletonKey]));
+    LoadBodyDefs(char_file, mBodyDefs);
+    InitDefaultState();
+    LoadDrawShapeDefs(char_file, mDrawShapeDefs);
+}
 bool cSimCharacterGen::BuildJoints()
 {
+
     mJointGenArray.clear();
     for (int i = 0; i < GetNumOfJoint(); i++)
     {
@@ -1061,14 +1087,16 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
             q.segment(q_idx, 3) = pose.segment(pose_idx, 3);
             pose_idx += 3, q_idx += 3;
             tVector w_x_y_z = pose.segment(pose_idx, 4);
+            tQuaternion qua =
+                tQuaternion(w_x_y_z[0], w_x_y_z[1], w_x_y_z[2], w_x_y_z[3])
+                    .normalized();
             q.segment(q_idx, 3) =
-                cMathUtil::QuaternionToEulerAngles(
-                    tQuaternion(w_x_y_z[0], w_x_y_z[1], w_x_y_z[2], w_x_y_z[3]),
-                    eRotationOrder::XYZ)
+                cMathUtil::QuaternionToEulerAngles(qua, eRotationOrder::XYZ)
                     .segment(0, 3);
             // std::cout << "joint " << i << " none joint\n" << std::endl;
-            // std::cout << "q = " << q.segment(q_idx, 3).transpose() << std::endl;
-            // std::cout << "quaternion coef = " << w_x_y_z.transpose()
+            // std::cout << "q = " << q.segment(q_idx, 3).transpose() <<
+            // std::endl; std::cout << "quaternion coef = " <<
+            // w_x_y_z.transpose()
             //           << std::endl;
             pose_idx += 4, q_idx += 3;
         }
@@ -1080,22 +1108,34 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
         {
             q[q_idx] = pose[pose_idx];
             // std::cout << "joint " << i << " revolute joint\n" << std::endl;
-            // std::cout << "q = " << q.segment(q_idx, 1).transpose() << std::endl;
-            // std::cout << "pose coef = " << pose[pose_idx - 1] << std::endl;
+            // std::cout << "q = " << q.segment(q_idx, 1).transpose() <<
+            // std::endl; std::cout << "pose coef = " << pose[pose_idx - 1] <<
+            // std::endl;
             q_idx++, pose_idx++;
         }
         break;
         case JointType::SPHERICAL_JOINT:
         {
             tVector w_x_y_z = pose.segment(pose_idx, 4);
+            // std::cout << "wxyz norm = " << w_x_y_z.norm() << std::endl;
+            tQuaternion qua =
+                tQuaternion(w_x_y_z[0], w_x_y_z[1], w_x_y_z[2], w_x_y_z[3])
+                    .normalized();
             q.segment(q_idx, 3) =
-                cMathUtil::QuaternionToEulerAngles(
-                    tQuaternion(w_x_y_z[0], w_x_y_z[1], w_x_y_z[2], w_x_y_z[3]),
-                    eRotationOrder::XYZ)
+                cMathUtil::QuaternionToEulerAngles(qua, eRotationOrder::XYZ)
                     .segment(0, 3);
+            if (q.segment(q_idx, 3).hasNaN() == true)
+            {
+                std::cout << "convert pose has Nan, quaternion = "
+                          << w_x_y_z.transpose()
+                          << " q = " << q.segment(q_idx, 3).transpose()
+                          << std::endl;
+                exit(1);
+            }
             // std::cout << "joint " << i << " spherical joint\n" << std::endl;
-            // std::cout << "q = " << q.segment(q_idx, 3).transpose() << std::endl;
-            // std::cout << "quaternion coef = " << w_x_y_z.transpose()
+            // std::cout << "q = " << q.segment(q_idx, 3).transpose() <<
+            // std::endl; std::cout << "quaternion coef = " <<
+            // w_x_y_z.transpose()
             //           << std::endl;
             pose_idx += 4, q_idx += 3;
         }
@@ -1383,3 +1423,38 @@ std::string cSimCharacterGen::GetDrawShapeName(int id) const
 }
 
 int cSimCharacterGen::GetNumJoints() const { return mJointGenArray.size(); }
+
+/**
+ * \brief               Given the pose and vel, calculate its COM and COM velI
+ */
+void cSimCharacterGen::CalcCOMAndCOMVel(const tVectorXd &pose,
+                                        const tVectorXd &pose_vel, tVector &com,
+                                        tVector &com_vel)
+
+{
+    com = tVector::Zero();
+    com_vel = tVector::Zero();
+
+    cRobotModelDynamics::SetComputeSecondDerive(false);
+    // cRobotModelDynamics::PushState("CalcCOMAndCOMVel");
+    tVectorXd q_old = mq;
+    tVectorXd q = ConvertPoseToq(pose);
+    tVectorXd qdot = ConvertPosevelToqdot(pose_vel);
+
+    // we needs Jv, but doesn't need Jv', so only first deriv is enough
+    cRobotModelDynamics::Apply(q, true);
+
+    // calculate com and com vel
+    double total_mass = GetTotalMass();
+    for (int i = 0; i < GetNumOfLinks(); i++)
+    {
+        auto link = GetLinkById(i);
+        com_vel.segment(0, 3) += (link->GetJKv() * qdot) * link->GetMass();
+        com.segment(0, 3) += link->GetWorldPos() * link->GetMass();
+    }
+    com /= total_mass;
+    com_vel /= total_mass;
+    cRobotModelDynamics::Apply(q_old, true);
+    // cRobotModelDynamics::PopState("CalcCOMAndCOMVel");
+    cRobotModelDynamics::SetComputeSecondDerive(true);
+}

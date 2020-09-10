@@ -2,7 +2,7 @@
 
 #include "anim/KinCharacter.h"
 #include "scenes/RLSceneSimChar.h"
-
+#include "sim/SimItems/SimCharacterGen.h"
 class cSceneImitate : virtual public cRLSceneSimChar
 {
     struct RewardParams
@@ -107,9 +107,20 @@ protected:
                                   const cKinCharacter &kin_char) const;
 
     virtual double CalcRandKinResetTime();
-    virtual double CalcRewardImitate(const cSimCharacterBase &sim_char,
-                                     const cKinCharacter &ref_char) const;
+    virtual double CalcRewardImitate(cSimCharacterBase &sim_char,
+                                     cKinCharacter &ref_char) const;
+    virtual double
+    CalcRewardImitateFeatherstone(const cSimCharacter &sim_char,
+                                  const cKinCharacter &ref_char) const;
+    virtual double CalcRewardImitateGen(cSimCharacterGen &sim_char,
+                                        const cKinCharacter &ref_char) const;
+
     virtual void DiffLogOutput(const cSimCharacterBase &sim_char,
                                const cKinCharacter &ref_char) const;
     virtual void SetMotionAsAction();
+    virtual void CalcKinCharCOMAndCOMVelByGenChar(cSimCharacterGen *sim_char,
+                                                  const tVectorXd &pose,
+                                                  const tVectorXd &vel,
+                                                  tVector &com_world,
+                                                  tVector &com_vel_world) const;
 };

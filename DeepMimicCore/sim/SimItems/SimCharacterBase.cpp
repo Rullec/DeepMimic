@@ -17,4 +17,7 @@ cSimCharacterBase::cSimCharacterBase(eSimCharacterType type)
 
 cSimCharacterBase::~cSimCharacterBase() {}
 
-eSimCharacterType cSimCharacterBase::GetCharType() { return mSimcharType; }
+eSimCharacterType cSimCharacterBase::GetCharType() const
+{
+    return mSimcharType;
+}

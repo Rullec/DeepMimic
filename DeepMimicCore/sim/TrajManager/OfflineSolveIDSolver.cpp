@@ -8,13 +8,9 @@
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
 #include "util/LogUtil.h"
+#include "util/MPIUtil.h"
 #include "util/TimeUtil.hpp"
 #include <iostream>
-#ifdef __APPLE__
-#include <mpi.h>
-#else
-#include <mpi/mpi.h>
-#endif
 
 extern std::string controller_details_path;
 // extern std::string gRewardInfopath;
@@ -658,16 +654,10 @@ void cOfflineIDSolver::SingleTrajSolve(
 void cOfflineIDSolver::BatchTrajsSolve(const std::string &path)
 {
     // 1. MPI init
-    int is_mpi_init;
-    MPI_Initialized(&is_mpi_init);
-    if (0 == is_mpi_init)
-        MPI_Init(NULL, NULL);
+    cMPIUtil::InitMPI();
+    int world_size = cMPIUtil::GetCommSize();
 
-    int world_size;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-    int world_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    int world_rank = cMPIUtil::GetWorldRank();
     // mpi_rank = world_rank;
 
     // 2. load the json: ensure that all process can load the summary table
@@ -677,7 +667,7 @@ void cOfflineIDSolver::BatchTrajsSolve(const std::string &path)
     auto &summary_table = mSummaryTable;
     mSummaryTable.mIDTraindataDir = mBatchTrajSolveConfig.mExportDataDir;
     cFileUtil::DeleteLock(path);
-    MPI_Barrier(MPI_COMM_WORLD);
+    cMPIUtil::SetBarrier();
 
     // 2.1 load action distribution from files
     if (mEnableRestoreThetaByActionDist == true)
@@ -695,7 +685,7 @@ void cOfflineIDSolver::BatchTrajsSolve(const std::string &path)
     if (cFileUtil::ExistsDir(mBatchTrajSolveConfig.mExportDataDir))
         cFileUtil::ClearDir(mBatchTrajSolveConfig.mExportDataDir.c_str());
     cFileUtil::DeleteLock(path);
-    MPI_Barrier(MPI_COMM_WORLD);
+    cMPIUtil::SetBarrier();
 
     // MPI_Barrier(MPI_COMM_WORLD);
     // MPI_Finalize();
@@ -780,13 +770,13 @@ void cOfflineIDSolver::BatchTrajsSolve(const std::string &path)
                       my_own_task_num);
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    cMPIUtil::SetBarrier();
     mLogger->info("proc %d tasks size = %d, expected size = %d", world_rank,
                   my_own_task_num, summary_table.mEpochInfos.size());
     summary_table.WriteToDisk(mBatchTrajSolveConfig.mDestSummaryTableFile,
                               true);
 
-    MPI_Finalize();
+    cMPIUtil::Finalize();
 }
 
 void cOfflineIDSolver::RestoreActionByThetaDist(

@@ -2,11 +2,6 @@ cmake_minimum_required(VERSION 3.5)
 project(DeepMimicCore)
 
 
-find_package(MPI REQUIRED)
-if(MPI_FOUND)
-    include_directories(SYSTEM ${MPI_INCLUDE_PATH})
-endif()
-
 set(CONTROLLER_SRC
     Controller/CharController.cpp
     Controller/Controller.cpp
@@ -76,6 +71,14 @@ set(
     World/WorldBuilder.cpp
     World/WorldBase.cpp
 )
+
+# FIND_PACKAGE( Boost 1.40 COMPONENTS program_options REQUIRED )
+# INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR})
+
+# TARGET_LINK_LIBRARIES( anyExecutable LINK_PUBLIC  )
+# add_link_options(dl)
+
 set(DIR_SRCS ${CONTROLLER_SRC} ${TrajManager_SRC} ${SIMITEMS_SRC} ${WORLD_SRC})
 add_library(SIM ${DIR_SRCS} )
-target_link_libraries(SIM ${MPI_LIBRARIES} UTIL)
+# target_link_libraries(SIM ${MPI_LIBRARIES} UTIL ${Boost_LIBRARIES} dl)
+target_link_libraries(SIM UTIL)

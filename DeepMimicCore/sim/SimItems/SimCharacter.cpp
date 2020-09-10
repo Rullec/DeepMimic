@@ -602,6 +602,10 @@ bool cSimCharacter::HasFallen() const
     {
         fallen |= CheckFallContact();
     }
+    if (fallen == true)
+    {
+        MIMIC_INFO("The char has falled!");
+    }
     return fallen;
 }
 
@@ -1775,6 +1779,8 @@ bool cSimCharacter::CheckFallContact() const
                                           // 所以脚是不是应该...关了.
             if (has_contact)
             {
+                MIMIC_INFO("detect part {} {} contact with ground", b,
+                           GetBodyName(b));
                 // std::cout <<"[end] detect part " << b <<" contact
                 // with ground, so episode end" << std::endl;
                 return true;

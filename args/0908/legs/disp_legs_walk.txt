@@ -1,0 +1,6 @@
+--scene kin_char
+
+--logging_level trace
+--character_file data/0908/characters/skeleton_legs.json
+# --motion_file data/0908/motions/stand_motion_legs.txt
+--motion_file data/0908/motions/walk_motion_legs.txt

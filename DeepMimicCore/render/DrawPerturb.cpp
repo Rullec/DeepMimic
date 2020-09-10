@@ -1,7 +1,6 @@
 #include "DrawPerturb.h"
 #include "render/DrawUtil.h"
 #include "sim/SimItems/SimObj.h"
-
 const double cDrawPerturb::gForceScale = 0.005;
 const double cDrawPerturb::gTorqueScale = 0.00075; // * 0.25;
 
@@ -23,13 +22,13 @@ void cDrawPerturb::DrawTorque(const tVector &pos, const tVector &torque)
 
     tVector col;
     if (torque[2] < 0)
-        {
-            col = color0;
-        }
+    {
+        col = color0;
+    }
     else
-        {
-            col = color1;
-        }
+    {
+        col = color1;
+    }
 
     double mag = torque.norm();
     double r = mag * torque_scale;
@@ -46,16 +45,16 @@ void cDrawPerturb::Draw(const tPerturb &perturb)
 {
     tPerturb::ePerturb type = perturb.mType;
     switch (type)
-        {
-        case tPerturb::ePerturbForce:
-            DrawForce(perturb);
-            break;
-        case tPerturb::ePerturbTorque:
-            DrawTorque(perturb);
-            break;
-        default:
-            break;
-        }
+    {
+    case tPerturb::ePerturbForce:
+        DrawForce(perturb);
+        break;
+    case tPerturb::ePerturbTorque:
+        DrawTorque(perturb);
+        break;
+    default:
+        break;
+    }
 }
 
 void cDrawPerturb::DrawForce(const tPerturb &perturb)

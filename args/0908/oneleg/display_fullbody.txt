@@ -1,0 +1,5 @@
+--scene kin_char
+
+--logging_level trace
+--character_file data/0908/characters/skeleton_oneleg.json
+--motion_file data/0805/motions/stand_motion.txt

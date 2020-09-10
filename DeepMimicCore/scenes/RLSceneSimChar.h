@@ -64,7 +64,7 @@ public:
 protected:
     bool mEnableFallEnd;
     cAgentRegistry mAgentReg;
-    cTimer::tParams mTimerParamsEnd;
+    cTimer::tParams mTimerParamsEnd;    // save the "end" time parameters in the config
     cAnnealer mTimerAnnealer;
     int mAnnealSamples;
 
@@ -73,7 +73,7 @@ protected:
     virtual const std::shared_ptr<cCharController> &GetController() const;
     virtual const std::shared_ptr<cCharController> &
     GetController(int agent_id) const;
-    virtual const cSimCharacterBase *GetAgentChar(int agent_id) const;
+    virtual cSimCharacterBase *GetAgentChar(int agent_id) const;
 
     virtual void PreUpdate(double timestep);
     virtual void ResetTimers();

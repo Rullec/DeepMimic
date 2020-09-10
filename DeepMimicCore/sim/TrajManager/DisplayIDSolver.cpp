@@ -25,8 +25,7 @@ void cDisplayIDSolver::PreSim()
 void cDisplayIDSolver::PostSim()
 {
     mLoadInfo.mCurFrame++;
-    std::cout << "\r[log] cDisplayIDSolver display mode: cur frame = "
-              << mLoadInfo.mCurFrame;
+    MIMIC_INFO(" display mode frame {}", mLoadInfo.mCurFrame);
 
     if (mLoadInfo.mLoadMode == eLoadMode::INVALID)
     {
@@ -132,7 +131,7 @@ void cDisplayIDSolver::PostSim()
 
     // we are in display mode, so we need to clear the contact info incase
     // something contact with the ground
-    mScene->GetWorld()->GetContactManager().Clear();
+    mScene->GetWorld()->GetContactManager().ClearContacts();
 }
 
 void cDisplayIDSolver::Reset()

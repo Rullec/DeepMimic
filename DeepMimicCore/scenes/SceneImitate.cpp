@@ -80,229 +80,27 @@ void cSceneImitate::DiffLogOutput(const cSimCharacterBase &sim_char,
     }
 }
 
-double cSceneImitate::CalcRewardImitate(const cSimCharacterBase &sim_char,
-                                        const cKinCharacter &kin_char) const
+double cSceneImitate::CalcRewardImitate(cSimCharacterBase &sim_char,
+                                        cKinCharacter &kin_char) const
 {
     if (mEnableAngleDiffLog == true)
         DiffLogOutput(sim_char, kin_char);
-    // reward共计5项，pose, vel, end_effector, root, com
-    // 五项权重:
-    double pose_w = RewParams.pose_w;
-    double vel_w = RewParams.vel_w;
-    double end_eff_w = RewParams.end_eff_w;
-    double root_w = RewParams.root_w;
-    double com_w = RewParams.com_w;
-
-    // normalize
-    double total_w = pose_w + vel_w + end_eff_w + root_w + com_w;
-    pose_w /= total_w;
-    vel_w /= total_w;
-    end_eff_w /= total_w;
-    root_w /= total_w;
-    com_w /= total_w;
-
-    // 又有一个scale
-    const double pose_scale = RewParams.pose_scale;
-    const double vel_scale = RewParams.vel_scale;
-    const double end_eff_scale = RewParams.end_eff_scale;
-    const double root_scale = RewParams.root_scale;
-    const double com_scale = RewParams.com_scale;
-    const double err_scale = RewParams.err_scale; // an uniform adjustment
-
-    const auto &joint_mat = sim_char.GetJointMat();
-    const auto &body_defs = sim_char.GetBodyDefs();
-    double reward = 0;
-
-    // sim_char: simulation character
-    // kin_char: the representation of motion data
-    const Eigen::VectorXd &pose0 = sim_char.GetPose();
-    const Eigen::VectorXd &vel0 = sim_char.GetVel();
-    const Eigen::VectorXd &pose1 = kin_char.GetPose();
-    const Eigen::VectorXd &vel1 = kin_char.GetVel(); // get the vel of kin char
-
-    tMatrix origin_trans =
-        sim_char.BuildOriginTrans(); // convert all points in sim char world
-                                     // frame into sim char root local frame
-    tMatrix kin_origin_trans =
-        kin_char.BuildOriginTrans(); // convert all points in kin char world
-                                     // frame into kinchar root local frame
-
-    tVector com0_world =
-        sim_char.CalcCOM(); // calculate current sim char COM in world frame
-    tVector com_vel0_world =
-        sim_char
-            .CalcCOMVel(); // calculate current sim char COM vel in world frame
-    tVector com1_world;
-    tVector com_vel1_world;
-    cRBDUtil::CalcCoM(
-        joint_mat, body_defs, pose1, vel1, com1_world,
-        com_vel1_world); // calculate kin char COM and COM vel in world frame
-
-    int root_id = sim_char.GetRootID();
-    tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
-    tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
-    tQuaternion root_rot0 = cKinTree::GetRootRot(joint_mat, pose0);
-    tQuaternion root_rot1 = cKinTree::GetRootRot(joint_mat, pose1);
-    tVector root_vel0 = cKinTree::GetRootVel(joint_mat, vel0);
-    tVector root_vel1 = cKinTree::GetRootVel(joint_mat, vel1);
-    tVector root_ang_vel0 = cKinTree::GetRootAngVel(joint_mat, vel0);
-    tVector root_ang_vel1 = cKinTree::GetRootAngVel(joint_mat, vel1);
-
-    double pose_err = 0;
-    double vel_err = 0;
-    double end_eff_err = 0;
-    double root_err = 0;
-    double com_err = 0;
-    double heading_err = 0;
-
-    int num_end_effs = 0;
-    int num_joints = sim_char.GetNumJoints();
-    assert(num_joints == mJointWeights.size());
-
-    double root_rot_w = mJointWeights[root_id];
-    // 计算root朝向错误
-    pose_err += root_rot_w *
-                cKinTree::CalcRootRotErr(joint_mat, pose0,
-                                         pose1); // pow(diff_rot_rot_theta, 2)
-    vel_err += root_rot_w * cKinTree::CalcRootAngVelErr(joint_mat, vel0, vel1);
-    std::vector<double> joint_angle_err, joint_vel_err;
-    for (int j = root_id + 1; j < num_joints; ++j)
+    if (eSimCharacterType::Featherstone == sim_char.GetCharType())
     {
-        // ROOT is not included in this part of code.
-        double w = mJointWeights[j];
-        double curr_pose_err = cKinTree::CalcPoseErr(
-            joint_mat, j, pose0, pose1); // calculate the joint angle diff
-        double curr_vel_err = cKinTree::CalcVelErr(
-            joint_mat, j, vel0, vel1); // calculate the joint vel diff
-        joint_angle_err.push_back(curr_pose_err);
-        joint_vel_err.push_back(curr_vel_err);
-
-        // add joint angle diff and joint vel diff to pose_err and vel_err
-        pose_err += w * curr_pose_err;
-        vel_err += w * curr_vel_err;
-
-        // if end effector
-        bool is_end_eff = sim_char.IsEndEffector(j);
-        if (is_end_eff)
-        {
-            // calculate the ref end effector pos(pos0) and true end
-            // effector pos(pos1) in both world frame according to mPose
-            // and mkinchar.getPose()
-            tVector pos0 = sim_char.CalcJointPos(j);
-            tVector pos1 = cKinTree::CalcJointWorldPos(joint_mat, pose1, j);
-
-            // ground_h0: get the height of ground. It is zero here.
-            // ground_h1: get the origin's y component. It should be
-            // zero as well in this case
-            double ground_h0 = mGround->SampleHeight(pos0);
-            double ground_h1 = kin_char.GetOriginPos()[1];
-
-            // calculate the relative position of end effector for sim
-            // char with respect to root position, then minus ground
-            // height calculate the relative position of end effector
-            // for kin char with respect to root position, then minus
-            // ground height
-            tVector pos_rel0 = pos0 - root_pos0;
-            tVector pos_rel1 = pos1 - root_pos1;
-            pos_rel0[1] = pos0[1] - ground_h0;
-            pos_rel1[1] = pos1[1] - ground_h1;
-
-            // represented them in both root joint local frame:
-            pos_rel0 = origin_trans * pos_rel0;
-            pos_rel1 = kin_origin_trans * pos_rel1;
-
-            // calculate the end effector diff
-            double curr_end_err = (pos_rel1 - pos_rel0).squaredNorm();
-            end_eff_err += curr_end_err;
-            ++num_end_effs;
-
-            /* summary:
-                    This portion of code, calculate the ideal relative
-               position of end effector with respect to ideal root pos
-               for sim char and its corrosponding vector for kin char.
-                    Then compare them as an error.
-            */
-        }
+        // return CalcRewardImitateFeatherstone(
+        //     *(static_cast<const cSimCharacter *>((const void *)(&sim_char))),
+        //     kin_char);
+        return CalcRewardImitateFeatherstone(
+            *(dynamic_cast<cSimCharacter *>((&sim_char))), kin_char);
     }
-    //    std::cout << "======================================\n";
-
-    if (num_end_effs > 0)
+    else
     {
-        end_eff_err /= num_end_effs;
+        // return CalcRewardImitateGen(
+        //     *(static_cast<cSimCharacterGen *>((void *)(&sim_char))),
+        //     kin_char);
+        return CalcRewardImitateGen(
+            *(dynamic_cast<cSimCharacterGen *>(&sim_char)), kin_char);
     }
-
-    // sim char，应该是simulation的角色(实际)
-    // kin char，应该是从motion中读进来的角色(理想)
-    double root_ground_h0 = mGround->SampleHeight(sim_char.GetRootPos());
-    double root_ground_h1 = kin_char.GetOriginPos()[1];
-    root_pos0[1] -= root_ground_h0;
-    root_pos1[1] -= root_ground_h1;
-    double root_pos_err = (root_pos0 - root_pos1).squaredNorm();
-    double root_rot_err = cMathUtil::QuatDiffTheta(root_rot0, root_rot1);
-    root_rot_err *= root_rot_err;
-
-    double root_vel_err = (root_vel1 - root_vel0).squaredNorm();
-    double root_ang_vel_err = (root_ang_vel1 - root_ang_vel0).squaredNorm();
-
-    // root位置误差, 旋转误差(0.1),
-    // 速度误差(1e-2)，角速度误差(1e-3)，合称为root_err
-    root_err = RewParams.root_pos_w * root_pos_err +
-               RewParams.root_rot_w * root_rot_err +
-               RewParams.root_vel_w * root_vel_err +
-               RewParams.root_angle_vel_w * root_ang_vel_err;
-    com_err = 0.1 * (com_vel1_world - com_vel0_world).squaredNorm();
-
-    double pose_reward = exp(-err_scale * pose_scale *
-                             pose_err); // 各个joint的朝向 (实际 - 理想)^2
-    double vel_reward =
-        exp(-err_scale * vel_scale * vel_err); // joints的速度(实际 - 理想)^2
-    double end_eff_reward =
-        exp(-err_scale * end_eff_scale * end_eff_err); // end_effector位置误差^2
-    double root_reward = exp(
-        -err_scale * root_scale *
-        root_err); // root
-                   // joint的(位置误差+0.1线速度误差+0.01朝向误差+0.001角速度)^2
-    double com_reward = exp(
-        -err_scale * com_scale *
-        com_err); // 0.1 * (质心速度误差)^2
-                  //    std::cout << "===================================\n";
-                  //    std::cout << "pose_reward:    " << pose_reward << "\n"
-                  //              << "vel_reward:     " << vel_reward << "\n"
-                  //              << "end_eff_reward: " << end_eff_reward <<
-                  //              "\n"
-                  //              << "root_reward:    " << root_reward << "\n"
-                  //              << "com_reward:     " << com_reward << "\n";
-                  //    std::cout << "===================================\n";
-
-    /*
-    double pose_w = 0.5;
-    double vel_w = 0.05;
-    double end_eff_w = 0.15;
-    double root_w = 0.2;
-    double com_w = 0.1;
-*/
-    reward = pose_w * pose_reward + vel_w * vel_reward +
-             end_eff_w * end_eff_reward + root_w * root_reward +
-             com_w * com_reward;
-    // fout << "pose reward = " << pose_reward << " ";
-    // fout << "vel reward = " << vel_reward << " ";
-    // fout << "end eff reward = " << end_eff_reward << " ";
-    /*
-                    root_pos_err
-                    + RewParams.root_rot_w * root_rot_err
-                    + RewParams.root_vel_w * root_vel_err
-                    + RewParams.root_angle_vel_w * root_ang_vel_err;
-    */
-    // fout << "root pos err = " << root_pos_err << " ";
-    // fout << "root rot err = " << root_rot_err << " ";
-    // fout << "root vel err = " << root_vel_err << " ";
-    // fout << "root ang vel err = " << root_ang_vel_err << " ";
-    // fout << "root reward = " << root_reward << " ";
-
-    // fout << "com reward = " << com_reward << " ";
-    // fout << "final reward = " << reward << " ";
-    // fout << std::endl;
-    return reward;
 }
 
 cSceneImitate::cSceneImitate()
@@ -316,7 +114,7 @@ cSceneImitate::cSceneImitate()
     mEnableAngleDiffLog = false;
     mEnableRootRotFail = false;
     mHoldEndFrame = 0;
-
+    mSetMotionAsAction = false;
     // gRewardInfopath = "reward_info_sample.txt";
     // cFileUtil::ClearFile(gRewardInfopath);
 }
@@ -357,7 +155,7 @@ void cSceneImitate::Init()
 double cSceneImitate::CalcReward(int agent_id) const
 {
     // 计算reward在这里
-    const cSimCharacterBase *sim_char = GetAgentChar(agent_id);
+    cSimCharacterBase *sim_char = GetAgentChar(agent_id);
     bool fallen = HasFallen(*sim_char);
 
     double r = 0;
@@ -541,16 +339,6 @@ void cSceneImitate::UpdateKinChar(double timestep)
         const auto &sim_char = GetCharacter();
         SyncKinCharNewCycle(*(sim_char.get()), *kin_char);
     }
-
-    // if(std::fabs(kin_char->GetPose()[0]) > 1e-7)
-    // {
-    // 	std::cout << "time = " << kin_char->GetTime() <<" frame " <<
-    // int(kin_char->GetTime() / timestep)\
-	// 		<<" kinchar pose[0] > 1e-7\n";
-    // 	std::cout << "before pose = " << before_pose.transpose() << std::endl;
-    // 	std::cout <<"after pose = " << kin_char->GetPose().transpose() <<
-    // std::endl; 	exit(1);
-    // }
 }
 
 void cSceneImitate::ResetCharacters()
@@ -906,7 +694,7 @@ double cSceneImitate::CalcRandKinResetTime()
  * \brief           Get the pose of kinchar, set this pose as the action of sim
  * char
  */
-extern tVectorXd global_action;
+tVectorXd global_action = tVectorXd::Zero(0);
 #include "sim/Controller/CtPDGenController.h"
 #include "sim/SimItems/SimCharacterBase.h"
 void cSceneImitate::SetMotionAsAction()
@@ -919,4 +707,429 @@ void cSceneImitate::SetMotionAsAction()
         ->ConvertTargetPoseToActionFullsize(global_action);
     // convert pose to action (quaternion to axis angle)
     MIMIC_WARN("Set the ref motion as the action");
+}
+
+double cSceneImitate::CalcRewardImitateFeatherstone(
+    const cSimCharacter &sim_char, const cKinCharacter &kin_char) const
+{
+    // reward共计5项，pose, vel, end_effector, root, com
+    // 五项权重:
+    double pose_w = RewParams.pose_w;
+    double vel_w = RewParams.vel_w;
+    double end_eff_w = RewParams.end_eff_w;
+    double root_w = RewParams.root_w;
+    double com_w = RewParams.com_w;
+
+    // normalize
+    double total_w = pose_w + vel_w + end_eff_w + root_w + com_w;
+    pose_w /= total_w;
+    vel_w /= total_w;
+    end_eff_w /= total_w;
+    root_w /= total_w;
+    com_w /= total_w;
+
+    // 又有一个scale
+    const double pose_scale = RewParams.pose_scale;
+    const double vel_scale = RewParams.vel_scale;
+    const double end_eff_scale = RewParams.end_eff_scale;
+    const double root_scale = RewParams.root_scale;
+    const double com_scale = RewParams.com_scale;
+    const double err_scale = RewParams.err_scale; // an uniform adjustment
+
+    const auto &joint_mat = sim_char.GetJointMat();
+    const auto &body_defs = sim_char.GetBodyDefs();
+    double reward = 0;
+
+    // sim_char: simulation character
+    // kin_char: the representation of motion data
+    const Eigen::VectorXd &pose0 = sim_char.GetPose();
+    const Eigen::VectorXd &vel0 = sim_char.GetVel();
+    const Eigen::VectorXd &pose1 = kin_char.GetPose();
+    const Eigen::VectorXd &vel1 = kin_char.GetVel(); // get the vel of kin char
+
+    tMatrix origin_trans =
+        sim_char.BuildOriginTrans(); // convert all points in sim char world
+                                     // frame into sim char root local frame
+    tMatrix kin_origin_trans =
+        kin_char.BuildOriginTrans(); // convert all points in kin char world
+                                     // frame into kinchar root local frame
+
+    tVector com0_world =
+        sim_char.CalcCOM(); // calculate current sim char COM in world frame
+    tVector com_vel0_world =
+        sim_char
+            .CalcCOMVel(); // calculate current sim char COM vel in world frame
+
+    tVector com1_world;
+    tVector com_vel1_world;
+    cRBDUtil::CalcCoM(
+        joint_mat, body_defs, pose1, vel1, com1_world,
+        com_vel1_world); // calculate kin char COM and COM vel in world frame
+
+    int root_id = sim_char.GetRootID();
+    tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
+    tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
+    tQuaternion root_rot0 = cKinTree::GetRootRot(joint_mat, pose0);
+    tQuaternion root_rot1 = cKinTree::GetRootRot(joint_mat, pose1);
+    tVector root_vel0 = cKinTree::GetRootVel(joint_mat, vel0);
+    tVector root_vel1 = cKinTree::GetRootVel(joint_mat, vel1);
+    tVector root_ang_vel0 = cKinTree::GetRootAngVel(joint_mat, vel0);
+    tVector root_ang_vel1 = cKinTree::GetRootAngVel(joint_mat, vel1);
+
+    double pose_err = 0;
+    double vel_err = 0;
+    double end_eff_err = 0;
+    double root_err = 0;
+    double com_err = 0;
+    double heading_err = 0;
+
+    int num_end_effs = 0;
+    int num_joints = sim_char.GetNumJoints();
+    assert(num_joints == mJointWeights.size());
+
+    double root_rot_w = mJointWeights[root_id];
+    // 计算root朝向错误
+    pose_err += root_rot_w *
+                cKinTree::CalcRootRotErr(joint_mat, pose0,
+                                         pose1); // pow(diff_rot_rot_theta, 2)
+    vel_err += root_rot_w * cKinTree::CalcRootAngVelErr(joint_mat, vel0, vel1);
+    std::vector<double> joint_angle_err, joint_vel_err;
+    for (int j = root_id + 1; j < num_joints; ++j)
+    {
+        // ROOT is not included in this part of code.
+        double w = mJointWeights[j];
+        double curr_pose_err = cKinTree::CalcPoseErr(
+            joint_mat, j, pose0, pose1); // calculate the joint angle diff
+        double curr_vel_err = cKinTree::CalcVelErr(
+            joint_mat, j, vel0, vel1); // calculate the joint vel diff
+        joint_angle_err.push_back(curr_pose_err);
+        joint_vel_err.push_back(curr_vel_err);
+
+        // add joint angle diff and joint vel diff to pose_err and vel_err
+        pose_err += w * curr_pose_err;
+        vel_err += w * curr_vel_err;
+
+        // if end effector
+        bool is_end_eff = sim_char.IsEndEffector(j);
+        if (is_end_eff)
+        {
+            // calculate the ref end effector pos(pos0) and true end
+            // effector pos(pos1) in both world frame according to mPose
+            // and mkinchar.getPose()
+            tVector pos0 = sim_char.CalcJointPos(j);
+            tVector pos1 = cKinTree::CalcJointWorldPos(joint_mat, pose1, j);
+
+            // ground_h0: get the height of ground. It is zero here.
+            // ground_h1: get the origin's y component. It should be
+            // zero as well in this case
+            double ground_h0 = mGround->SampleHeight(pos0);
+            double ground_h1 = kin_char.GetOriginPos()[1];
+
+            // calculate the relative position of end effector for sim
+            // char with respect to root position, then minus ground
+            // height calculate the relative position of end effector
+            // for kin char with respect to root position, then minus
+            // ground height
+            tVector pos_rel0 = pos0 - root_pos0;
+            tVector pos_rel1 = pos1 - root_pos1;
+            pos_rel0[1] = pos0[1] - ground_h0;
+            pos_rel1[1] = pos1[1] - ground_h1;
+
+            // represented them in both root joint local frame:
+            pos_rel0 = origin_trans * pos_rel0;
+            pos_rel1 = kin_origin_trans * pos_rel1;
+
+            // calculate the end effector diff
+            double curr_end_err = (pos_rel1 - pos_rel0).squaredNorm();
+            end_eff_err += curr_end_err;
+            ++num_end_effs;
+
+            /* summary:
+                    This portion of code, calculate the ideal relative
+               position of end effector with respect to ideal root pos
+               for sim char and its corrosponding vector for kin char.
+                    Then compare them as an error.
+            */
+        }
+    }
+    //    std::cout << "======================================\n";
+
+    if (num_end_effs > 0)
+    {
+        end_eff_err /= num_end_effs;
+    }
+
+    // sim char，应该是simulation的角色(实际)
+    // kin char，应该是从motion中读进来的角色(理想)
+    double root_ground_h0 = mGround->SampleHeight(sim_char.GetRootPos());
+    double root_ground_h1 = kin_char.GetOriginPos()[1];
+    root_pos0[1] -= root_ground_h0;
+    root_pos1[1] -= root_ground_h1;
+    double root_pos_err = (root_pos0 - root_pos1).squaredNorm();
+    double root_rot_err = cMathUtil::QuatDiffTheta(root_rot0, root_rot1);
+    root_rot_err *= root_rot_err;
+
+    double root_vel_err = (root_vel1 - root_vel0).squaredNorm();
+    double root_ang_vel_err = (root_ang_vel1 - root_ang_vel0).squaredNorm();
+
+    // root位置误差, 旋转误差(0.1),
+    // 速度误差(1e-2)，角速度误差(1e-3)，合称为root_err
+    root_err = RewParams.root_pos_w * root_pos_err +
+               RewParams.root_rot_w * root_rot_err +
+               RewParams.root_vel_w * root_vel_err +
+               RewParams.root_angle_vel_w * root_ang_vel_err;
+    com_err = 0.1 * (com_vel1_world - com_vel0_world).squaredNorm();
+
+    double pose_reward = exp(-err_scale * pose_scale *
+                             pose_err); // 各个joint的朝向 (实际 - 理想)^2
+    double vel_reward =
+        exp(-err_scale * vel_scale * vel_err); // joints的速度(实际 - 理想)^2
+    double end_eff_reward =
+        exp(-err_scale * end_eff_scale * end_eff_err); // end_effector位置误差^2
+    double root_reward = exp(
+        -err_scale * root_scale *
+        root_err); // root
+                   // joint的(位置误差+0.1线速度误差+0.01朝向误差+0.001角速度)^2
+    double com_reward = exp(
+        -err_scale * com_scale *
+        com_err); // 0.1 * (质心速度误差)^2
+                  //    std::cout << "===================================\n";
+                  //    std::cout << "pose_reward:    " << pose_reward << "\n"
+                  //              << "vel_reward:     " << vel_reward << "\n"
+                  //              << "end_eff_reward: " << end_eff_reward <<
+                  //              "\n"
+                  //              << "root_reward:    " << root_reward << "\n"
+                  //              << "com_reward:     " << com_reward << "\n";
+                  //    std::cout << "===================================\n";
+
+    /*
+    double pose_w = 0.5;
+    double vel_w = 0.05;
+    double end_eff_w = 0.15;
+    double root_w = 0.2;
+    double com_w = 0.1;
+*/
+    reward = pose_w * pose_reward + vel_w * vel_reward +
+             end_eff_w * end_eff_reward + root_w * root_reward +
+             com_w * com_reward;
+    // fout << "pose reward = " << pose_reward << " ";
+    // fout << "vel reward = " << vel_reward << " ";
+    // fout << "end eff reward = " << end_eff_reward << " ";
+    /*
+                    root_pos_err
+                    + RewParams.root_rot_w * root_rot_err
+                    + RewParams.root_vel_w * root_vel_err
+                    + RewParams.root_angle_vel_w * root_ang_vel_err;
+    */
+    // fout << "root pos err = " << root_pos_err << " ";
+    // fout << "root rot err = " << root_rot_err << " ";
+    // fout << "root vel err = " << root_vel_err << " ";
+    // fout << "root ang vel err = " << root_ang_vel_err << " ";
+    // fout << "root reward = " << root_reward << " ";
+
+    // fout << "com reward = " << com_reward << " ";
+    // fout << "final reward = " << reward << " ";
+    // fout << std::endl;
+    return reward;
+}
+
+/**
+ * \brief               Calculate reward for generalized character
+ */
+double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
+                                           const cKinCharacter &kin_char) const
+{
+    double pose_w = RewParams.pose_w;
+    double vel_w = RewParams.vel_w;
+    double end_eff_w = RewParams.end_eff_w;
+    double root_w = RewParams.root_w;
+    double com_w = RewParams.com_w;
+
+    double total_w = pose_w + vel_w + end_eff_w + root_w + com_w;
+    pose_w /= total_w;
+    vel_w /= total_w;
+    end_eff_w /= total_w;
+    root_w /= total_w;
+    com_w /= total_w;
+
+    const double pose_scale = RewParams.pose_scale;
+    const double vel_scale = RewParams.vel_scale;
+    const double end_eff_scale = RewParams.end_eff_scale;
+    const double root_scale = RewParams.root_scale;
+    const double com_scale = RewParams.com_scale;
+    const double err_scale = RewParams.err_scale; // an uniform adjustment
+
+    const auto &joint_mat = sim_char.GetJointMat();
+    const auto &body_defs = sim_char.GetBodyDefs();
+    // const auto &body_defs = kin_char.GetBodyDefs();
+    double reward = 0;
+
+    // sim_char: simulation character
+    // kin_char: the representation of motion data
+    const Eigen::VectorXd &pose0 = sim_char.GetPose();
+    const Eigen::VectorXd &vel0 = sim_char.GetVel();
+    const Eigen::VectorXd &pose1 = kin_char.GetPose();
+    const Eigen::VectorXd &vel1 = kin_char.GetVel(); // get the vel of kin char
+
+    tMatrix origin_trans =
+        sim_char.BuildOriginTrans(); // convert all points in sim char world
+                                     // frame into sim char root local frame
+    tMatrix kin_origin_trans =
+        kin_char.BuildOriginTrans(); // convert all points in kin char world
+                                     // frame into kinchar root local frame
+
+    tVector com0_world =
+        sim_char.CalcCOM(); // calculate current sim char COM in world frame
+    tVector com_vel0_world =
+        sim_char
+            .CalcCOMVel(); // calculate current sim char COM vel in world frame
+
+    tVector com1_world;
+    tVector com_vel1_world;
+
+    // calculate the kin char com and com_velI
+    CalcKinCharCOMAndCOMVelByGenChar(&sim_char, pose1, vel1, com1_world,
+                                     com_vel1_world);
+    // std::cout << "sim char com = " << com0_world.transpose() << std::endl;
+    // std::cout << "sim char com_vel = " << com_vel0_world.transpose()
+    //           << std::endl;
+    // std::cout << "kin char com = " << com1_world.transpose() << std::endl;
+    // std::cout << "kin char com_vel = " << com_vel1_world.transpose()
+    //           << std::endl;
+    int root_id = sim_char.GetRootID();
+    tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
+    tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
+    tQuaternion root_rot0 = cKinTree::GetRootRot(joint_mat, pose0);
+    tQuaternion root_rot1 = cKinTree::GetRootRot(joint_mat, pose1);
+    tVector root_vel0 = cKinTree::GetRootVel(joint_mat, vel0);
+    tVector root_vel1 = cKinTree::GetRootVel(joint_mat, vel1);
+    tVector root_ang_vel0 = cKinTree::GetRootAngVel(joint_mat, vel0);
+    tVector root_ang_vel1 = cKinTree::GetRootAngVel(joint_mat, vel1);
+
+    double pose_err = 0;
+    double vel_err = 0;
+    double end_eff_err = 0;
+    double root_err = 0;
+    double com_err = 0;
+    double heading_err = 0;
+
+    int num_end_effs = 0;
+    int num_joints = sim_char.GetNumJoints();
+    assert(num_joints == mJointWeights.size());
+
+    double root_rot_w = mJointWeights[root_id];
+    // 计算root朝向错误
+    pose_err += root_rot_w *
+                cKinTree::CalcRootRotErr(joint_mat, pose0,
+                                         pose1); // pow(diff_rot_rot_theta, 2)
+    vel_err += root_rot_w * cKinTree::CalcRootAngVelErr(joint_mat, vel0, vel1);
+    std::vector<double> joint_angle_err, joint_vel_err;
+    for (int j = root_id + 1; j < num_joints; ++j)
+    {
+        // ROOT is not included in this part of code.
+        double w = mJointWeights[j];
+        double curr_pose_err = cKinTree::CalcPoseErr(
+            joint_mat, j, pose0, pose1); // calculate the joint angle diff
+        double curr_vel_err = cKinTree::CalcVelErr(
+            joint_mat, j, vel0, vel1); // calculate the joint vel diff
+        joint_angle_err.push_back(curr_pose_err);
+        joint_vel_err.push_back(curr_vel_err);
+
+        // add joint angle diff and joint vel diff to pose_err and vel_err
+        pose_err += w * curr_pose_err;
+        vel_err += w * curr_vel_err;
+
+        // if end effector
+        bool is_end_eff = sim_char.IsEndEffector(j);
+        if (is_end_eff)
+        {
+            // calculate the ref end effector pos(pos0) and true end
+            // effector pos(pos1) in both world frame according to mPose
+            // and mkinchar.getPose()
+            tVector pos0 = sim_char.CalcJointPos(j);
+            tVector pos1 = cKinTree::CalcJointWorldPos(joint_mat, pose1, j);
+
+            // ground_h0: get the height of ground. It is zero here.
+            // ground_h1: get the origin's y component. It should be
+            // zero as well in this case
+            double ground_h0 = mGround->SampleHeight(pos0);
+            double ground_h1 = kin_char.GetOriginPos()[1];
+
+            // calculate the relative position of end effector for sim
+            // char with respect to root position, then minus ground
+            // height calculate the relative position of end effector
+            // for kin char with respect to root position, then minus
+            // ground height
+            tVector pos_rel0 = pos0 - root_pos0;
+            tVector pos_rel1 = pos1 - root_pos1;
+            pos_rel0[1] = pos0[1] - ground_h0;
+            pos_rel1[1] = pos1[1] - ground_h1;
+
+            // represented them in both root joint local frame:
+            pos_rel0 = origin_trans * pos_rel0;
+            pos_rel1 = kin_origin_trans * pos_rel1;
+
+            // calculate the end effector diff
+            double curr_end_err = (pos_rel1 - pos_rel0).squaredNorm();
+            end_eff_err += curr_end_err;
+            ++num_end_effs;
+
+            /* summary:
+                    This portion of code, calculate the ideal relative
+               position of end effector with respect to ideal root pos
+               for sim char and its corrosponding vector for kin char.
+                    Then compare them as an error.
+            */
+        }
+    }
+    //    std::cout << "======================================\n";
+
+    if (num_end_effs > 0)
+    {
+        end_eff_err /= num_end_effs;
+    }
+
+    // sim char，应该是simulation的角色(实际)
+    // kin char，应该是从motion中读进来的角色(理想)
+    double root_ground_h0 = mGround->SampleHeight(sim_char.GetRootPos());
+    double root_ground_h1 = kin_char.GetOriginPos()[1];
+    root_pos0[1] -= root_ground_h0;
+    root_pos1[1] -= root_ground_h1;
+    double root_pos_err = (root_pos0 - root_pos1).squaredNorm();
+    double root_rot_err = cMathUtil::QuatDiffTheta(root_rot0, root_rot1);
+    root_rot_err *= root_rot_err;
+
+    double root_vel_err = (root_vel1 - root_vel0).squaredNorm();
+    double root_ang_vel_err = (root_ang_vel1 - root_ang_vel0).squaredNorm();
+
+    // root位置误差, 旋转误差(0.1),
+    // 速度误差(1e-2)，角速度误差(1e-3)，合称为root_err
+    root_err = RewParams.root_pos_w * root_pos_err +
+               RewParams.root_rot_w * root_rot_err +
+               RewParams.root_vel_w * root_vel_err +
+               RewParams.root_angle_vel_w * root_ang_vel_err;
+    com_err = 0.1 * (com_vel1_world - com_vel0_world).squaredNorm();
+
+    double pose_reward = exp(-err_scale * pose_scale *
+                             pose_err); // 各个joint的朝向 (实际 - 理想)^2
+    double vel_reward =
+        exp(-err_scale * vel_scale * vel_err); // joints的速度(实际 - 理想)^2
+    double end_eff_reward =
+        exp(-err_scale * end_eff_scale * end_eff_err); // end_effector位置误差^2
+    double root_reward = exp(
+        -err_scale * root_scale *
+        root_err); // root
+                   // joint的(位置误差+0.1线速度误差+0.01朝向误差+0.001角速度)^2
+    double com_reward = exp(-err_scale * com_scale * com_err);
+    reward = pose_w * pose_reward + vel_w * vel_reward +
+             end_eff_w * end_eff_reward + root_w * root_reward +
+             com_w * com_reward;
+    return reward;
+}
+
+void cSceneImitate::CalcKinCharCOMAndCOMVelByGenChar(
+    cSimCharacterGen *sim_char, const tVectorXd &pose, const tVectorXd &vel,
+    tVector &com_world, tVector &com_vel_world) const
+{
+    sim_char->CalcCOMAndCOMVel(pose, vel, com_world, com_vel_world);
 }

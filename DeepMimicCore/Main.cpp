@@ -22,7 +22,7 @@ std::unique_ptr<cTextureDesc> gDefaultFrameBuffer;
 const double gFPS = 60.0;
 const double gAnimStep = 1.0 / gFPS;
 const int gDisplayAnimTime = static_cast<int>(1000 * gAnimStep);
-bool gAnimating = true;
+extern bool gAnimating;
 
 int gSampleCount = 0;
 
@@ -155,7 +155,7 @@ void UpdateFrameBuffer()
     }
 }
 
-tVectorXd global_action = tVectorXd::Zero(0);
+extern tVectorXd global_action;
 void Update(double time_elapsed)
 {
     int num_substeps = gCore->GetNumUpdateSubsteps(); // the simulation substeps
@@ -171,8 +171,9 @@ void Update(double time_elapsed)
             {
                 auto s = gCore->RecordState(id);
                 auto g = gCore->RecordGoal(id);
-                // double r = gCore->CalcReward(id);
-                // std::cout <<"main get reward = " << r << std::endl;
+                double r = gCore->CalcReward(id);
+                MIMIC_INFO("current reward {}", r);
+                // std::cout << "main get reward = " << r << std::endl;
                 // std::cout <<"state = ";
                 // for(auto x : s) std::cout << x <<" ";
                 // std::cout << std::endl;
@@ -181,6 +182,8 @@ void Update(double time_elapsed)
                 if (global_action.size() == 0)
                 {
                     global_action = tVectorXd::Zero(gCore->GetActionSize(id));
+                    // global_action.segment(global_action.size() - 4, 4)
+                    //     .setRandom();
                     // global_action =
                     // tVectorXd::Random(gCore->GetActionSize(id));
                 }

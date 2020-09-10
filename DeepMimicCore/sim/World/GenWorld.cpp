@@ -27,7 +27,7 @@ cGenWorld::cGenWorld() : cWorldBase(eWorldType::GENERALIZED_WORLD)
     mbtDynamicsWorldInternal = nullptr;
 }
 
-cGenWorld::~cGenWorld() {}
+cGenWorld::~cGenWorld() { delete mbtGenWorld; }
 
 void cGenWorld::Init(const tParams &params)
 {
@@ -438,5 +438,5 @@ btDynamicsWorld *cGenWorld::GetInternalWorld()
 
 std::vector<btGenContactForce *> cGenWorld::GetContactInfo() const
 {
-    return mbtGenWorld->GetContactInfo();
+    return mbtGenWorld->GetContactForces();
 }

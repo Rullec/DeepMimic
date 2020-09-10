@@ -220,10 +220,14 @@ class RLAgent(ABC):
         if self.need_new_action():
             self._update_new_action()
 
+        # print(f"rl agent mode {self._mode} enable training {self.enable_training}")
         # print(self._mode)
+        # print(f"")
+        # print(f"timestep {timestep}")
         if (self._mode == self.Mode.TRAIN and self.enable_training):
             self._update_counter += timestep
 
+            # print(f"update counter {self._update_counter}, timestep {timestep}")
             # 超参数update_period:
             # 每隔一段时间就进行一次训练，其余时间啥也不干
             while self._update_counter >= self.update_period:
@@ -433,6 +437,7 @@ class RLAgent(ABC):
 
     def _record_reward(self):
         r = self.world.env.calc_reward(self.id)
+        # print(f"reward {r}")
         return r
 
     # def _record_contact_info(self):
@@ -577,6 +582,9 @@ class RLAgent(ABC):
         return
 
     def _update_mode_test(self):
+
+        # if the test_episode is bigger 
+        print(f"count {self.test_episode_count} test episodes {self.test_episodes}")
         if (self.test_episode_count * MPIUtil.get_num_procs() >= self.test_episodes):
             global_return = MPIUtil.reduce_sum(self.test_return)
             global_count = MPIUtil.reduce_sum(self.test_episode_count)
@@ -802,6 +810,7 @@ class RLAgent(ABC):
                     if (self._enable_output() and curr_iter % self.int_output_iters == 0):
                         self.logger.dump_tabular()
 
+                # test per self.int_output_iters
                 if (prev_iter // self.int_output_iters != self.iter // self.int_output_iters):
                     end_training = self.enable_testing()
 

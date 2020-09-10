@@ -146,4 +146,5 @@ protected:
     virtual void ReadContactInfo();
     virtual void ReadContactInfoGen();
     virtual void ReadContactInfoRaw();
+    virtual void VerifyDynamicsEquation();
 };
