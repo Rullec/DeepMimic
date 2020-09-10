@@ -9,7 +9,7 @@
 #include "util/LogUtil.h"
 #include <iostream>
 
-static std::string pd_log = "pd_log.txt";
+// static std::string pd_log = "pd_log.txt";
 cCtPDGenController::cCtPDGenController()
 {
     mGravity.setZero();
@@ -19,7 +19,7 @@ cCtPDGenController::cCtPDGenController()
     mGuidedTrajFile = "";
     mInternalFrameId = 0;
     mLoadInfo = nullptr;
-    cFileUtil::ClearFile(pd_log);
+    // cFileUtil::ClearFile(pd_log);
 }
 cCtPDGenController::~cCtPDGenController()
 {
@@ -199,12 +199,12 @@ void cCtPDGenController::UpdateBuildTau(double time_step,
 void cCtPDGenController::UpdateBuildTauPD(double dt, Eigen::VectorXd &out_tau)
 {
 
-    std::ofstream fout(pd_log, std::ios::app);
+    // std::ofstream fout(pd_log, std::ios::app);
     tVectorXd target_q, target_qdot;
-    fout << "---------------------\n";
+    // fout << "---------------------\n";
     mPDGenController->GetPDTarget_q(target_q, target_qdot);
-    fout << "target q = " << target_q.transpose() << std::endl;
-    fout << "target qdot = " << target_qdot.transpose() << std::endl;
+    // fout << "target q = " << target_q.transpose() << std::endl;
+    // fout << "target qdot = " << target_qdot.transpose() << std::endl;
 
     // 1. Inverse dynamics to control the next pose
     /*
@@ -235,9 +235,9 @@ void cCtPDGenController::UpdateBuildTauPD(double dt, Eigen::VectorXd &out_tau)
     {
         auto gen_char = static_cast<cSimCharacterGen *>(mChar);
         UpdatePDCtrls(dt, out_tau);
-        fout << "cur q = " << gen_char->Getq().transpose() << std::endl;
-        fout << "cur qdot = " << gen_char->Getqdot().transpose() << std::endl;
-        fout << "ctrl tau = " << out_tau.transpose() << std::endl;
+        // fout << "cur q = " << gen_char->Getq().transpose() << std::endl;
+        // fout << "cur qdot = " << gen_char->Getqdot().transpose() <<
+        // std::endl; fout << "ctrl tau = " << out_tau.transpose() << std::endl;
     }
 }
 
