@@ -2,15 +2,20 @@ cmake_minimum_required(VERSION 3.5)
 project(DeepMimicCore)
 set(CMAKE_CXX_STANDARD 17)
 
-# ljf
-# set(PYTHON_INC /home/ljf/anaconda3/include/python3.7m)
-# set(PYTHON_LIB /home/ljf/anaconda3/lib/libpython3.7m.so)
-# set(EIGEN_INC /usr/local/include/eigen3)
-# set(BULLTER_INC /usr/local/include/bullet)
-
 # fxd
-set(PYTHON_INC /home/xudong/.conda/envs/spinningup/include/python3.6m)
-set(PYTHON_LIB /home/xudong/.conda/envs/spinningup/lib -lpython3.6m)
+execute_process(
+  COMMAND python -c "from distutils.sysconfig import get_python_inc;print(get_python_inc())"
+  OUTPUT_VARIABLE PYTHON_INC
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process(
+  COMMAND python -c "import distutils.sysconfig as sysconfig;print(sysconfig.get_config_var('LIBDIR'))"
+  OUTPUT_VARIABLE PYTHON_LIB
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+message(STATUS "python inc path: ${PYTHON_INC}")
+message(STATUS "python lib path: ${PYTHON_LIB}") 
+
 set(EIGEN_INC /home/xudong/Projects/include/)
 set(BULLTER_INC /home/xudong/Projects/bullet3/src)
 if(APPLE)
