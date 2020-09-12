@@ -8,6 +8,7 @@ set(CONTROLLER_SRC
     Controller/CtController.cpp
     Controller/CtCtrlUtil.cpp
     Controller/CtPDController.cpp
+    Controller/CtPDFeaController.cpp
     Controller/CtPDGenController.cpp
     Controller/CtrlBuilder.cpp
     Controller/CtVelController.cpp
@@ -26,11 +27,13 @@ set(
     TrajManager/BuildIDSolver.cpp
     TrajManager/DisplayIDSolver.cpp
     TrajManager/IDSolver.cpp
-    TrajManager/InteractiveIDSolver.cpp
+    TrajManager/IDFeaSolver.cpp
+    TrajManager/IDGenSolver.cpp
     TrajManager/OfflineSolveIDSolver.cpp
     TrajManager/OnlineIDSolver.cpp
     TrajManager/SampleIDSolver.cpp    
     TrajManager/TrajRecorder.cpp    
+    TrajManager/Trajectory.cpp    
 )
 
 set(

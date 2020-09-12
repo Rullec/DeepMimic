@@ -688,6 +688,10 @@ const cContactManager::tContactHandle &cSimCharacter::GetContactHandle() const
     return GetRootPart()->GetContactHandle();
 }
 
+bool cSimCharacter::HasFloatingBase() const
+{
+    return mMultiBody->hasFixedBase() == false;
+}
 const void cSimCharacter::GetTotalContactPts(Eigen::VectorXd &out_contact) const
 {
     // for aligned, max 10 contact point
@@ -771,6 +775,15 @@ void cSimCharacter::EnableController(bool enable)
     {
         mController->SetActive(enable);
     }
+}
+
+void cSimCharacter::ApplyLinkForce(int link_id, const tVector &force)
+{
+    GetBodyPart(link_id)->ApplyForce(force);
+}
+void cSimCharacter::ApplyLinkTorque(int link_id, const tVector &torque)
+{
+    GetBodyPart(link_id)->ApplyTorque(torque);
 }
 
 void cSimCharacter::ApplyForce(const tVector &force)

@@ -1,6 +1,6 @@
 #include "sim/Controller/CtrlBuilder.h"
 #include "sim/Controller/CtController.h"
-#include "sim/Controller/CtPDController.h"
+#include "sim/Controller/CtPDFeaController.h"
 #include "sim/Controller/CtPDGenController.h"
 #include "sim/Controller/CtVelController.h"
 #include "util/LogUtil.h"
@@ -98,8 +98,8 @@ bool cCtrlBuilder::BuildCtPDController(
     const tCtrlParams &params, std::shared_ptr<cCharController> &out_ctrl)
 {
     bool succ = true;
-    std::shared_ptr<cCtPDController> ctrl =
-        std::shared_ptr<cCtPDController>(new cCtPDController());
+    std::shared_ptr<cCtPDFeaController> ctrl =
+        std::shared_ptr<cCtPDFeaController>(new cCtPDFeaController());
     ctrl->SetGravity(params.mGravity);
     ctrl->Init(params.mChar.get(), params.mCtrlFile);
 

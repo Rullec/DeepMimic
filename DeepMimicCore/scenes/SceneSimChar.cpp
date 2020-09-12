@@ -5,7 +5,7 @@
 #include "sim/SimItems/SimBox.h"
 #include "sim/SimItems/SimCharacter.h"
 #include "sim/SimItems/SimCharacterGen.h"
-#include "sim/TrajManager/BuildIDSolver.hpp"
+#include "sim/TrajManager/BuildIDSolver.h"
 #include "sim/TrajManager/TrajRecorder.h"
 #include "sim/World/GroundBuilder.h"
 #include "sim/World/GroundPlane.h"
@@ -414,7 +414,7 @@ void cSceneSimChar::OutputGround(const std::string &out_file) const
 
 std::string cSceneSimChar::GetName() const { return "Sim Character"; }
 
-#include "sim/Controller/CtPDController.h"
+#include "sim/Controller/CtPDFeaController.h"
 bool cSceneSimChar::BuildCharacters()
 {
     /*
@@ -469,9 +469,8 @@ bool cSceneSimChar::BuildCharacters()
                         std::dynamic_pointer_cast<cCtPDController>(ctrl);
                     if (ct_pd_controller != nullptr)
                     {
-                        ct_pd_controller->GetImpPDController()
-                            .SetEnableSolvePDTargetTest(
-                                mEnablePDTargetSolveTest);
+                        ct_pd_controller->SetEnableSolvePDTargetTest(
+                            mEnablePDTargetSolveTest);
                         MIMIC_WARN("set EnablePDTargetSolveTest = {}",
                                    std::to_string(mEnablePDTargetSolveTest));
                     }

@@ -1,7 +1,7 @@
 #include "CtVelController.h"
 #include "sim/SimItems/SimCharacter.h"
 
-cCtVelController::cCtVelController() : cCtPDController() {}
+cCtVelController::cCtVelController() : cCtPDFeaController() {}
 
 cCtVelController::~cCtVelController() {}
 
@@ -10,7 +10,7 @@ std::string cCtVelController::GetName() const { return "ct_vel"; }
 void cCtVelController::SetupPDControllers(const Json::Value &json,
                                           const tVector &gravity)
 {
-    cCtPDController::SetupPDControllers(json, gravity);
+    cCtPDFeaController::SetupPDControllers(json, gravity);
 
     int num_joints = mPDCtrl.GetNumJoints();
     for (int j = 0; j < num_joints; ++j)

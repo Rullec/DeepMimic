@@ -1,9 +1,10 @@
-#include "SampleIDSolver.hpp"
+#include "SampleIDSolver.h"
 #include "scenes/SceneImitate.h"
 #include "sim/Controller/CtPDController.h"
 #include "sim/SimItems/SimCharacter.h"
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
+#include "util/LogUtil.h"
 #include "util/TimeUtil.hpp"
 // #ifdef __APPLE__
 // #include <mpi.h>
@@ -14,18 +15,17 @@
 #include <iostream>
 // #define SHOW_SAMPLE_COST
 
-extern std::string controller_details_path;
+// extern std::string controller_details_path;
 cSampleIDSolver::cSampleIDSolver(cSceneImitate *imitate_scene,
                                  const std::string &config)
-    : cInteractiveIDSolver(imitate_scene, eIDSolverType::Display, config)
+    : cIDSolver(imitate_scene, eIDSolverType::Display)
 {
-    mLogger = cLogUtil::CreateLogger("SampleIDSolver");
-    controller_details_path =
-        "logs/controller_logs/controller_details_sample.txt";
+    // controller_details_path =
+    //     "logs/controller_logs/controller_details_sample.txt";
     mEnableIDTest = false;
     mClearOldData = false;
-    mRecordThetaDist = false;
-    mEnableSyncThetaDist = false;
+    // mRecordThetaDist = false;
+    // mEnableSyncThetaDist = false;
     Parseconfig(config);
 
     // 1. MPI init. We need to check initialized if we call this program \
@@ -64,7 +64,7 @@ void cSampleIDSolver::PreSim()
     cTimeUtil::BeginLazy("sample_one_epoch");
 #endif
 
-    mInverseModel->clearAllUserForcesAndMoments();
+    ClearID();
     const int &cur_frame = mSaveInfo.mCurFrameId;
     // if(0 == cur_frame)
     // {
@@ -82,11 +82,11 @@ void cSampleIDSolver::PreSim()
 
     RecordJointForces(mSaveInfo.mTruthJointForces[cur_frame]);
     RecordAction(mSaveInfo.mTruthAction[cur_frame]);
-    if (mRecordThetaDist == true)
-    {
-        RecordActionThetaDist(mSaveInfo.mTruthAction[cur_frame],
-                              mCharController->GetPhase(), mActionThetaDist);
-    }
+    // if (mRecordThetaDist == true)
+    // {
+    //     RecordActionThetaDist(mSaveInfo.mTruthAction[cur_frame],
+    //                           mCharController->GetPhase(), mActionThetaDist);
+    // }
     RecordPDTarget(mSaveInfo.mTruthPDTarget[cur_frame]);
 
     // for(auto & x : mSaveInfo.mTruthJointForces[cur_frame]) std::cout <<
@@ -181,8 +181,7 @@ void cSampleIDSolver::PostSim()
     // std::cout << "Pose3 = " << mSimChar->GetPose().transpose() << std::endl;
     // record contact forces
     RecordContactForces(mSaveInfo.mContactForces[cur_frame - 1],
-                        mSaveInfo.mTimesteps[cur_frame - 1],
-                        mWorldId2InverseId);
+                        mSaveInfo.mTimesteps[cur_frame - 1]);
     // std::cout << "Pose4 = " << mSimChar->GetPose().transpose() << std::endl;
     // record multibody info
     RecordMultibodyInfo(
@@ -428,12 +427,11 @@ void cSampleIDSolver::Reset()
         mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId - 1] * mSaveInfo.mCurFrameId;
     a.frame_num = mSaveInfo.mCurFrameId;
 
-    a.sample_traj_filename = SaveTraj(mSaveInfo, mSampleInfo.mSampleTrajsDir,
-                                      mSampleInfo.mSampleTrajsRootName);
-    mLogger->info("Sampling: save trajs to {} succ, {}/{}",
-                  a.sample_traj_filename, mSummaryTable.mTotalEpochNum + 1,
-                  mSampleInfo.mSampleEpoches);
-    ;
+    a.sample_traj_filename = mSaveInfo.SaveTraj(
+        mSampleInfo.mSampleTrajsDir, mSampleInfo.mSampleTrajsRootName,
+        mSampleInfo.mSampleTrajVer);
+    MIMIC_INFO("Sampling: save trajs to {} succ, {}/{}", a.sample_traj_filename,
+               mSummaryTable.mTotalEpochNum + 1, mSampleInfo.mSampleEpoches);
 
     // // test code
     // {
@@ -465,71 +463,74 @@ void cSampleIDSolver::Reset()
         int world_size = cMPIUtil::GetCommSize();
 
         int world_rank = cMPIUtil::GetWorldRank();
-        mLogger->info("SampleIDSolver rank {}/{} sampled {} epoches done",
-                      world_rank, world_size, mSummaryTable.mTotalEpochNum);
+        MIMIC_INFO("SampleIDSolver rank {}/{} sampled {} epoches done",
+                   world_rank, world_size, mSummaryTable.mTotalEpochNum);
         cMPIUtil::SetBarrier();
 
         // then if possible, write down the theta distribution file
-        if (mRecordThetaDist == true)
-        {
-            mActionThetaDist /= mSummaryTable.mTotalEpochNum;
+        // if (mRecordThetaDist == true)
+        // {
+        //     mActionThetaDist /= mSummaryTable.mTotalEpochNum;
 
-            // if the sync option was turned off
-            if (mEnableSyncThetaDist == false)
-            {
-                if (world_rank == 0)
-                    SaveActionThetaDist(mSummaryTable.mActionThetaDistFile,
-                                        mActionThetaDist);
-                else
-                    SaveActionThetaDist(mSummaryTable.mActionThetaDistFile +
-                                            "." + std::to_string(world_rank),
-                                        mActionThetaDist);
-            }
-            else
-            {
-                // sync between processes by MPI
-                int h = mActionThetaDist.rows(), w = mActionThetaDist.cols();
-                // MPI_Status status;
-                if (world_rank == 0)
-                {
-                    Eigen::MatrixXd others_give_me_mat =
-                        Eigen::MatrixXd::Zero(h, w);
-                    for (int j = 1; j < world_size; j++)
-                    {
-                        others_give_me_mat.data();
-                        // MPI_Recv(others_give_me_mat.data(), h * w,
-                        // MPI_DOUBLE,
-                        //          j, 0, MPI_COMM_WORLD, &status);
-                        cMPIUtil::GetDoubleData(others_give_me_mat.data(),
-                                                h * w, j, 0);
-                        mActionThetaDist += others_give_me_mat;
-                        // std::cout <<"receve from " << j <<" \n" <<
-                        // others_give_me_mat << std::endl;
-                    }
-                    // std::cout <<"0 get \n" << my_mat << std::endl;
-                }
-                else
-                {
-                    // MPI_Send(&my_float, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-                    // MPI_Send(mActionThetaDist.data(), h * w, MPI_DOUBLE, 0,
-                    // 0,
-                    //          MPI_COMM_WORLD);
+        //     // if the sync option was turned off
+        //     if (mEnableSyncThetaDist == false)
+        //     {
+        //         if (world_rank == 0)
+        //             SaveActionThetaDist(mSummaryTable.mActionThetaDistFile,
+        //                                 mActionThetaDist);
+        //         else
+        //             SaveActionThetaDist(mSummaryTable.mActionThetaDistFile +
+        //                                     "." + std::to_string(world_rank),
+        //                                 mActionThetaDist);
+        //     }
+        //     else
+        //     {
+        //         // sync between processes by MPI
+        //         int h = mActionThetaDist.rows(), w = mActionThetaDist.cols();
+        //         // MPI_Status status;
+        //         if (world_rank == 0)
+        //         {
+        //             Eigen::MatrixXd others_give_me_mat =
+        //                 Eigen::MatrixXd::Zero(h, w);
+        //             for (int j = 1; j < world_size; j++)
+        //             {
+        //                 others_give_me_mat.data();
+        //                 // MPI_Recv(others_give_me_mat.data(), h * w,
+        //                 // MPI_DOUBLE,
+        //                 //          j, 0, MPI_COMM_WORLD, &status);
+        //                 cMPIUtil::GetDoubleData(others_give_me_mat.data(),
+        //                                         h * w, j, 0);
+        //                 mActionThetaDist += others_give_me_mat;
+        //                 // std::cout <<"receve from " << j <<" \n" <<
+        //                 // others_give_me_mat << std::endl;
+        //             }
+        //             // std::cout <<"0 get \n" << my_mat << std::endl;
+        //         }
+        //         else
+        //         {
+        //             // MPI_Send(&my_float, 1, MPI_DOUBLE, 0, 0,
+        //             MPI_COMM_WORLD);
+        //             // MPI_Send(mActionThetaDist.data(), h * w, MPI_DOUBLE,
+        //             0,
+        //             // 0,
+        //             //          MPI_COMM_WORLD);
 
-                    cMPIUtil::SendDoubleData(mActionThetaDist.data(), h * w, 0,
-                                             0);
-                    // std::cout << world_rank << " sends \n" << my_mat <<
-                    // std::endl;
-                }
-                cMPIUtil::SetBarrier();
-                // only save this theta dist in process 0
-                if (world_rank == 0)
-                {
-                    mActionThetaDist /= world_size;
-                    SaveActionThetaDist(mSummaryTable.mActionThetaDistFile,
-                                        mActionThetaDist);
-                }
-            }
-        }
+        //             cMPIUtil::SendDoubleData(mActionThetaDist.data(), h * w,
+        //             0,
+        //                                      0);
+        //             // std::cout << world_rank << " sends \n" << my_mat <<
+        //             // std::endl;
+        //         }
+        //         cMPIUtil::SetBarrier();
+        //         // only save this theta dist in process 0
+        //         if (world_rank == 0)
+        //         {
+        //             mActionThetaDist /= world_size;
+        //             SaveActionThetaDist(mSummaryTable.mActionThetaDistFile,
+        //                                 mActionThetaDist);
+        //         }
+        //     }
+        // }
 
         mSummaryTable.WriteToDisk(mSampleInfo.mSummaryTableFilename);
 
@@ -549,46 +550,43 @@ void cSampleIDSolver::Parseconfig(const std::string &conf)
     Json::Value root;
     cJsonUtil::LoadJson(conf, root);
     auto sample_value = root["SampleModeInfo"];
-    assert(sample_value.isNull() == false);
-    auto &sample_num_json = sample_value["sample_num"];
-    auto &clear_old_data_json = sample_value["clear_old_data"];
-    auto &sample_trajs_dir_json = sample_value["sample_trajs_dir"];
-    auto &sample_root_json = sample_value["sample_trajs_rootname"];
-    auto &summary_table_file = sample_value["summary_table_filename"];
-    assert(sample_num_json.isNull() == false);
-    assert(sample_trajs_dir_json.isNull() == false);
-    assert(sample_root_json.isNull() == false);
-    assert(summary_table_file.isNull() == false);
 
-    if (sample_value["enable_sample_ID_test"].isNull() == false)
-        mEnableIDTest = sample_value["enable_sample_ID_test"].asBool();
-    if (sample_value["clear_old_data"].isNull() == false)
-        mClearOldData = sample_value["clear_old_data"].asBool();
-    if (sample_value["record_theta_distribution"].isNull() == false)
-        mRecordThetaDist = sample_value["record_theta_distribution"].asBool();
-    if (sample_value["enable_sync_theta_dist"].isNull() == false)
-        mEnableSyncThetaDist = sample_value["enable_sync_theta_dist"].asBool();
+    mEnableIDTest =
+        cJsonUtil::ParseAsBool("enable_sample_ID_test", sample_value);
+    mClearOldData = cJsonUtil::ParseAsBool("clear_old_data", sample_value);
+    // mRecordThetaDist =
+    //     cJsonUtil::ParseAsBool("record_theta_distribution", sample_value);
+    // mEnableSyncThetaDist =
+    //     cJsonUtil::ParseAsBool("enable_sync_theta_dist", sample_value);
+    mSampleInfo.mSampleEpoches =
+        cJsonUtil::ParseAsInt("sample_num", sample_value);
+    mSampleInfo.mSampleTrajsDir =
+        cJsonUtil::ParseAsString("sample_trajs_dir", sample_value);
+    mSampleInfo.mSampleTrajsRootName =
+        cJsonUtil::ParseAsString("sample_trajs_rootname", sample_value);
+    mSampleInfo.mSampleTrajVer = CalcTrajVersion(
+        cJsonUtil::ParseAsInt("traj_file_version", sample_value));
 
-    mSampleInfo.mSampleEpoches = sample_num_json.asInt();
-    mSampleInfo.mSampleTrajsDir = sample_trajs_dir_json.asString();
-    mSampleInfo.mSampleTrajsRootName = sample_root_json.asString();
-    mSampleInfo.mSummaryTableFilename = cFileUtil::ConcatFilename(
-        mSampleInfo.mSampleTrajsDir, summary_table_file.asString());
-    if (mRecordThetaDist == true)
-    {
-        mSampleInfo.mActionThetaDistFilename =
-            mSampleInfo.mSampleTrajsDir + "action_theta_dist.txt";
-    }
+    std::string tablename =
+        cJsonUtil::ParseAsString("summary_table_filename", sample_value);
+    mSampleInfo.mSummaryTableFilename =
+        cFileUtil::ConcatFilename(mSampleInfo.mSampleTrajsDir, tablename);
 
-    mLogger->info("Inverse Dynamic plugin running in sample mode");
+    // if (mRecordThetaDist == true)
+    // {
+    //     mSampleInfo.mActionThetaDistFilename =
+    //         mSampleInfo.mSampleTrajsDir + "action_theta_dist.txt";
+    // }
+
+    MIMIC_INFO("Inverse Dynamic plugin running in sample mode");
     mSaveInfo.mMotion = new cMotion();
     InitSampleSummaryTable();
 
-    if (mRecordThetaDist == true)
-    {
-        InitActionThetaDist(mSimChar, mActionThetaDist);
-        mLogger->debug("action theta dist init!");
-    }
+    // if (mRecordThetaDist == true)
+    // {
+    //     InitActionThetaDist(mSimChar, mActionThetaDist);
+    //     MIMIC_DEBUG("action theta dist init!");
+    // }
 }
 
 /**
@@ -602,9 +600,9 @@ void cSampleIDSolver::InitSampleSummaryTable()
 {
     mSummaryTable.mSampleCharFile = mSimChar->GetCharFilename();
     mSummaryTable.mSampleControllerFile = mCharController->GetControllerFile();
-    if (mRecordThetaDist == true)
-        mSummaryTable.mActionThetaDistFile =
-            mSampleInfo.mActionThetaDistFilename;
+    // if (mRecordThetaDist == true)
+    // mSummaryTable.mActionThetaDistFile =
+    //         mSampleInfo.mActionThetaDistFilename;
 
     mSummaryTable.mTotalEpochNum = 0;
     mSummaryTable.mSampleTrajDir = mSampleInfo.mSampleTrajsDir;
@@ -612,76 +610,79 @@ void cSampleIDSolver::InitSampleSummaryTable()
     // mSummaryTable.mTotalLengthFrame = 0;
     mSummaryTable.mEpochInfos.clear();
     mSummaryTable.mTimeStamp = cTimeUtil::GetSystemTime();
-    mLogger->info("InitSampleSummaryTable: set timestamp {}",
-                  mSummaryTable.mTimeStamp);
+    MIMIC_INFO("InitSampleSummaryTable: set timestamp {}",
+               mSummaryTable.mTimeStamp);
 }
 
-/**
- * \brief                           Given the action and cur phase, record the
- * symbol for thetas in action axis angles. \param cur_action current action of
- * char \param phase                     phase, motion reference time. [0,1]
- * \param action_theta_dist_mat     target Action theta distribution matrix. It
- * will be revisied in this func
- */
-void cSampleIDSolver::RecordActionThetaDist(
-    const tVectorXd &cur_action, double phase,
-    tMatrixXd &action_theta_dist_mat) const
-{
-    // std::cout <<"------------------------------\n";
-    auto &multibody = mSimChar->GetMultiBody();
-    int int_phase = static_cast<int>(phase * mActionThetaGranularity);
-    // std::cout <<"phase " << phase <<" to " << int_phase << std::endl;
-    if (int_phase < 0 || int_phase > mActionThetaGranularity)
-    {
-        mLogger->error("RecordActionThetaDist phase %d<-%.3f", int_phase,
-                       phase);
-        exit(0);
-    }
-    int num_of_joints = mSimChar->GetNumJoints();
-    if (action_theta_dist_mat.rows() != num_of_joints ||
-        action_theta_dist_mat.cols() != mActionThetaGranularity)
-    {
-        mLogger->error("RecordActionThetaDist: action theta dist size (%d, %d) "
-                       "!= (%d, %d)",
-                       action_theta_dist_mat.rows(),
-                       action_theta_dist_mat.cols(), num_of_joints,
-                       mActionThetaGranularity);
-        exit(0);
-    }
+// /**
+//  * \brief                           Given the action and cur phase, record
+//  the
+//  * symbol for thetas in action axis angles. \param cur_action current action
+//  of
+//  * char \param phase                     phase, motion reference time. [0,1]
+//  * \param action_theta_dist_mat     target Action theta distribution matrix.
+//  It
+//  * will be revisied in this func
+//  */
+// void cSampleIDSolver::RecordActionThetaDist(
+//     const tVectorXd &cur_action, double phase,
+//     tMatrixXd &action_theta_dist_mat) const
+// {
+//     // std::cout <<"------------------------------\n";
+//     auto &multibody = mSimChar->GetMultiBody();
+//     int int_phase = static_cast<int>(phase * mActionThetaGranularity);
+//     // std::cout <<"phase " << phase <<" to " << int_phase << std::endl;
+//     if (int_phase < 0 || int_phase > mActionThetaGranularity)
+//     {
+//         MIMIC_ERROR("RecordActionThetaDist phase {}<-%.3f", int_phase,
+//         phase); exit(0);
+//     }
+//     int num_of_joints = mSimChar->GetNumJoints();
+//     if (action_theta_dist_mat.rows() != num_of_joints ||
+//         action_theta_dist_mat.cols() != mActionThetaGranularity)
+//     {
+//         MIMIC_ERROR("RecordActionThetaDist: action theta dist size ({}, {}) "
+//                     "!= ({}, {})",
+//                     action_theta_dist_mat.rows(),
+//                     action_theta_dist_mat.cols(), num_of_joints,
+//                     mActionThetaGranularity);
+//         exit(0);
+//     }
 
-    int f_cnt = 0;
-    for (int i = 0; i < multibody->getNumLinks(); i++)
-    {
-        switch (multibody->getLink(i).m_jointType)
-        {
-        case btMultibodyLink::eFeatherstoneJointType::eRevolute:
-            f_cnt += 1;
-            break;
-        case btMultibodyLink::eFeatherstoneJointType::eSpherical:
-        {
-            action_theta_dist_mat(i, int_phase) +=
-                cMathUtil::Sign(cur_action[f_cnt]);
-            if (std::fabs(action_theta_dist_mat(i, int_phase)) > 1e-10 &&
-                cMathUtil::Sign(action_theta_dist_mat(i, int_phase)) !=
-                    cMathUtil::Sign(cur_action[f_cnt]))
-            {
-                // DebugPrintf(mLogger, "action theta dist %.5f, cur_action %.5f",\
-                //     action_theta_dist_mat(i, int_phase), cur_action[f_cnt]);
-                mLogger->warn(
-                    "RecordActionThetaDist frame %d joint %d: cur action sgn "
-                    "%.3f != action_theta_dist %.3f. It may drive the ID "
-                    "solving into errors, expanding mActionThetaGranularity is "
-                    "better for this problem.",
-                    mSaveInfo.mCurFrameId, i,
-                    cMathUtil::Sign(action_theta_dist_mat(i, int_phase)),
-                    cMathUtil::Sign(cur_action[f_cnt]));
-                // exit(0);
-            }
-            f_cnt += 4;
-        }
-        break;
-        default:
-            break;
-        }
-    }
-}
+//     int f_cnt = 0;
+//     for (int i = 0; i < multibody->getNumLinks(); i++)
+//     {
+//         switch (multibody->getLink(i).m_jointType)
+//         {
+//         case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+//             f_cnt += 1;
+//             break;
+//         case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+//         {
+//             action_theta_dist_mat(i, int_phase) +=
+//                 cMathUtil::Sign(cur_action[f_cnt]);
+//             if (std::fabs(action_theta_dist_mat(i, int_phase)) > 1e-10 &&
+//                 cMathUtil::Sign(action_theta_dist_mat(i, int_phase)) !=
+//                     cMathUtil::Sign(cur_action[f_cnt]))
+//             {
+//                 // DebugPrintf(mLogger, "action theta dist %.5f, cur_action
+//                 %.5f",\
+//                 //     action_theta_dist_mat(i, int_phase),
+//                 cur_action[f_cnt]); MIMIC_WARN(
+//                     "RecordActionThetaDist frame {} joint {}: cur action sgn
+//                     "
+//                     "%.3f != action_theta_dist %.3f. It may drive the ID "
+//                     "solving into errors, expanding mActionThetaGranularity
+//                     is " "better for this problem.", mSaveInfo.mCurFrameId,
+//                     i, cMathUtil::Sign(action_theta_dist_mat(i, int_phase)),
+//                     cMathUtil::Sign(cur_action[f_cnt]));
+//                 // exit(0);
+//             }
+//             f_cnt += 4;
+//         }
+//         break;
+//         default:
+//             break;
+//         }
+//     }
+// }

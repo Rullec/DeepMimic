@@ -163,7 +163,7 @@ void cCtPDGenController::BuildActionOffsetScale(
                out_scale.transpose());
 }
 
-const tVectorXd &cCtPDGenController::GetCurAction() { return mCurAction; }
+const tVectorXd &cCtPDGenController::GetCurAction() const { return mCurAction; }
 
 bool cCtPDGenController::ParseParams(const Json::Value &json)
 {
@@ -662,7 +662,7 @@ void cCtPDGenController::ConvertActionToTargetPose(tVectorXd &out_theta) const
     }
 }
 
-void cCtPDGenController::ConvertTargetPoseToActionFullsize(tVectorXd &pd_target)
+void cCtPDGenController::CalcActionByTargetPose(tVectorXd &pd_target)
 {
 
     // std::cout << "pd target size " << pd_target.size() << " act size "
@@ -709,4 +709,22 @@ void cCtPDGenController::ConvertTargetPoseToAction(
         out_theta[3] = axis_angle[2];
     }
 #endif
+}
+
+// void cCtPDGenController::CalcPDTarget(const Eigen::VectorXd &force,
+//                                       Eigen::VectorXd out_pd_target)
+// {
+//     MIMIC_ERROR("Hasn't been implemented");
+// }
+const tVectorXd &cCtPDGenController::GetCurPDTargetPose() const
+{
+    return mCurPDTargetPose;
+}
+
+void cCtPDGenController::CalcPDTargetByTorque(double dt, const tVectorXd &pose,
+                                              const tVectorXd &vel,
+                                              const tVectorXd &torque,
+                                              tVectorXd &pd_target)
+{
+    MIMIC_ERROR("hasn't been implemented");
 }

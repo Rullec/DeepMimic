@@ -76,7 +76,7 @@ void cFileUtil::DeleteDir(const char *dir_name)
 void cFileUtil::ClearDir(const char *dir_name)
 {
 #ifndef __APPLE__
-    mLogger->info("Clear dir " + std::string(dir_name));
+    MIMIC_INFO("Clear dir " + std::string(dir_name));
     if (cFileUtil::ExistsDir(dir_name))
     {
         for (const auto &entry :
@@ -135,7 +135,7 @@ void cFileUtil::CopyFile(const std::string &ori_name,
 {
     if (cFileUtil::ExistsFile(ori_name) == false)
     {
-        mLogger->error("CopyFile: original file {} doesn't exist", ori_name);
+        MIMIC_ERROR("CopyFile: original file {} doesn't exist", ori_name);
         exit(1);
     }
 
@@ -143,24 +143,24 @@ void cFileUtil::CopyFile(const std::string &ori_name,
 
     if (cFileUtil::ExistsDir(target_dir_name) == false)
     {
-        mLogger->warn("CopyFile: target dir {} doesn't exist, created now.",
+        MIMIC_WARN("CopyFile: target dir {} doesn't exist, created now.",
                       target_dir_name);
         cFileUtil::CreateDir(target_dir_name.c_str());
     }
 
     if (cFileUtil::ValidateFilePath(des_name) == false)
     {
-        mLogger->error("CopyFile: target file {} is invalid", des_name);
+        MIMIC_ERROR("CopyFile: target file {} is invalid", des_name);
         exit(1);
     }
 
     if (false == std::experimental::filesystem::copy_file(ori_name, des_name))
     {
-        mLogger->error("CopyFile: from {} to {} failed", ori_name, des_name);
+        MIMIC_ERROR("CopyFile: from {} to {} failed", ori_name, des_name);
         exit(1);
     }
 
-    mLogger->info("CopyFile: from {} to {} succ", __ORDER_BIG_ENDIAN__,
+    MIMIC_INFO("CopyFile: from {} to {} succ", __ORDER_BIG_ENDIAN__,
                   des_name);
 }
 

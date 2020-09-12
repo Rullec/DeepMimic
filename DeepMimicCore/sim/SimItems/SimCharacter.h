@@ -25,7 +25,6 @@ public:
     virtual void Reset() override;
     virtual void Update(double time_step) override;
     virtual void PostUpdate(double time_step) override;
-
     virtual tVector GetRootPos() const override;
     virtual void GetRootRotation(tVector &out_axis,
                                  double &out_theta) const override;
@@ -83,6 +82,7 @@ public:
     GetContactHandle() const override;
     virtual const void GetTotalContactPts(Eigen::VectorXd &) const override;
 
+    virtual bool HasFloatingBase() const;
     virtual bool HasFallen() const override;
     virtual bool HasStumbled() const override;
     virtual bool HasVelExploded(double vel_threshold = 100.0) const override;
@@ -99,6 +99,8 @@ public:
     GetController() const override;
     virtual void EnableController(bool enable) override;
 
+    virtual void ApplyLinkForce(int link_id, const tVector &force);
+    virtual void ApplyLinkTorque(int link_id, const tVector &torque);
     virtual void ApplyForce(const tVector &force) override;
     virtual void ApplyForce(const tVector &force,
                             const tVector &lo_pos) override;
@@ -115,8 +117,8 @@ public:
 
     virtual const std::shared_ptr<cWorldBase> &GetWorld() const override;
     const std::shared_ptr<cMultiBody> &GetMultiBody() const;
-    const std::vector<std::shared_ptr<btMultiBodyJointLimitConstraint>>
-        &GetConstraints() const;
+    const std::vector<std::shared_ptr<btMultiBodyJointLimitConstraint>> &
+    GetConstraints() const;
 
     // cSimObj Interface
     virtual tVector GetPos() const override;

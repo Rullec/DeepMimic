@@ -1,7 +1,8 @@
-#include "InteractiveIDSolver.hpp"
+#include "IDSolver.h"
+#include "Trajectory.h"
 
 class cSceneImitate;
-class cOfflineIDSolver : public cInteractiveIDSolver
+class cOfflineIDSolver : public cIDSolver
 {
 public:
     explicit cOfflineIDSolver(cSceneImitate *imitate,
@@ -63,6 +64,18 @@ protected:
         eSolveTarget mSolveTarget;
     } mBatchTrajSolveConfig;
 
+    // used for storaged Inverse Dynamic result. instantiated in
+    // OfflineSolveIDSolver.h
+    struct tSingleFrameIDResult
+    { // ID result of single frame
+        tVectorXd state,
+            action; // state & action, used in DeepMimic Neural Network training
+        double
+            reward; // reward, calculated by cSceneImitate::CalcRewardImitate()
+    };
+
+    tLoadInfo mLoadInfo;
+    tSummaryTable mSummaryTable;
     bool mEnableActionVerfied; // .traj files sometimes include the resulting
                                // actions (for debugging), do you want to verify
                                // the ID result with this ground truth?
@@ -76,11 +89,13 @@ protected:
                                 // for each frame.
     std::string mRetargetCharPath; // The character skeleton file which belongs
                                    // to this trajectory
-    bool mEnableRestoreThetaByActionDist; // if open, ID result will be revised
-                                          // by an external theta distribution
-                                          // file. It's a way to remove the
-                                          // ambiguity of axis angle repre.
-    bool mEnableRestoreThetaByGT;         // restore theta by ground truth
+    // bool mEnableRestoreThetaByActionDist; // if open, ID result will be
+    // revised
+    //                                       // by an external theta
+    //                                       distribution
+    //                                       // file. It's a way to remove the
+    //                                       // ambiguity of axis angle repre.
+    // bool mEnableRestoreThetaByGT;         // restore theta by ground truth
 
     // Here are 2 types of trajectories in summary table that We can solve. The
     // first is the raw trajectory coming from sampling directly The second are
@@ -95,10 +110,13 @@ protected:
 
     void SingleTrajSolve(std::vector<tSingleFrameIDResult> &IDResult);
     void BatchTrajsSolve(const std::string &path);
-    void RestoreActionByThetaDist(std::vector<tSingleFrameIDResult> &IDResult);
-    void
-    RestoreActionByGroundTruth(std::vector<tSingleFrameIDResult> &IDResult);
-
+    // void RestoreActionByThetaDist(std::vector<tSingleFrameIDResult>
+    // &IDResult); void
+    // RestoreActionByGroundTruth(std::vector<tSingleFrameIDResult> &IDResult);
+    void SaveTrainData(const std::string &dir, const std::string &filename,
+                       std::vector<tSingleFrameIDResult> &)
+        const; // save train data "*.train", only "state, action, reward " trio
+               // pair will be storaged in it.
 private:
     eSolveTarget ParseSolveTargetInBatchMode(const std::string &name) const;
     eSolveMode ParseSolvemode(const std::string &name) const;

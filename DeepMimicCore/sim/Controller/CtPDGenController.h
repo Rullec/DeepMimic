@@ -1,5 +1,5 @@
 #pragma once
-#include "sim/Controller/CtController.h"
+#include "sim/Controller/CtPDController.h"
 
 class cImpPDGenController;
 
@@ -8,7 +8,7 @@ class cImpPDGenController;
  * for the python training agent
  */
 struct tLoadInfo;
-class cCtPDGenController : public virtual cCtController
+class cCtPDGenController : public virtual cCtPDController
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -20,11 +20,22 @@ public:
     virtual void Reset() override final;
     virtual void Clear() override final;
 
+    virtual void SetGuidedControlInfo(bool enable,
+                                      const std::string &guide_file);
     virtual void SetGravity(const tVector &g);
 
     virtual std::string GetName() const;
+    virtual int GetActionSize() const override;
+    virtual const tVectorXd &GetCurPDTargetPose() const override;
+    virtual const tVectorXd &GetCurAction() const;
 
-    virtual const tVectorXd &GetCurAction();
+    // virtual void CalcPDTarget(const Eigen::VectorXd &force,
+    //                           Eigen::VectorXd out_pd_target) override;
+    virtual void CalcActionByTargetPose(tVectorXd &pd_target);
+    virtual void CalcPDTargetByTorque(double dt, const tVectorXd &pose,
+                                      const tVectorXd &vel,
+                                      const tVectorXd &torque,
+                                      tVectorXd &pd_target) override;
 
     virtual void
     BuildStateOffsetScale(Eigen::VectorXd &out_offset,
@@ -34,10 +45,6 @@ public:
     virtual void
     BuildActionOffsetScale(Eigen::VectorXd &out_offset,
                            Eigen::VectorXd &out_scale) const override;
-    virtual int GetActionSize() const override;
-    virtual void SetGuidedControlInfo(bool enable,
-                                      const std::string &guide_file);
-    virtual void ConvertTargetPoseToActionFullsize(tVectorXd &pd_target);
 
 protected:
     cImpPDGenController *mPDGenController;

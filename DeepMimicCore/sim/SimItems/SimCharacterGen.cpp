@@ -56,9 +56,7 @@ cSimCharacterGen::cSimCharacterGen()
     // mLinkBaseArray.clear();
     // mJointBaseArray.clear();
 }
-cSimCharacterGen::~cSimCharacterGen() {
-    
-}
+cSimCharacterGen::~cSimCharacterGen() {}
 bool cSimCharacterGen::Init(const std::shared_ptr<cWorldBase> &world,
                             const cSimCharacterBase::tParams &params)
 {
@@ -700,6 +698,9 @@ void cSimCharacterGen::RemoveController()
     }
 }
 bool cSimCharacterGen::HasController() const { return mController != nullptr; }
+
+bool cSimCharacterGen::HasFloatingBase() const { return true; }
+
 const std::shared_ptr<cCharController> &cSimCharacterGen::GetController()
 {
     return mController;
@@ -716,12 +717,30 @@ void cSimCharacterGen::EnableController(bool enable)
     }
 }
 
-void cSimCharacterGen::ApplyForce(const tVector &force) {}
+void cSimCharacterGen::ApplyLinkForce(int link_id, const tVector &force)
+{
+    cRobotModelDynamics::ApplyForce(link_id, force,
+                                    GetBodyPart(link_id)->GetPos());
+}
+void cSimCharacterGen::ApplyLinkTorque(int link_id, const tVector &torque)
+{
+
+    cRobotModelDynamics::ApplyLinkTorque(link_id, torque);
+}
+
+void cSimCharacterGen::ApplyForce(const tVector &force)
+{
+    MIMIC_ERROR("hasn't been implemented");
+}
 void cSimCharacterGen::ApplyForce(const tVector &force, const tVector &lo_pos)
 {
+    MIMIC_ERROR("hasn't been implemented");
 }
-void cSimCharacterGen::ApplyTorque(const tVector &torque) {}
-void cSimCharacterGen::ClearForces() {}
+void cSimCharacterGen::ApplyTorque(const tVector &torque)
+{
+    MIMIC_ERROR("hasn't been implemented");
+}
+void cSimCharacterGen::ClearForces() { cRobotModelDynamics::ClearForce(); }
 void cSimCharacterGen::ApplyControlForces(const Eigen::VectorXd &tau)
 {
     MIMIC_ASSERT(GetNumOfFreedom() == tau.size());

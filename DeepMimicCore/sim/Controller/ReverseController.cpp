@@ -9,7 +9,7 @@ void removeRow(Eigen::MatrixXd &matrix, unsigned int rowToRemove);
 void removeColumn(Eigen::MatrixXd &matrix, unsigned int colToRemove);
 void removeRow(tVectorXd &vec, unsigned int rowToRemove);
 
-extern std::string controller_details_path;
+// extern std::string controller_details_path;
 
 cReverseController::cReverseController(cSimCharacterBase *sim_char)
 {

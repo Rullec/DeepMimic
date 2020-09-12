@@ -12,7 +12,7 @@ public:
     virtual void Reset() override;
     virtual void Update(double time_elapsed) override;
     virtual void PostUpdate() override final;
-    
+
     virtual void AddRigidBody(cSimRigidBody &obj) override;
     virtual void RemoveRigidBody(cSimRigidBody &obj) override;
 
@@ -39,8 +39,8 @@ public:
     virtual bool
     IsInContact(const cContactManager::tContactHandle &handle) const override;
 
-    virtual bool IsInContactGenGround(
-        const cContactManager::tContactHandle &handle) const;
+    virtual bool
+    IsInContactGenGround(const cContactManager::tContactHandle &handle) const;
 
     virtual const tEigenArr<cContactManager::tContactPt> &
     GetContactPts(const cContactManager::tContactHandle &handle) const override;

@@ -89,11 +89,14 @@ public:
     virtual void SetController(std::shared_ptr<cCharController> ctrl) override;
     virtual void RemoveController() override;
     virtual bool HasController() const override;
+    virtual bool HasFloatingBase() const;
     virtual const std::shared_ptr<cCharController> &GetController() override;
     virtual const std::shared_ptr<cCharController> &
     GetController() const override;
     virtual void EnableController(bool enable) override;
 
+    virtual void ApplyLinkForce(int link_id, const tVector &force) override;
+    virtual void ApplyLinkTorque(int link_id, const tVector &torque) override;
     virtual void ApplyForce(const tVector &force) override;
     virtual void ApplyForce(const tVector &force,
                             const tVector &lo_pos) override;
@@ -155,6 +158,7 @@ public:
                                   tVector &com_vel);
     virtual void SetqAndqdot(const tVectorXd &q,
                              const tVectorXd &qdot) override;
+    virtual void Setqdot(const tVectorXd &qdot) override;
 
 protected:
     /// vars
@@ -203,7 +207,6 @@ protected:
     virtual btCollisionObject *GetCollisionObject() override;
     void Test();
     eRotationOrder GetRotationOrder() const;
-    virtual void Setqdot(const tVectorXd &qdot) override;
     tVectorXd ConvertqToPose(const tVectorXd &pose) const;
     tVectorXd ConvertqdotToPoseVel(const tVectorXd &pose) const;
 

@@ -1,4 +1,4 @@
-#include "IDSolver.hpp"
+#include "IDSolver.h"
 #include <map>
 
 class cSceneImitate;
@@ -32,8 +32,7 @@ protected:
     tEigenArr<tVector>
         mJointForces; // reference joint torque(except root) in link frame
     tEigenArr<tVector> mSolvedJointForces; // solved joint torques from
-    tEigenArr<tVector>
-        mExternalForces; // for each link, external forces in COM
+    tEigenArr<tVector> mExternalForces; // for each link, external forces in COM
     tEigenArr<tVector> mExternalTorques; // for each link, external torques
     tEigenArr<tMatrix> mLinkRot;         // local to world rotation mats
     tEigenArr<tVector> mLinkPos;         // link COM pos in world frame
@@ -52,10 +51,10 @@ protected:
     virtual void SolveIDSingleStep(
         tEigenArr<tVector> &solved_joint_forces,
         const tEigenArr<tContactForceInfo> &contact_forces,
-        const tEigenArr<tVector> &link_pos,
-        const tEigenArr<tMatrix> &link_rot, const tVectorXd &mBuffer_q,
-        const tVectorXd &mBuffer_u, const tVectorXd &mBuffer_u_dot,
-        int frame_id, const tEigenArr<tVector> &mExternalForces,
+        const tEigenArr<tVector> &link_pos, const tEigenArr<tMatrix> &link_rot,
+        const tVectorXd &mBuffer_q, const tVectorXd &mBuffer_u,
+        const tVectorXd &mBuffer_u_dot, int frame_id,
+        const tEigenArr<tVector> &mExternalForces,
         const tEigenArr<tVector> &mExternalTorques) const override final;
     void ApplyExternalForcesToID() const;
     // tVectorXd CalculateGeneralizedVel(const tVectorXd & q_before, const

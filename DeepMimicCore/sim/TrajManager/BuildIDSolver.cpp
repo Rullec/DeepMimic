@@ -1,8 +1,8 @@
-#include "BuildIDSolver.hpp"
-#include "DisplayIDSolver.hpp"
-#include "OfflineSolveIDSolver.hpp"
-#include "OnlineIDSolver.hpp"
-#include "SampleIDSolver.hpp"
+#include "BuildIDSolver.h"
+#include "DisplayIDSolver.h"
+#include "OfflineSolveIDSolver.h"
+#include "OnlineIDSolver.h"
+#include "SampleIDSolver.h"
 #include "scenes/SceneImitate.h"
 #include "util/JsonUtil.h"
 #include <memory>

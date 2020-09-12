@@ -1,8 +1,8 @@
 #pragma once
 
-#include "sim/Controller/CtPDController.h"
+#include "sim/Controller/CtPDFeaController.h"
 
-class cCtVelController : public virtual cCtPDController
+class cCtVelController : public virtual cCtPDFeaController
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW

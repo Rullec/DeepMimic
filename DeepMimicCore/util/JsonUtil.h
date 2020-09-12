@@ -13,11 +13,12 @@ class cJsonUtil
 {
 public:
     static std::string BuildVectorJson(const tVector &vec);
-    static bool ReadVectorJson(const Json::Value &root, tVector &out_vec);
+    static tVectorXd ReadVectorJson(const Json::Value &root);
     static std::string BuildVectorJson(const Eigen::VectorXd &vec);
     static std::string BuildVectorString(const Eigen::VectorXd &vec);
     static bool ReadVectorJson(const Json::Value &root,
                                Eigen::VectorXd &out_vec);
+    static bool ReadVectorJson(const Json::Value &root, tVector &out_vec);
     static bool LoadJson(const std::string &path, Json::Value &value);
     static bool WriteJson(const std::string &path, Json::Value &value,
                           bool indent = true);
@@ -34,7 +35,4 @@ public:
                             const Json::Value &root);
     static Json::Value ParseAsValue(const std::string &data_field_name,
                                     const Json::Value &root);
-
-private:
-    static tLogger mLogger;
 };

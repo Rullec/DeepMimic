@@ -1,17 +1,19 @@
-#include "DisplayIDSolver.hpp"
+#include "DisplayIDSolver.h"
+#include "Trajectory.h"
 #include "scenes/SceneImitate.h"
 #include "sim/SimItems/SimCharacter.h"
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
 #include <iostream>
 
-extern std::string controller_details_path;
+// extern std::string controller_details_path;
 cDisplayIDSolver::cDisplayIDSolver(cSceneImitate *scene,
                                    const std::string &config)
-    : cInteractiveIDSolver(scene, eIDSolverType::Display, config)
+    : cIDSolver(scene, eIDSolverType::Display)
 {
-    controller_details_path =
-        "logs/controller_logs/controller_details_display.txt";
+    mDisplayEpoch = 0;
+    // controller_details_path =
+    //     "logs/controller_logs/controller_details_display.txt";
     Parseconfig(config);
 }
 
@@ -25,6 +27,8 @@ void cDisplayIDSolver::PreSim()
 void cDisplayIDSolver::PostSim()
 {
     mLoadInfo.mCurFrame++;
+    if (mLoadInfo.mCurFrame >= mLoadInfo.mTotalFrame)
+        Reset();
     MIMIC_INFO(" display mode frame {}", mLoadInfo.mCurFrame);
 
     if (mLoadInfo.mLoadMode == eLoadMode::INVALID)
@@ -35,14 +39,15 @@ void cDisplayIDSolver::PostSim()
     else if (mLoadInfo.mLoadMode == eLoadMode::LOAD_TRAJ)
     {
         const int cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mTotalFrame;
-        const tVectorXd &q = mLoadInfo.mPoseMat.row(cur_frame);
+        const tVectorXd &q = mLoadInfo.mPosMat.row(cur_frame);
         // std::cout <<"q = " << q.transpose() << std::endl;
         SetGeneralizedPos(mSimChar, q);
         RecordMultibodyInfo(mSimChar, mLoadInfo.mLinkRot[cur_frame],
                             mLoadInfo.mLinkPos[cur_frame]);
 
-        if (mLoadInfo.mEnableOutputMotionInfo == true)
-            PrintLoadInfo(mLoadInfo, mLoadInfo.mOutputMotionInfoPath, true);
+        if (mLoadInfo.mEnableOutputMotionInfo == true && mDisplayEpoch == 0)
+            mLoadInfo.PrintLoadInfo(mSimChar, mLoadInfo.mOutputMotionInfoPath,
+                                    true);
 
         // DEBUG: output the contact info
 
@@ -136,8 +141,9 @@ void cDisplayIDSolver::PostSim()
 
 void cDisplayIDSolver::Reset()
 {
-    std::cout << "[log] cDisplayIDSolver Reset, exiting...\n";
-    exit(0);
+    std::cout << "[log] cDisplayIDSolver Reset, back the frame 0";
+    mDisplayEpoch++;
+    mLoadInfo.mCurFrame = 0;
 }
 
 void cDisplayIDSolver::SetTimestep(double) {}
@@ -182,7 +188,7 @@ void cDisplayIDSolver::Parseconfig(const std::string &conf)
             mLoadInfo.mLoadMode = eLoadMode::LOAD_MOTION;
             mLoadInfo.mMotion = new cMotion();
             LoadMotion(display_motion_path.asString(), mLoadInfo.mMotion);
-            mLogger->info("LoadMotion {}", display_motion_path.asString());
+            MIMIC_INFO("LoadMotion {}", display_motion_path.asString());
             // std::cout <<"[log] offlineIDSolver load motion " <<
             // display_motion_path<<", the resulted NOF = " <<
             // mLoadInfo.mMotion->GetNumFrames() << std::endl;
@@ -190,8 +196,8 @@ void cDisplayIDSolver::Parseconfig(const std::string &conf)
         else // choose to load trajectories from files
         {
             mLoadInfo.mLoadMode = eLoadMode::LOAD_TRAJ;
-            LoadTraj(mLoadInfo, display_traj_path.asString());
-            mLogger->info("LoadTraj {}", display_traj_path.asString());
+            mLoadInfo.LoadTraj(mSimChar, display_traj_path.asString());
+            MIMIC_INFO("LoadTraj {}", display_traj_path.asString());
             // std::cout <<"[log] offlineIDSolver load the trajectory "
             // << display_motion_path<<", the resulted NOF = " <<
             // mLoadInfo.mTotalFrame << std::endl;
@@ -205,9 +211,9 @@ void cDisplayIDSolver::Parseconfig(const std::string &conf)
     }
 
     // init load info character pose
-    const int &cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPoseMat.rows();
-    mLogger->info("cDisplayIDSolver display mode: cur frame {}", cur_frame);
-    const tVectorXd &q = mLoadInfo.mPoseMat.row(cur_frame);
+    const int &cur_frame = mLoadInfo.mCurFrame % mLoadInfo.mPosMat.rows();
+    MIMIC_INFO("cDisplayIDSolver display mode: cur frame {}", cur_frame);
+    const tVectorXd &q = mLoadInfo.mPosMat.row(cur_frame);
     SetGeneralizedPos(mSimChar, q);
     RecordMultibodyInfo(mSimChar, mLoadInfo.mLinkRot[cur_frame],
                         mLoadInfo.mLinkPos[cur_frame]);

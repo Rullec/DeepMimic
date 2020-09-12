@@ -113,10 +113,12 @@ public:
     virtual void SetController(std::shared_ptr<cCharController> ctrl) = 0;
     virtual void RemoveController() = 0;
     virtual bool HasController() const = 0;
+    virtual bool HasFloatingBase() const = 0;
     virtual const std::shared_ptr<cCharController> &GetController() = 0;
     virtual const std::shared_ptr<cCharController> &GetController() const = 0;
     virtual void EnableController(bool enable) = 0;
-
+    virtual void ApplyLinkForce(int link_id, const tVector &force) = 0;
+    virtual void ApplyLinkTorque(int link_id, const tVector &torque) = 0;
     virtual void ApplyForce(const tVector &force) = 0;
     virtual void ApplyForce(const tVector &force, const tVector &local_pos) = 0;
     virtual void ApplyTorque(const tVector &torque) = 0;

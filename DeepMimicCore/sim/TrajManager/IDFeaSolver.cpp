@@ -1,0 +1,1163 @@
+#include "../Extras/InverseDynamics/btMultiBodyTreeCreator.hpp"
+#include "IDSolver.h"
+#include "scenes/SceneImitate.h"
+#include "sim/Controller/CtPDController.h"
+#include "sim/SimItems/SimCharacter.h"
+#include <iostream>
+#include <memory>
+#include <util/BulletUtil.h>
+#include <util/LogUtil.h>
+
+extern const std::shared_ptr<cSimCharacter>
+Downcast(const std::shared_ptr<cSimCharacterBase> &base);
+
+/**
+ * \brief       Init Featherstone Inverse Dynamics Solver
+ */
+void cIDSolver::InitFeaVariables()
+{
+    if (mSimCharType == eSimCharacterType::Featherstone)
+    {
+        mMultibodyWorld = dynamic_cast<btMultiBodyDynamicsWorld *>(
+            mScene->GetWorld()->GetInternalWorld());
+
+        MIMIC_ASSERT(mMultibodyWorld != nullptr);
+
+        mMultibody =
+            dynamic_cast<cSimCharacter *>(mSimChar)->GetMultiBody().get();
+
+        mDof = mMultibody->getNumDofs();
+        if (mFloatingBase == true)
+            mDof += 6;
+
+        mNumLinks = mMultibody->getNumLinks() + 1;
+
+        // init ID model
+        btInverseDynamicsBullet3::btMultiBodyTreeCreator id_creator;
+        if (-1 == id_creator.createFromBtMultiBody(mMultibody, false))
+        {
+            b3Error("error creating tree\n");
+        }
+        else
+        {
+            mInverseModel =
+                btInverseDynamicsBullet3::CreateMultiBodyTree(id_creator);
+            btInverseDynamicsBullet3::vec3 gravity(
+                cBulletUtil::tVectorTobtVector(gGravity));
+
+            mInverseModel->setGravityInWorldFrame(gravity * mWorldScale);
+        }
+
+        // init id mapping
+        for (int inverse_id = 0; inverse_id < mNumLinks; inverse_id++)
+        {
+            int world_id;
+            if (0 == inverse_id)
+            {
+                btMultiBodyLinkCollider *base_collider =
+                    mMultibody->getBaseCollider();
+                if (nullptr == base_collider)
+                {
+                    continue;
+                }
+                else
+                {
+                    world_id = base_collider->getWorldArrayIndex();
+                }
+            }
+            else
+            {
+                world_id = mMultibody->getLinkCollider(inverse_id - 1)
+                               ->getWorldArrayIndex();
+            }
+            mWorldId2InverseId[world_id] = inverse_id;
+            mInverseId2WorldId[inverse_id] = world_id;
+        }
+
+        omega_buffer = new btVector3[mNumLinks];
+        vel_buffer = new btVector3[mNumLinks];
+    }
+    else
+    {
+        mMultibody = nullptr;
+        mMultibodyWorld = nullptr;
+        mInverseModel = nullptr;
+        mWorldId2InverseId.clear();
+        mInverseId2WorldId.clear();
+
+        omega_buffer = nullptr;
+        vel_buffer = nullptr;
+    }
+}
+
+void cIDSolver::RecordMultibodyInfoFea(cSimCharacterBase *sim_char,
+                                       tEigenArr<tMatrix> &local_to_world_rot,
+                                       tEigenArr<tVector> &link_pos_world)
+{
+    // int mNumLinks = sim_char->GetNumBodyParts();
+    auto mMultibody = dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody();
+    int mNumLinks = mMultibody->getNumLinks() + 1;
+    assert(local_to_world_rot.size() == mNumLinks);
+    assert(link_pos_world.size() == mNumLinks);
+
+    for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
+    {
+        // set up rot & pos
+        if (0 == ID_link_id)
+        {
+            local_to_world_rot[0] =
+                cMathUtil::RotMat(cBulletUtil::btQuaternionTotQuaternion(
+                    mMultibody->getWorldToBaseRot().inverse()));
+            link_pos_world[0] =
+                cBulletUtil::btVectorTotVector1(mMultibody->getBasePos());
+        }
+        else
+        {
+            int multibody_link_id = ID_link_id - 1;
+            auto &cur_trans = mMultibody->getLinkCollider(multibody_link_id)
+                                  ->getWorldTransform();
+            local_to_world_rot[ID_link_id] =
+                cBulletUtil::btMatrixTotMatrix1(cur_trans.getBasis());
+            link_pos_world[ID_link_id] =
+                cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
+        }
+    }
+}
+
+void cIDSolver::RecordMultibodyInfoFea(const cSimCharacterBase *sim_char,
+                                       tEigenArr<tMatrix> &local_to_world_rot,
+                                       tEigenArr<tVector> &link_pos_world,
+                                       tEigenArr<tVector> &link_omega_world,
+                                       tEigenArr<tVector> &link_vel_world)
+{
+    int mNumLinks = sim_char->GetNumBodyParts();
+    // std::cout <<"begin info \n";
+    local_to_world_rot.resize(mNumLinks);
+    link_pos_world.resize(mNumLinks);
+    link_omega_world.resize(mNumLinks);
+    link_vel_world.resize(mNumLinks);
+
+    auto mMultibody =
+        dynamic_cast<const cSimCharacter *>(sim_char)->GetMultiBody().get();
+    // std::cout << "[inner] pose2.1 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
+    btVector3 *omega_buffer = new btVector3[mNumLinks + 1];
+    btVector3 *vel_buffer = new btVector3[mNumLinks + 1];
+    mMultibody->compTreeLinkVelocities(omega_buffer, vel_buffer);
+    for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
+    {
+        // set up rot & pos
+        if (0 == ID_link_id)
+        {
+            local_to_world_rot[0] =
+                cMathUtil::RotMat(cBulletUtil::btQuaternionTotQuaternion(
+                    mMultibody->getWorldToBaseRot().inverse()));
+            link_pos_world[0] =
+                cBulletUtil::btVectorTotVector1(mMultibody->getBasePos());
+            link_vel_world[0] =
+                cBulletUtil::btVectorTotVector0(mMultibody->getBaseVel());
+            link_omega_world[0] =
+                cBulletUtil::btVectorTotVector0(mMultibody->getBaseOmega());
+        }
+        else
+        {
+            int multibody_link_id = ID_link_id - 1;
+            auto &cur_trans = mMultibody->getLinkCollider(multibody_link_id)
+                                  ->getWorldTransform();
+            local_to_world_rot[ID_link_id] =
+                cBulletUtil::btMatrixTotMatrix1(cur_trans.getBasis());
+            link_pos_world[ID_link_id] =
+                cBulletUtil::btVectorTotVector1(cur_trans.getOrigin());
+            link_vel_world[ID_link_id] = cBulletUtil::btVectorTotVector0(
+                quatRotate(cur_trans.getRotation(), vel_buffer[ID_link_id]));
+            link_omega_world[ID_link_id] = cBulletUtil::btVectorTotVector0(
+                quatRotate(cur_trans.getRotation(), omega_buffer[ID_link_id]));
+        }
+        // std::cout <<"link " << ID_link_id <<" pos  = " <<
+        // link_pos_world[ID_link_id] .transpose() << std::endl;
+    }
+    // std::cout << "[inner] pose2.2 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
+    delete[] omega_buffer;
+    delete[] vel_buffer;
+    // std::cout << "[inner] pose2 = " << sim_char->GetPose().transpose()
+    //           << std::endl;
+}
+
+void cIDSolver::RecordGeneralizedInfo(cSimCharacterBase *sim_char, tVectorXd &q,
+                                      tVectorXd &q_dot)
+{
+    if (eSimCharacterType::Featherstone == sim_char->GetCharType())
+    {
+        RecordGeneralizedInfoFea(sim_char, q, q_dot);
+    }
+    else if (eSimCharacterType::Generalized == sim_char->GetCharType())
+    {
+        RecordGeneralizedInfoGen(sim_char, q, q_dot);
+    }
+}
+
+void cIDSolver::SetGeneralizedPos(cSimCharacterBase *sim_char,
+                                  const tVectorXd &q)
+{
+    if (sim_char->GetCharType() == eSimCharacterType::Featherstone)
+    {
+
+        auto mMultibody =
+            dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody();
+        int mDof = mMultibody->getNumDofs();
+        bool mFloatingBase = !(mMultibody->hasFixedBase());
+        if (mFloatingBase == true)
+            mDof += 6;
+        MIMIC_ASSERT(q.size() == mDof);
+        if (mFloatingBase == true)
+        {
+            tVector root_pos, euler_angle_rot;
+            for (int i = 0; i < 3; i++)
+                euler_angle_rot[i] = q[i];
+            for (int i = 3; i < 6; i++)
+                root_pos[i - 3] = q[i];
+            tQuaternion world_to_base_rot = cMathUtil::EulerAnglesToQuaternion(
+                euler_angle_rot, eRotationOrder::XYZ);
+            mMultibody->setBasePos(cBulletUtil::tVectorTobtVector(root_pos));
+            mMultibody->setWorldToBaseRot(
+                cBulletUtil::tQuaternionTobtQuaternion(world_to_base_rot));
+        }
+
+        // other joints besides root
+        for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks();
+             link_id++)
+        {
+            auto &cur_link = mMultibody->getLink(link_id);
+            int offset = cur_link.m_dofOffset;
+            if (mFloatingBase == true)
+                offset += 6;
+            // std::cout <<"link id = " << link_id <<" type = " <<
+            // cur_link.m_jointType << std::endl;
+            switch (cur_link.m_jointType)
+            {
+            case btMultibodyLink::eFixed:
+            {
+                break;
+            }
+            case btMultibodyLink::eRevolute:
+            {
+                mMultibody->setJointPos(link_id, q[offset]);
+                // q(offset) = mMultibody->getJointPos(link_id);
+                break;
+            }
+            case btMultibodyLink::eSpherical:
+            {
+                // std::cout << 1<< std::endl;
+                tVector joint_pos_euler;
+                joint_pos_euler.segment(0, 3) = q.segment(offset, 3);
+                // std::cout << 2<< std::endl;
+                tQuaternion rot_qua = cMathUtil::EulerAnglesToQuaternion(
+                    joint_pos_euler, eRotationOrder::ZYX);
+                // std::cout << 3<< std::endl;
+                btScalar bt_joint_pos[4] = {rot_qua.x(), rot_qua.y(),
+                                            rot_qua.z(), rot_qua.w()};
+                // std::cout << 4<< std::endl;
+                mMultibody->setJointPosMultiDof(link_id, bt_joint_pos);
+                break;
+            }
+            default:
+            {
+                std::cout << "[error] cIDSolver::SetGeneralizedInfo "
+                             "unsupported type = "
+                          << cur_link.m_jointType << std::endl;
+                exit(1);
+            }
+            }
+        }
+        btAlignedObjectArray<btVector3> mVecBuffer0;
+        btAlignedObjectArray<btQuaternion> mRotBuffer;
+        mMultibody->updateCollisionObjectWorldTransforms(mRotBuffer,
+                                                         mVecBuffer0);
+    }
+}
+
+void cIDSolver::SetGeneralizedVelFea(const tVectorXd &q)
+{
+    assert(q.size() == mDof);
+    if (mFloatingBase == true)
+    {
+        tVector omega = tVector::Zero(), vel = tVector::Zero();
+        for (int i = 0; i < 3; i++)
+            omega[i] = q(i), vel[i] = q(i + 3);
+        mMultibody->setBaseOmega(cBulletUtil::tVectorTobtVector(omega));
+        mMultibody->setBaseVel(cBulletUtil::tVectorTobtVector(vel));
+    }
+
+    // other joints besides root
+    for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks();
+         link_id++)
+    {
+        auto &cur_link = mMultibody->getLink(link_id);
+        int offset = cur_link.m_dofOffset;
+        if (mFloatingBase == true)
+            offset += 6;
+        // std::cout <<"link id = " << link_id <<" type = " <<
+        // cur_link.m_jointType << std::endl;
+        switch (cur_link.m_jointType)
+        {
+        case btMultibodyLink::eFixed:
+        {
+            break;
+        }
+        case btMultibodyLink::eRevolute:
+        {
+            mMultibody->setJointVel(link_id, q[offset]);
+            // mMultibody->setJointPos(link_id, q[offset]);
+            // q(offset) = mMultibody->getJointPos(link_id);
+            break;
+        }
+        case btMultibodyLink::eSpherical:
+        {
+            btScalar bt_joint_vel[] = {q[offset], q[offset + 1], q[offset + 2],
+                                       0};
+            mMultibody->setJointVelMultiDof(link_id, bt_joint_vel);
+            break;
+        }
+        default:
+        {
+            std::cout << "[error] cIDSolver::SetGeneralizedInfo "
+                         "unsupported type = "
+                      << cur_link.m_jointType << std::endl;
+            exit(1);
+        }
+        }
+    }
+}
+
+void cIDSolver::RecordJointForcesFea(tEigenArr<tVector> &mJointForces) const
+{
+    mJointForces.resize(mMultibody->getNumLinks());
+    for (int i = 0; i < mMultibody->getNumLinks(); i++)
+    {
+        const btMultibodyLink &cur_link = mMultibody->getLink(i);
+        switch (cur_link.m_jointType)
+        {
+        case btMultibodyLink::eSpherical:
+        {
+            // in joint frame
+            btScalar *local_torque_bt = mMultibody->getJointTorqueMultiDof(i);
+            tVector local_torque = tVector(
+                local_torque_bt[0], local_torque_bt[1], local_torque_bt[2], 0);
+            mJointForces[i] = local_torque;
+            break;
+        }
+        case btMultibodyLink::eRevolute:
+        {
+            btVector3 local_torque_bt = mMultibody->getJointTorque(i) *
+                                        mMultibody->getLink(i).getAxisTop(
+                                            0); // rotation axis in link frame,
+                                                // sometimes not identity
+            tVector local_torque =
+                cBulletUtil::btVectorTotVector0(local_torque_bt);
+            mJointForces[i] = local_torque;
+            break;
+        }
+        case btMultibodyLink::eFixed:
+        {
+            mJointForces[i].setZero();
+            break;
+        }
+        default:
+        {
+            std::cout << "[error] cIDSolver::RecordJointForces: "
+                         "Unsupported joint type "
+                      << cur_link.m_jointType << std::endl;
+            break;
+        }
+        }
+    }
+}
+
+void cIDSolver::RecordContactForcesFea(
+    tEigenArr<tContactForceInfo> &mContactForces, double mCurTimestep) const
+{
+    if (mSimCharType == eSimCharacterType::Featherstone)
+    {
+        mContactForces.clear();
+        int num_contact_manifolds =
+            mMultibodyWorld->getDispatcher()->getNumManifolds();
+        for (int i = 0; i < num_contact_manifolds; i++)
+        {
+            const btPersistentManifold *manifold =
+                mMultibodyWorld->getDispatcher()
+                    ->getInternalManifoldPointer()[i];
+
+            const int body0_id = manifold->getBody0()->getWorldArrayIndex(),
+                      body1_id = manifold->getBody1()->getWorldArrayIndex();
+
+            int num_contact_pts = manifold->getNumContacts();
+            tContactForceInfo cur_contact_info;
+            for (int j = 0; j < num_contact_pts; j++)
+            {
+                tContactForceInfo contact_info;
+                const btManifoldPoint &pt = manifold->getContactPoint(j);
+                btScalar linear_friction_force1 =
+                    pt.m_appliedImpulseLateral1 / mCurTimestep;
+                btScalar linear_friction_force2 =
+                    pt.m_appliedImpulseLateral2 / mCurTimestep;
+                tVector lateral_friction_dir1 = cBulletUtil::btVectorTotVector0(
+                            pt.m_lateralFrictionDir1),
+                        lateral_friction_dir2 = cBulletUtil::btVectorTotVector0(
+                            pt.m_lateralFrictionDir2);
+                double impulse = pt.m_appliedImpulse;
+                tVector normal =
+                    cBulletUtil::btVectorTotVector0(pt.m_normalWorldOnB);
+                tVector force0 = impulse / mCurTimestep * normal;
+                tVector friction =
+                    linear_friction_force1 * lateral_friction_dir1 +
+                    linear_friction_force2 * lateral_friction_dir2;
+                tVector pos, force;
+
+                // verify collision
+                bool collision_valid = false;
+                if (mWorldId2InverseId.end() !=
+                    mWorldId2InverseId.find(body0_id))
+                {
+                    contact_info.mId =
+                        mWorldId2InverseId.find(body0_id)->second;
+                    pos = cBulletUtil::btVectorTotVector1(
+                        pt.getPositionWorldOnA());
+                    force = (force0 + friction);
+
+                    // add contact forces for body 0
+                    contact_info.mPos = pos;
+                    contact_info.mForce = force;
+                    contact_info.mIsSelfCollision =
+                        (mInverseId2WorldId.find(body0_id) !=
+                         mInverseId2WorldId.end()) &&
+                        (mInverseId2WorldId.find(body1_id) !=
+                         mInverseId2WorldId.end());
+                    mContactForces.push_back(contact_info);
+                    collision_valid = true;
+                }
+                if (mWorldId2InverseId.end() !=
+                    mWorldId2InverseId.find(body1_id))
+                {
+                    contact_info.mId =
+                        mWorldId2InverseId.find(body1_id)->second;
+                    pos = cBulletUtil::btVectorTotVector1(
+                        pt.getPositionWorldOnB());
+                    force = -(force0 + friction);
+
+                    // add contact forces for body 1
+                    contact_info.mPos = pos;
+                    contact_info.mForce = force;
+                    contact_info.mIsSelfCollision =
+                        (mInverseId2WorldId.find(body0_id) !=
+                         mInverseId2WorldId.end()) &&
+                        (mInverseId2WorldId.find(body1_id) !=
+                         mInverseId2WorldId.end());
+                    mContactForces.push_back(contact_info);
+                    collision_valid = true;
+                }
+
+                if (false == collision_valid)
+                {
+                    // ignore other collisions
+                    std::cout << "[warn] cIDSolver::GetContactForces: "
+                                 "ignore collision forces!\n";
+                    continue;
+                }
+            }
+        }
+    }
+}
+
+void cIDSolver::ApplyContactForcesToID(
+    const tEigenArr<tContactForceInfo> &mContactForces,
+    const tEigenArr<tVector> &mLinkPos,
+    const tEigenArr<tMatrix> &mLinkRot) const
+{
+    assert(mLinkRot.size() == mNumLinks);
+    assert(mLinkPos.size() == mNumLinks);
+    tVector base_force = tVector::Zero(), base_torque = tVector::Zero();
+    for (auto &cur_force : mContactForces)
+    {
+        int ID_link_id = cur_force.mId;
+        int multibody_id = ID_link_id - 1;
+        tVector link_pos_world = mLinkPos[ID_link_id];
+        tMatrix local_to_world = mLinkRot[ID_link_id];
+        tVector joint_pos_world;
+        if (0 == ID_link_id)
+        {
+            joint_pos_world = link_pos_world;
+        }
+        else
+        {
+            joint_pos_world =
+                local_to_world *
+                    cBulletUtil::btVectorTotVector0(
+                        -mMultibody->getLink(multibody_id).m_dVector) +
+                link_pos_world;
+        }
+        tVector force_arm_world = cur_force.mPos - joint_pos_world;
+        // 1. get contact force in world frame -> local frame
+        tVector contact_force_world = cur_force.mForce;
+        tVector contact_force_local =
+            local_to_world.transpose() * contact_force_world;
+        // 2. get calculate contact concated_joint_forces in world frame ->
+        // local frame
+        tVector contact_torque_world =
+            force_arm_world.cross3(contact_force_world);
+        tVector contact_torque_local =
+            local_to_world.transpose() * contact_torque_world;
+
+        // std::cout << "[debug] ApplyContactForcesToID: for link " <<
+        // ID_link_id << ", contact force = " <<
+        // contact_force_world.transpose() << ", force arm = " <<
+        // force_arm_world.transpose() << std::endl; std::cout << "\tfinal
+        // add force = " << contact_force_local.transpose() << ", final add
+        // concated_joint_forces = " << contact_torque_local.transpose() <<
+        // std::endl;
+
+        mInverseModel->addUserForce(
+            ID_link_id, cBulletUtil::tVectorTobtVector(contact_force_local));
+        mInverseModel->addUserMoment(
+            ID_link_id, cBulletUtil::tVectorTobtVector(contact_torque_local));
+        base_force += contact_force_world;
+    }
+    // std::cout << "[debug] cIDSolver::ApplyContactForces: base constrained
+    // force world = " << base_force.transpose() << std::endl; std::cout <<
+    // "[debug] simulation base constrained force world = " <<
+    // cBulletUtil::btVectorTotVector0(static_cast<cCollisionWorld *>
+    // (mWorld)->base_cons_force).transpose() << std::endl;
+}
+
+void cIDSolver::SolveIDSingleStepFea(
+    tEigenArr<tVector> &solved_joint_forces,
+    const tEigenArr<tContactForceInfo> &contact_forces,
+    const tEigenArr<tVector> &link_pos, const tEigenArr<tMatrix> &link_rot,
+    const tVectorXd &mBuffer_q, const tVectorXd &mBuffer_u,
+    const tVectorXd &mBuffer_u_dot, int frame_id,
+    const tEigenArr<tVector> &external_forces,
+    const tEigenArr<tVector> &external_torques) const
+{
+
+// #define DEBUG_STEP
+#ifdef DEBUG_STEP
+    std::ofstream fout("test3.txt", std::ios::app);
+    fout << "----------------------------\n";
+    fout << "solve id for frame " << frame_id << std::endl;
+#endif
+    // it should have only mNumLinks-1 elements.
+    // std::cout << 1 << std::endl;
+    solved_joint_forces.resize(mNumLinks - 1);
+    // std::cout << 2 << std::endl;
+    for (auto &x : solved_joint_forces)
+        x.setZero();
+#ifdef DEBUG_STEP
+    // std::cout << 3 << std::endl;
+    fout << "link pos : ";
+
+    for (auto &x : link_pos)
+        fout << x.transpose() << " ";
+    fout << "\nlink rot : ";
+    for (auto &x : link_rot)
+        fout << x.transpose() << std::endl;
+    fout << "\n external forces and torques : ";
+    for (int idx = 0; idx < mNumLinks; idx++)
+        fout << external_forces[idx].transpose() << " "
+             << external_torques[idx].transpose() << " ";
+    fout << std::endl;
+#endif
+    ApplyContactForcesToID(contact_forces, link_pos, link_rot);
+    // std::cout << 4 << std::endl;
+    ApplyExternalForcesToID(link_pos, link_rot, external_forces,
+                            external_torques);
+    // std::cout << 5 << std::endl;
+
+    // solve ID: these joint forces are in joint frame
+    // but the reference
+    btInverseDynamicsBullet3::vecx solve_joint_force_bt(mDof);
+
+#ifdef DEBUG_STEP
+    fout << "q " << frame_id - 1 << " " << mBuffer_q.transpose() << std::endl;
+    fout << "u " << frame_id - 1 << " " << mBuffer_u.transpose() << std::endl;
+    fout << "u dot " << frame_id - 1 << " " << mBuffer_u_dot.transpose()
+         << std::endl;
+#endif
+    // std::cout << 6 << std::endl;
+    mInverseModel->calculateInverseDynamics(
+        cBulletUtil::EigenArrayTobtIDArray(mBuffer_q),
+        cBulletUtil::EigenArrayTobtIDArray(mBuffer_u),
+        cBulletUtil::EigenArrayTobtIDArray(mBuffer_u_dot),
+        &solve_joint_force_bt);
+    // std::cout << 7 << std::endl;
+    // convert the solve "solve_joint_force_bt" into individual joint forces for
+    // each joint.
+    Eigen::VectorXd solved_joint_force_full_concated =
+        cBulletUtil::btIDArrayToEigenArray(solve_joint_force_bt);
+#ifdef DEBUG_STEP
+    fout << "solve_joint_forces = "
+         << solved_joint_force_full_concated.transpose() << std::endl;
+#endif
+
+    std::vector<double> true_joint_force(0);
+    for (int i = 0; i < mMultibody->getNumLinks(); i++)
+    {
+        auto &cur_link = mMultibody->getLink(i);
+        int offset = cur_link.m_dofOffset;
+        if (mFloatingBase == true)
+            offset += 6;
+        const int cnt = cur_link.m_dofCount;
+        switch (cur_link.m_jointType)
+        {
+        case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+        {
+            assert(cnt == 1);
+            /*
+                            solved_joint_force : in joint frame
+                            mJointForces[i]: in link frame.
+
+                            transform solved joint force to link
+               frame
+                    */
+            double value = solved_joint_force_full_concated[offset];
+            tVector axis_in_body_frame = cBulletUtil::btVectorTotVector0(
+                mMultibody->getLink(i).getAxisTop(0));
+            tQuaternion body_to_this = cMathUtil::EulerToQuaternion(
+                cKinTree::GetBodyAttachTheta(mSimChar->GetBodyDefs(), i),
+                eRotationOrder::XYZ); //
+            tQuaternion this_to_body = body_to_this.inverse();
+            tVector axis_in_joint_frame =
+                cMathUtil::QuatRotVec(body_to_this, axis_in_body_frame);
+            tVector torque_in_joint_frame = value * axis_in_joint_frame;
+            tVector torque_in_link_frame =
+                cMathUtil::QuatRotVec(this_to_body, torque_in_joint_frame);
+            solved_joint_forces[i] = torque_in_link_frame;
+            break;
+        }
+        case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+        {
+            assert(cnt == 3);
+            solved_joint_forces[i] =
+                tVector(solved_joint_force_full_concated[offset],
+                        solved_joint_force_full_concated[offset + 1],
+                        solved_joint_force_full_concated[offset + 2], 0);
+            break;
+        }
+        case btMultibodyLink::eFeatherstoneJointType::eFixed:
+        {
+            break;
+        }
+        default:
+        {
+            std::cout << "[error] cIDSolver::SolveID: unsupported "
+                         "joint type "
+                      << cur_link.m_jointType;
+            exit(1);
+            break;
+        }
+        }
+    }
+}
+
+void cIDSolver::ApplyExternalForcesToID(
+    const tEigenArr<tVector> &link_poses, const tEigenArr<tMatrix> &link_rot,
+    const tEigenArr<tVector> &ext_forces,
+    const tEigenArr<tVector> &ext_torques) const
+{
+    // attention: mInverseModel MUST be set up well before it is called.
+    assert(link_poses.size() == mNumLinks);
+    assert(link_rot.size() == mNumLinks);
+    assert(ext_forces.size() == mNumLinks);
+    assert(ext_torques.size() == mNumLinks);
+    // add external user force
+    for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
+    {
+        btInverseDynamicsBullet3::vec3 bt_com;
+        btInverseDynamicsBullet3::mat33 bt_rot;
+        // get current COM of this body "ID_link_id" relative to the COM of
+        // whole system.
+        mInverseModel->getBodyCoM(ID_link_id,
+                                  &bt_com); // world com, ����ʵ������Joint pos
+        mInverseModel->getBodyTransform(ID_link_id,
+                                        &bt_rot); // body to world
+        tVector link_pos_world = link_poses[ID_link_id];
+        tMatrix local_to_world_rot = link_rot[ID_link_id];
+
+        // calculate global applied position.
+        tVector force_arm_world = tVector::Zero();
+        if (ID_link_id == 0)
+        {
+            // for root link, the COM and joint pos are coincidenced
+            force_arm_world = tVector::Zero();
+        }
+        else
+        {
+            int multibody_id = ID_link_id - 1;
+            tVector joint_pos_world;
+            auto &link = mMultibody->getLink(multibody_id);
+            joint_pos_world =
+                link_pos_world +
+                local_to_world_rot *
+                    cBulletUtil::btVectorTotVector0(-link.m_dVector);
+            force_arm_world = link_pos_world - joint_pos_world;
+        }
+
+        // convert forces & torques to local frame(joint frame aka fixed
+        // frame)
+        tVector force_world = ext_forces[ID_link_id];
+        tVector force_local = local_to_world_rot.transpose() * force_world;
+
+        tVector torque_world = ext_torques[ID_link_id];
+        tVector torque_local = local_to_world_rot.transpose() * torque_world;
+
+        tVector force_torque_world = force_arm_world.cross3(force_world);
+        tVector force_torque_local =
+            local_to_world_rot.transpose() * force_torque_world;
+
+        // set up external force, external concated_joint_forces to Inverse
+        // Model.
+        mInverseModel->addUserForce(
+            ID_link_id, cBulletUtil::tVectorTobtVector(force_local));
+        mInverseModel->addUserMoment(
+            ID_link_id, cBulletUtil::tVectorTobtVector(force_torque_local));
+        mInverseModel->addUserMoment(
+            ID_link_id, cBulletUtil::tVectorTobtVector(torque_local));
+    }
+}
+
+tVectorXd cIDSolver::CalcGeneralizedVelFea(const tVectorXd &q_before,
+                                           const tVectorXd &q_after,
+                                           double timestep) const
+{
+
+    tVectorXd q_dot = tVectorXd::Zero(mDof);
+
+    assert(q_before.size() == mDof);
+    assert(q_after.size() == mDof);
+
+    int dof_offset = 0;
+    for (int i = 0; i < mNumLinks; i++)
+    {
+        if (0 == i)
+        {
+            // for floating root joint
+            if (true == mFloatingBase)
+            {
+                tVector pos_before =
+                            tVector(q_before[3], q_before[4], q_before[5], 1),
+                        pos_after =
+                            tVector(q_after[3], q_after[4], q_after[5], 1);
+                tVector vel_after = (pos_after - pos_before) / timestep;
+
+                // calculate angular velocity, then put it into
+                // q_dot
+                tVector euler_angle_before =
+                            tVector(q_before[0], q_before[1], q_before[2], 0),
+                        euler_angle_after =
+                            tVector(q_after[0], q_after[1], q_after[2], 0);
+                tQuaternion quater_before =
+                                cMathUtil::EulerAnglesToQuaternion(
+                                    euler_angle_before, eRotationOrder::XYZ)
+                                    .inverse(),
+                            quater_after =
+                                cMathUtil::EulerAnglesToQuaternion(
+                                    euler_angle_after, eRotationOrder::XYZ)
+                                    .inverse();
+
+                tVector omega_after = cMathUtil::CalcAngularVelocity(
+                    quater_before, quater_after, timestep);
+                q_dot.segment(0, 3) = omega_after.segment(0, 3);
+                q_dot.segment(3, 3) = vel_after.segment(0, 3);
+                dof_offset += 6;
+                continue;
+            }
+        }
+        else // other joints
+        {
+            int multibody_id = i - 1;
+            auto &link = mMultibody->getLink(multibody_id);
+            switch (link.m_jointType)
+            {
+            case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+            {
+                // calculate angular velocity, then put it into
+                // q_dot
+                tVector euler_angle_before = tVector::Zero(),
+                        euler_angle_after = tVector::Zero();
+                euler_angle_before.segment(0, 3) =
+                    q_before.segment(dof_offset, 3);
+                euler_angle_after.segment(0, 3) =
+                    q_after.segment(dof_offset, 3);
+
+                tQuaternion quater_before = cMathUtil::EulerAnglesToQuaternion(
+                                euler_angle_before, eRotationOrder::ZYX),
+                            quater_after = cMathUtil::EulerAnglesToQuaternion(
+                                euler_angle_after, eRotationOrder::ZYX);
+
+                // convert the ang vel from parent frame to
+                // local frame, then write in
+                tVector ang_vel_parent = cMathUtil::CalcAngularVelocity(
+                    quater_before, quater_after, timestep);
+                tVector ang_vel_local =
+                    cMathUtil::RotMat(quater_before).transpose() *
+                    ang_vel_parent;
+                q_dot.segment(dof_offset, 3) = ang_vel_local.segment(0, 3);
+                dof_offset += 3;
+                break;
+            }
+            case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+            {
+                q_dot(dof_offset) =
+                    (q_after(dof_offset) - q_before(dof_offset)) / timestep;
+                dof_offset += 1;
+
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
+    return q_dot;
+}
+
+/*
+        @Function: CalcMomentum
+                Given the current state of multibody including pos, orientation,
+   vel, omega, this function can calculate linear momentum and angular momentum
+   for this character
+*/
+void cIDSolver::CalcMomentum(const tEigenArr<tVector> &mLinkPos,
+                             const tEigenArr<tMatrix> &mLinkRot,
+                             const tEigenArr<tVector> &mLinkVel,
+                             const tEigenArr<tVector> &mLinkOmega,
+                             tVector &mLinearMomentum,
+                             tVector &mAngMomentum) const
+{
+    assert(mLinkPos.size() == mNumLinks);
+    assert(mLinkRot.size() == mNumLinks);
+    assert(mLinkVel.size() == mNumLinks);
+    assert(mLinkVel.size() == mNumLinks);
+    mLinearMomentum.setZero();
+    mAngMomentum.setZero();
+
+    // 1. init all values
+    std::vector<double> mass(mNumLinks);
+    double total_mass = mSimChar->CalcTotalMass();
+    tEigenArr<tVector> inertia(mNumLinks);
+    tVector COM = tVector::Zero();
+    for (int i = 0; i < mNumLinks; i++)
+    {
+        if (0 == i)
+        {
+            mass[i] = mMultibody->getBaseMass();
+            inertia[i] =
+                cBulletUtil::btVectorTotVector0(mMultibody->getBaseInertia());
+        }
+        else
+        {
+            mass[i] = mMultibody->getLinkMass(i - 1);
+            inertia[i] = cBulletUtil::btVectorTotVector0(
+                mMultibody->getLinkInertia(i - 1));
+        }
+        COM += mLinkPos[i] * mass[i] / total_mass;
+    }
+
+    // 2. calculate linear momentum and angular momentum
+    for (int i = 0; i < mNumLinks; i++)
+    {
+        // calculate linear momentum = mv
+        mLinearMomentum += mass[i] * mLinkVel[i];
+
+        // calculate angular momentum = m * (x - COM) + R * Ibody * R.T * w
+        mAngMomentum += mass[i] * (mLinkPos[i] - COM) +
+                        mLinkRot[i] * inertia[i].asDiagonal() *
+                            mLinkRot[i].transpose() * mLinkOmega[i];
+    }
+    // std::cout << "linear mome = " << mLinearMomentum.transpose() <<
+    // std::endl;
+}
+
+/*
+    @Function: CalcDiscreteVelAndOmega
+                Given mLinkPosCur, mLinkRotCur, mLinkPosNext and mLinkRotNext,
+   this function will try to calculate the linear velocity and angular vel of
+   each link COM in mLinkDiscreteVel and mLinkDiscreteOmega respectly
+*/
+void cIDSolver::CalcDiscreteVelAndOmega(
+    const tEigenArr<tVector> &mLinkPosCur,
+    const tEigenArr<tMatrix> &mLinkRotCur,
+    const tEigenArr<tVector> &mLinkPosNext,
+    const tEigenArr<tMatrix> &mLinkRotNext, double timestep,
+    tEigenArr<tVector> &mLinkDiscreteVel,
+    tEigenArr<tVector> &mLinkDiscreteOmega) const
+{
+    mLinkDiscreteVel.resize(mNumLinks);
+    mLinkDiscreteOmega.resize(mNumLinks);
+    assert(timestep > 1e-6);
+    for (int i = 0; i < mNumLinks; i++)
+    {
+        // discrete vel = (p_next - p_cur) / timestep
+        // discrete omega = (rot_next - rot_cur) / timestep, note that this
+        // '-' is quaternion minus
+        mLinkDiscreteVel[i] = (mLinkPosNext[i] - mLinkPosCur[i]) / timestep;
+        mLinkDiscreteOmega[i] = cMathUtil::CalcQuaternionVel(
+            cMathUtil::RotMatToQuaternion(mLinkRotCur[i]),
+            cMathUtil::RotMatToQuaternion(mLinkRotNext[i]), timestep);
+    }
+}
+
+/**
+ * \brief           assemble the individual joint forces into a concatenated
+ * vector. If the ground truth pointer is availuable, also check the solving
+ * error
+ * \return the solving error, if ground truth is given
+ */
+double
+cIDSolver::CalcAssembleJointForces(tEigenArr<tVector> &solve_joint_forces,
+                                   tVectorXd &concated_joint_forces,
+                                   const tEigenArr<tVector> &ground_truth) const
+{
+    double ID_torque_err = 0;
+    int f_cnt = 7;
+    concated_joint_forces.segment(0, 7).setZero();
+    for (int j = 0; j < mNumLinks - 1; j++)
+    {
+        switch (this->mMultibody->getLink(j).m_jointType)
+        {
+        case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+            concated_joint_forces[f_cnt++] =
+                solve_joint_forces[j].dot(cBulletUtil::btVectorTotVector0(
+                    mMultibody->getLink(j).getAxisTop(0)));
+            break;
+        case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+        {
+            tVector local_torque, local_torque_child;
+            local_torque = solve_joint_forces[j];
+            local_torque_child = cMathUtil::QuatRotVec(
+                mSimChar->GetJoint(j).GetChildRot().conjugate(), local_torque);
+            concated_joint_forces.segment(f_cnt, 4) = local_torque_child;
+            f_cnt += 4;
+            break;
+        }
+
+        case btMultibodyLink::eFeatherstoneJointType::eFixed:
+            break;
+        default:
+            std::cout << "cOfflineIDSolver::OfflineSolve joint " << j
+                      << " type " << mMultibody->getLink(j).m_jointType
+                      << std::endl;
+            exit(1);
+            break;
+        }
+
+        // if (ground_truth != nullptr)
+        {
+            double single_error =
+                (solve_joint_forces[j] - ground_truth[j]).norm();
+            if (single_error > 1e-6)
+            {
+                MIMIC_ERROR("SingleTrajSolve Torque: "
+                            "joint {} ground truth {}, solve_joint_forces {}, "
+                            "error {}",
+                            j, ground_truth[j].transpose(),
+                            (solve_joint_forces[j].transpose()),
+                            std::to_string(single_error));
+                assert(0);
+            }
+            ID_torque_err += single_error;
+        }
+    }
+    return ID_torque_err;
+}
+
+/**
+ * \brief           When the action is zero, cover it with the ground truth
+ */
+void cIDSolver::PostProcessAction(tVectorXd &action,
+                                  const tVectorXd &action_ground_truth) const
+{
+    int f_cnt = 0;
+    for (int j = 0; j < mNumLinks - 1; j++)
+    {
+        switch (this->mMultibody->getLink(j).m_jointType)
+        {
+        case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+        {
+            f_cnt++;
+            break;
+        }
+        case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+        {
+            if (std::fabs(action.segment(f_cnt, 4).norm()) < 1e-10)
+            {
+                // this action is zero
+                action.segment(f_cnt, 4) =
+                    action_ground_truth.segment(f_cnt, 4);
+                MIMIC_WARN("joint {} action is zero, overwrite it with "
+                           "previous result.",
+                           j);
+            }
+            f_cnt += 4;
+            break;
+        }
+        case btMultibodyLink::eFeatherstoneJointType::eFixed:
+            break;
+        default:
+            MIMIC_ERROR("SingleTrajSolve joint {} type {} "
+                        "unsupported!",
+                        j, mMultibody->getLink(j).m_jointType);
+            exit(1);
+            break;
+        }
+    }
+}
+
+/**
+ * \brief               verify the error of action
+ */
+double cIDSolver::CalcActionError(const tVectorXd &action,
+                                  const tVectorXd &truth_action) const
+{
+    int f_cnt = 0;
+    double single_action_err = 0, total_action_err = 0;
+    for (int j = 0; j < mNumLinks - 1; j++)
+    {
+        switch (this->mMultibody->getLink(j).m_jointType)
+        {
+        case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+        {
+            // 6.1 compare the ideal action and
+            // solved action
+            single_action_err = std::fabs(truth_action[f_cnt] - action[f_cnt]);
+            if (single_action_err > 1e-7)
+            {
+                MIMIC_ERROR("SingleTrajSolve Action "
+                            "error: frame {} joint {} "
+                            "(rev), truth action {}, "
+                            "solved action {}, diff",
+                            truth_action[f_cnt], action[f_cnt],
+                            single_action_err);
+                total_action_err += single_action_err;
+            }
+            f_cnt++;
+            break;
+        }
+        case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+        {
+            tVectorXd truth_action_sph =
+                truth_action.segment(f_cnt + 1, 3).normalized();
+            if (std::fabs(truth_action[f_cnt]) < 1e-10)
+                truth_action_sph.setZero();
+
+            // it is because that, the axis angle
+            // represention is ambiguous
+            single_action_err =
+                std::min((truth_action_sph + action.segment(f_cnt, 4)).norm(),
+                         (truth_action_sph - action.segment(f_cnt, 4)).norm());
+            total_action_err += single_action_err;
+            f_cnt += 4;
+            break;
+        }
+        case btMultibodyLink::eFeatherstoneJointType::eFixed:
+            break;
+        default:
+            MIMIC_ERROR("SingleTrajSolve joint {} type {} "
+                        "unsupported!",
+                        j, mMultibody->getLink(j).m_jointType);
+            exit(1);
+            break;
+        }
+    }
+    return total_action_err;
+}
+
+void cIDSolver::RecordGeneralizedInfoFea(cSimCharacterBase *sim_char,
+                                         tVectorXd &q, tVectorXd &q_dot)
+{
+    auto mMultibody = dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody();
+    int mDof = mMultibody->getNumDofs();
+    bool mFloatingBase = mMultibody->hasFixedBase() == false;
+    if (mFloatingBase)
+        mDof += 6;
+    q.resize(mDof), q_dot.resize(mDof);
+    q.setZero(), q_dot.setZero();
+    // root
+    if (mFloatingBase == true)
+    {
+        // q = [rot, pos], rot = euler angle in XYZ rot
+        tQuaternion world_to_base = cBulletUtil::btQuaternionTotQuaternion(
+            mMultibody->getWorldToBaseRot());
+        tVector euler_angle_rot = cMathUtil::QuaternionToEulerAngles(
+            world_to_base, eRotationOrder::XYZ);
+
+        for (int i = 0; i < 3; i++)
+            q(i) = euler_angle_rot[i];
+        tVector pos =
+            cBulletUtil::btIDVectorTotVector0(mMultibody->getBasePos());
+        for (int i = 3; i < 6; i++)
+            q(i) = pos[i - 3];
+
+        // q_dot = [w, v]
+        tVector omega =
+            cBulletUtil::btVectorTotVector0(mMultibody->getBaseOmega());
+        tVector vel = cBulletUtil::btVectorTotVector0(mMultibody->getBaseVel());
+        for (int i = 0; i < 3; i++)
+            q_dot(i) = omega[i];
+        for (int i = 3; i < 6; i++)
+            q_dot(i) = vel[i - 3];
+    }
+
+    // other joints
+    for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks();
+         link_id++)
+    {
+        auto &cur_link = mMultibody->getLink(link_id);
+        int offset = cur_link.m_dofOffset;
+        if (mFloatingBase == true)
+            offset += 6;
+
+        switch (cur_link.m_jointType)
+        {
+        case btMultibodyLink::eFeatherstoneJointType::eRevolute:
+        {
+            q(offset) = mMultibody->getJointPos(link_id);
+            q_dot(offset) = mMultibody->getJointVel(link_id);
+            break;
+        }
+        case btMultibodyLink::eFeatherstoneJointType::eSpherical:
+        {
+            // q: euler angle
+            // q_dot: omega
+            btScalar *bt_joint_pos = mMultibody->getJointPosMultiDof(link_id);
+            btScalar *bt_joint_vel = mMultibody->getJointVelMultiDof(link_id);
+
+            // local to parent frame��quaternion
+            tQuaternion joint_pos_q(bt_joint_pos[3], bt_joint_pos[0],
+                                    bt_joint_pos[1], bt_joint_pos[2]);
+            tVector joint_pos_euler = cMathUtil::QuaternionToEulerAngles(
+                joint_pos_q, eRotationOrder::ZYX);
+            tVector joint_vel =
+                tVector(bt_joint_vel[0], bt_joint_vel[1], bt_joint_vel[2], 0);
+
+            for (int i = 0; i < 3; i++)
+            {
+                q(offset + i) = joint_pos_euler[i]; // in parent frame
+
+                q_dot(offset + i) = joint_vel[i]; // in parent frame
+            }
+            break;
+        }
+        case btMultibodyLink::eFeatherstoneJointType::eFixed:
+        {
+            break;
+        }
+        default:
+        {
+            std::cout << "[error] cIDSolver::RecordGeneralizedInfo: "
+                         "unsupported joint type "
+                      << cur_link.m_jointType << std::endl;
+            exit(1);
+        }
+        }
+    }
+}

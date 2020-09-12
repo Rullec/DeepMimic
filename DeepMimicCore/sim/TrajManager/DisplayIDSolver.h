@@ -1,7 +1,8 @@
-#include "InteractiveIDSolver.hpp"
+#include "IDSolver.h"
+#include "Trajectory.h"
 
 class cSceneImitate;
-class cDisplayIDSolver : public cInteractiveIDSolver
+class cDisplayIDSolver : public cIDSolver
 {
 public:
     explicit cDisplayIDSolver(cSceneImitate *sim_char,
@@ -14,4 +15,6 @@ public:
 
 protected:
     void Parseconfig(const std::string &conf);
+    tLoadInfo mLoadInfo;
+    int mDisplayEpoch;
 };
