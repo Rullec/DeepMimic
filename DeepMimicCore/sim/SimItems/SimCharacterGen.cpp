@@ -653,8 +653,8 @@ bool cSimCharacterGen::HasVelExploded(double vel_threshold /* = 100.0*/) const
         MIMIC_INFO("cSimCharacterGen cartesian velocity exploded to {}",
                    vel_threshold);
 
-    // return is_max_vel;
-    return false;
+    return is_max_vel;
+    // return false;
     // bool is_max_vel = IsGeneralizedMaxVel();
     // if (is_max_vel)
     // {

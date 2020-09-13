@@ -2,7 +2,7 @@
 	"AgentType": "PPO",
 
 	"ActorNet": "fc_2layers_512_256",
-	"ActorStepsize": 0.0000025,
+	"ActorStepsize": 0.000002,
 	"ActorMomentum": 0.9,
 	"ActorWeightDecay": 0.0005,
 	"ActorInitOutputScale": 0.01,
@@ -22,13 +22,13 @@
 	"InitSamples": 1,
 	"NormalizerSamples": 1000000,
 
-	"RatioClip": 0.2,
+	"RatioClip": 0.15,
 	"NormAdvClip": 4,
 	"TDLambda": 0.95,
 	
 	"OutputIters": 10,
 	"IntOutputIters": 400,
-	"TestEpisodes": 8,
+	"TestEpisodes": 16,
 
 	"ExpAnnealSamples": 64000000,
 
