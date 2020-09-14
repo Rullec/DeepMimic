@@ -2,7 +2,7 @@
 	"AgentType": "PPO",
 
 	"ActorNet": "fc_2layers_512_256",
-	"ActorStepsize": 0.000002,
+	"ActorStepsize": 0.0000025,
 	"ActorMomentum": 0.9,
 	"ActorWeightDecay": 0.0005,
 	"ActorInitOutputScale": 0.01,
@@ -12,6 +12,7 @@
 	"CriticMomentum": 0.9,
 	"CriticWeightDecay": 0,
 
+	"TarClipFrac" : 0.2,
 	"UpdatePeriod": 1,
 	"ItersPerUpdate": 1,
 	"Discount": 0.95,
@@ -21,8 +22,9 @@
 	"ReplayBufferSize": 500000,
 	"InitSamples": 1,
 	"NormalizerSamples": 1000000,
+	"BeginningSampleCount" : 0,
 
-	"RatioClip": 0.15,
+	"RatioClip": 0.2,
 	"NormAdvClip": 4,
 	"TDLambda": 0.95,
 	
