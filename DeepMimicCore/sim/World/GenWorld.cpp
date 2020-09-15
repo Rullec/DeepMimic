@@ -440,3 +440,8 @@ std::vector<btGenContactForce *> cGenWorld::GetContactInfo() const
 {
     return mbtGenWorld->GetContactForces();
 }
+
+btGeneralizeWorld *cGenWorld::GetInternalGenWorld()
+{
+    return this->mbtGenWorld;
+}

@@ -334,6 +334,25 @@ void cCtPDGenController::UpdatePDCtrls(double time_step,
                                        Eigen::VectorXd &out_tau)
 {
     mPDGenController->UpdateControlForce(time_step, out_tau);
+    if (mEnableSolvePDTargetTest)
+    {
+        MIMIC_DEBUG("Enable PD target solve test");
+        tVectorXd solved_target = mPDGenController->CalcPDTargetByControlForce(
+            time_step, mChar->GetPose(), mChar->GetVel(), out_tau);
+        tVectorXd diff = solved_target - GetCurPDTargetPose();
+        if (diff.cwiseAbs().maxCoeff() > 1e-4)
+        {
+            std::cout << "solved target = " << solved_target.transpose()
+                      << std::endl;
+            std::cout << "truth target = " << GetCurPDTargetPose().transpose()
+                      << std::endl;
+            std::cout << "diff = " << diff.transpose() << std::endl;
+            MIMIC_ERROR("PD Target resolve failed");
+        }
+        else
+            MIMIC_INFO("PD Target solve accurately");
+    }
+    // std::cout << "update pd controls\n";
 }
 
 /**
@@ -342,7 +361,7 @@ void cCtPDGenController::UpdatePDCtrls(double time_step,
  */
 void cCtPDGenController::ApplyAction(const Eigen::VectorXd &action)
 {
-    // 1. check the length of action (spherical - axis angle)
+    // 1. check the length of action (spherical - axis angle), then normalize it
     MIMIC_ASSERT(GetActionSize() == action.size());
 
     // 2. convert action to PD target (pose)
@@ -429,6 +448,7 @@ void cCtPDGenController::SetPDTargets(const Eigen::VectorXd &reduce_target_pose)
     const int root_pose_size = 7;
     tVectorXd full_target_pose =
         tVectorXd::Zero(root_pose_size + reduce_target_pose.size());
+    full_target_pose[3] = 1.0;
     full_target_pose.segment(root_pose_size, reduce_target_pose.size()) =
         reduce_target_pose;
 
@@ -441,8 +461,35 @@ void cCtPDGenController::SetPDTargets(const Eigen::VectorXd &reduce_target_pose)
     // std::endl; std::cout << "target q = " << q_goal.transpose() << std::endl;
     // exit(1);
     mPDGenController->SetPDTarget_q(q_goal, qdot_goal);
-}
 
+    // debug
+    /*
+        check whether API:
+        cMathUtil::QuaternionToEulerAngles(qua, eRotationOrder::XYZ)
+                    .segment(0, 3);
+        cMathUtil::EulerAnglesToQuaternion()
+        is invertable
+    */
+    // check whether pose to q & q to pose is invertable: it is not invertable
+    // {
+    //     std::cout << "verify whether convert pose to q is invertable?\n";
+    //     tVectorXd restore_pose = gen_char->ConvertqToPose(q_goal);
+    //     std::cout << "restore pose = " << restore_pose.transpose() <<
+    //     std::endl; std::cout << "goal pose = " <<
+    //     full_target_pose.transpose()
+    //               << std::endl;
+
+    //     tVectorXd diff = restore_pose - full_target_pose;
+    //     double diff_norm = diff.norm();
+    //     if (diff_norm > 1e-8)
+    //     {
+    //         MIMIC_ERROR("origin pose {}, restore pose {} diff norm {}",
+    //                     full_target_pose.transpose(),
+    //                     restore_pose.transpose(), diff_norm);
+    //     }
+    // }
+    // exit(1);
+}
 /**
  * \brief               For PD control strategy, the action is PD target
  * combined by quaternions
@@ -567,8 +614,8 @@ void cCtPDGenController::BuildJointActionBoundsFixed(
 }
 
 /**
- * \brief               Spherical joints, offset = 0, scale = 1 beside the first
- * and the last number
+ * \brief               Spherical joints, offset = 0, scale = 1 beside the
+ * first and the last number
  */
 void cCtPDGenController::BuildJointActionOffsetScaleSphereical(
     int joint_id, Eigen::VectorXd &out_offset, Eigen::VectorXd &out_scale) const
@@ -630,8 +677,8 @@ void cCtPDGenController::BuildJointActionOffsetScaleNone(
 }
 
 /**
- * \brief               Convert action (axis angle in spherical joints, [theta,
- * ax, ay, az]) to PD Target pose(quaternion in spherical joints)
+ * \brief               Convert action (axis angle in spherical joints,
+ * [theta, ax, ay, az]) to PD Target pose(quaternion in spherical joints)
  */
 void cCtPDGenController::ConvertActionToTargetPose(tVectorXd &out_theta) const
 {
@@ -651,11 +698,14 @@ void cCtPDGenController::ConvertActionToTargetPose(tVectorXd &out_theta) const
             double theta = axis_angle[0];
             tVector axis = cMathUtil::Expand(axis_angle.segment(1, 3), 0);
 
-            out_theta.segment(st_pos, param_size) = cMathUtil::QuatToVec(
-                cMathUtil::AxisAngleToQuaternion(axis, theta));
+            out_theta.segment(st_pos, param_size) =
+                cMathUtil::QuatToVec(
+                    cMathUtil::AxisAngleToQuaternion(axis, theta))
+                    .normalized();
             // MIMIC_DEBUG("convert axis angle {} to quaternion {}",
             //             axis_angle.transpose(),
-            //             out_theta.segment(st_pos, param_size).transpose());
+            //             out_theta.segment(st_pos,
+            //             param_size).transpose());
         }
 
         st_pos += param_size;
@@ -676,7 +726,8 @@ void cCtPDGenController::CalcActionByTargetPose(tVectorXd &pd_target)
     {
         int size = GetJointActionSize(i);
         tVectorXd target_pose = pd_target.segment(st_pos, size);
-        // MIMIC_INFO("joint {}  target pose {}", i, target_pose.transpose());
+        // MIMIC_INFO("joint {}  target pose {}", i,
+        // target_pose.transpose());
         ConvertTargetPoseToAction(i, target_pose);
         pd_target.segment(st_pos, size) = target_pose;
         // MIMIC_INFO("joint {}  action {}", i, target_pose.transpose());
@@ -726,5 +777,6 @@ void cCtPDGenController::CalcPDTargetByTorque(double dt, const tVectorXd &pose,
                                               const tVectorXd &torque,
                                               tVectorXd &pd_target)
 {
-    MIMIC_ERROR("hasn't been implemented");
+    pd_target =
+        mPDGenController->CalcPDTargetByControlForce(dt, pose, vel, torque);
 }

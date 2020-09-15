@@ -39,7 +39,7 @@ def read_log_file(filename):
                     time_exp_buffer.clear()
             if line.find("Test_Ret") != -1:
                 test_return.append(float(line.split()[3]))
-            if line.find("Timer") != -1:  # get timer
+            if line.find("Timer said") != -1:  # get timer
                 time_buffer.append(line.split()[8][:-1])
                 time_exp_buffer.append(line.split()[11])
             if line.find("Clip") != -1:  # get timer

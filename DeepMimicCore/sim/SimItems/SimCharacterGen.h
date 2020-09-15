@@ -153,6 +153,7 @@ public:
     virtual std::string GetDrawShapeName(int id) const override;
     virtual int GetNumJoints() const override;
     virtual tVectorXd ConvertPoseToq(const tVectorXd &pose) const;
+    tVectorXd ConvertqToPose(const tVectorXd &q) const;
     virtual void CalcCOMAndCOMVel(const tVectorXd &pose,
                                   const tVectorXd &pose_vel, tVector &com,
                                   tVector &com_vel);
@@ -207,7 +208,7 @@ protected:
     virtual btCollisionObject *GetCollisionObject() override;
     void Test();
     eRotationOrder GetRotationOrder() const;
-    tVectorXd ConvertqToPose(const tVectorXd &pose) const;
+
     tVectorXd ConvertqdotToPoseVel(const tVectorXd &pose) const;
 
     tVectorXd ConvertPosevelToqdot(const tVectorXd &pose_vel) const;

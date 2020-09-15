@@ -188,8 +188,8 @@ void cPDCtrl::UpdateControlForceSPD(double dt, tVectorXd &out_tau)
     Eigen::DiagonalMatrix<double, Eigen::Dynamic> Kp_mat = mKp.asDiagonal();
     Eigen::DiagonalMatrix<double, Eigen::Dynamic> Kd_mat = mKd.asDiagonal();
 
-    tVectorXd Q =
-        mKp.cwiseProduct(q_next_err) + mKd.cwiseProduct(qdot_next_err);
+    // tVectorXd Q =
+    //     mKp.cwiseProduct(q_next_err) + mKd.cwiseProduct(qdot_next_err);
     // std::cout << "Q = " << Q.transpose() << std::endl;
     tMatrixXd M = mChar->GetMassMatrix();
     M += dt * Kd_mat;
@@ -233,5 +233,54 @@ void cPDCtrl::PostProcessControlForce(tVectorXd &out_tau)
         }
         st_pos += joint_dof;
     }
+    // std::cout << "[debug] target q = " << mTarget_q.transpose() << std::endl;
     MIMIC_ASSERT(out_tau.hasNaN() == false);
+}
+
+tVectorXd cPDCtrl::CalcPDTargetByControlForce(double dt, const tVectorXd &pose,
+                                              const tVectorXd &vel,
+                                              const tVectorXd &ctrl_force) const
+{
+    // 1. push state
+    auto gen_char = dynamic_cast<cSimCharacterGen *>(mChar);
+    tVectorXd before_pose = gen_char->GetPose(),
+              before_vel = gen_char->GetVel();
+    // gen_char->PushState("CalcPDTarget");
+
+    // 2. set current state
+    gen_char->SetPose(pose);
+    gen_char->SetVel(vel);
+
+    // 3. Given torque, calculate the PD target
+    int num_of_freedom = gen_char->GetNumOfFreedom();
+    MIMIC_ASSERT(ctrl_force.size() == num_of_freedom);
+    tVectorXd target;
+    {
+        tMatrixXd mat_Kp = mKp.asDiagonal(), mat_Kd = mKd.asDiagonal();
+        double dt2 = dt * dt;
+        tMatrixXd M_tilde_inv =
+            (mChar->GetMassMatrix() + dt * mat_Kd).inverse();
+        tVectorXd q_cur = gen_char->Getq(), qdot_cur = gen_char->Getqdot();
+        tMatrixXd C = mChar->GetCoriolisMatrix();
+        tMatrixXd I = tMatrixXd::Identity(num_of_freedom, num_of_freedom);
+
+        tMatrixXd A = (I - dt * mat_Kd * M_tilde_inv) * mat_Kp;
+        tVectorXd b = (dt * mat_Kd * M_tilde_inv - I) * mat_Kp * q_cur;
+        tVectorXd c = -1 *
+                      (dt * mat_Kp + mat_Kd - dt * mat_Kd * M_tilde_inv * C -
+                       dt * mat_Kd * M_tilde_inv * mat_Kd -
+                       dt2 * mat_Kd * M_tilde_inv * mat_Kp) *
+                      qdot_cur;
+        target = A.inverse() * (ctrl_force - b - c);
+        target.segment(0, 6).setZero();
+        // std::cout << "[debug] solved q = " << target.transpose() <<
+        // std::endl;
+        target = gen_char->ConvertqToPose(target);
+        target = target.segment(7, target.size() - 7);
+    }
+    // 4. restore and return
+    // MIMIC_ERROR("hasn't been implemented yet");
+    gen_char->SetPose(before_pose);
+    gen_char->SetVel(before_vel);
+    return target;
 }

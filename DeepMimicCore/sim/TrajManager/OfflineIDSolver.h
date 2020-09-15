@@ -1,17 +1,16 @@
+#pragma once
 #include "IDSolver.h"
 #include "Trajectory.h"
-
-class cSceneImitate;
 class cOfflineIDSolver : public cIDSolver
 {
 public:
     explicit cOfflineIDSolver(cSceneImitate *imitate,
                               const std::string &config);
-    virtual ~cOfflineIDSolver();
-    virtual void PreSim() override final;
-    virtual void PostSim() override final;
-    virtual void Reset() override final;
-    virtual void SetTimestep(double) override final;
+    virtual ~cOfflineIDSolver() = default;
+    // virtual void PreSim() = 0;
+    // virtual void PostSim() = 0;
+    // virtual void Reset() = 0;
+    // virtual void SetTimestep(double) = 0;
 
 protected:
     enum eSolveMode
@@ -37,8 +36,7 @@ protected:
         "INVALID_SOLVETARGET", "SampledTraj", "MRedTraj"};
 
     eSolveMode mSolveMode; // solve mode: single_solve or batch_solve?
-
-    // config for SingleTrajSolveMode
+                           // config for SingleTrajSolveMode
     struct
     {
         std::string mSolveTrajPath; // which trajectory do you want to use for
@@ -108,16 +106,23 @@ protected:
     void ParseSingleTrajConfig(const Json::Value &single_traj_config);
     void ParseBatchTrajConfig(const Json::Value &batch_traj_config);
 
-    void SingleTrajSolve(std::vector<tSingleFrameIDResult> &IDResult);
-    void BatchTrajsSolve(const std::string &path);
-    // void RestoreActionByThetaDist(std::vector<tSingleFrameIDResult>
-    // &IDResult); void
-    // RestoreActionByGroundTruth(std::vector<tSingleFrameIDResult> &IDResult);
-    void SaveTrainData(const std::string &dir, const std::string &filename,
-                       std::vector<tSingleFrameIDResult> &)
-        const; // save train data "*.train", only "state, action, reward " trio
-               // pair will be storaged in it.
-private:
     eSolveTarget ParseSolveTargetInBatchMode(const std::string &name) const;
     eSolveMode ParseSolvemode(const std::string &name) const;
+
+    void SaveTrainData(const std::string &dir, const std::string &filename,
+                       const std::vector<tSingleFrameIDResult> &)
+        const; // save train data "*.train", only "state, action, reward " trio
+               // pair will be storaged in it.
+
+    virtual void
+    SingleTrajSolve(std::vector<tSingleFrameIDResult> &IDResult) = 0;
+    virtual void BatchTrajsSolve(const std::string &path) = 0;
+
+    void LoadBatchInfoMPI(const std::string &table_path,
+                          std::vector<int> &solved_traj_ids,
+                          std::vector<std::string> &solved_traj_names);
+    void AddBatchInfoMPI(
+        int global_traj_id, const std::string target_traj_filename_full,
+        const std::vector<tSingleFrameIDResult> &mResult,
+        const std::vector<tSummaryTable::tSingleEpochInfo> &old_epoch_info);
 };

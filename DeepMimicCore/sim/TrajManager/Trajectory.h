@@ -108,6 +108,7 @@ struct tLoadInfo
     tLoadInfo();
     std::string mLoadPath;
     eLoadMode mLoadMode;
+    eTrajFileVersion mVersion;
     /*
         mPosMat:   for featherstone backend the angles of each joint in bullet
                     for generalized backend, the gen coordinate

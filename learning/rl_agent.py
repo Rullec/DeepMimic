@@ -600,6 +600,7 @@ class RLAgent(ABC):
 
     def _update_exp_params(self):
         lerp = float(self._total_sample_count) / self.exp_anneal_samples
+
         lerp = np.clip(lerp, 0.0, 1.0)
         self.exp_params_curr = self.exp_params_beg.lerp(self.exp_params_end, lerp)
         return

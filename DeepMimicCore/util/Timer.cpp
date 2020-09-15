@@ -1,5 +1,6 @@
 #include "Timer.h"
 #include "LogUtil.h"
+#include "MPIUtil.h"
 #include "MathUtil.h"
 #include <iostream>
 using namespace std;

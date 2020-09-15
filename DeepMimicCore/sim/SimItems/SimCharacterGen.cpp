@@ -744,7 +744,17 @@ void cSimCharacterGen::ClearForces() { cRobotModelDynamics::ClearForce(); }
 void cSimCharacterGen::ApplyControlForces(const Eigen::VectorXd &tau)
 {
     MIMIC_ASSERT(GetNumOfFreedom() == tau.size());
-    mGenForce += tau;
+    if (GetEnableContactAwareAdviser() == true)
+    {
+        MIMIC_WARN("Contact aware control is enabled, so the interfaces "
+                   "ApplyControlForces doesn't make sense");
+    }
+    else
+    {
+        // normal control
+        mGenForce += tau;
+    }
+
     // MIMIC_INFO("ApplyControlForces hasn't been implement, tau = {}",
     //            tau.transpose());
 }

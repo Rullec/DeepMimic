@@ -40,9 +40,13 @@ std::string tSaveInfo::SaveTraj(const std::string &traj_dir,
         exit(1);
         break;
     }
+    std::string traj_name, final_name;
+    do
+    {
+        traj_name = cFileUtil::GenerateRandomFilename(traj_rootname);
+        final_name = cFileUtil::ConcatFilename(traj_dir, traj_name);
+    } while (cFileUtil::ExistsFile(final_name) == true);
 
-    std::string traj_name = cFileUtil::GenerateRandomFilename(traj_rootname);
-    std::string final_name = cFileUtil::ConcatFilename(traj_dir, traj_name);
     cFileUtil::AddLock(final_name);
     if (false == cFileUtil::ValidateFilePath(final_name))
     {
@@ -258,6 +262,7 @@ tLoadInfo::tLoadInfo()
     mCurFrame = 0;
     mEnableOutputMotionInfo = false;
     mOutputMotionInfoPath = "";
+    mVersion = eTrajFileVersion::UNSET;
 }
 
 /*
@@ -295,9 +300,11 @@ void tLoadInfo::LoadTraj(cSimCharacterBase *sim_char, const std::string &path)
         break;
     case eTrajFileVersion::V1:
         LoadTrajV1(sim_char, root);
+        mVersion = eTrajFileVersion::V1;
         break;
     case eTrajFileVersion::V2:
         LoadTrajV2(sim_char, root);
+        mVersion = eTrajFileVersion::V2;
         break;
     default:
         MIMIC_ERROR("Unsupported version");
@@ -308,16 +315,14 @@ void tLoadInfo::LoadTrajV1(cSimCharacterBase *sim_char,
                            const Json::Value &data_json)
 {
     auto &raw_pose = sim_char->GetPose();
-    Json::Value list_json;
-    list_json = data_json["list"];
-    assert(list_json.isNull() == false);
-    // std::cout <<"get list json, begin set up pramas\n";
-    const int &target_version = cJsonUtil::ParseAsInt("version", data_json);
-
+    Json::Value list_json = data_json["list"];
+    MIMIC_ASSERT(list_json.isNull() == false);
+    const int target_version = cJsonUtil::ParseAsInt("version", data_json);
     int num_of_frames = list_json.size();
 
     auto ctrl =
         dynamic_cast<cCtPDController *>(sim_char->GetController().get());
+    MIMIC_ASSERT(ctrl != nullptr);
     {
         int num_of_links = 0;
         int pos_size = 0;
@@ -437,43 +442,70 @@ void tLoadInfo::LoadTrajV2(cSimCharacterBase *sim_char,
     // 6. rewards
     // 7. motion ref time
     // 8. actions
-    int num_of_links = sim_char->GetNumBodyParts();
-    auto ctrl = dynamic_cast<cCtController *>(sim_char->GetController().get());
-    MIMIC_ASSERT(ctrl != nullptr);
-    // and we also need to restore pose, vel, accel, link rot, link pos,
+
+    // int pos_size = 0;
     tVectorXd raw_pose = sim_char->GetPose();
     Json::Value list_json = data_json["list"];
-    // std::cout <<"get list json, begin set up pramas\n";
-    const int version = cJsonUtil::ParseAsInt("version", data_json);
-
+    MIMIC_ASSERT(list_json.isNull() == false);
+    const int target_version = cJsonUtil::ParseAsInt("version", data_json);
+    MIMIC_ASSERT(target_version == 2);
     int num_of_frames = list_json.size();
-    int action_size = ctrl->GetActionSize();
-    if (eSimCharacterType::Generalized == sim_char->GetCharType())
-    {
-        MIMIC_WARN("LoadTrajV2 for generalized force hacked");
-        action_size += 6;
-    }
 
-    int pose_size = sim_char->GetPose().size();
-    int q_dof_size = 0;
-    if (sim_char->GetCharType() == eSimCharacterType::Featherstone)
-    {
-        auto mMultibody =
-            dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody();
-        q_dof_size = mMultibody->getNumDofs();
-        bool mFloatingBase = mMultibody->hasFixedBase() == false;
-        if (mFloatingBase)
-            q_dof_size += 6;
-    }
+    auto ctrl =
+        dynamic_cast<cCtPDController *>(sim_char->GetController().get());
+    MIMIC_ASSERT(ctrl != nullptr);
+    // and we also need to restore pose, vel, accel, link rot, link pos,
 
+    // std::cout <<"get list json, begin set up pramas\n";
+
+    // int num_of_links = 0;
+    // int pose_size = sim_char->GetPose().size();
+    // int q_dof_size = 0;
+    // if (sim_char->GetCharType() == eSimCharacterType::Featherstone)
+    // {
+    //     num_of_links = sim_char->GetNumBodyParts() + 1;
+    //     auto mMultibody =
+    //         dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody();
+    //     q_dof_size = mMultibody->getNumDofs();
+    //     bool mFloatingBase = mMultibody->hasFixedBase() == false;
+    //     if (mFloatingBase)
+    //         q_dof_size += 6;
+    // }
+    // else if (sim_char->GetCharType() == eSimCharacterType::Generalized)
+    // {
+    //     q_dof_size = sim_char->GetNumDof();
+    //     num_of_links = sim_char->GetNumBodyParts();
+    //     // MIMIC_ERROR("pos size {}, num of links {}", pos_size,
+    //     // num_of_links);
+    // }
     {
+        int num_of_links = 0;
+        int pos_size = 0;
+        if (sim_char->GetCharType() == eSimCharacterType::Featherstone)
+        {
+            num_of_links = sim_char->GetNumBodyParts() + 1;
+            auto multibody =
+                dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody();
+            pos_size = multibody->getNumDofs();
+            if (multibody->hasFixedBase() == false)
+                pos_size += 6;
+        }
+        else if (sim_char->GetCharType() == eSimCharacterType::Generalized)
+        {
+            pos_size = sim_char->GetNumDof();
+            num_of_links = sim_char->GetNumBodyParts();
+            // MIMIC_ERROR("pos size {}, num of links {}", pos_size,
+            // num_of_links);
+        }
+        int action_size = ctrl->GetActionSize();
+        int pose_size = sim_char->GetPose().size();
         mTotalFrame = num_of_frames;
-        mPosMat.resize(num_of_frames, q_dof_size), mPosMat.setZero();
-        mVelMat.resize(num_of_frames, q_dof_size), mVelMat.setZero();
-        mAccelMat.resize(num_of_frames, q_dof_size), mAccelMat.setZero();
+        mPosMat.resize(num_of_frames, pos_size), mPosMat.setZero();
+        mVelMat.resize(num_of_frames, pos_size), mVelMat.setZero();
+        mAccelMat.resize(num_of_frames, pos_size), mAccelMat.setZero();
         mCharPoseMat.resize(num_of_frames, pose_size), mCharPoseMat.setZero();
-        mActionMat.resize(num_of_frames, action_size),
-            MIMIC_INFO("action size {}", action_size);
+        mActionMat.resize(num_of_frames, action_size);
+        MIMIC_INFO("action size {}", action_size);
 
         mActionMat.setZero();
         mPDTargetMat.resize(num_of_frames, action_size), mPDTargetMat.setZero();
@@ -527,13 +559,9 @@ void tLoadInfo::LoadTrajV2(cSimCharacterBase *sim_char,
             cJsonUtil::ParseAsValue("truth_action", cur_frame);
         const int cur_contact_num =
             cJsonUtil::ParseAsInt("contact_num", cur_frame);
-
+        mCharPoseMat.row(frame_id) = cJsonUtil::ReadVectorJson(cur_char_pose);
         // 1. restore 0 order info pos from char pose
-        MIMIC_ASSERT(cur_char_pose.size() == pose_size);
         MIMIC_ASSERT(cur_contact_info.size() == cur_contact_num);
-
-        for (int j = 0; j < pose_size; j++)
-            mCharPoseMat(frame_id, j) = cur_char_pose[j].asDouble();
         // std::cout <<cur_pose.size() <<" " << mSimChar->GetNumDof() <<
         // std::endl;
         sim_char->SetPose(mCharPoseMat.row(frame_id));
@@ -550,10 +578,7 @@ void tLoadInfo::LoadTrajV2(cSimCharacterBase *sim_char,
         LoadContactInfo(cur_contact_info, mContactForces[frame_id]);
 
         // 4. actions
-        for (int idx = 0; idx < action_size; idx++)
-        {
-            mActionMat(frame_id, idx) = cur_truth_action[idx].asDouble();
-        }
+        mActionMat.row(frame_id) = cJsonUtil::ReadVectorJson(cur_truth_action);
     }
 
 #ifdef VERBOSE
@@ -713,7 +738,7 @@ eTrajFileVersion CalcTrajVersion(int version_int)
         version = eTrajFileVersion::V1;
         break;
     case 2:
-        version = eTrajFileVersion::V1;
+        version = eTrajFileVersion::V2;
         break;
     default:
         MIMIC_ERROR("CalcTrajVersion unsupported type");
@@ -868,6 +893,8 @@ void tSummaryTable::WriteToDisk(const std::string &path, bool is_append)
         Json::Value single_epoch;
         for (auto &x : mEpochInfos)
         {
+            // std::cout << "sample traj file name = " << x.sample_traj_filename
+            //           << std::endl;
             single_epoch["num_of_frame"] = x.frame_num;
             single_epoch["length_second"] = x.length_second;
             single_epoch["sample_traj_filename"] = x.sample_traj_filename;

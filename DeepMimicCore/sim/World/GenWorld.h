@@ -60,7 +60,7 @@ public:
     virtual double GetDefaultAngularDamping() const override;
 
     virtual btDynamicsWorld *GetInternalWorld() override;
-
+    virtual btGeneralizeWorld *GetInternalGenWorld();
     // object interface
     virtual btBoxShape *BuildBoxShape(const tVector &box_sizee) const override;
     virtual btCapsuleShape *BuildCapsuleShape(double radius,

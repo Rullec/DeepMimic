@@ -29,7 +29,9 @@ set(
     TrajManager/IDSolver.cpp
     TrajManager/IDFeaSolver.cpp
     TrajManager/IDGenSolver.cpp
-    TrajManager/OfflineSolveIDSolver.cpp
+    TrajManager/OfflineIDSolver.cpp
+    TrajManager/OfflineGenIDSolver.cpp
+    TrajManager/OfflineFeaIDSolver.cpp
     TrajManager/OnlineIDSolver.cpp
     TrajManager/SampleIDSolver.cpp    
     TrajManager/TrajRecorder.cpp    

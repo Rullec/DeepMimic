@@ -181,11 +181,11 @@ void Update(double time_elapsed)
 
                 if (global_action.size() == 0)
                 {
-                    global_action = tVectorXd::Zero(gCore->GetActionSize(id));
+                    // global_action =
+                    // tVectorXd::Zero(gCore->GetActionSize(id));
                     // global_action.segment(global_action.size() - 4, 4)
                     //     .setRandom();
-                    // global_action =
-                    // tVectorXd::Random(gCore->GetActionSize(id));
+                    global_action = tVectorXd::Random(gCore->GetActionSize(id));
                 }
                 MIMIC_ASSERT(global_action.size() == gCore->GetActionSize(id));
                 std::vector<double> action(0);

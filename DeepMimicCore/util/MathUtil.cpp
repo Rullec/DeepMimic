@@ -503,6 +503,8 @@ tQuaternion cMathUtil::AxisAngleToQuaternion(const tVector &axis, double theta)
     q.x() = s * axis[0];
     q.y() = s * axis[1];
     q.z() = s * axis[2];
+    if (q.w() < 0)
+        q = cMathUtil::MinusQuaternion(q);
     return q;
 }
 tVector cMathUtil::QuaternionToAxisAngle(const tQuaternion &q)
@@ -1261,6 +1263,7 @@ tQuaternion cMathUtil::EulerAnglesToQuaternion(const tVector &vec,
         res = q[0] * q[1] * q[2];
     }
 
+    res.normalize();
     if (res.w() < 0)
         res = cMathUtil::MinusQuaternion(res);
     return res;

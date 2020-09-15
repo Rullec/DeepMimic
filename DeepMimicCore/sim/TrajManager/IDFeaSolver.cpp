@@ -275,6 +275,10 @@ void cIDSolver::SetGeneralizedPos(cSimCharacterBase *sim_char,
         mMultibody->updateCollisionObjectWorldTransforms(mRotBuffer,
                                                          mVecBuffer0);
     }
+    else
+    {
+        MIMIC_ERROR("Gen char unsupported");
+    }
 }
 
 void cIDSolver::SetGeneralizedVelFea(const tVectorXd &q)
@@ -538,7 +542,31 @@ void cIDSolver::SolveIDSingleStepFea(
     const tEigenArr<tVector> &external_forces,
     const tEigenArr<tVector> &external_torques) const
 {
-
+    // std::cout << "-------------------------------------\n";
+    // std::cout << "q = " << mBuffer_q.transpose() << std::endl;
+    // std::cout << "qdot = " << mBuffer_u.transpose() << std::endl;
+    // std::cout << "qddot = " << mBuffer_u_dot.transpose() << std::endl;
+    // for (int i = 0; i < link_pos.size(); i++)
+    // {
+    //     std::cout << "link " << i << " pos = " << link_pos[i].transpose()
+    //               << ", rot = \n"
+    //               << link_rot[i] << std::endl;
+    // }
+    // for (int i = 0; i < contact_forces.size(); i++)
+    // {
+    //     const auto &f = contact_forces[i];
+    //     std::cout << "contact force " << i << " pos = " << f.mPos.transpose()
+    //               << ", id = " << f.mId << ", force = " <<
+    //               f.mForce.transpose()
+    //               << std::endl;
+    // }
+    // for (int i = 0; i < external_forces.size(); i++)
+    // {
+    //     const auto &f = external_forces[i];
+    //     const auto &t = external_torques[i];
+    //     std::cout << "link " << i << " ext force = " << f.transpose()
+    //               << ", ext tau = " << t.transpose() << std::endl;
+    // }
 // #define DEBUG_STEP
 #ifdef DEBUG_STEP
     std::ofstream fout("test3.txt", std::ios::app);
@@ -949,7 +977,9 @@ cIDSolver::CalcAssembleJointForces(tEigenArr<tVector> &solve_joint_forces,
             exit(1);
             break;
         }
-
+        std::cout << "link " << j
+                  << " ground truth = " << ground_truth[j].transpose()
+                  << std::endl;
         // if (ground_truth != nullptr)
         {
             double single_error =

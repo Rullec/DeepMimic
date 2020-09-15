@@ -19,6 +19,9 @@ public:
     virtual void UpdateControlForce(double dt, tVectorXd &out_tau);
     virtual void SetPDTarget_q(const tVectorXd &q, const tVectorXd &qdot);
     virtual void GetPDTarget_q(tVectorXd &q, tVectorXd &qdot) const;
+    virtual tVectorXd CalcPDTargetByControlForce(double dt, const tVectorXd &pose,
+                                              const tVectorXd &vel,
+                                              const tVectorXd &ctrl_force) const;
 
 protected:
     tVectorXd mKp, mKd; // Kp & Kd controll parameter

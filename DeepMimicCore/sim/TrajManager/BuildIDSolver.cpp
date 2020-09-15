@@ -1,6 +1,7 @@
 #include "BuildIDSolver.h"
 #include "DisplayIDSolver.h"
-#include "OfflineSolveIDSolver.h"
+#include "OfflineFeaIDSolver.h"
+#include "OfflineGenIDSolver.h"
 #include "OnlineIDSolver.h"
 #include "SampleIDSolver.h"
 #include "scenes/SceneImitate.h"
@@ -50,9 +51,23 @@ std::shared_ptr<cIDSolver> BuildIDSolver(const std::string &conf,
             new cDisplayIDSolver(imitate_scene, conf));
         break;
     case eIDSolverType::OfflineSolve:
-        solver = std::shared_ptr<cIDSolver>(
-            new cOfflineIDSolver(imitate_scene, conf));
+    {
+        switch (imitate_scene->GetWorld()->GetWorldType())
+        {
+        case eWorldType::FEATHERSTONE_WORLD:
+            solver = std::shared_ptr<cIDSolver>(
+                new cOfflineFeaIDSolver(imitate_scene, conf));
+            break;
+        case eWorldType::GENERALIZED_WORLD:
+            solver = std::shared_ptr<cIDSolver>(
+                new cOfflineGenIDSolver(imitate_scene, conf));
+            break;
+        default:
+            MIMIC_ERROR("Unsupported Offline ID Solver type {}", type);
+            break;
+        }
         break;
+    }
     case eIDSolverType::Online:
         solver = std::shared_ptr<cIDSolver>(new cOnlineIDSolver(imitate_scene));
         break;
