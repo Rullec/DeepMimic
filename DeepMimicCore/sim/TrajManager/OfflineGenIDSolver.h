@@ -30,4 +30,10 @@ protected:
     std::string mCurrentOutputPath;
     std::vector<tSingleFrameIDResult> mIDResult;
     tVectorXd mPosePre, mVelPre;
+
+    // batch solve essentials
+    std::vector<tSummaryTable::tSingleEpochInfo> mOldEpochInfos;
+    std::vector<int> mBatchTrajIdArray;
+    std::vector<std::string> mBatchNameArray;
+    int mBatchCurLocalTrajId;
 };

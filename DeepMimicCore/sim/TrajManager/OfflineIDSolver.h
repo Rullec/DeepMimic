@@ -124,5 +124,6 @@ protected:
     void AddBatchInfoMPI(
         int global_traj_id, const std::string target_traj_filename_full,
         const std::vector<tSingleFrameIDResult> &mResult,
-        const std::vector<tSummaryTable::tSingleEpochInfo> &old_epoch_info);
+        const std::vector<tSummaryTable::tSingleEpochInfo> &old_epoch_info,
+        double total_time);
 };

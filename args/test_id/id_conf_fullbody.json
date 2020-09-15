@@ -18,7 +18,7 @@
         "output_motion_info_path": "angmom_buffer_details.log"
     },
     "SampleModeInfo": {
-        "sample_num": 1,
+        "sample_num": 5,
         "sample_trajs_dir": "data/id_test/sampled",
         "sample_trajs_rootname": "traj_fullbody.json",
         "summary_table_filename": "summary_table.json",
@@ -28,8 +28,8 @@
     },
     "SolveModeInfo": {
         "_comment": "this section focus on the setting of solve mode",
-        "solve_mode": "SingleTraj",
-        "solve_mode_bak": "BatchTraj",
+        "solve_mode_bak": "SingleTraj",
+        "solve_mode": "BatchTraj",
         "enable_reward_recal": false,
         "enable_action_verified": false,
         "enable_torque_verified": false,

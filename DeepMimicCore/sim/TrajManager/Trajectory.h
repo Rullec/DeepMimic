@@ -26,8 +26,8 @@ enum eLoadMode
 struct tContactForceInfo
 {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    int mId; // applied link id in Inverse Dynamics order but not deepmimic
-             // order
+    int mId; // applied link id in deepmimic order, we assume the base link in
+             // bullet featherstone is invisible in the collision response
     tVector mPos, mForce;
     bool mIsSelfCollision; // Does this contact belong to the self collision in
                            // this character?

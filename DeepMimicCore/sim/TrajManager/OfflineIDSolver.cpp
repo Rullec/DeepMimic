@@ -304,7 +304,8 @@ void cOfflineIDSolver::LoadBatchInfoMPI(
 void cOfflineIDSolver::AddBatchInfoMPI(
     int global_traj_id, const std::string target_traj_filename_full,
     const std::vector<tSingleFrameIDResult> &mResult,
-    const std::vector<tSummaryTable::tSingleEpochInfo> &old_epoch_info)
+    const std::vector<tSummaryTable::tSingleEpochInfo> &old_epoch_info,
+    double total_time)
 {
     tSummaryTable::tSingleEpochInfo single_epoch_info;
     std::string export_name = cFileUtil::RemoveExtension(cFileUtil::GetFilename(
@@ -318,9 +319,9 @@ void cOfflineIDSolver::AddBatchInfoMPI(
                    cFileUtil::RemoveExtension(export_name) + ".train"));
     cFileUtil::DeleteLock(export_name);
 
-    single_epoch_info.frame_num = mLoadInfo.mTotalFrame;
-    single_epoch_info.length_second =
-        mLoadInfo.mTotalFrame * mLoadInfo.mTimesteps[1];
+    single_epoch_info.frame_num = mResult.size();
+    single_epoch_info.length_second = total_time;
+    // mLoadInfo.mTotalFrame * mLoadInfo.mTimesteps[1];
     single_epoch_info.sample_traj_filename =
         old_epoch_info[global_traj_id].sample_traj_filename;
     single_epoch_info.train_filename = export_name;

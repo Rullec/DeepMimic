@@ -342,7 +342,6 @@ void cOfflineFeaIDSolver::BatchTrajsSolve(const std::string &table_path)
     auto old_batch_info = mSummaryTable.mEpochInfos;
     mSummaryTable.mEpochInfos.clear();
     mSummaryTable.mTotalEpochNum = 0;
-    auto full_epoch_infos = mSummaryTable.mEpochInfos;
 
     std::vector<tSingleFrameIDResult> mResult(0);
     for (int local_id = 0; local_id < traj_name_array.size(); local_id++)
@@ -352,7 +351,8 @@ void cOfflineFeaIDSolver::BatchTrajsSolve(const std::string &table_path)
         mLoadInfo.LoadTraj(mSimChar, target_traj_filename_full);
         SingleTrajSolve(mResult);
         AddBatchInfoMPI(global_id, target_traj_filename_full, mResult,
-                        old_batch_info);
+                        old_batch_info,
+                        mLoadInfo.mTotalFrame * mLoadInfo.mTimesteps[1]);
         // mSummaryTable.mTotalLengthTime +=
         // single_epoch_info.length_second; mSummaryTable.mTotalLengthFrame
         // += single_epoch_info.frame_num;

@@ -182,7 +182,9 @@ void tSaveInfo::SaveContactInfo(Json::Value &value, int frame_id) const
         single_contact["force_value"] = Json::arrayValue;
         for (int i = 0; i < 4; i++)
             single_contact["force_value"].append(force.mForce[i]);
-        single_contact["force_link_id"] = force.mId;
+        single_contact["force_link_id"] =
+            force.mId; // deepmimic order, the featherstone root is invisible in
+                       // collision response, we assume
         single_contact["is_self_collision"] = force.mIsSelfCollision;
         value["contact_info"].append(single_contact);
     }
@@ -777,7 +779,9 @@ void tLoadInfo::LoadContactInfo(
                 cur_contact_info[c_id]["force_value"][i].asDouble();
         }
         contact_array[c_id].mId =
-            cur_contact_info[c_id]["force_link_id"].asInt();
+            cur_contact_info[c_id]["force_link_id"]
+                .asInt(); // deepmimic order, we assume the base link in
+                          // featherstone is invisible in the collision responce
         contact_array[c_id].mIsSelfCollision =
             cur_contact_info[c_id]["is_self_collision"].asBool();
     }
@@ -986,7 +990,7 @@ void tSummaryTable::LoadFromDisk(const std::string &path)
         mTotalEpochNum = trajs_lst.size();
     }
 
-    std::cout << "mtotal epoch num = " << mTotalEpochNum << std::endl;
+    // std::cout << "mtotal epoch num = " << mTotalEpochNum << std::endl;
     // resize and load all trajs info
     mEpochInfos.resize(mTotalEpochNum);
     for (int i = 0; i < mTotalEpochNum; i++)

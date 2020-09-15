@@ -423,8 +423,12 @@ void cIDSolver::RecordContactForcesFea(
                 if (mWorldId2InverseId.end() !=
                     mWorldId2InverseId.find(body0_id))
                 {
+                    // record the multibody id, because we think the base link
+                    // can never be collided
                     contact_info.mId =
                         mWorldId2InverseId.find(body0_id)->second;
+                    MIMIC_ASSERT(contact_info.mId != 0);
+                    contact_info.mId -= 1;
                     pos = cBulletUtil::btVectorTotVector1(
                         pt.getPositionWorldOnA());
                     force = (force0 + friction);
@@ -445,6 +449,11 @@ void cIDSolver::RecordContactForcesFea(
                 {
                     contact_info.mId =
                         mWorldId2InverseId.find(body1_id)->second;
+                    MIMIC_ASSERT(contact_info.mId != 0);
+
+                    // record the multibody id, because we think the base link
+                    // can never be collided
+                    contact_info.mId -= 1;
                     pos = cBulletUtil::btVectorTotVector1(
                         pt.getPositionWorldOnB());
                     force = -(force0 + friction);
@@ -483,7 +492,7 @@ void cIDSolver::ApplyContactForcesToID(
     tVector base_force = tVector::Zero(), base_torque = tVector::Zero();
     for (auto &cur_force : mContactForces)
     {
-        int ID_link_id = cur_force.mId;
+        int ID_link_id = cur_force.mId + 1;
         int multibody_id = ID_link_id - 1;
         tVector link_pos_world = mLinkPos[ID_link_id];
         tMatrix local_to_world = mLinkRot[ID_link_id];

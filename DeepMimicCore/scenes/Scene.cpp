@@ -25,9 +25,9 @@ void cScene::ParseArgs(const std::shared_ptr<cArgParser> &parser)
 void cScene::Init()
 {
     if (HasRandSeed())
-        {
-            SetRandSeed(mRandSeed);
-        }
+    {
+        SetRandSeed(mRandSeed);
+    }
 
     InitTimers();
     ResetParams();
@@ -91,3 +91,5 @@ void cScene::UpdateTimers(double timestep)
     // std::cout <<"void cScene::UpdateTimers(double timestep)" << std::endl;
     mTimer.Update(timestep);
 }
+
+cTimer &cScene::GetTimer() { return mTimer; };

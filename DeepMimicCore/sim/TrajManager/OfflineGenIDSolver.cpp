@@ -1,5 +1,6 @@
 #include "OfflineGenIDSolver.h"
 #include "BulletGenDynamics/btGenController/btGenContactAwareAdviser.h"
+#include "BulletGenDynamics/btGenController/btTraj.h"
 #include "BulletGenDynamics/btGenModel/RobotModelDynamics.h"
 #include "BulletGenDynamics/btGenWorld.h"
 #include "scenes/SceneImitate.h"
@@ -8,6 +9,7 @@
 #include "sim/World/GenWorld.h"
 #include "util/FileUtil.h"
 #include "util/LogUtil.h"
+#include "util/MPIUtil.h"
 #include <iostream>
 
 cOfflineGenIDSolver::cOfflineGenIDSolver(cSceneImitate *imitate,
@@ -23,9 +25,17 @@ cOfflineGenIDSolver::cOfflineGenIDSolver(cSceneImitate *imitate,
     }
     else if (mSolveMode == eSolveMode::BatchTrajSolveMode)
     {
-        mCurrentTrajPath = "";
+        // 1. get all traj files which need to solve
+        LoadBatchInfoMPI(mBatchTrajSolveConfig.mOriSummaryTableFile,
+                         mBatchTrajIdArray, mBatchNameArray);
+        mOldEpochInfos = mSummaryTable.mEpochInfos;
+        mSummaryTable.mEpochInfos.clear();
+        mBatchCurLocalTrajId = 0;
+
+        // 2. set the first traj file as the current traj path
+        mCurrentTrajPath = mBatchNameArray[mBatchCurLocalTrajId];
         mCurrentOutputPath = "";
-        MIMIC_ERROR("unsupported");
+        // this->mAdviser->SetTraj(mCurrentTrajPath, "", false);
     }
 }
 void cOfflineGenIDSolver::Reset()
@@ -45,12 +55,45 @@ void cOfflineGenIDSolver::Reset()
     }
     else if (mSolveMode == eSolveMode::BatchTrajSolveMode)
     {
-        MIMIC_ERROR("Unsupported");
-    }
-    mIDResult.clear();
+        // 1. save the current train data (take care of the race condition)
+        mAdviser->Reset();
+        int global_id = mBatchTrajIdArray[this->mBatchCurLocalTrajId];
 
-    mAdviser->Reset();
-    mAdviser->SetTraj(mCurrentTrajPath, mCurrentOutputPath);
+        AddBatchInfoMPI(global_id, mCurrentTrajPath, mIDResult, mOldEpochInfos,
+                        mCurTimestep * mIDResult.size());
+
+        int world_rank = cMPIUtil::GetWorldRank();
+        MIMIC_INFO("proc {} progress {}/{}", world_rank,
+                   mBatchCurLocalTrajId + 1, mBatchTrajIdArray.size());
+        mBatchCurLocalTrajId++;
+        // 2. check whether there is something left we need to solve
+
+        if (mBatchCurLocalTrajId >= mBatchTrajIdArray.size())
+        {
+            // 3. if not, write to the summary table incrementaly and exit
+            cMPIUtil::SetBarrier();
+            MIMIC_INFO("proc {} tasks size = {}, expected size = {}",
+                       world_rank, mBatchTrajIdArray.size(),
+                       mSummaryTable.mEpochInfos.size());
+            mSummaryTable.WriteToDisk(
+                mBatchTrajSolveConfig.mDestSummaryTableFile, true);
+            cMPIUtil::Finalize();
+            exit(0);
+        }
+        else
+        {
+            // 4. if so, set up the new trajs
+            mCurrentTrajPath = mBatchNameArray[mBatchCurLocalTrajId];
+            mCurrentOutputPath = "";
+            mAdviser->SetTraj(mCurrentTrajPath, mCurrentOutputPath);
+            // 5. reset the timer, also check the left time of timer
+            double timer_max_time = mScene->GetTimer().GetMaxTime();
+            double traj_length = mAdviser->GetRefTraj()->GetTimeLength();
+            MIMIC_ASSERT(timer_max_time > traj_length);
+            mScene->GetTimer().Reset();
+        }
+        mIDResult.clear();
+    }
 }
 
 /**
@@ -122,12 +165,14 @@ void cOfflineGenIDSolver::SetTimestep(double delta_time)
 void cOfflineGenIDSolver::SingleTrajSolve(
     std::vector<tSingleFrameIDResult> &IDResult)
 {
-    std::cout << "single traj solver\n";
+    MIMIC_ERROR("this API should not be called");
 }
+
 void cOfflineGenIDSolver::BatchTrajsSolve(const std::string &path)
 {
-    std::cout << "batch traj solver\n";
+    MIMIC_ERROR("this API should not be called");
 }
+
 void cOfflineGenIDSolver::Init()
 {
     if (mInited == false)
@@ -139,6 +184,10 @@ void cOfflineGenIDSolver::Init()
         bt_world->SetEnableContacrAwareControl();
         mAdviser = bt_world->GetContactAwareAdviser();
         mAdviser->SetTraj(mCurrentTrajPath, mCurrentOutputPath);
+        double timer_max_time = mScene->GetTimer().GetMaxTime();
+        double traj_length = mAdviser->GetRefTraj()->GetTimeLength();
+        MIMIC_ASSERT(timer_max_time > traj_length);
+        mScene->GetTimer().Reset();
     }
     mInited = true;
 }

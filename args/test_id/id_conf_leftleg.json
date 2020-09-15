@@ -1,8 +1,8 @@
 {
-    "IDMode_bak2": "Online",
+    "IDMode_bak4": "Online",
     "IDMode": "OfflineSolve",
     "IDMode_bak1": "Display",
-    "IDMode_bak4": "Sample",
+    "IDMode_bak2": "Sample",
     "comment": [
         "Offline的ID solver有四种模式：sample, save, display, solve.",
         "sample模式: 是批量采样、保存轨迹(trajectory)信息、生成数据信息记录表；对应的配置卸载SampleModeInfo中",
@@ -28,8 +28,8 @@
     },
     "SolveModeInfo": {
         "_comment": "this section focus on the setting of solve mode",
-        "solve_mode": "SingleTraj",
-        "solve_mode_bak": "BatchTraj",
+        "solve_mode_bak": "SingleTraj",
+        "solve_mode": "BatchTraj",
         "enable_reward_recal": false,
         "enable_action_verified": false,
         "enable_torque_verified": false,
