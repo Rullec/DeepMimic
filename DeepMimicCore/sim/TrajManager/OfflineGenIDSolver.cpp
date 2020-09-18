@@ -151,7 +151,8 @@ void cOfflineGenIDSolver::PostSim()
     // 3. from pd target to action
     tVectorXd action = pd_target;
     ctrl->CalcActionByTargetPose(action);
-    // std::cout << "action = " << action.transpose() << std::endl;
+    mIDResult[mIDResult.size() - 1].action = action;
+    std::cout << "action = " << action.transpose() << std::endl;
     // tVectorXd pd_target;
     // ctrl->CalcPDTargetByTorque(mCurTimestep, );
     // pd_target = dynamic_cast<this> std::cout

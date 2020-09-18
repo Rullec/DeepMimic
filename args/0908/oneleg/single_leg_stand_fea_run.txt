@@ -52,7 +52,7 @@
 
 --output_path output/0908
 # --model_files output/0908/agent0_model_2020_09_08_20_52_27_14.20.ckpt
---model_files output/0908/agent0_model_2020_09_08_21_17_35_106.48.ckpt
+--model_files output/0908/fea/agent0_model_2020_09_08_21_17_35_106.48.ckpt
 
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false

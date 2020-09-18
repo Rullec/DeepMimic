@@ -18,7 +18,7 @@
         "output_motion_info_path": "angmom_buffer_details.log"
     },
     "SampleModeInfo": {
-        "sample_num": 10,
+        "sample_num": 100,
         "sample_trajs_dir": "data/id_test/sample_leftleg",
         "sample_trajs_rootname": "traj_leftleg.json",
         "summary_table_filename": "summary_leftleg.json",
@@ -35,15 +35,15 @@
         "enable_torque_verified": false,
         "enable_discrete_verified": false,
         "SingleTrajSolveInfo": {
-            "solve_traj_path": "data/id_test/sampled_v2/traj_leftleg_1804289383.json",
-            "export_train_data_path": "data/id_test/solved/traj_leftleg_1681692777.train.json"
+            "solve_traj_path": "data/id_test/sample_leftleg/traj_leftleg_349983843.json",
+            "export_train_data_path": "data/id_test/solved_leftleg_test/traj_leftleg_1681692777.train.json"
         },
         "BatchTrajSolveInfo": {
             "summary_table_filename": "data/id_test/sample_leftleg/summary_leftleg.json",
             "export_train_data_dir": "data/id_test/solved_leftleg/",
             "solve_target": "SampledTraj"
         },
-        "ref_motion_path": "data/0424/motions/walk_motion_042401_leftleg_dynamic.txt",
-        "retargeted_char_path": "data/0424/characters/skeleton_042302_revised_leftleg.json"
+        "ref_motion_path": "data/0805/motions/stand_motion.txt",
+        "retargeted_char_path": "data/0908/characters/skeleton_oneleg.json"
     }
 }

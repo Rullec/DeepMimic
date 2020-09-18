@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 1
---time_lim_max 1
+--time_lim_min 5
+--time_lim_max 5
 --time_lim_exp 0.2
 
 --time_end_lim_min 5
@@ -11,7 +11,6 @@
 
 --num_update_substeps 10
 --num_sim_substeps 1
-# --world_type featherstone
 --world_type generalized
 --world_scale 1
 --logging_level trace
@@ -20,7 +19,6 @@
 --fall_contact_bodies 0 1 2 
 
 #-------------------------skeleton------------------------
-# --char_types general
 --char_types lagragian
 --character_files data/0908/characters/skeleton_oneleg.json
 --enable_joint_force_control true
@@ -28,7 +26,6 @@
 --fall_contact_bodies
 
 #----------------PD params and motion data----------------
-# --char_ctrls ct_pd
 --char_ctrls ct_pd_gen
 --char_ctrl_files data/0805/controllers/ctrl_oneleg.txt
 --motion_file data/0805/motions/stand_motion.txt
@@ -47,19 +44,21 @@
 --reward_file data/0420/rewards/reward_weight.json
 --enable_pdtarget_solve_test false
 
---agent_files data/0908/agents/agent_128_ppo_sample.txt
+# --agent_files data/0420/agents/agent_512_dont_save_path.txt
+--agent_files data/0915/agents/agent_super_oneleg_trajs.txt
+# --agent_files data/0915/agents/agent_super_oneleg_paths.txt
 --train_agents false
 
 --output_path output/0908_gen
---model_files output/0908/gen/agent0_model_2020_09_08_22_07_29_145.58.ckpt
+# --model_files output/0908_gen/agent0_model_2020_09_08_22_07_29_145.58.ckpt
 
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
 --traj_recorder_config args/0810/record_traj_conf_3links.json
 
 #---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------
---enable_inverse_dynamic_solving true
---inverse_dynamic_config_file args/0908/samples/id_conf_leftleg.json
+--enable_inverse_dynamic_solving false
+# --inverse_dynamic_config_file args/0609/id_confs/id_solve_sampled_conf.json
 # --inverse_dynamic_config_file args/0609/id_confs/id_solve_mred_conf.json
 # --inverse_dynamic_config_file args/0609/id_confs/id_sample_conf.json
 # --inverse_dynamic_config_file args/0609/id_confs/id_display_conf.json

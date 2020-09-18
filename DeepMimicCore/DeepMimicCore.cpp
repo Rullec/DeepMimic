@@ -272,6 +272,7 @@ void cDeepMimicCore::SetAction(int agent_id, const std::vector<double> &action)
     {
         Eigen::VectorXd in_action;
         ConvertVector(action, in_action);
+        std::cout << "set new action = " << in_action.transpose() << std::endl;
         rl_scene->SetAction(agent_id, in_action);
         // std::cout <<"set action !" << std::endl;
     }

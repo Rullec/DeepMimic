@@ -51,5 +51,5 @@
 
 	"EnableSavePath": false,
 	"EnableClearPath": false,
-	"PathSaveDir": "./data/paths/"
+	"PathSaveDir": "./data/paths_oneleg/"
 }

@@ -1,13 +1,13 @@
 {
     "IDMode": "Sample",
-    "traj_file_version": 3,
+    "traj_file_version": 2,
     "SampleModeInfo": {
-        "sample_num": 1,
+        "sample_num": 2,
         "enable_sample_ID_test": false,
         "clear_old_data": true,
         "record_theta_distribution": false,
         "enable_sync_theta_dist": false,
-        "sample_trajs_dir": "data/0908/trajs",
+        "sample_trajs_dir": "data/0908/sample",
         "sample_trajs_rootname": "traj_oneleg.json",
         "summary_table_filename": "traj_summary.json"
     }
