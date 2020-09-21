@@ -352,7 +352,8 @@ void cCtPDGenController::UpdatePDCtrls(double time_step,
         else
             MIMIC_INFO("PD Target solve accurately");
     }
-    // std::cout << "update pd controls\n";
+    // std::cout << "update pd control tau = " << out_tau.transpose() <<
+    // std::endl; exit(0);
 }
 
 /**
@@ -368,7 +369,9 @@ void cCtPDGenController::ApplyAction(const Eigen::VectorXd &action)
     mCurAction.noalias() = action;
     mCurPDTargetPose.noalias() = mCurAction;
     ConvertActionToTargetPose(mCurPDTargetPose);
-
+    // std::cout << "apply action = " << action.transpose() << std::endl;
+    // std::cout << "apply pd target = " << mCurPDTargetPose.transpose()
+    //           << std::endl;
     // 3. convert pose to q, then set q and qdot to the stable PD controller
     SetPDTargets(mCurPDTargetPose);
 }
@@ -696,7 +699,9 @@ void cCtPDGenController::ConvertActionToTargetPose(tVectorXd &out_theta) const
             tVector axis_angle =
                 out_theta.segment(st_pos, param_size).segment(0, 4);
             double theta = axis_angle[0];
-            tVector axis = cMathUtil::Expand(axis_angle.segment(1, 3), 0);
+            // tVector axis = cMathUtil::Expand(axis_angle.segment(1, 3),
+            // 0).normalized();
+            tVector axis = cMathUtil::Expand(axis_angle.segment(1, 3), 0).normalized();
 
             out_theta.segment(st_pos, param_size) =
                 cMathUtil::QuatToVec(

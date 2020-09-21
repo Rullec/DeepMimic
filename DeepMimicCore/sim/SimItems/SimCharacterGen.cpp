@@ -752,6 +752,7 @@ void cSimCharacterGen::ApplyControlForces(const Eigen::VectorXd &tau)
     else
     {
         // normal control
+        // std::cout << "add control force = " << tau.transpose() << std::endl;
         mGenForce += tau;
     }
 

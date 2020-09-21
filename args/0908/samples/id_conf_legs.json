@@ -1,0 +1,48 @@
+{
+    "IDMode_bak2": "Online",
+    "IDMode": "OfflineSolve",
+    "IDMode_bak1": "Display",
+    "IDMode_bak4": "Sample",
+    "comment": [
+        "Offline的ID solver有四种模式：sample, save, display, solve.",
+        "sample模式: 是批量采样、保存轨迹(trajectory)信息、生成数据信息记录表；对应的配置卸载SampleModeInfo中",
+        "save模式: 单个、离散的保存轨迹, 对应的配置写在SaveModeInfo中",
+        "display模式: 播放某个轨迹，对应的配置写在DisplayModeInfo中",
+        "solve模式: 对某个轨迹进行求解, 对应的配置写在SolveModeInfo中"
+    ],
+    "DisplayModeInfo": {
+        "_comment": "this section focus on the setting of display mode",
+        "display_traj_path": "data/id_test/sample_legs/traj_legs_993407271.json",
+        "enable_output_motion_info": false,
+        "output_motion_info_path": "angmom_buffer_details.log"
+    },
+    "SampleModeInfo": {
+        "sample_num": 500,
+        "sample_trajs_dir": "data/id_test/sample_legs_short",
+        "sample_trajs_rootname": "traj_legs.json",
+        "summary_table_filename": "summary_legs.json",
+        "enable_sample_ID_test": false,
+        "clear_old_data": true,
+        "traj_file_version": 2
+    },
+    "SolveModeInfo": {
+        "_comment": "this section focus on the setting of solve mode",
+        "solve_mode_bak": "SingleTraj",
+        "solve_mode": "BatchTraj",
+        "enable_reward_recal": false,
+        "enable_action_verified": false,
+        "enable_torque_verified": false,
+        "enable_discrete_verified": false,
+        "SingleTrajSolveInfo": {
+            "solve_traj_path": "data/id_test/sample_legs/traj_legs_996305798.json",
+            "export_train_data_path": "data/id_test/solved_legs/traj_legs_996305798.train.json"
+        },
+        "BatchTrajSolveInfo": {
+            "summary_table_filename": "data/id_test/sample_legs_short/summary_legs.json",
+            "export_train_data_dir": "data/id_test/solved_legs_short/",
+            "solve_target": "SampledTraj"
+        },
+        "ref_motion_path": "data/0908/motions/walk_motion_legs.txt",
+        "retargeted_char_path": "data/0908/characters/skeleton_legs.json"
+    }
+}

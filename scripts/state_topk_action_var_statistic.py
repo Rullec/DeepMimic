@@ -64,9 +64,11 @@ def get_train_data(table_path: str):
 
 
 traj_summary_path = (
-    "/home/xudong/Projects/DeepMimic/data/id_test/solved_leftleg/summary_leftleg.json"
+    "/home/xudong/Projects/DeepMimic/data/id_test/solved_legs_short/summary_legs.json"
 )
-path_dir_path = "/home/xudong/Projects/DeepMimic/data/paths_oneleg"
+path_dir_path = "/home/xudong/Projects/DeepMimic/data/path_legs_short"
+
+
 
 # 1. load all of the train data
 # traj_state, traj_action = get_train_data(traj_summary_path)
@@ -197,13 +199,19 @@ def find_top_nearest_k(K, state_array, distance_array):
 # EuclideanDistances_block(A, A)
 # np.set_printoptions(linewidth=np.inf)
 # np.set_printoptions(threshold=sys.maxsize)
+max_traj = int(3e4)
 path_state, path_action = get_paths(path_dir_path)
 traj_state, traj_action = get_train_data(traj_summary_path)
 # path_state = path_state[:200]
 # traj_state = traj_state[:200]
 # state = state[:200]
+path_state = path_state[0:max_traj]
+path_action = path_action[0:max_traj]
+traj_state = traj_state[0:max_traj]
+traj_action = traj_action[0:max_traj]
 print(f"path state shape {path_state.shape}")
 print(f"traj state shape {traj_state.shape}")
+# exit()
 path_distance = EuclideanDistances_block(path_state)
 traj_distance = EuclideanDistances_block(traj_state)
 
@@ -268,12 +276,13 @@ if __name__ == "__main__":
     plt.legend()
 
 plt.show()
-    # plt.subplot(1, 2, 1)
-    # 1.1 calc the std
-    # print(
-    #     f"traj std {np.sum([np.std(traj_action[i]) for i in traj_idx_array], axis=1) / len(traj_idx_array)}"
-    # )
-    # print(
-    #     f"path std {np.sum([np.std(path_action[i]) for i in path_idx_array], axis=1) / len(path_idx_array)}"
-    # )
-    # print(np.sum([np.std(traj_action[i]) for i in traj_idx_array], axis=1) / len(traj_idx_array)
+# plt.subplot(1, 2, 1)
+# 1.1 calc the std
+# print(
+#     f"traj std {np.sum([np.std(traj_action[i]) for i in traj_idx_array], axis=1) / len(traj_idx_array)}"
+# )
+# print(
+#     f"path std {np.sum([np.std(path_action[i]) for i in path_idx_array], axis=1) / len(path_idx_array)}"
+# )
+# print(np.sum([np.std(traj_action[i]) for i in traj_idx_array], axis=1) / len(traj_idx_array)
+

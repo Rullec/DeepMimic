@@ -182,6 +182,11 @@ void Update(double time_elapsed)
                 if (global_action.size() == 0)
                 {
                     global_action = tVectorXd::Zero(gCore->GetActionSize(id));
+                    // global_action << 1, 0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1, 1,
+                    //     0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1;
+                    // global_action << 1, 0.2, 0.2, 0.2, 0, 1, 0.2, 0.2, 0.2,
+                    // 1,
+                    //     0.2, 0.2, 0.2, 0, 1, 0.2, 0.2, 0.2;
                     // global_action.segment(global_action.size() - 4, 4)
                     //     .setRandom();
                     // global_action =

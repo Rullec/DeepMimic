@@ -50,7 +50,7 @@
 --train_agents false
 
 --output_path output/0909/fea
-# --model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
+--model_files output/0909/fea/agent0_model_2020_09_09_15_31_17_13.19.ckpt
 
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false

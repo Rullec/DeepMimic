@@ -496,6 +496,7 @@ tVector cMathUtil::QuaternionToEuler(const tQuaternion &q,
 tQuaternion cMathUtil::AxisAngleToQuaternion(const tVector &axis, double theta)
 {
     // axis must be normalized
+    MIMIC_ASSERT(std::fabs(axis.norm() - 1) < 1e-10);
     double c = std::cos(theta / 2);
     double s = std::sin(theta / 2);
     tQuaternion q;

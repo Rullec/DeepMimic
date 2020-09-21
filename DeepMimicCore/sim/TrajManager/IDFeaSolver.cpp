@@ -202,82 +202,17 @@ void cIDSolver::SetGeneralizedPos(cSimCharacterBase *sim_char,
 {
     if (sim_char->GetCharType() == eSimCharacterType::Featherstone)
     {
-
-        auto mMultibody =
-            dynamic_cast<cSimCharacter *>(sim_char)->GetMultiBody();
-        int mDof = mMultibody->getNumDofs();
-        bool mFloatingBase = !(mMultibody->hasFixedBase());
-        if (mFloatingBase == true)
-            mDof += 6;
-        MIMIC_ASSERT(q.size() == mDof);
-        if (mFloatingBase == true)
-        {
-            tVector root_pos, euler_angle_rot;
-            for (int i = 0; i < 3; i++)
-                euler_angle_rot[i] = q[i];
-            for (int i = 3; i < 6; i++)
-                root_pos[i - 3] = q[i];
-            tQuaternion world_to_base_rot = cMathUtil::EulerAnglesToQuaternion(
-                euler_angle_rot, eRotationOrder::XYZ);
-            mMultibody->setBasePos(cBulletUtil::tVectorTobtVector(root_pos));
-            mMultibody->setWorldToBaseRot(
-                cBulletUtil::tQuaternionTobtQuaternion(world_to_base_rot));
-        }
-
-        // other joints besides root
-        for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks();
-             link_id++)
-        {
-            auto &cur_link = mMultibody->getLink(link_id);
-            int offset = cur_link.m_dofOffset;
-            if (mFloatingBase == true)
-                offset += 6;
-            // std::cout <<"link id = " << link_id <<" type = " <<
-            // cur_link.m_jointType << std::endl;
-            switch (cur_link.m_jointType)
-            {
-            case btMultibodyLink::eFixed:
-            {
-                break;
-            }
-            case btMultibodyLink::eRevolute:
-            {
-                mMultibody->setJointPos(link_id, q[offset]);
-                // q(offset) = mMultibody->getJointPos(link_id);
-                break;
-            }
-            case btMultibodyLink::eSpherical:
-            {
-                // std::cout << 1<< std::endl;
-                tVector joint_pos_euler;
-                joint_pos_euler.segment(0, 3) = q.segment(offset, 3);
-                // std::cout << 2<< std::endl;
-                tQuaternion rot_qua = cMathUtil::EulerAnglesToQuaternion(
-                    joint_pos_euler, eRotationOrder::ZYX);
-                // std::cout << 3<< std::endl;
-                btScalar bt_joint_pos[4] = {rot_qua.x(), rot_qua.y(),
-                                            rot_qua.z(), rot_qua.w()};
-                // std::cout << 4<< std::endl;
-                mMultibody->setJointPosMultiDof(link_id, bt_joint_pos);
-                break;
-            }
-            default:
-            {
-                std::cout << "[error] cIDSolver::SetGeneralizedInfo "
-                             "unsupported type = "
-                          << cur_link.m_jointType << std::endl;
-                exit(1);
-            }
-            }
-        }
-        btAlignedObjectArray<btVector3> mVecBuffer0;
-        btAlignedObjectArray<btQuaternion> mRotBuffer;
-        mMultibody->updateCollisionObjectWorldTransforms(mRotBuffer,
-                                                         mVecBuffer0);
+        auto fea_char = dynamic_cast<cSimCharacter *>(sim_char);
+        SetGeneralizedPosFea(fea_char, q);
+    }
+    else if (sim_char->GetCharType() == eSimCharacterType::Generalized)
+    {
+        auto gen_char = dynamic_cast<cSimCharacterGen *>(sim_char);
+        SetGeneralizedPosGen(gen_char, q);
     }
     else
     {
-        MIMIC_ERROR("Gen char unsupported");
+        MIMIC_ERROR("unsupported char type {sim_char->GetCharType()}")
     }
 }
 
@@ -1199,4 +1134,83 @@ void cIDSolver::RecordGeneralizedInfoFea(cSimCharacterBase *sim_char,
         }
         }
     }
+}
+
+/**
+ * \brief           Set the generalize pos (the angle of each joint in the
+ * featherstone backend)
+ */
+void cIDSolver::SetGeneralizedPosFea(cSimCharacterBase *sim_char,
+                                     const tVectorXd &q)
+{
+    auto fea_char = dynamic_cast<cSimCharacter *>(sim_char);
+    auto mMultibody = fea_char->GetMultiBody();
+    int mDof = mMultibody->getNumDofs();
+    bool mFloatingBase = !(mMultibody->hasFixedBase());
+    if (mFloatingBase == true)
+        mDof += 6;
+    MIMIC_ASSERT(q.size() == mDof);
+    if (mFloatingBase == true)
+    {
+        tVector root_pos, euler_angle_rot;
+        for (int i = 0; i < 3; i++)
+            euler_angle_rot[i] = q[i];
+        for (int i = 3; i < 6; i++)
+            root_pos[i - 3] = q[i];
+        tQuaternion world_to_base_rot = cMathUtil::EulerAnglesToQuaternion(
+            euler_angle_rot, eRotationOrder::XYZ);
+        mMultibody->setBasePos(cBulletUtil::tVectorTobtVector(root_pos));
+        mMultibody->setWorldToBaseRot(
+            cBulletUtil::tQuaternionTobtQuaternion(world_to_base_rot));
+    }
+
+    // other joints besides root
+    for (int link_id = 0, cnt = 0; link_id < mMultibody->getNumLinks();
+         link_id++)
+    {
+        auto &cur_link = mMultibody->getLink(link_id);
+        int offset = cur_link.m_dofOffset;
+        if (mFloatingBase == true)
+            offset += 6;
+        // std::cout <<"link id = " << link_id <<" type = " <<
+        // cur_link.m_jointType << std::endl;
+        switch (cur_link.m_jointType)
+        {
+        case btMultibodyLink::eFixed:
+        {
+            break;
+        }
+        case btMultibodyLink::eRevolute:
+        {
+            mMultibody->setJointPos(link_id, q[offset]);
+            // q(offset) = mMultibody->getJointPos(link_id);
+            break;
+        }
+        case btMultibodyLink::eSpherical:
+        {
+            // std::cout << 1<< std::endl;
+            tVector joint_pos_euler;
+            joint_pos_euler.segment(0, 3) = q.segment(offset, 3);
+            // std::cout << 2<< std::endl;
+            tQuaternion rot_qua = cMathUtil::EulerAnglesToQuaternion(
+                joint_pos_euler, eRotationOrder::ZYX);
+            // std::cout << 3<< std::endl;
+            btScalar bt_joint_pos[4] = {rot_qua.x(), rot_qua.y(), rot_qua.z(),
+                                        rot_qua.w()};
+            // std::cout << 4<< std::endl;
+            mMultibody->setJointPosMultiDof(link_id, bt_joint_pos);
+            break;
+        }
+        default:
+        {
+            std::cout << "[error] cIDSolver::SetGeneralizedInfo "
+                         "unsupported type = "
+                      << cur_link.m_jointType << std::endl;
+            exit(1);
+        }
+        }
+    }
+    btAlignedObjectArray<btVector3> mVecBuffer0;
+    btAlignedObjectArray<btQuaternion> mRotBuffer;
+    mMultibody->updateCollisionObjectWorldTransforms(mRotBuffer, mVecBuffer0);
 }

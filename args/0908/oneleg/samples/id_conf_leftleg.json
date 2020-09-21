@@ -1,8 +1,8 @@
 {
-    "IDMode_bak4": "Online",
-    "IDMode": "OfflineSolve",
-    "IDMode_bak1": "Display",
-    "IDMode_bak2": "Sample",
+    "IDMode_bak1": "Online",
+    "IDMode_bak4": "OfflineSolve",
+    "IDMode_bak2": "Display",
+    "IDMode": "Sample",
     "comment": [
         "Offline的ID solver有四种模式：sample, save, display, solve.",
         "sample模式: 是批量采样、保存轨迹(trajectory)信息、生成数据信息记录表；对应的配置卸载SampleModeInfo中",
@@ -12,14 +12,14 @@
     ],
     "DisplayModeInfo": {
         "_comment": "this section focus on the setting of display mode",
-        "display_traj_path": "data/id_test/sampled/traj_leftleg_1540383426.json",
+        "display_traj_path": "data/id_test/sample_leftleg_bak/traj_leftleg_1359137149.json",
         "display_motion_path_bak": "data/0424/motions/ID_motion_leftleg_0.txt",
         "enable_output_motion_info": false,
         "output_motion_info_path": "angmom_buffer_details.log"
     },
     "SampleModeInfo": {
-        "sample_num": 100,
-        "sample_trajs_dir": "data/id_test/sample_leftleg",
+        "sample_num": 1,
+        "sample_trajs_dir": "data/id_test/sample_leftleg_bak",
         "sample_trajs_rootname": "traj_leftleg.json",
         "summary_table_filename": "summary_leftleg.json",
         "enable_sample_ID_test": false,

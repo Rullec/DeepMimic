@@ -164,7 +164,11 @@ private:
                                          tVectorXd &q, tVectorXd &q_dot);
     static void RecordGeneralizedInfoFea(cSimCharacterBase *sim_char,
                                          tVectorXd &q, tVectorXd &q_dot);
+
     static void SetGeneralizedPosGen(cSimCharacterBase *sim_char,
+                                     const tVectorXd &q);
+
+    static void SetGeneralizedPosFea(cSimCharacterBase *sim_char,
                                      const tVectorXd &q);
     void RecordJointForcesFea(tEigenArr<tVector> &mJointForces) const;
     void RecordJointForcesGen(tEigenArr<tVector> &mJointForces) const;
