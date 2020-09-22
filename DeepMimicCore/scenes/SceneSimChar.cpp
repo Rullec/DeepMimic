@@ -63,8 +63,8 @@ cSceneSimChar::cSceneSimChar()
     mTorqueRecordFile = "";
     mEnableJointTorqueControl = true;
     mEnableID = false;
-    mEnableTrajRecord = false;
-    mTrajRecorder = nullptr;
+    // mEnableTrajRecord = false;
+    // mTrajRecorder = nullptr;
     mEnableGuidedControl = false;
     mGuidedTrajFile = "";
     mPauseAtFirst = false;
@@ -140,16 +140,16 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
         exit(1);
     }
 
-    mEnableTrajRecord = false;
-    mTrajRecorderConfig = "";
-    mArgParser->ParseBool("enable_traj_recoder", mEnableTrajRecord);
-    mArgParser->ParseString("traj_recorder_config", mTrajRecorderConfig);
-    if (mEnableTrajRecord == true &&
-        false == cFileUtil::ExistsFile(mTrajRecorderConfig))
-    {
-        MIMIC_ERROR("traj recorder config {} doesn't exist",
-                    mTrajRecorderConfig);
-    }
+    // mEnableTrajRecord = false;
+    // mTrajRecorderConfig = "";
+    // mArgParser->ParseBool("enable_traj_recoder", mEnableTrajRecord);
+    // mArgParser->ParseString("traj_recorder_config", mTrajRecorderConfig);
+    // if (mEnableTrajRecord == true &&
+    //     false == cFileUtil::ExistsFile(mTrajRecorderConfig))
+    // {
+    //     MIMIC_ERROR("traj recorder config {} doesn't exist",
+    //                 mTrajRecorderConfig);
+    // }
 
     // enable guided control or not
     mArgParser->ParseBool("enable_guided_control", mEnableGuidedControl);
@@ -233,11 +233,11 @@ void cSceneSimChar::Update(double time_elapsed)
         mIDSolver->SetTimestep(time_elapsed);
         mIDSolver->PreSim();
     }
-    if (mEnableTrajRecord)
-    {
-        mTrajRecorder->SetTimestep(time_elapsed);
-        mTrajRecorder->PreSim();
-    }
+    // if (mEnableTrajRecord)
+    // {
+    //     mTrajRecorder->SetTimestep(time_elapsed);
+    //     mTrajRecorder->PreSim();
+    // }
     // std::cout << "[update] pose 5 = " << sim_char->GetPose().transpose()
     //           << std::endl;
     UpdateWorld(time_elapsed);
@@ -257,10 +257,10 @@ void cSceneSimChar::Update(double time_elapsed)
     // exit(1);
     if (mEnableID)
         mIDSolver->PostSim();
-    if (mEnableTrajRecord)
-    {
-        mTrajRecorder->PostSim();
-    }
+    // if (mEnableTrajRecord)
+    // {
+    //     mTrajRecorder->PostSim();
+    // }
     PostUpdate(time_elapsed);
     // std::cout << "[update] pose 8 = " << sim_char->GetPose().transpose()
     //           << std::endl;
@@ -714,11 +714,11 @@ void cSceneSimChar::BuildTrajManager()
         }
     }
 
-    if (true == mEnableTrajRecord)
-    {
-        mTrajRecorder = new cTrajRecorder(dynamic_cast<cSceneImitate *>(this),
-                                          mTrajRecorderConfig);
-    }
+    // if (true == mEnableTrajRecord)
+    // {
+    //     mTrajRecorder = new cTrajRecorder(dynamic_cast<cSceneImitate *>(this),
+    //                                       mTrajRecorderConfig);
+    // }
     //
 }
 
@@ -909,8 +909,8 @@ void cSceneSimChar::ResetScene()
     ResolveCharGroundIntersect();
     if (mEnableID)
         mIDSolver->Reset();
-    if (mEnableTrajRecord)
-        mTrajRecorder->Reset();
+    // if (mEnableTrajRecord)
+    //     mTrajRecorder->Reset();
 }
 
 void cSceneSimChar::ResetCharacters()

@@ -1,8 +1,8 @@
 {
     "IDMode_bak2": "Online",
-    "IDMode": "OfflineSolve",
+    "IDMode_bak4": "OfflineSolve",
     "IDMode_bak1": "Display",
-    "IDMode_bak4": "Sample",
+    "IDMode": "Sample",
     "comment": [
         "Offline的ID solver有四种模式：sample, save, display, solve.",
         "sample模式: 是批量采样、保存轨迹(trajectory)信息、生成数据信息记录表；对应的配置卸载SampleModeInfo中",
@@ -17,8 +17,8 @@
         "output_motion_info_path": "angmom_buffer_details.log"
     },
     "SampleModeInfo": {
-        "sample_num": 500,
-        "sample_trajs_dir": "data/id_test/sample_legs_short",
+        "sample_num": 100,
+        "sample_trajs_dir": "data/id_test/sample_legs",
         "sample_trajs_rootname": "traj_legs.json",
         "summary_table_filename": "summary_legs.json",
         "enable_sample_ID_test": false,
@@ -38,8 +38,8 @@
             "export_train_data_path": "data/id_test/solved_legs/traj_legs_996305798.train.json"
         },
         "BatchTrajSolveInfo": {
-            "summary_table_filename": "data/id_test/sample_legs_short/summary_legs.json",
-            "export_train_data_dir": "data/id_test/solved_legs_short/",
+            "summary_table_filename": "data/id_test/sample_legs/summary_legs.json",
+            "export_train_data_dir": "data/id_test/solved_legs/",
             "solve_target": "SampledTraj"
         },
         "ref_motion_path": "data/0908/motions/walk_motion_legs.txt",

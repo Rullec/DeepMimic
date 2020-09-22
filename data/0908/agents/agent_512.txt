@@ -31,6 +31,7 @@
 	"TestEpisodes": 8,
 
 	"ExpAnnealSamples": 64000000,
+	"BeginningSampleCount" : 0,
 
 	"ExpParamsBeg":
 	{

@@ -64,9 +64,9 @@ def get_train_data(table_path: str):
 
 
 traj_summary_path = (
-    "/home/xudong/Projects/DeepMimic/data/id_test/solved_legs_short/summary_legs.json"
+    "/home/xudong/Projects/DeepMimic/data/id_test/solved_legs/summary_legs.json"
 )
-path_dir_path = "/home/xudong/Projects/DeepMimic/data/path_legs_short"
+path_dir_path = "/home/xudong/Projects/DeepMimic/data/path_legs"
 
 
 

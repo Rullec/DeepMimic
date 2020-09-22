@@ -133,9 +133,9 @@ protected:
     std::shared_ptr<cIDSolver> mIDSolver;
 
     // traj recoder info
-    bool mEnableTrajRecord;
-    std::string mTrajRecorderConfig;
-    cTrajRecorder *mTrajRecorder;
+    // bool mEnableTrajRecord;
+    // std::string mTrajRecorderConfig;
+    // cTrajRecorder *mTrajRecorder;
 
     virtual bool
     ParseCharTypes(const std::shared_ptr<cArgParser> &parser,

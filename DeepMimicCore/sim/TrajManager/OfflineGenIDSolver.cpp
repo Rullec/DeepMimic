@@ -187,7 +187,11 @@ void cOfflineGenIDSolver::Init()
         mAdviser->SetTraj(mCurrentTrajPath, mCurrentOutputPath);
         double timer_max_time = mScene->GetTimer().GetMaxTime();
         double traj_length = mAdviser->GetRefTraj()->GetTimeLength();
-        MIMIC_ASSERT(timer_max_time > traj_length);
+        if (timer_max_time <= traj_length)
+        {
+            MIMIC_ERROR("timer max timer {} should > traj length {}",
+                        timer_max_time, traj_length);
+        }
         mScene->GetTimer().Reset();
     }
     mInited = true;

@@ -1,0 +1,41 @@
+{
+    "IDMode_bak2": "Online",
+    "IDMode": "OfflineSolve",
+    "IDMode_bak1": "Display",
+    "IDMode_bak4": "Sample",
+    "DisplayModeInfo": {
+        "_comment": "this section focus on the setting of display mode",
+        "display_traj_path": "data/id_test/sample_fullbody/traj_fullbody_968252281.json",
+        "enable_output_motion_info": false,
+        "output_motion_info_path": "angmom_buffer_details.log"
+    },
+    "SampleModeInfo": {
+        "sample_num": 50,
+        "sample_trajs_dir": "data/id_test/sample_fullbody",
+        "sample_trajs_rootname": "traj_fullbody.json",
+        "summary_table_filename": "summary_fullbody.json",
+        "enable_sample_ID_test": false,
+        "clear_old_data": true,
+        "traj_file_version": 2
+    },
+    "SolveModeInfo": {
+        "_comment": "this section focus on the setting of solve mode",
+        "solve_mode": "SingleTraj",
+        "solve_mode_bak": "BatchTraj",
+        "enable_reward_recal": false,
+        "enable_action_verified": false,
+        "enable_torque_verified": false,
+        "enable_discrete_verified": false,
+        "SingleTrajSolveInfo": {
+            "solve_traj_path": "data/id_test/sample_fullbody/traj_fullbody_988801430.json",
+            "export_train_data_path": "data/id_test/solved_fullbody/traj_fullbody_988801430.train.json"
+        },
+        "BatchTrajSolveInfo": {
+            "summary_table_filename": "data/id_test/sample_fullbody_short/summary_fullbody.json",
+            "export_train_data_dir": "data/id_test/solved_fullbody_short/",
+            "solve_target": "SampledTraj"
+        },
+        "ref_motion_path": "data/0424/motions/walk_motion_042601.txt",
+        "retargeted_char_path": "data/0805/characters/skeleton_080501.json"
+    }
+}
