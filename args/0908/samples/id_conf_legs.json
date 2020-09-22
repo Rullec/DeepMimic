@@ -17,8 +17,8 @@
         "output_motion_info_path": "angmom_buffer_details.log"
     },
     "SampleModeInfo": {
-        "sample_num": 100,
-        "sample_trajs_dir": "data/id_test/sample_legs",
+        "sample_num": 1,
+        "sample_trajs_dir": "data/id_test/sample_legs_nogravity",
         "sample_trajs_rootname": "traj_legs.json",
         "summary_table_filename": "summary_legs.json",
         "enable_sample_ID_test": false,
