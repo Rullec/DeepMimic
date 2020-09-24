@@ -1,5 +1,6 @@
 --scene kin_char
 --logging_level trace
+--use_revolute_axis_in_deepmimic_style true
 # 老的:成功的
 # --character_file data/characters/humanoid3d_xudong_081019.txt
 # --motion_file data/motions/humanoid3d_walk_xudong_081203.txt

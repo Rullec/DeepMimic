@@ -1,8 +1,18 @@
 #include "Scene.h"
 #include <iostream>
 
+/*
+in deepmimic, the axis of revolute joint is X axis
+in robotmodel, the axis of revolute joint is Z axis
+
+If the "gUseRevoluteAxisInDeepMimicStyle" is set to be true, we use X axis as
+the revolute joint axis If the "gUseRevoluteAxisInDeepMimicStyle" is set to be
+false, we use Z axis as the revolute joint axis
+*/
+bool gUseRevoluteAxisInDeepMimicStyle;
 cScene::cScene()
 {
+    gUseRevoluteAxisInDeepMimicStyle = false;
     mRand.Seed(cMathUtil::RandUint());
     mRandSeed = 0;
     mHasRandSeed = false;
@@ -20,6 +30,8 @@ void cScene::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     mArgParser->ParseDouble("time_lim_min", mTimerParams.mTimeMin);
     mArgParser->ParseDouble("time_lim_max", mTimerParams.mTimeMax);
     mArgParser->ParseDouble("time_lim_exp", mTimerParams.mTimeExp);
+    mArgParser->ParseBoolCritic("use_revolute_axis_in_deepmimic_style",
+                                gUseRevoluteAxisInDeepMimicStyle);
 }
 
 void cScene::Init()

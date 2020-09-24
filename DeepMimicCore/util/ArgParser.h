@@ -20,6 +20,7 @@ public:
     virtual int GetNumArgs() const;
     virtual std::string GetArgFilePath() const;
     virtual bool ParseString(const std::string &key, std::string &out) const;
+    virtual bool ParseStringCritic(const std::string &key, std::string &out) const;
     virtual bool ParseStrings(const std::string &key,
                               std::vector<std::string> &out) const;
     virtual bool ParseInt(const std::string &key, int &out) const;
@@ -28,6 +29,7 @@ public:
     virtual bool ParseDoubles(const std::string &key,
                               std::vector<double> &out) const;
     virtual bool ParseBool(const std::string &key, bool &out) const;
+    virtual bool ParseBoolCritic(const std::string &key, bool &out) const;
     virtual bool ParseBools(const std::string &key,
                             std::vector<bool> &out) const;
     virtual bool ParseVector(const std::string &key, tVector &out) const;

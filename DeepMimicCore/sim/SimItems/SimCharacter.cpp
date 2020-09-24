@@ -929,6 +929,7 @@ bool cSimCharacter::BuildSimBody(const tParams &params)
     return succ;
 }
 
+extern bool gUseRevoluteAxisInDeepMimicStyle;
 bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody> &out_body)
 {
     // build class MultiBody inherited from btMultiBody
@@ -1047,7 +1048,22 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody> &out_body)
             {
             case cKinTree::eJointTypeRevolute:
             {
-                tVector axis = tVector(1, 0, 0, 0);
+                tVector axis = tVector::Zero();
+                if (gUseRevoluteAxisInDeepMimicStyle == true)
+                {
+                    // use deepmimic revolute axis stype: use X axis as revolute
+                    // style
+                    axis = tVector(
+                        0, 0, 1,
+                        0); // X axis as the revolute axis, RobotControl style
+                }
+                else
+                {
+                    // use robotmodel revolute axis typreI
+                    axis = tVector(1, 0, 0, 0); // Z axis as the revolute axis,
+                    //     DeepMimic style
+                }
+
                 axis = cMathUtil::QuatRotVec(this_to_body, axis);
 
                 mMultiBody->setupRevolute(

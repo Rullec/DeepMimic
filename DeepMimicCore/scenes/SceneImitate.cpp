@@ -124,7 +124,7 @@ cSceneImitate::~cSceneImitate() {}
 void cSceneImitate::ParseArgs(const std::shared_ptr<cArgParser> &parser)
 {
     cRLSceneSimChar::ParseArgs(parser);
-    parser->ParseString("motion_file", mMotionFile);
+    parser->ParseStringCritic("motion_file", mMotionFile);
     parser->ParseBool("enable_rand_rot_reset", mEnableRandRotReset);
     parser->ParseBool("sync_char_root_pos", mSyncCharRootPos);
     parser->ParseBool("sync_char_root_rot", mSyncCharRootRot);
@@ -137,7 +137,7 @@ void cSceneImitate::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     parser->ParseBool("enable_angle_diff_log", mEnableAngleDiffLog);
     parser->ParseString("angle_diff_dir", mAngleDiffDir);
     // read reward weight file
-    parser->ParseString("reward_file", mRewardFile);
+    parser->ParseStringCritic("reward_file", mRewardFile);
 }
 
 void cSceneImitate::Init()

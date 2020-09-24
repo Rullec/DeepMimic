@@ -1,6 +1,6 @@
 ﻿#include "ArgParser.h"
-
 #include "util/FileUtil.h"
+#include "util/LogUtil.h"
 #include <assert.h>
 #include <fstream>
 #include <iostream>
@@ -147,6 +147,16 @@ bool cArgParser::ParseString(const std::string &key, std::string &out) const
     return false;
 }
 
+bool cArgParser::ParseStringCritic(const std::string &key,
+                                   std::string &out) const
+{
+    if (false == ParseString(key, out))
+    {
+        MIMIC_ERROR("parse string key {} failed", key);
+    }
+    return false;
+}
+
 bool cArgParser::ParseStrings(const std::string &key,
                               std::vector<std::string> &out) const
 {
@@ -231,6 +241,16 @@ bool cArgParser::ParseBool(const std::string &key, bool &out) const
         return true;
     }
     return false;
+}
+
+bool cArgParser::ParseBoolCritic(const std::string &key, bool &out) const
+{
+    if (ParseBool(key, out) == false)
+    {
+        MIMIC_ERROR("parse key {} failed", key);
+    }
+
+    return true;
 }
 
 bool cArgParser::ParseBools(const std::string &key,

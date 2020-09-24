@@ -9,8 +9,11 @@
 --anneal_samples 32000000
 
 --num_update_substeps 10
---num_sim_substeps 2
+--num_sim_substeps 1
 --world_scale 4
+--logging_level trace
+--world_type featherstone
+--use_revolute_axis_in_deepmimic_style true
 
 --terrain_file data/terrain/plane.txt
 
