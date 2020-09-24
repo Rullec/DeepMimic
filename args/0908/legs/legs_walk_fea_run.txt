@@ -12,7 +12,6 @@
 --num_update_substeps 10
 --num_sim_substeps 1
 --world_type featherstone
-# --world_type generalized
 --world_scale 1
 --logging_level trace
 --pause_at_first false

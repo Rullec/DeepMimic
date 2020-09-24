@@ -154,7 +154,8 @@ void cOnlineIDSolver::PostSim()
     //     {
     //         int joint_id = link->GetJointID();
     //         tVector local_ptr = cMathUtil::Expand(
-    //             link->GetLocalToWorldRotMat() * p.mLocalPos.segment(0, 3), 0.0);
+    //             link->GetLocalToWorldRotMat() * p.mLocalPos.segment(0, 3),
+    //             0.0);
 
     //         mExternalTorques[joint_id] += local_ptr.cross3(p.mPerturb);
     //         mExternalForces[joint_id] += p.mPerturb;
@@ -493,10 +494,12 @@ void cOnlineIDSolver::SolveIDSingleStep(
                               1e-5) == false)
         {
             err += (solved_joint_forces[id] - mJointForces[id]).norm();
-            MIMIC_ERROR("online ID solved error: for joint {}, diff: solved = "
-                        "{} but truth = {}",
-                        id, solved_joint_forces[id].transpose(),
-                        mJointForces[id].transpose());
+            MIMIC_ERROR(
+                "online ID solved error: for joint {} {}, diff: solved = "
+                "{} but truth = {}",
+                id, mSimChar->GetJointName(id),
+                solved_joint_forces[id].transpose(),
+                mJointForces[id].transpose());
         }
     }
     if (err < 1e-5)

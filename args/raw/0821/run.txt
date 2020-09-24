@@ -23,12 +23,15 @@
 --sync_char_root_pos true
 --sync_char_root_rot false
 
-
-
-
 --agent_files data/raw/agents/ct_agent_humanoid_ppo.txt
 --train_agents false
 
 #--output_path output
 #--int_output_path output/intermediate
 --model_files data/raw/policies/humanoid3d/humanoid3d_walk.ckpt
+
+
+############# Inverse Dynamic config
+--enable_inverse_dynamic_solving true
+--inverse_dynamic_config_file args/raw/0821/id_conf_for_raw.json
+

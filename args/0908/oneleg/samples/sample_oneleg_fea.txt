@@ -18,6 +18,7 @@
 --pause_at_first false
 --terrain_file data/terrain/plane.txt
 --fall_contact_bodies 0 1 2 
+--use_revolute_axis_in_deepmimic_style false
 
 #-------------------------skeleton------------------------
 --char_types general
