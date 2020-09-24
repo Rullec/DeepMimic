@@ -1,5 +1,5 @@
 {
-    "feature_vector_file": "./args/world_config/contact_aware_feature_vector/accel_feature_legs.json",
+    "feature_vector_file": "./args/world_config/contact_aware_feature_vector/pos_feature_legs.json",
     "resolve_control_tau": true,
     "draw_reference_traj_character": true,
     "draw_target_FBF_character": false,

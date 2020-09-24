@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 1
---time_lim_max 1
+--time_lim_min 2
+--time_lim_max 2
 --time_lim_exp 0.2
 
 --time_end_lim_min 5
@@ -11,8 +11,8 @@
 
 --num_update_substeps 10
 --num_sim_substeps 1
-# --world_type featherstone
---world_type generalized
+--world_type featherstone
+# --world_type generalized
 --world_scale 1
 --logging_level trace
 --pause_at_first false
@@ -20,16 +20,16 @@
 --fall_contact_bodies 0 1 2 
 
 #-------------------------skeleton------------------------
-# --char_types general
---char_types lagragian
+--char_types general
+# --char_types lagragian
 --character_files data/0908/characters/skeleton_oneleg.json
 --enable_joint_force_control true
 --enable_char_soft_contact false
 --fall_contact_bodies
 
 #----------------PD params and motion data----------------
-# --char_ctrls ct_pd
---char_ctrls ct_pd_gen
+--char_ctrls ct_pd
+# --char_ctrls ct_pd_gen
 --char_ctrl_files data/0805/controllers/ctrl_oneleg.txt
 --motion_file data/0805/motions/stand_motion.txt
 --sync_char_root_pos true
@@ -50,8 +50,9 @@
 --agent_files data/0908/agents/agent_128_ppo_sample.txt
 --train_agents false
 
---output_path output/0908_gen
---model_files output/0908/gen/agent0_model_2020_09_08_22_07_29_145.58.ckpt
+--output_path output/0908
+# --model_files output/0908/agent0_model_2020_09_08_20_52_27_14.20.ckpt
+--model_files output/0908/fea/agent0_model_2020_09_08_21_17_35_106.48.ckpt
 
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
