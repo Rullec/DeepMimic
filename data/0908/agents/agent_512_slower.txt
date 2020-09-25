@@ -12,7 +12,6 @@
 	"CriticMomentum": 0.9,
 	"CriticWeightDecay": 0,
 
-	"TarClipFrac" : 0.2,
 	"UpdatePeriod": 1,
 	"ItersPerUpdate": 1,
 	"Discount": 0.95,

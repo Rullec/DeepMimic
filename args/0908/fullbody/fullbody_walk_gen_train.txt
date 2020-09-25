@@ -8,26 +8,24 @@
 --time_end_lim_max 20
 --time_end_lim_exp 5
 --anneal_samples 32000000
+--use_revolute_axis_in_deepmimic_style false
 
 --num_update_substeps 10
 --num_sim_substeps 1
-# --world_type featherstone
 --world_type generalized
 --world_scale 1
 --logging_level trace
 --pause_at_first false
 --terrain_file data/terrain/plane.txt
---fall_contact_bodies 0 1 2 4 5
+--fall_contact_bodies 0 1 2 3 4 5 6 7 8 9 10 11 12 14 15
 
 #-------------------------skeleton------------------------
-# --char_types general
 --char_types lagragian
 --character_files data/0908/characters/skeleton_081501_lighter.json
 --enable_joint_force_control true
 --enable_char_soft_contact false
 
 #----------------PD params and motion data----------------
-# --char_ctrls ct_pd
 --char_ctrls ct_pd_gen
 --char_ctrl_files data/0908/controllers/ctrl_full.txt
 --motion_file data/0908/motions/walk_full.txt
@@ -46,11 +44,10 @@
 --reward_file data/0420/rewards/reward_weight.json
 --enable_pdtarget_solve_test false
 
---agent_files data/0908/agents/agent_512.txt
+--agent_files data/0908/agents/agent_512_slower.txt
 --train_agents true
 
---output_path output/0910
-# --model_files output/0909/gen/agent0_model_2020_09_10_02_22_01_17.25.ckpt
+--output_path output/0910/
 
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
@@ -62,3 +59,4 @@
 # --inverse_dynamic_config_file args/0609/id_confs/id_solve_mred_conf.json
 # --inverse_dynamic_config_file args/0609/id_confs/id_sample_conf.json
 # --inverse_dynamic_config_file args/0609/id_confs/id_display_conf.json
+

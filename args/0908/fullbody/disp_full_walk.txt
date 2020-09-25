@@ -3,3 +3,4 @@
 --logging_level trace
 --character_file data/0908/characters/skeleton_081501_lighter.json
 --motion_file data/0908/motions/walk_full.txt
+--use_revolute_axis_in_deepmimic_style false
