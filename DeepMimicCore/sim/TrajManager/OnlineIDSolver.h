@@ -34,6 +34,8 @@ protected:
     tEigenArr<tVector> mSolvedJointForces; // solved joint torques from
     tEigenArr<tVector> mExternalForces; // for each link, external forces in COM
     tEigenArr<tVector> mExternalTorques; // for each link, external torques
+    tEigenArr<tVector> mPerturbForces; // for each link, perturb forces in COM
+    tEigenArr<tVector> mPerturbTorques; // for each link, perturb torques
     tEigenArr<tMatrix> mLinkRot;         // local to world rotation mats
     tEigenArr<tVector> mLinkPos;         // link COM pos in world frame
 

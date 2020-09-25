@@ -1,0 +1,34 @@
+{
+	"UpdateRate": 30,
+	"EnablePhaseInput": true,
+	"RecordWorldRootPos": false,
+	"RecordWorldRootRot": true,
+
+	"PDControllers": 
+	[
+		{
+			"ID": 0,
+			"Name": "root",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 1,
+			"Name": "right_hip",
+			"Kp": 500,
+			"Kd": 50,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 2,
+			"Name": "right_knee",
+			"Kp": 400,
+			"Kd": 40,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		}
+	]
+}

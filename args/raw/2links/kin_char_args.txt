@@ -1,0 +1,5 @@
+--scene kin_char
+--logging_level trace
+--use_revolute_axis_in_deepmimic_style true
+--character_file data/raw/characters/2links/humanoid3d_2links.txt
+--motion_file data/raw/motions/2links/humanoid3d_2links_walk.txt

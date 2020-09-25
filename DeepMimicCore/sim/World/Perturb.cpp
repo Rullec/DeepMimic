@@ -1,5 +1,6 @@
 #include "Perturb.h"
 #include "sim/SimItems/SimObj.h"
+#include <iostream>
 
 tPerturb tPerturb::BuildForce()
 {
@@ -62,6 +63,8 @@ void tPerturb::Update(double time_step)
 void tPerturb::ApplyForce()
 {
     assert(mType == ePerturbForce);
+    std::cout << "[perturb] AddForce " << mPerturb.transpose()
+              << std::endl;
     mObj->ApplyForce(mPerturb, mLocalPos);
 }
 

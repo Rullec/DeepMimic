@@ -1241,7 +1241,7 @@ bool cSimCharacter::BuildBodyLinks()
         params.mJointID = j;
 
         curr_part = std::shared_ptr<cSimBodyLink>(new cSimBodyLink());
-
+        curr_part->SetName(mBodyDefsName[j]);
         short col_group = GetPartColGroup(j);
         short col_mask = GetPartColMask(j);
         curr_part->SetColGroup(col_group);

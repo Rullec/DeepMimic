@@ -71,6 +71,8 @@ protected:
     // record functions
     void RecordReward(double &reward) const;
     void RecordRefTime(double &time) const;
+    void RecordExternalPerturb(tEigenArr<tVector> &mPerturbForces,
+                               tEigenArr<tVector> &mPerturbTorques) const;
     void RecordJointForces(tEigenArr<tVector> &mJointForces) const;
     void RecordAction(tVectorXd &action) const; // ball joints are in aas
     void RecordPDTarget(
@@ -129,6 +131,8 @@ protected:
                                    const tVectorXd &action_ground_truth) const;
     virtual double CalcActionError(const tVectorXd &solved_action,
                                    const tVectorXd &truth_action) const;
+
+    virtual bool IsMaxVel() const;
 
 private:
     btMultiBody *mMultibody;

@@ -1,0 +1,5 @@
+--scene kin_char
+--logging_level trace
+--use_revolute_axis_in_deepmimic_style true
+--character_file data/raw/characters/oneleg/humanoid3d_leftleg.txt
+--motion_file data/raw/motions/oneleg/humanoid3d_oneleg_walk.txt

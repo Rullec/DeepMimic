@@ -31,7 +31,7 @@ cOnlineIDSolver::cOnlineIDSolver(cSceneImitate *scene)
         x.resize(mDof), x.setZero();
 
     // init other vars
-    mEnableExternalForce = false;
+    mEnableExternalForce = true;
     mEnableExternalTorque = false;
     mEnableSolveID = true;
     // mFloatingBase = !(mMultibody->hasFixedBase());
@@ -113,7 +113,7 @@ void cOnlineIDSolver::PreSim()
     RecordJointForces(mJointForces);
     RecordGeneralizedInfo(mSimChar, mBuffer_q[mFrameId], mBuffer_u[mFrameId]);
     RecordMultibodyInfo(mSimChar, mLinkRot, mLinkPos);
-
+    RecordExternalPerturb(mPerturbForces, mPerturbTorques);
     // std::cout <<"online sovler presim record " << mFrameId << std::endl;
 
     // for (int i = 0; i <= mFrameId; i++)
@@ -168,6 +168,7 @@ void cOnlineIDSolver::PostSim()
     // }
 
     // std::cout << "---------------------------------\n";
+    bool is_discrete_error = false;
     if (mSolvingMode == eSolvingMode::VEL)
     {
         if (mFrameId >= 1)
@@ -211,43 +212,48 @@ void cOnlineIDSolver::PostSim()
 
             // fout << "[calc] buffer u dot " << mFrameId - 1 << " = "
             //      << mBuffer_u_dot[mFrameId - 1].transpose() << std::endl;
-
+            // std::cout << "[debug] truth vel = " << old_vel_after.transpose()
+            //           << std::endl;
+            // std::cout << "[debug] calculated vel = " <<
+            // mBuffer_u[mFrameId].transpose()
+            //           << std::endl;
             double threshold = 1e-5;
             {
                 tVectorXd diff = old_vel_after - mBuffer_u[mFrameId];
                 if (diff.norm() > threshold)
                 {
+                    std::cout << "-----------------------------------------\n";
                     std::cout << "truth vel = " << old_vel_after.transpose()
                               << std::endl;
                     std::cout << "calculated vel = "
                               << mBuffer_u[mFrameId].transpose() << std::endl;
-                    std::cout
-                        << "calculate vel after error = " << (diff).transpose()
-                        << " | " << (old_vel_after - mBuffer_u[mFrameId]).norm()
-                        << std::endl;
-                    // fout.close();
-                    exit(1);
+                    std::cout << "diff = " << diff.transpose() << std::endl;
+
+                    MIMIC_WARN("calculate after_vel diff norm = {} > {}, it "
+                               "may affect the ID",
+                               diff.norm(), threshold);
+                    is_discrete_error = true;
                 }
 
                 // check vel
                 diff = old_vel_before - mBuffer_u[mFrameId - 1];
                 if (diff.norm() > threshold)
                 {
-                    std::cout << "truth vel = " << old_vel_after.transpose()
+                    std::cout << "truth vel = " << old_vel_before.transpose()
                               << std::endl;
                     std::cout << "calculated vel = "
-                              << mBuffer_u[mFrameId].transpose() << std::endl;
-                    std::cout
-                        << "calculate vel before error = " << (diff).transpose()
-                        << " | " << (old_vel_after - mBuffer_u[mFrameId]).norm()
-                        << std::endl;
-                    // fout.close();
-                    exit(1);
+                              << mBuffer_u[mFrameId - 1].transpose()
+                              << std::endl;
+                    std::cout << "diff = " << diff.transpose() << std::endl;
+                    MIMIC_WARN("calculate after_vel diff norm = {} > {}, it "
+                               "may affect the ID",
+                               diff.norm(), threshold);
+                    is_discrete_error = true;
                 }
 
                 // check accel
                 diff = mBuffer_u_dot[mFrameId - 1] - old_accel;
-                if (diff.norm() > threshold)
+                if (diff.norm() > threshold / mCurTimestep)
                 {
                     std::cout << "truth accel =  " << old_accel.transpose()
                               << std::endl;
@@ -256,8 +262,11 @@ void cOnlineIDSolver::PostSim()
                               << std::endl;
                     std::cout << "differential error = " << diff.transpose()
                               << std::endl;
-                    // fout.close();
-                    exit(1);
+                    MIMIC_WARN(
+                        "calculate discrete accel diff norm = {} > {}, it "
+                        "may affect the ID",
+                        diff.norm(), threshold);
+                    is_discrete_error = true;
                 }
             }
         }
@@ -273,10 +282,29 @@ void cOnlineIDSolver::PostSim()
     // fout << "\n buffer u : ";
     // fout << mBuffer_u[mFrameId].transpose() <<" ";
     // fout << std::endl;
-    SolveIDSingleStep(mSolvedJointForces, mContactForces, mLinkPos, mLinkRot,
-                      mBuffer_q[mFrameId - 1], mBuffer_u[mFrameId - 1],
-                      mBuffer_u_dot[mFrameId - 1], mFrameId, mExternalForces,
-                      mExternalTorques);
+
+    // add the perturb to the External forces and external torques
+    for (int id = 0; id < mNumLinks; id++)
+    {
+        // std::cout << "[debug] pre link " << id << " force "
+        //           << mExternalForces[id].transpose() << " torque "
+        //           << mExternalTorques[id].transpose() << std::endl;
+        mExternalForces[id] += mPerturbForces[id];
+        mExternalTorques[id] += mPerturbTorques[id];
+        // std::cout << "[debug] post link " << id << " force "
+        //           << mExternalForces[id].transpose() << " torque "
+        //           << mExternalTorques[id].transpose() << std::endl;
+        // std::cout << "[debug] add link " << id << " force "
+        //           << mPerturbForces[id].transpose() << " torque "
+        //           << mPerturbTorques[id].transpose() << std::endl;
+    }
+    if (is_discrete_error == true)
+        MIMIC_WARN("discrete error is too big, ID is disable temporarily");
+    else
+        SolveIDSingleStep(mSolvedJointForces, mContactForces, mLinkPos,
+                          mLinkRot, mBuffer_q[mFrameId - 1],
+                          mBuffer_u[mFrameId - 1], mBuffer_u_dot[mFrameId - 1],
+                          mFrameId, mExternalForces, mExternalTorques);
 
     // std::cout <<"online sovler ID record " << mFrameId << std::endl;
     // fout <<"ID frame id = " << mFrameId;
@@ -419,15 +447,25 @@ void cOnlineIDSolver::PostSim()
 
 void cOnlineIDSolver::AddExternalForces()
 {
+    if (mExternalTorques.size() != mNumLinks ||
+        mExternalTorques.size() != mNumLinks)
+    {
+        mExternalTorques.resize(mNumLinks);
+        mExternalForces.resize(mNumLinks);
+        for (auto &x : mExternalTorques)
+            x.setZero();
+        for (auto &x : mExternalForces)
+            x.setZero();
+    }
     // add random force
     if (true == mEnableExternalForce)
     {
         tVector external_force = tVector::Zero();
-        for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
+        for (int ID_link_id = 1; ID_link_id < mNumLinks; ID_link_id++)
         {
             int multibody_link_id = ID_link_id - 1;
             external_force = tVector::Random() * 10 / mWorldScale;
-            mSimChar->ApplyLinkForce(ID_link_id, external_force);
+            mSimChar->ApplyLinkForce(multibody_link_id, external_force);
 
             mExternalForces[ID_link_id] = external_force;
         }
@@ -437,12 +475,12 @@ void cOnlineIDSolver::AddExternalForces()
     if (true == mEnableExternalTorque)
     {
         tVector external_torque = tVector::Zero();
-        for (int ID_link_id = 0; ID_link_id < mNumLinks; ID_link_id++)
+        for (int ID_link_id = 1; ID_link_id < mNumLinks; ID_link_id++)
         {
             int multibody_link_id = ID_link_id - 1;
             external_torque =
                 tVector::Random() * 10 / (mWorldScale * mWorldScale);
-            mSimChar->ApplyLinkTorque(ID_link_id, external_torque);
+            mSimChar->ApplyLinkTorque(multibody_link_id, external_torque);
             mExternalTorques[ID_link_id] = external_torque;
         }
     }
@@ -488,18 +526,25 @@ void cOnlineIDSolver::SolveIDSingleStep(
     // ground truth(truth_joint_forces)
     assert(solved_joint_forces.size() == mJointForces.size());
     double err = 0;
+    bool is_max_vel = this->IsMaxVel();
     for (int id = 0; id < solved_joint_forces.size(); id++)
     {
         if (cMathUtil::IsSame(solved_joint_forces[id], mJointForces[id],
                               1e-5) == false)
         {
             err += (solved_joint_forces[id] - mJointForces[id]).norm();
-            MIMIC_ERROR(
-                "online ID solved error: for joint {} {}, diff: solved = "
-                "{} but truth = {}",
-                id, mSimChar->GetJointName(id),
-                solved_joint_forces[id].transpose(),
-                mJointForces[id].transpose());
+            if (is_max_vel == true)
+                MIMIC_WARN("the vel of model has exceeded the max limit, ID "
+                           "would be inaccurate");
+            else
+            {
+                MIMIC_ERROR(
+                    "online ID solved error: for joint {} {}, diff: solved = "
+                    "{} but truth = {}",
+                    id, mSimChar->GetJointName(id),
+                    solved_joint_forces[id].transpose(),
+                    mJointForces[id].transpose());
+            }
         }
     }
     if (err < 1e-5)

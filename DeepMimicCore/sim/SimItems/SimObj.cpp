@@ -8,6 +8,7 @@ cSimObj::cSimObj() : mWorld(nullptr)
     mType = eTypeDynamic;
     mColGroup = cContactManager::gFlagAll;
     mColMask = cContactManager::gFlagAll;
+    mName = "null";
 }
 
 cSimObj::~cSimObj() {}
@@ -239,4 +240,6 @@ const btCollisionShape *cSimObj::GetCollisionShape() const
 
 const std::shared_ptr<cWorldBase> &cSimObj::GetWorld() const { return mWorld; }
 
-std::string cSimObj::GetName() const { return "null"; }
+std::string cSimObj::GetName() const { return mName; }
+
+void cSimObj::SetName(const std::string &name) { mName = name; }

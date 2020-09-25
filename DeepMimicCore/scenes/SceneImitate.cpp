@@ -703,7 +703,7 @@ void cSceneImitate::SetMotionAsAction()
         mKinChar->GetPose().segment(7, mKinChar->GetPose().size() - 7);
     // MIMIC_ASSERT(global_action.size() == GetActionSize(0));
     // MIMIC_INFO("[imit] kin char pose {}", global_action.transpose());
-    dynamic_cast<cCtPDGenController *>(GetCharacter(0)->GetController().get())
+    dynamic_cast<cCtPDController *>(GetCharacter(0)->GetController().get())
         ->CalcActionByTargetPose(global_action);
     // convert pose to action (quaternion to axis angle)
     MIMIC_WARN("Set the ref motion as the action");

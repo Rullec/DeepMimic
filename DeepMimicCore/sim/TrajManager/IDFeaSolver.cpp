@@ -1214,3 +1214,28 @@ void cIDSolver::SetGeneralizedPosFea(cSimCharacterBase *sim_char,
     btAlignedObjectArray<btQuaternion> mRotBuffer;
     mMultibody->updateCollisionObjectWorldTransforms(mRotBuffer, mVecBuffer0);
 }
+
+bool cIDSolver::IsMaxVel() const
+{
+    if (this->mSimCharType == eSimCharacterType::Featherstone)
+    {
+        double vel_limit = mMultibody->getMaxCoordinateVelocity();
+        double max_vel = 0;
+        for (int i = 0; i < 6 + mMultibody->getNumLinks(); i++)
+        {
+
+            // std::cout << "id " << i << " val = " << mMultibody->getRealBuf()[i]
+            //           << std::endl;
+            max_vel =
+                std::max(max_vel, static_cast<double>(std::fabs(
+                                      mMultibody->getVelocityVector()[i])));
+        }
+        MIMIC_INFO("max vel {} vel limit {}", max_vel, vel_limit);
+        return (vel_limit - max_vel) < 1e-5;
+    }
+    // else if (mSimCharType == eSimCharacterType::Generalized)
+    else
+    {
+        MIMIC_ERROR("Unsupport char type {}", mSimCharType);
+    }
+}

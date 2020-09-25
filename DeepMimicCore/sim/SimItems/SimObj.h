@@ -63,6 +63,7 @@ public:
 
     virtual const btCollisionShape *GetCollisionShape() const;
     virtual std::string GetName() const;
+    virtual void SetName(const std::string &name);
 
 protected:
     std::shared_ptr<cWorldBase> mWorld;
@@ -77,7 +78,7 @@ protected:
     eType mType;
     short mColGroup;
     short mColMask;
-
+    std::string mName;
     cSimObj();
 
     virtual const std::shared_ptr<cWorldBase> &GetWorld() const;

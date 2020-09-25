@@ -1,5 +1,6 @@
 ﻿#include "SimBodyLink.h"
 #include "BulletDynamics/Featherstone/btMultiBodyLinkCollider.h"
+#include <iostream>
 
 cSimBodyLink::tParams::tParams()
 {
@@ -109,9 +110,12 @@ void cSimBodyLink::ApplyForce(const tVector &force, const tVector &local_pos)
 
 void cSimBodyLink::ApplyTorque(const tVector &torque)
 {
+
     btScalar scale = static_cast<btScalar>(mWorld->GetScale());
     mMultiBody->addLinkTorque(
         mJointID, scale * scale * btVector3(torque[0], torque[1], torque[2]));
+    std::cout << "[link] apply torque " << scale * scale * torque.transpose()
+              << std::endl;
 }
 
 void cSimBodyLink::ClearForces() { mMultiBody->clearForcesAndTorques(); }

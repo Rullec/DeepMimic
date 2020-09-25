@@ -166,7 +166,6 @@ void cIDSolver::SolveIDSingleStep(
     const tEigenArr<tVector> &mExternalForces,
     const tEigenArr<tVector> &mExternalTorques) const
 {
-
     if (mSimCharType == eSimCharacterType::Featherstone)
     {
         SolveIDSingleStepFea(solved_joint_forces, contact_forces, link_pos,
@@ -220,4 +219,54 @@ tVectorXd cIDSolver::CalcGeneralizedVel(const tVectorXd &q_before,
         MIMIC_ERROR("Unsupported char type {}", mSimCharType);
         return tVectorXd::Zero(0);
     }
+}
+
+/**
+ * \brief                   Record the perturbs recorded in the sim world
+ */
+void cIDSolver::RecordExternalPerturb(tEigenArr<tVector> &mPerturbForces,
+                                      tEigenArr<tVector> &mPerturbTorques) const
+{
+    mPerturbForces.resize(mNumLinks);
+    mPerturbTorques.resize(mNumLinks);
+
+    for (int link_id = 0; link_id < mNumLinks; link_id++)
+    {
+        mPerturbForces[link_id].setZero();
+        mPerturbTorques[link_id].setZero();
+    }
+
+    auto manager = mWorld->GetPerturbManager();
+    // std::cout << "[debug] perturb num = " << manager.GetNumPerturbs()
+    //           << std::endl;
+    for (int id = 0; id < manager.GetNumPerturbs(); id++)
+    {
+        auto p = manager.GetPerturb(id);
+        if (true == p.HasExpired())
+            continue;
+        auto link = dynamic_cast<cSimBodyLink *>(p.mObj);
+        int inverse_id = link->GetJointID() + 1;
+
+        // if (link != nullptr)
+        // {
+        //     std::cout << "obj " << link->GetJointID() << " "
+        //               << p.mObj->GetName() << " gets perturb "
+        //               << p.mPerturb.transpose() << std::endl;
+        // }
+        tVector force = p.mPerturb;
+        tVector local_pos = p.mLocalPos;
+        // 1. calculate the equavilent torque
+        tVector world_vec = link->GetWorldTransform() * local_pos;
+        tVector torque = world_vec.cross3(force);
+
+        mPerturbForces[inverse_id] += force;
+        mPerturbTorques[inverse_id] += torque;
+        std::cout << "[record] perturb: link " << inverse_id << " force = "
+                  << mPerturbForces[inverse_id].transpose().segment(0, 3)
+                  << " torque = "
+                  << mPerturbTorques[inverse_id].transpose().segment(0, 3)
+                  << std::endl;
+    }
+    // if (manager.GetNumPerturbs() != 0)
+    //     exit(0);
 }

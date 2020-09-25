@@ -1,5 +1,5 @@
 #include "PerturbManager.h"
-
+#include <iostream>
 cPerturbManager::cPerturbManager() {}
 
 cPerturbManager::~cPerturbManager() {}
@@ -29,7 +29,9 @@ const tPerturb &cPerturbManager::GetPerturb(int i) const
 void cPerturbManager::UpdatePerturbs(double time_step)
 {
     // 更新扰动是?我也不太清楚
+
     int num_perturbs = GetNumPerturbs();
+    // std::cout << "[manager update] perturb num = " << num_perturbs << std::endl;
     int idx = 0;
     for (int i = 0; i < num_perturbs; ++i)
     {
