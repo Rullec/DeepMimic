@@ -661,7 +661,7 @@ void cRBDUtil::CalcCoM(const Eigen::MatrixXd &joint_mat,
     out_com.setZero();
     out_vel.setZero();
     double total_mass = 0;
-
+    // std::ofstream fout("rew_fea_com.txt", std::ios::app);
     for (int j = 0; j < num_joints; ++j)
     {
         if (cKinTree::IsValidBody(body_defs, j))
@@ -685,14 +685,18 @@ void cRBDUtil::CalcCoM(const Eigen::MatrixXd &joint_mat,
             sv = cSpAlg::ApplyTransM(com_trans, sv);
 
             tVector com_vel = cSpAlg::GetV(sv);
-
+            // fout << "[com1] link " << j
+            //      << " vel = " << com_vel.segment(0, 3).transpose() << std::endl;
+            // fout << "[com1] link " << j
+            //      << " pos = " << world_com.transpose().segment(0, 3)
+            //      << std::endl;
             double m = cKinTree::GetBodyMass(body_defs, j);
             out_com += m * world_com;
             out_vel += m * com_vel;
             total_mass += m;
         }
     }
-
+    // fout << "[com1] total mass = " << total_mass << std::endl;
     assert(total_mass > 0);
     out_com /= total_mass;
     out_vel /= total_mass;

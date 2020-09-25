@@ -1878,6 +1878,9 @@ double cKinTree::CalcHeading(const Eigen::MatrixXd &joint_mat,
     tVector ref_dir = tVector(1, 0, 0, 0); // 朝向屏幕右边X正方向的vector
     tQuaternion root_rot =
         cKinTree::GetRootRot(joint_mat, pose); // 获取root的旋转: 是个四元数
+    root_rot.normalize();
+    // std::cout << "[kin] root rot = " << root_rot.coeffs().transpose()
+    //           << std::endl;
     tVector rot_dir = cMathUtil::QuatRotVec(
         root_rot, ref_dir); // 把这个vec按照root的旋转进行旋转。
     double heading = std::atan2(
@@ -1903,6 +1906,7 @@ tMatrix cKinTree::BuildHeadingTrans(const Eigen::MatrixXd &joint_mat,
     // build "heading"的变换? head是指向头顶的(0, 1, 0)
     double heading = CalcHeading(joint_mat, pose);
     tVector axis = tVector(0, 1, 0, 0);
+    // std::cout << "[kintree] heading = " << heading << std::endl;
     tMatrix mat = cMathUtil::RotateMat(axis, -heading);
     return mat;
 }
@@ -1930,6 +1934,13 @@ tMatrix cKinTree::BuildOriginTrans(const Eigen::MatrixXd &joint_mat,
     tMatrix trans_mat =
         cMathUtil::TranslateMat(-origin); // 世界坐标系到root坐标系的平移
     tMatrix mat = rot_mat * trans_mat;
+
+    // std::cout
+    //     << "---------------build origin trans begin fea-----------------\n";
+    // // std::cout << "trans = \n" << trans_mat << std::endl;
+    // std::cout << "rot = \n" << rot_mat << std::endl;
+    // // std::cout << "res = \n" << mat << std::endl;
+    // std::cout << "---------------build origin trans end fea-----------------\n";
     return mat; // 世界坐标系到root坐标系的变换
 }
 

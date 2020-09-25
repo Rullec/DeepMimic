@@ -173,6 +173,7 @@ void Update(double time_elapsed)
                 auto g = gCore->RecordGoal(id);
                 double r = gCore->CalcReward(id);
                 MIMIC_INFO("current reward {}", r);
+                // exit(1);
                 // std::cout << "main get reward = " << r << std::endl;
                 // std::cout <<"state = ";
                 // for(auto x : s) std::cout << x <<" ";
@@ -182,7 +183,8 @@ void Update(double time_elapsed)
                 if (global_action.size() == 0)
                 {
                     global_action = tVectorXd::Zero(gCore->GetActionSize(id));
-                    // global_action << 1, 0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1, 1,
+                    // global_action << 1, 0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1,
+                    // 1,
                     //     0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1;
                     // global_action << 1, 0.2, 0.2, 0.2, 0, 1, 0.2, 0.2, 0.2,
                     // 1,
@@ -225,6 +227,7 @@ void Update(double time_elapsed)
                 }
                 gCore->SetSampleCount(gSampleCount);
                 gCore->Reset();
+                // exit(1);
             }
         }
     }
@@ -284,7 +287,7 @@ int CalcDisplayAnimTime(int num_timesteps)
 void Shutdown()
 {
     gCore->Shutdown();
-    exit(0);
+    // exit(0);
 }
 
 int GetCurrTime() { return glutGet(GLUT_ELAPSED_TIME); }
@@ -460,6 +463,7 @@ void DrawMainLoop()
 
 int main(int argc, char **argv)
 {
+    srand(0);
     FormatArgs(argc, argv, gArgs);
 
     InitDraw(argc, argv);

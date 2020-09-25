@@ -280,7 +280,8 @@ void cSimBodyJoint::ClampTotalTorque(tVector &out_torque) const
     if (mag > torque_lim)
     {
         out_torque *= torque_lim / mag;
-        MIMIC_WARN("joint {} torque lim {}, cur torque = {}", mParams.mID, torque_lim, mag);
+        MIMIC_WARN("joint {} torque lim {}, cur torque = {}", mParams.mID,
+                   torque_lim, mag);
     }
 }
 
@@ -448,7 +449,12 @@ void cSimBodyJoint::SetPose(const Eigen::VectorXd &pose)
         break;
     case cKinTree::eJointTypeSpherical:
     {
-        tQuaternion q = cMathUtil::VecToQuat(pose);
+        tQuaternion q = cMathUtil::VecToQuat(pose).normalized();
+        if (std::fabs(q.norm() - 1) > 1e-10)
+        {
+            MIMIC_ASSERT(q.norm() == 0);
+            q.w() = 1;
+        }
         q = mParams.mChildRot * q * mParams.mChildRot.conjugate();
         data[0] = q.x();
         data[1] = q.y();

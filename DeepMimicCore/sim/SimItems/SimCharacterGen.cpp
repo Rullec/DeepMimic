@@ -370,9 +370,12 @@ tQuaternion cSimCharacterGen::CalcHeadingRot() const
 {
     tVector ref_dir = tVector(1, 0, 0, 0);
     tQuaternion root_rot = GetRootRotation();
+    // std::cout << "[gen] root rot = " << root_rot.coeffs().transpose()
+    //           << std::endl;
     tVector rot_dir = cMathUtil::QuatRotVec(root_rot, ref_dir);
     double heading = std::atan2(-rot_dir[2], rot_dir[0]);
-    return cMathUtil::AxisAngleToQuaternion(tVector(0, 1, 0, 0), heading);
+    // std::cout << "[gen] heading = " << heading << std::endl;
+    return cMathUtil::AxisAngleToQuaternion(tVector(0, 1, 0, 0), -heading);
 }
 
 int cSimCharacterGen::GetNumBodyParts() const { return GetNumOfLinks(); }
@@ -386,85 +389,87 @@ void cSimCharacterGen::SetPose(const Eigen::VectorXd &pose)
 {
     tVectorXd q = ConvertPoseToq(pose);
     SetqAndqdot(q, mqdot);
+    mPose = pose;
+    // // verify
+    // tVectorXd res_pose = ConvertqToPose(q);
+    // tVectorXd diff = res_pose - pose;
+    // double norm = diff.norm();
+    // if (norm > 1e-6 && pose.norm() > 1e-10)
+    // {
+    //     MIMIC_DEBUG("SetPose goal {}", pose.transpose());
+    //     MIMIC_DEBUG("SetPose result {}", res_pose.transpose());
+    //     MIMIC_DEBUG("SetPose result q {}", q.transpose());
+    //     MIMIC_DEBUG("SetPose diff {}", diff.transpose());
+    //     MIMIC_ERROR("SetPose diff norm {}", norm);
 
-    // verify
-    tVectorXd res_pose = ConvertqToPose(q);
-    tVectorXd diff = res_pose - pose;
-    double norm = diff.norm();
-    if (norm > 1e-6 && pose.norm() > 1e-10)
-    {
-        MIMIC_DEBUG("SetPose goal {}", pose.transpose());
-        MIMIC_DEBUG("SetPose result {}", res_pose.transpose());
-        MIMIC_DEBUG("SetPose result q {}", q.transpose());
-        MIMIC_DEBUG("SetPose diff {}", diff.transpose());
-        MIMIC_ERROR("SetPose diff norm {}", norm);
-
-        // when the pose is totally zero, ignore this assert
-    }
+    //     // when the pose is totally zero, ignore this assert
+    // }
     // std::cout << "SetPose: q = " << q.transpose() << std::endl;
 }
 void cSimCharacterGen::SetVel(const Eigen::VectorXd &vel)
 {
     tVectorXd qdot = ConvertPosevelToqdot(vel);
     Setqdot(qdot);
+    mVel = vel;
     // std::cout << "set qdot = " << qdot.transpose() << std::endl;
     // verify
-    tVectorXd res_vel = ConvertqdotToPoseVel(qdot);
-    tVectorXd diff = res_vel - vel;
-    double norm = diff.norm();
-    if (norm > 1e-6)
-    {
-        MIMIC_DEBUG("SetVel goal {}", vel.transpose());
-        MIMIC_DEBUG("SetVel result {}", res_vel.transpose());
-        MIMIC_DEBUG("SetVel diff {}", diff.transpose());
-        MIMIC_DEBUG("SetVel diff norm {}", norm);
-        int dof_st = 0;
-        for (int i = 0; i < GetNumOfJoint(); i++)
-        {
-            int pose_size = -1;
-            auto joint = GetJointById(i);
-            switch (joint->GetJointType())
-            {
-            case JointType::FIXED_JOINT:
-                pose_size = 0;
-                break;
-            case JointType::REVOLUTE_JOINT:
-                pose_size = 1;
-                break;
-            case JointType::SPHERICAL_JOINT:
-                pose_size = 4;
-                break;
-            case JointType::NONE_JOINT:
-                pose_size = 7;
-                break;
-            default:
-                MIMIC_ERROR("unsupported");
-                break;
-            }
-            if (diff.segment(dof_st, pose_size).norm() > 1e-6)
-            {
-                MIMIC_WARN("Joint {} {} convert vel to qdot failed", i,
-                           joint->GetName());
-                tVectorXd target_vel = vel.segment(dof_st, pose_size);
-                tVectorXd result_vel = res_vel.segment(dof_st, pose_size);
-                tVectorXd new_res_vel = ConvertAxisAngleVelToEulerAngleVel(
-                    target_vel.segment(0, 4));
-                std::cout << "target vel = " << target_vel.transpose()
-                          << std::endl;
-                std::cout << "res vel = " << result_vel.transpose()
-                          << std::endl;
-                std::cout << "new res vel = " << new_res_vel.transpose()
-                          << std::endl;
-                tVectorXd new_target_vel =
-                    ConvertEulerAngleVelToAxisAngleVel(new_res_vel);
-                std::cout << "new target vel = " << new_target_vel.transpose()
-                          << std::endl;
-                exit(1);
-            }
-            dof_st += pose_size;
-        }
-        MIMIC_ASSERT(norm < 1e-6);
-    }
+    // tVectorXd res_vel = ConvertqdotToPoseVel(qdot);
+    // tVectorXd diff = res_vel - vel;
+    // double norm = diff.norm();
+    // if (norm > 1e-6)
+    // {
+    //     MIMIC_DEBUG("SetVel goal {}", vel.transpose());
+    //     MIMIC_DEBUG("SetVel result {}", res_vel.transpose());
+    //     MIMIC_DEBUG("SetVel diff {}", diff.transpose());
+    //     MIMIC_DEBUG("SetVel diff norm {}", norm);
+    //     int dof_st = 0;
+    //     for (int i = 0; i < GetNumOfJoint(); i++)
+    //     {
+    //         int pose_size = -1;
+    //         auto joint = GetJointById(i);
+    //         switch (joint->GetJointType())
+    //         {
+    //         case JointType::FIXED_JOINT:
+    //             pose_size = 0;
+    //             break;
+    //         case JointType::REVOLUTE_JOINT:
+    //             pose_size = 1;
+    //             break;
+    //         case JointType::SPHERICAL_JOINT:
+    //             pose_size = 4;
+    //             break;
+    //         case JointType::NONE_JOINT:
+    //             pose_size = 7;
+    //             break;
+    //         default:
+    //             MIMIC_ERROR("unsupported");
+    //             break;
+    //         }
+    //         if (diff.segment(dof_st, pose_size).norm() > 1e-6)
+    //         {
+    //             MIMIC_WARN("Joint {} {} convert vel to qdot failed", i,
+    //                        joint->GetName());
+    //             tVectorXd target_vel = vel.segment(dof_st, pose_size);
+    //             tVectorXd result_vel = res_vel.segment(dof_st, pose_size);
+    //             tVectorXd new_res_vel = ConvertAxisAngleVelToEulerAngleVel(
+    //                 target_vel.segment(0, 4));
+    //             std::cout << "target vel = " << target_vel.transpose()
+    //                       << std::endl;
+    //             std::cout << "res vel = " << result_vel.transpose()
+    //                       << std::endl;
+    //             std::cout << "new res vel = " << new_res_vel.transpose()
+    //                       << std::endl;
+    //             tVectorXd new_target_vel =
+    //                 ConvertEulerAngleVelToAxisAngleVel(new_res_vel);
+    //             std::cout << "new target vel = " <<
+    //             new_target_vel.transpose()
+    //                       << std::endl;
+    //             exit(1);
+    //         }
+    //         dof_st += pose_size;
+    //     }
+    //     MIMIC_ASSERT(norm < 1e-6);
+    // }
 }
 
 tVector cSimCharacterGen::CalcJointPos(int joint_id) const
@@ -497,6 +502,7 @@ tMatrix cSimCharacterGen::BuildJointWorldTrans(int joint_id) const
 
 tVector cSimCharacterGen::CalcCOM() const
 {
+    std::ofstream fout("rew_gen_com.txt", std::ios::app);
     tVector COM = tVector::Zero();
     double total_mass = 0;
     for (int i = 0; i < GetNumOfLinks(); i++)
@@ -504,6 +510,10 @@ tVector cSimCharacterGen::CalcCOM() const
         auto link = mLinkGenArray[i];
         COM += link->GetPos() * link->GetMass();
         total_mass += link->GetMass();
+
+        fout << "[com0] link " << i
+             << " pos = " << link->GetPos().transpose().segment(0, 3)
+             << std::endl;
     }
     COM /= total_mass;
     return COM;
@@ -511,6 +521,7 @@ tVector cSimCharacterGen::CalcCOM() const
 
 tVector cSimCharacterGen::CalcCOMVel() const
 {
+    std::ofstream fout("rew_gen_com.txt", std::ios::app);
     tVector COM_vel = tVector::Zero();
     double total_mass = 0;
     for (int i = 0; i < GetNumOfLinks(); i++)
@@ -518,8 +529,8 @@ tVector cSimCharacterGen::CalcCOMVel() const
         auto link = mLinkGenArray[i];
         COM_vel += link->GetLinearVelocity() * link->GetMass();
         total_mass += link->GetMass();
-        // std::cout << "link " << i << " vel "
-        //           << link->GetLinearVelocity().transpose() << std::endl;
+        fout << "[com0] link " << i
+             << " vel = " << link->GetLinearVelocity().transpose() << std::endl;
     }
     COM_vel /= total_mass;
     return COM_vel;
@@ -1208,9 +1219,10 @@ cSimCharacterGen::ConvertPosevelToqdot(const tVectorXd &pose_vel) const
             // for root
             qdot.segment(q_idx, 3) = pose_vel.segment(pose_idx, 3);
             pose_idx += 3, q_idx += 3;
-            qdot.segment(q_idx, 3) = ConvertAxisAngleVelToEulerAngleVel(
-                                         pose_vel.segment(pose_idx, 4))
-                                         .segment(0, 3);
+            tVector vel = pose_vel.segment(pose_idx, 4);
+            vel[3] = 0;
+            qdot.segment(q_idx, 3) =
+                ConvertAxisAngleVelToEulerAngleVel(vel).segment(0, 3);
             pose_idx += 4, q_idx += 3;
         }
         break;
@@ -1225,9 +1237,10 @@ cSimCharacterGen::ConvertPosevelToqdot(const tVectorXd &pose_vel) const
         break;
         case JointType::SPHERICAL_JOINT:
         {
-            qdot.segment(q_idx, 3) = ConvertAxisAngleVelToEulerAngleVel(
-                                         pose_vel.segment(pose_idx, 4))
-                                         .segment(0, 3);
+            tVector vel = pose_vel.segment(pose_idx, 4);
+            vel[3] = 0;
+            qdot.segment(q_idx, 3) =
+                ConvertAxisAngleVelToEulerAngleVel(vel).segment(0, 3);
             pose_idx += 4, q_idx += 3;
         }
         default:
@@ -1363,9 +1376,18 @@ double cSimCharacterGen::CalcHeading() const
  */
 tMatrix cSimCharacterGen::BuildOriginTrans() const
 {
-    tMatrix trans_mat = cMathUtil::TranslateMat(-GetRootPos());
+    tVector origin = GetRootPos();
+    origin[1] = 0;
+    tMatrix trans_mat = cMathUtil::TranslateMat(-origin);
     tMatrix rot_mat = cMathUtil::RotMat(CalcHeadingRot());
-    return rot_mat * trans_mat;
+    tMatrix res = rot_mat * trans_mat;
+    // std::cout
+    //     << "---------------build origin trans begin gen-----------------\n";
+    // std::cout << "trans = \n" << trans_mat << std::endl;
+    // std::cout << "rot = \n" << rot_mat << std::endl;
+    // std::cout << "res = \n" << rot_mat * trans_mat << std::endl;
+    // std::cout << "---------------build origin trans end gen-----------------\n";
+    return res;
 }
 
 /**
@@ -1462,6 +1484,7 @@ void cSimCharacterGen::CalcCOMAndCOMVel(const tVectorXd &pose,
                                         tVector &com_vel)
 
 {
+    // std::ofstream fout("rew_gen_com.txt", std::ios::app);
     com = tVector::Zero();
     com_vel = tVector::Zero();
 
@@ -1481,7 +1504,15 @@ void cSimCharacterGen::CalcCOMAndCOMVel(const tVectorXd &pose,
         auto link = GetLinkById(i);
         com_vel.segment(0, 3) += (link->GetJKv() * qdot) * link->GetMass();
         com.segment(0, 3) += link->GetWorldPos() * link->GetMass();
+        // fout << "[com1] link " << i
+        //      << " vel = " << (link->GetJKv() * qdot).transpose() <<
+        //      std::endl;
+        // fout << "[com1] link " << i
+        //      << " pos = " << link->GetWorldPos().transpose().segment(0, 3)
+        //      << std::endl;
     }
+
+    // fout << "[com1] total mass = " << total_mass << std::endl;
     com /= total_mass;
     com_vel /= total_mass;
     cRobotModelDynamics::Apply(q_old, true);

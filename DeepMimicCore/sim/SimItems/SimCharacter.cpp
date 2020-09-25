@@ -447,8 +447,10 @@ tQuaternion cSimCharacter::CalcJointWorldRotation(int joint_id) const
 
 tVector cSimCharacter::CalcCOM() const
 {
+    // std::ofstream fout("rew_fea_com.txt", std::ios::app);
     tVector com = tVector::Zero();
     double total_mass = 0;
+    // std::cout << "[CalcCOM] fea pose = " << mPose.transpose() << std::endl;
     for (int i = 0; i < static_cast<int>(mBodyParts.size()); ++i)
     {
         if (IsValidBodyPart(i))
@@ -459,6 +461,11 @@ tVector cSimCharacter::CalcCOM() const
 
             com += mass * curr_com;
             total_mass += mass;
+            // fout << "[com0] link " << i
+            //      << " pos = " << part->GetPos().transpose().segment(0, 3)
+            //      << std::endl;
+            // std::cout << "[CalcCOM] part " << i << " " << curr_com.transpose()
+            //           << std::endl;
         }
     }
     com /= total_mass;
@@ -467,6 +474,7 @@ tVector cSimCharacter::CalcCOM() const
 
 tVector cSimCharacter::CalcCOMVel() const
 {
+    // std::ofstream fout("rew_fea_com.txt", std::ios::app);
     tVector com_vel = tVector::Zero();
     double total_mass = 0;
     for (int i = 0; i < static_cast<int>(mBodyParts.size()); ++i)
@@ -480,6 +488,9 @@ tVector cSimCharacter::CalcCOMVel() const
 
             com_vel += mass * curr_vel;
             total_mass += mass;
+            // fout << "[com0] link " << i
+                //  << " vel = " << part->GetLinearVelocity().transpose()
+                //  << std::endl;
         }
     }
     com_vel /= total_mass;
@@ -863,12 +874,20 @@ void cSimCharacter::SetPose(const Eigen::VectorXd &pose)
     double world_scale = mWorld->GetScale();
     int root_id = cKinTree::GetRoot(mJointMat);
     tVector root_pos = cKinTree::GetRootPos(mJointMat, pose);
-    tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, pose);
+    tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, pose).normalized();
+    if (root_rot.norm() < 1e-10)
+        root_rot.w() = 1;
     cKinTree::eJointType root_type = cKinTree::GetJointType(mJointMat, root_id);
 
     tVector euler = cMathUtil::QuaternionToEuler(root_rot, eRotationOrder::XYZ);
     mMultiBody->setBasePos(world_scale *
                            btVector3(root_pos[0], root_pos[1], root_pos[2]));
+
+    if (std::fabs(root_rot.norm() - 1) > 1e-10)
+    {
+        MIMIC_ERROR("the root rot is not unit quaternion: {}",
+                    root_rot.coeffs().transpose());
+    }
     mMultiBody->setWorldToBaseRot(
         btQuaternion(root_rot.x(), root_rot.y(), root_rot.z(), root_rot.w())
             .inverse());

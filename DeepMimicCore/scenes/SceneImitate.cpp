@@ -76,7 +76,7 @@ void cSceneImitate::DiffLogOutput(const cSimCharacterBase &sim_char,
         // cur_pose.transpose() << ", motion pose = " <<
         // motion_pose.transpose() << std::endl;
 
-        fout.close();
+        // fout.close();
     }
 }
 
@@ -85,12 +85,48 @@ double cSceneImitate::CalcRewardImitate(cSimCharacterBase &sim_char,
 {
     if (mEnableAngleDiffLog == true)
         DiffLogOutput(sim_char, kin_char);
+
+    // double size = sim_char.GetPose().size();
+    // tVectorXd new_pose = tVectorXd::Ones(size);
+    // tVectorXd new_vel = tVectorXd::Ones(size);
+    // tVectorXd old_pose = sim_char.GetPose();
+    // std::cout << "[before] cur pose = " << sim_char.GetPose().transpose()
+    //           << std::endl;
+    // for (int i = 0; i < sim_char.GetNumBodyParts(); i++)
+    // {
+    //     std::cout << "[before] link " << i
+    //               << " pos = " <<
+    //               sim_char.GetBodyPart(i)->GetPos().transpose()
+    //               << std::endl;
+    // }
+    // tVectorXd new_pose = tVectorXd::Random(size);
+    // tVectorXd new_vel = tVectorXd::Random(size);
+    // new_pose[3] = 1;
+    // new_pose[7] = 1;
+    // new_pose[12] = 1;
+    // new_pose[3] = 10;
+    // new_pose = old_pose;
+    // new_pose.segment(7, new_pose.size() - 7).setZero();
+    // sim_char.SetPose(new_pose);
+    // sim_char.SetVel(new_vel);
+
+    // std::cout << "[after] cur pose = " << sim_char.GetPose().transpose()
+    //           << std::endl;
+    // for (int i = 0; i < sim_char.GetNumBodyParts(); i++)
+    // {
+    //     std::cout << "[after] link " << i
+    //               << " pos = " <<
+    //               sim_char.GetBodyPart(i)->GetPos().transpose()
+    //               << std::endl;
+    // }
+    // exit(1);
+    double reward = 0;
     if (eSimCharacterType::Featherstone == sim_char.GetCharType())
     {
         // return CalcRewardImitateFeatherstone(
         //     *(static_cast<const cSimCharacter *>((const void *)(&sim_char))),
         //     kin_char);
-        return CalcRewardImitateFeatherstone(
+        reward = CalcRewardImitateFeatherstone(
             *(dynamic_cast<cSimCharacter *>((&sim_char))), kin_char);
     }
     else
@@ -98,9 +134,12 @@ double cSceneImitate::CalcRewardImitate(cSimCharacterBase &sim_char,
         // return CalcRewardImitateGen(
         //     *(static_cast<cSimCharacterGen *>((void *)(&sim_char))),
         //     kin_char);
-        return CalcRewardImitateGen(
+        reward = CalcRewardImitateGen(
             *(dynamic_cast<cSimCharacterGen *>(&sim_char)), kin_char);
     }
+    // std::cout << "reward = " << reward << " , exit\n";
+    // exit(1);
+    return reward;
 }
 
 cSceneImitate::cSceneImitate()
@@ -712,6 +751,7 @@ void cSceneImitate::SetMotionAsAction()
 double cSceneImitate::CalcRewardImitateFeatherstone(
     const cSimCharacter &sim_char, const cKinCharacter &kin_char) const
 {
+    // // std::ofstream fout("rew_fea.txt");
     // reward共计5项，pose, vel, end_effector, root, com
     // 五项权重:
     double pose_w = RewParams.pose_w;
@@ -746,14 +786,18 @@ double cSceneImitate::CalcRewardImitateFeatherstone(
     const Eigen::VectorXd &vel0 = sim_char.GetVel();
     const Eigen::VectorXd &pose1 = kin_char.GetPose();
     const Eigen::VectorXd &vel1 = kin_char.GetVel(); // get the vel of kin char
-
+    // fout << "pose0 = " << pose0.transpose() << std::endl;
+    // fout << "pose1 = " << pose1.transpose() << std::endl;
+    // fout << "vel0 = " << vel0.transpose() << std::endl;
+    // fout << "vel1 = " << vel1.transpose() << std::endl;
     tMatrix origin_trans =
         sim_char.BuildOriginTrans(); // convert all points in sim char world
                                      // frame into sim char root local frame
     tMatrix kin_origin_trans =
         kin_char.BuildOriginTrans(); // convert all points in kin char world
                                      // frame into kinchar root local frame
-
+    // fout << "ori trans = \n" << origin_trans << std::endl;
+    // fout << "kin ori trans = \n" << kin_origin_trans << std::endl;
     tVector com0_world =
         sim_char.CalcCOM(); // calculate current sim char COM in world frame
     tVector com_vel0_world =
@@ -765,7 +809,10 @@ double cSceneImitate::CalcRewardImitateFeatherstone(
     cRBDUtil::CalcCoM(
         joint_mat, body_defs, pose1, vel1, com1_world,
         com_vel1_world); // calculate kin char COM and COM vel in world frame
-
+    // // fout << "com0 world " << com0_world.transpose() << std::endl;
+    // // fout << "com1 world " << com1_world.transpose() << std::endl;
+    // fout << "com0 vel world " << com_vel0_world.transpose() << std::endl;
+    // fout << "com1 vel world " << com_vel1_world.transpose() << std::endl;
     int root_id = sim_char.GetRootID();
     tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
     tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
@@ -818,7 +865,12 @@ double cSceneImitate::CalcRewardImitateFeatherstone(
             // and mkinchar.getPose()
             tVector pos0 = sim_char.CalcJointPos(j);
             tVector pos1 = cKinTree::CalcJointWorldPos(joint_mat, pose1, j);
-
+            // fout << "joint " << j << " end effector pos0 " <<
+            // pos0.transpose()
+            //  << std::endl;
+            // fout << "joint " << j << " end effector pos1 " <<
+            // pos1.transpose()
+            //  << std::endl;
             // ground_h0: get the height of ground. It is zero here.
             // ground_h1: get the origin's y component. It should be
             // zero as well in this case
@@ -834,13 +886,23 @@ double cSceneImitate::CalcRewardImitateFeatherstone(
             tVector pos_rel1 = pos1 - root_pos1;
             pos_rel0[1] = pos0[1] - ground_h0;
             pos_rel1[1] = pos1[1] - ground_h1;
-
+            // fout << "joint " << j << " end effector before pos_rel0 "
+            //  << pos_rel0.transpose() << std::endl;
+            // fout << "joint " << j << " end effector before pos_rel1 "
+            //  << pos_rel1.transpose() << std::endl;
             // represented them in both root joint local frame:
             pos_rel0 = origin_trans * pos_rel0;
             pos_rel1 = kin_origin_trans * pos_rel1;
 
             // calculate the end effector diff
+            // fout << "joint " << j << " end effector pos_rel0 "
+            //  << pos_rel0.transpose() << std::endl;
+            // fout << "joint " << j << " end effector pos_rel1 "
+            //  << pos_rel1.transpose() << std::endl;
+            // calculate the end effector diff
             double curr_end_err = (pos_rel1 - pos_rel0).squaredNorm();
+            // fout << "joint " << j << " cur end effector " << curr_end_err
+            //  << std::endl;
             end_eff_err += curr_end_err;
             ++num_end_effs;
 
@@ -858,7 +920,7 @@ double cSceneImitate::CalcRewardImitateFeatherstone(
     {
         end_eff_err /= num_end_effs;
     }
-
+    // fout << "end eff err = " << end_eff_err << std::endl;
     // sim char，应该是simulation的角色(实际)
     // kin char，应该是从motion中读进来的角色(理想)
     double root_ground_h0 = mGround->SampleHeight(sim_char.GetRootPos());
@@ -912,23 +974,23 @@ double cSceneImitate::CalcRewardImitateFeatherstone(
     reward = pose_w * pose_reward + vel_w * vel_reward +
              end_eff_w * end_eff_reward + root_w * root_reward +
              com_w * com_reward;
-    // fout << "pose reward = " << pose_reward << " ";
-    // fout << "vel reward = " << vel_reward << " ";
-    // fout << "end eff reward = " << end_eff_reward << " ";
+    // fout << "pose reward = " << pose_reward << "\n";
+    // fout << "vel reward = " << vel_reward << "\n";
+    // fout << "end eff reward = " << end_eff_reward << "\n";
     /*
                     root_pos_err
                     + RewParams.root_rot_w * root_rot_err
                     + RewParams.root_vel_w * root_vel_err
                     + RewParams.root_angle_vel_w * root_ang_vel_err;
     */
-    // fout << "root pos err = " << root_pos_err << " ";
-    // fout << "root rot err = " << root_rot_err << " ";
-    // fout << "root vel err = " << root_vel_err << " ";
-    // fout << "root ang vel err = " << root_ang_vel_err << " ";
-    // fout << "root reward = " << root_reward << " ";
+    // fout << "root pos err = " << root_pos_err << "\n";
+    // fout << "root rot err = " << root_rot_err << "\n";
+    // fout << "root vel err = " << root_vel_err << "\n";
+    // fout << "root ang vel err = " << root_ang_vel_err << "\n";
+    // fout << "root reward = " << root_reward << "\n";
 
-    // fout << "com reward = " << com_reward << " ";
-    // fout << "final reward = " << reward << " ";
+    // fout << "com reward = " << com_reward << "\n";
+    // fout << "final reward = " << reward << "\n";
     // fout << std::endl;
     return reward;
 }
@@ -939,6 +1001,7 @@ double cSceneImitate::CalcRewardImitateFeatherstone(
 double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
                                            const cKinCharacter &kin_char) const
 {
+    // std::ofstream fout("rew_gen.txt");
     double pose_w = RewParams.pose_w;
     double vel_w = RewParams.vel_w;
     double end_eff_w = RewParams.end_eff_w;
@@ -970,14 +1033,18 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
     const Eigen::VectorXd &vel0 = sim_char.GetVel();
     const Eigen::VectorXd &pose1 = kin_char.GetPose();
     const Eigen::VectorXd &vel1 = kin_char.GetVel(); // get the vel of kin char
-
+    // fout << "pose0 = " << pose0.transpose() << std::endl;
+    // fout << "pose1 = " << pose1.transpose() << std::endl;
+    // fout << "vel0 = " << vel0.transpose() << std::endl;
+    // fout << "vel1 = " << vel1.transpose() << std::endl;
     tMatrix origin_trans =
         sim_char.BuildOriginTrans(); // convert all points in sim char world
                                      // frame into sim char root local frame
     tMatrix kin_origin_trans =
         kin_char.BuildOriginTrans(); // convert all points in kin char world
                                      // frame into kinchar root local frame
-
+    // fout << "ori trans = \n" << origin_trans << std::endl;
+    // fout << "kin ori trans = \n" << kin_origin_trans << std::endl;
     tVector com0_world =
         sim_char.CalcCOM(); // calculate current sim char COM in world frame
     tVector com_vel0_world =
@@ -988,8 +1055,13 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
     tVector com_vel1_world;
 
     // calculate the kin char com and com_velI
+
     CalcKinCharCOMAndCOMVelByGenChar(&sim_char, pose1, vel1, com1_world,
                                      com_vel1_world);
+    // // fout << "com0 world " << com0_world.transpose() << std::endl;
+    // // fout << "com1 world " << com1_world.transpose() << std::endl;
+    // fout << "com0 vel world " << com_vel0_world.transpose() << std::endl;
+    // fout << "com1 vel world " << com_vel1_world.transpose() << std::endl;
     // std::cout << "sim char com = " << com0_world.transpose() << std::endl;
     // std::cout << "sim char com_vel = " << com_vel0_world.transpose()
     //           << std::endl;
@@ -1048,7 +1120,12 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
             // and mkinchar.getPose()
             tVector pos0 = sim_char.CalcJointPos(j);
             tVector pos1 = cKinTree::CalcJointWorldPos(joint_mat, pose1, j);
-
+            // fout << "joint " << j << " end effector pos0 " <<
+            // pos0.transpose()
+            //  << std::endl;
+            // fout << "joint " << j << " end effector pos1 " <<
+            // pos1.transpose()
+            //  << std::endl;
             // ground_h0: get the height of ground. It is zero here.
             // ground_h1: get the origin's y component. It should be
             // zero as well in this case
@@ -1064,13 +1141,22 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
             tVector pos_rel1 = pos1 - root_pos1;
             pos_rel0[1] = pos0[1] - ground_h0;
             pos_rel1[1] = pos1[1] - ground_h1;
-
+            // fout << "joint " << j << " end effector before pos_rel0 "
+            //  << pos_rel0.transpose() << std::endl;
+            // fout << "joint " << j << " end effector before pos_rel1 "
+            //  << pos_rel1.transpose() << std::endl;
             // represented them in both root joint local frame:
             pos_rel0 = origin_trans * pos_rel0;
             pos_rel1 = kin_origin_trans * pos_rel1;
 
+            // fout << "joint " << j << " end effector pos_rel0 "
+            //  << pos_rel0.transpose() << std::endl;
+            // fout << "joint " << j << " end effector pos_rel1 "
+            //  << pos_rel1.transpose() << std::endl;
             // calculate the end effector diff
             double curr_end_err = (pos_rel1 - pos_rel0).squaredNorm();
+            // fout << "joint " << j << " cur end effector " << curr_end_err
+            //  << std::endl;
             end_eff_err += curr_end_err;
             ++num_end_effs;
 
@@ -1088,7 +1174,7 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
     {
         end_eff_err /= num_end_effs;
     }
-
+    // fout << "end eff err = " << end_eff_err << std::endl;
     // sim char，应该是simulation的角色(实际)
     // kin char，应该是从motion中读进来的角色(理想)
     double root_ground_h0 = mGround->SampleHeight(sim_char.GetRootPos());
@@ -1124,6 +1210,25 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
     reward = pose_w * pose_reward + vel_w * vel_reward +
              end_eff_w * end_eff_reward + root_w * root_reward +
              com_w * com_reward;
+
+    // fout << "pose reward = " << pose_reward << "\n";
+    // fout << "vel reward = " << vel_reward << "\n";
+    // fout << "end eff reward = " << end_eff_reward << "\n";
+    /*
+                    root_pos_err
+                    + RewParams.root_rot_w * root_rot_err
+                    + RewParams.root_vel_w * root_vel_err
+                    + RewParams.root_angle_vel_w * root_ang_vel_err;
+    */
+    // fout << "root pos err = " << root_pos_err << "\n";
+    // fout << "root rot err = " << root_rot_err << "\n";
+    // fout << "root vel err = " << root_vel_err << "\n";
+    // fout << "root ang vel err = " << root_ang_vel_err << "\n";
+    // fout << "root reward = " << root_reward << "\n";
+
+    // fout << "com reward = " << com_reward << "\n";
+    // fout << "final reward = " << reward << "\n";
+    // fout << std::endl;
     return reward;
 }
 
