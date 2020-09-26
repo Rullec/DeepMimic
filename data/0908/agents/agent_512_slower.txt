@@ -21,7 +21,7 @@
 	"ReplayBufferSize": 500000,
 	"InitSamples": 1,
 	"NormalizerSamples": 1000000,
-	"BeginningSampleCount" : 0,
+	"BeginningSampleCount" : 7574504,
 
 	"RatioClip": 0.2,
 	"NormAdvClip": 4,

@@ -48,7 +48,7 @@
 --train_agents true
 
 --output_path output/0910/
-
+--model_files output/0910/agent0_model_2020_09_26_10_25_11_14.24.ckpt
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
 --traj_recorder_config args/0810/record_traj_conf_3links.json
