@@ -1233,7 +1233,11 @@ bool cIDSolver::IsMaxVel() const
         MIMIC_INFO("max vel {} vel limit {}", max_vel, vel_limit);
         return (vel_limit - max_vel) < 1e-5;
     }
-    // else if (mSimCharType == eSimCharacterType::Generalized)
+    else if (mSimCharType == eSimCharacterType::Generalized)
+    {
+        return dynamic_cast<cSimCharacterGen *>(mSimChar)
+            ->IsGeneralizedMaxVel();
+    }
     else
     {
         MIMIC_ERROR("Unsupport char type {}", mSimCharType);

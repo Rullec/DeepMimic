@@ -1491,6 +1491,8 @@ tMatrixXd cMathUtil::ExpandFrictionCone(int num_friction_dirs,
 }
 tMatrix cMathUtil::InverseTransform(const tMatrix &raw_trans)
 {
+    std::cout << "wrong api InverseTransform should not be called\n";
+    exit(1);
     tMatrix inv_trans = tMatrix::Identity();
     inv_trans.block(0, 0, 3, 3).transposeInPlace();
     inv_trans.block(0, 3, 3, 1) =

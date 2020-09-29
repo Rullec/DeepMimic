@@ -134,7 +134,7 @@ void cIDSolver::RecordJointForcesGen(tEigenArr<tVector> &mJointForces) const
             MIMIC_ERROR("unsupported joint type");
             break;
         }
-        // MIMIC_INFO("joint {} force {}", joint_id,
+        // MIMIC_INFO("recorded joint {} force {}", joint_id,
         //            mJointForces[joint_id - 1].transpose());
         offset += dof;
     }
@@ -205,35 +205,47 @@ void cIDSolver::SolveIDSingleStepGen(
     tVectorXd Q_total =
         gen_char->GetMassMatrix() * qddot +
         (gen_char->GetCoriolisMatrix() + gen_char->GetDampingMatrix()) * qdot;
-
+    // std::cout << "[ID] Q total = " << Q_total.transpose() << std::endl;
     // 4. get the Q ctrl
     tVectorXd Q_ctrl = Q_total;
     // 4.1 minus the gravity
     tVector gravity = mWorld->GetGravity();
-    Q_ctrl -= gen_char->CalcGenGravity(gravity);
+    tVectorXd QG = gen_char->CalcGenGravity(gravity);
+    // std::cout << "[ID] QG = " << QG.transpose() << std::endl;
+    Q_ctrl -= QG;
 
     // 4.2 minus the contact force
     tMatrixXd jac;
+    tVectorXd Q_contact = tVectorXd::Zero(gen_char->GetNumOfFreedom());
     for (auto f : contact_forces)
     {
         gen_char->ComputeJacobiByGivenPointTotalDOFWorldFrame(
             f.mId, f.mPos.segment(0, 3), jac);
-        Q_ctrl -= jac.transpose() * f.mForce.segment(0, 3);
+        Q_contact += jac.transpose() * f.mForce.segment(0, 3);
     }
+    // std::cout << "[ID] Q contact = " << Q_contact.transpose() << std::endl;
+    Q_ctrl -= Q_contact;
 
     // 4.3 minus the external forces
     MIMIC_ASSERT(mExternalForces.size() == mNumLinks);
     MIMIC_ASSERT(mExternalTorques.size() == mNumLinks);
 
+    tVectorXd Q_ext = tVectorXd::Zero(gen_char->GetNumOfFreedom());
     for (int id = 0; id < mNumLinks; id++)
     {
         auto link = static_cast<Link *>(gen_char->GetLinkById(id));
-        Q_ctrl -=
-            link->GetJKv().transpose() * mExternalForces[id].segment(0, 3);
-        Q_ctrl -=
+        Q_ext += link->GetJKv().transpose() * mExternalForces[id].segment(0, 3);
+        // std::cout << "[ID] link " << id << " force = "
+        //           << mExternalForces[id].segment(0, 3).transpose() << std::endl;
+        Q_ext +=
             link->GetJKw().transpose() * mExternalTorques[id].segment(0, 3);
+        // std::cout << "[ID] link " << id << " torque = "
+        //           << mExternalTorques[id].segment(0, 3).transpose()
+        //           << std::endl;
     }
-
+    // std::cout << "[ID] Q ext = " << Q_ext.transpose() << std::endl;
+    Q_ctrl -= Q_ext;
+    // std::cout << "[ID] Q pd = " << Q_ctrl.transpose() << std::endl;
     // 5. shape the final control forces
     MIMIC_ASSERT(solved_joint_forces.size() == (mNumLinks - 1));
     int offset = gen_char->GetJointById(0)->GetNumOfFreedom();

@@ -107,10 +107,10 @@ void cOnlineIDSolver::PreSim()
     ClearID();
 
     // record info
-    AddExternalForces();
+    RecordJointForces(mJointForces);
 
     // record info
-    RecordJointForces(mJointForces);
+    AddExternalForces();
     RecordGeneralizedInfo(mSimChar, mBuffer_q[mFrameId], mBuffer_u[mFrameId]);
     RecordMultibodyInfo(mSimChar, mLinkRot, mLinkPos);
     RecordExternalPerturb(mPerturbForces, mPerturbTorques);
@@ -457,31 +457,62 @@ void cOnlineIDSolver::AddExternalForces()
         for (auto &x : mExternalForces)
             x.setZero();
     }
-    // add random force
-    if (true == mEnableExternalForce)
-    {
-        tVector external_force = tVector::Zero();
-        for (int ID_link_id = 1; ID_link_id < mNumLinks; ID_link_id++)
+    if (mSimChar->GetCharType() == eSimCharacterType::Featherstone)
+    { // add random force
+        if (true == mEnableExternalForce)
         {
-            int multibody_link_id = ID_link_id - 1;
-            external_force = tVector::Random() * 10 / mWorldScale;
-            mSimChar->ApplyLinkForce(multibody_link_id, external_force);
+            tVector external_force = tVector::Zero();
+            for (int ID_link_id = 1; ID_link_id < mNumLinks; ID_link_id++)
+            {
+                int multibody_link_id = ID_link_id - 1;
+                external_force = tVector::Random() * 10 / mWorldScale;
+                mSimChar->ApplyLinkForce(multibody_link_id, external_force);
 
-            mExternalForces[ID_link_id] = external_force;
+                mExternalForces[ID_link_id] = external_force;
+            }
+        }
+
+        // add random torque
+        if (true == mEnableExternalTorque)
+        {
+            tVector external_torque = tVector::Zero();
+            for (int ID_link_id = 1; ID_link_id < mNumLinks; ID_link_id++)
+            {
+                int multibody_link_id = ID_link_id - 1;
+                external_torque =
+                    tVector::Random() * 10 / (mWorldScale * mWorldScale);
+                mSimChar->ApplyLinkTorque(multibody_link_id, external_torque);
+                mExternalTorques[ID_link_id] = external_torque;
+            }
         }
     }
-
-    // add random torque
-    if (true == mEnableExternalTorque)
+    else
     {
-        tVector external_torque = tVector::Zero();
-        for (int ID_link_id = 1; ID_link_id < mNumLinks; ID_link_id++)
+        // add random force
+        if (true == mEnableExternalForce)
         {
-            int multibody_link_id = ID_link_id - 1;
-            external_torque =
-                tVector::Random() * 10 / (mWorldScale * mWorldScale);
-            mSimChar->ApplyLinkTorque(multibody_link_id, external_torque);
-            mExternalTorques[ID_link_id] = external_torque;
+            tVector external_force = tVector::Zero();
+            for (int link_id = 0; link_id < mNumLinks; link_id++)
+            {
+
+                external_force = tVector::Random() * 10 / mWorldScale;
+                mSimChar->ApplyLinkForce(link_id, external_force);
+
+                mExternalForces[link_id] = external_force;
+            }
+        }
+
+        // add random torque
+        if (true == mEnableExternalTorque)
+        {
+            tVector external_torque = tVector::Zero();
+            for (int link_id = 0; link_id < mNumLinks; link_id++)
+            {
+                external_torque =
+                    tVector::Random() * 10 / (mWorldScale * mWorldScale);
+                mSimChar->ApplyLinkTorque(link_id, external_torque);
+                mExternalTorques[link_id] = external_torque;
+            }
         }
     }
 }
@@ -541,7 +572,7 @@ void cOnlineIDSolver::SolveIDSingleStep(
                 MIMIC_ERROR(
                     "online ID solved error: for joint {} {}, diff: solved = "
                     "{} but truth = {}",
-                    id, mSimChar->GetJointName(id),
+                    id + 1, mSimChar->GetJointName(id + 1),
                     solved_joint_forces[id].transpose(),
                     mJointForces[id].transpose());
             }

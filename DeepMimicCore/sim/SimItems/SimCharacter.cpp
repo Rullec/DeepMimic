@@ -489,8 +489,8 @@ tVector cSimCharacter::CalcCOMVel() const
             com_vel += mass * curr_vel;
             total_mass += mass;
             // fout << "[com0] link " << i
-                //  << " vel = " << part->GetLinearVelocity().transpose()
-                //  << std::endl;
+            //  << " vel = " << part->GetLinearVelocity().transpose()
+            //  << std::endl;
         }
     }
     com_vel /= total_mass;
@@ -837,9 +837,10 @@ void cSimCharacter::ClearForces()
 
 void cSimCharacter::ApplyControlForces(const Eigen::VectorXd &tau)
 {
-    // std::cout <<"void cSimCharacter::ApplyControlForces(const
-    // Eigen::VectorXd& tau)" << std::endl; std::cout
-    // <<"\n****************************************"<<std::endl;
+    // std::cout
+    //     << "void cSimCharacter::ApplyControlForces(const Eigen::VectorXd& tau)"
+    //     << std::endl;
+    // std::cout << "\n****************************************" << std::endl;
     MIMIC_ASSERT(tau.size() == GetNumDof());
     for (int j = 1; j < GetNumJoints(); ++j)
     {
@@ -853,7 +854,7 @@ void cSimCharacter::ApplyControlForces(const Eigen::VectorXd &tau)
                 Eigen::VectorXd curr_tau =
                     tau.segment(param_offset, param_size);
                 joint.AddTau(curr_tau);
-                // std::cout <<"joint " << j <<", ";
+                std::cout << "joint " << j << ", ";
             }
         }
     }
@@ -1812,10 +1813,9 @@ bool cSimCharacter::CheckFallContact() const
     for (int b = 0; b < num_parts; ++b)
     {
         if (IsValidBodyPart(b) &&
-            EnableBodyPartFallContact(
-                b)) // 如果他有效，而且fall contact是真.
-                    // 所以说那个config里面填写的fall contact是:
-                    // 如果他落在地上就算失败了。
+            EnableBodyPartFallContact(b)) // 如果他有效，而且fall contact是真.
+        // 所以说那个config里面填写的fall contact是:
+        // 如果他落在地上就算失败了。
         {
             // 脚应该返回假，所以脚应该是0
             // 该落地的地方都应该把EnableFallContact设置为0

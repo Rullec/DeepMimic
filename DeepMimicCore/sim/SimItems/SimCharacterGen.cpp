@@ -765,6 +765,8 @@ void cSimCharacterGen::ApplyControlForces(const Eigen::VectorXd &tau)
         // normal control
         // std::cout << "add control force = " << tau.transpose() << std::endl;
         mGenForce += tau;
+        // std::cout << "cur control force = " << mGenForce.transpose()
+        //           << std::endl;
     }
 
     // MIMIC_INFO("ApplyControlForces hasn't been implement, tau = {}",
@@ -1460,13 +1462,12 @@ int cSimCharacterGen::GetNumMeshes() const
 }
 std::string cSimCharacterGen::GetBodyName(int id) const
 {
-    MIMIC_ERROR("shouldn't be called");
-    return "";
+    return GetLinkById(id)->GetName();
 }
 std::string cSimCharacterGen::GetJointName(int id) const
 {
-    MIMIC_ERROR("shouldn't be called");
-    return "";
+
+    return GetJointById(id)->GetName();
 }
 std::string cSimCharacterGen::GetDrawShapeName(int id) const
 {
