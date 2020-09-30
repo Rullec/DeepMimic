@@ -14,6 +14,7 @@
 # --world_type featherstone
 --world_type generalized
 --world_scale 1
+--use_revolute_axis_in_deepmimic_style false
 --logging_level trace
 --pause_at_first false
 --terrain_file data/terrain/plane.txt
@@ -51,16 +52,7 @@
 --train_agents true
 
 --output_path output/0908_gen
-# --model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
 
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
 --traj_recorder_config args/0810/record_traj_conf_3links.json
-
-#---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------
---enable_inverse_dynamic_solving false
-# --inverse_dynamic_config_file args/0609/id_confs/id_solve_sampled_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_solve_mred_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_sample_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_display_conf.json
-

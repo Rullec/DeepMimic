@@ -12,7 +12,7 @@
 --num_update_substeps 10
 --num_sim_substeps 1
 --world_type featherstone
-# --world_type generalized
+--use_revolute_axis_in_deepmimic_style false
 --world_scale 1
 --logging_level trace
 --pause_at_first false
@@ -59,9 +59,5 @@
 --traj_recorder_config args/0810/record_traj_conf_3links.json
 
 #---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------
---enable_inverse_dynamic_solving true
-# --inverse_dynamic_config_file args/0609/id_confs/id_solve_sampled_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_solve_mred_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_sample_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_display_conf.json
+--enable_inverse_dynamic_solving false
 

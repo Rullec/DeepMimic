@@ -1,5 +1,6 @@
 --scene kin_char
 
 --logging_level trace
+--use_revolute_axis_in_deepmimic_style false
 --character_file data/0908/characters/skeleton_oneleg.json
 --motion_file data/0805/motions/stand_motion.txt

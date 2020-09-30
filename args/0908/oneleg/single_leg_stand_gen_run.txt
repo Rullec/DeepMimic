@@ -12,6 +12,7 @@
 --num_update_substeps 10
 --num_sim_substeps 1
 # --world_type featherstone
+--use_revolute_axis_in_deepmimic_style false
 --world_type generalized
 --world_scale 1
 --logging_level trace

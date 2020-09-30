@@ -502,7 +502,7 @@ tMatrix cSimCharacterGen::BuildJointWorldTrans(int joint_id) const
 
 tVector cSimCharacterGen::CalcCOM() const
 {
-    std::ofstream fout("rew_gen_com.txt", std::ios::app);
+    // std::ofstream fout("rew_gen_com.txt", std::ios::app);
     tVector COM = tVector::Zero();
     double total_mass = 0;
     for (int i = 0; i < GetNumOfLinks(); i++)
@@ -511,9 +511,9 @@ tVector cSimCharacterGen::CalcCOM() const
         COM += link->GetPos() * link->GetMass();
         total_mass += link->GetMass();
 
-        fout << "[com0] link " << i
-             << " pos = " << link->GetPos().transpose().segment(0, 3)
-             << std::endl;
+        // fout << "[com0] link " << i
+        //      << " pos = " << link->GetPos().transpose().segment(0, 3)
+        //      << std::endl;
     }
     COM /= total_mass;
     return COM;
@@ -521,7 +521,7 @@ tVector cSimCharacterGen::CalcCOM() const
 
 tVector cSimCharacterGen::CalcCOMVel() const
 {
-    std::ofstream fout("rew_gen_com.txt", std::ios::app);
+    // std::ofstream fout("rew_gen_com.txt", std::ios::app);
     tVector COM_vel = tVector::Zero();
     double total_mass = 0;
     for (int i = 0; i < GetNumOfLinks(); i++)
@@ -529,8 +529,8 @@ tVector cSimCharacterGen::CalcCOMVel() const
         auto link = mLinkGenArray[i];
         COM_vel += link->GetLinearVelocity() * link->GetMass();
         total_mass += link->GetMass();
-        fout << "[com0] link " << i
-             << " vel = " << link->GetLinearVelocity().transpose() << std::endl;
+        // fout << "[com0] link " << i
+        //      << " vel = " << link->GetLinearVelocity().transpose() << std::endl;
     }
     COM_vel /= total_mass;
     return COM_vel;

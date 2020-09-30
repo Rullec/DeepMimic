@@ -13,6 +13,7 @@
 --num_sim_substeps 1
 --world_type featherstone
 # --world_type generalized
+--use_revolute_axis_in_deepmimic_style false
 --world_scale 1
 --logging_level trace
 --pause_at_first false
@@ -51,7 +52,6 @@
 --train_agents true
 
 --output_path output/0908
-# --model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
 
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
