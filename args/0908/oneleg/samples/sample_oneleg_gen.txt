@@ -14,6 +14,7 @@
 # --world_type featherstone
 --world_type generalized
 --world_scale 1
+--use_revolute_axis_in_deepmimic_style false
 --logging_level trace
 --pause_at_first false
 --terrain_file data/terrain/plane.txt

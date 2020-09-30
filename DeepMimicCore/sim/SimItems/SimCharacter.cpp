@@ -854,7 +854,7 @@ void cSimCharacter::ApplyControlForces(const Eigen::VectorXd &tau)
                 Eigen::VectorXd curr_tau =
                     tau.segment(param_offset, param_size);
                 joint.AddTau(curr_tau);
-                std::cout << "joint " << j << ", ";
+                // std::cout << "joint " << j << ", ";
             }
         }
     }
