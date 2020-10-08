@@ -60,8 +60,4 @@
 
 #---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------
 --enable_inverse_dynamic_solving false
-# --inverse_dynamic_config_file args/0609/id_confs/id_solve_sampled_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_solve_mred_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_sample_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_display_conf.json
 

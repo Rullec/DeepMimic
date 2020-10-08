@@ -50,5 +50,6 @@ Main
 *.train
 cmake-build*
 *npz
-data/paths*/
+data/path*/
+data/id_test*/
 data/batch_train_data

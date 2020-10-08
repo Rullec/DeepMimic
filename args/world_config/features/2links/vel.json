@@ -1,0 +1,12 @@
+{
+    "root_joint": {
+        "vel": 1.0
+    },
+    "LeftLeg_joint": {
+        "vel": 1.0
+    },
+    "LeftLeg_height": {
+        "vel": 1.0
+    },
+    "tau_weight": 0.0
+}

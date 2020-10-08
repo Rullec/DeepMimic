@@ -1,0 +1,30 @@
+{
+    "root_joint": {
+        "pos": 1.0
+    },
+    "root_height": {
+        "pos": 1
+    },
+    "root_location": {
+        "pos": 1
+    },
+    "RightLeg_joint": {
+        "pos": 1
+    },
+    "RightFoot_joint": {
+        "pos": 1
+    },
+    "RFootTongue_joint": {
+        "pos": 1
+    },
+    "LeftLeg_joint": {
+        "pos": 1
+    },
+    "LeftFoot_joint": {
+        "pos": 1
+    },
+    "LFootTongue_joint": {
+        "pos": 1
+    },
+    "tau_weight": 0.0
+}

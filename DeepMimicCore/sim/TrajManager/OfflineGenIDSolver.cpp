@@ -146,8 +146,8 @@ void cOfflineGenIDSolver::PostSim()
     ctrl->CalcPDTargetByTorque(this->mCurTimestep, mPosePre, mVelPre, gen_force,
                                pd_target);
     // MIMIC_DEBUG("ID calc pd target = {}", pd_target.transpose());
-    MIMIC_INFO("Contact-aware Inverse dynamics running for frame {}",
-               mAdviser->GetInternalFrameId());
+    // MIMIC_INFO("Contact-aware Inverse dynamics running for frame {}",
+    //            mAdviser->GetInternalFrameId());
     // 3. from pd target to action
     tVectorXd action = pd_target;
     ctrl->CalcActionByTargetPose(action);
