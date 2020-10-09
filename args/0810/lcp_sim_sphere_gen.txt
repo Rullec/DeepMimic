@@ -48,11 +48,11 @@
 --output_path output/0426
 --model_files output/0426/agent0_model_2020_04_27_08_32_34_563.12.ckpt
 
-#---------------------- TrajRecoder config(deprecated for Generalized backend) -------------------
+#---------------------- TrajRecoder config -------------------
 --enable_traj_recoder true
 --traj_recorder_config args/0630/traj_recorder_config.json
 
-#---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------
+#---------------------- Inverse Dyanmics config -------------------
 --enable_inverse_dynamic_solving false
 # --inverse_dynamic_config_file args/0609/id_confs/id_solve_sampled_conf.json
 # --inverse_dynamic_config_file args/0609/id_confs/id_solve_mred_conf.json

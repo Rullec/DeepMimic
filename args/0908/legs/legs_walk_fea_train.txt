@@ -56,10 +56,6 @@
 --enable_traj_recoder false
 --traj_recorder_config args/0810/record_traj_conf_3links.json
 
-#---------------------- Inverse Dyanmics config(deprecated for Generalized backend) -------------------
+#---------------------- Inverse Dyanmics config-------------------
 --enable_inverse_dynamic_solving false
-# --inverse_dynamic_config_file args/0609/id_confs/id_solve_sampled_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_solve_mred_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_sample_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_display_conf.json
 
