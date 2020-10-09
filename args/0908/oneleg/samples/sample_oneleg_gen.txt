@@ -52,14 +52,14 @@
 --train_agents false
 
 --output_path output/0908/gen
---model_files output/0908/gen/agent0_model_2020_09_08_22_07_29_145.58.ckpt
+--model_files output/0908/gen/agent0_model_2020_10_10_14_31_04_74.54.ckpt
 
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
 --traj_recorder_config args/0810/record_traj_conf_3links.json
 
 #---------------------- Inverse Dyanmics config -------------------
---enable_inverse_dynamic_solving false
+--enable_inverse_dynamic_solving true
 --inverse_dynamic_config_file args/0908/oneleg/samples/id_conf_leftleg.json
 # --inverse_dynamic_config_file args/0609/id_confs/id_solve_mred_conf.json
 # --inverse_dynamic_config_file args/0609/id_confs/id_sample_conf.json

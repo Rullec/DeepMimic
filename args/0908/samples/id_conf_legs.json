@@ -1,8 +1,8 @@
 {
     "IDMode_bak2": "Online",
-    "IDMode_bak4": "OfflineSolve",
+    "IDMode": "OfflineSolve",
     "IDMode_bak1": "Display",
-    "IDMode": "Sample",
+    "IDMode_bak4": "Sample",
     "comment": [
         "Offline的ID solver有四种模式：sample, save, display, solve.",
         "sample模式: 是批量采样、保存轨迹(trajectory)信息、生成数据信息记录表；对应的配置卸载SampleModeInfo中",
@@ -17,8 +17,8 @@
         "output_motion_info_path": "angmom_buffer_details.log"
     },
     "SampleModeInfo": {
-        "sample_num": 2,
-        "sample_trajs_dir": "data/id_test/sample_legs_nogravity",
+        "sample_num": 50,
+        "sample_trajs_dir": "data/id_test/sample_legs",
         "sample_trajs_rootname": "traj_legs.json",
         "summary_table_filename": "summary_legs.json",
         "enable_sample_ID_test": false,
@@ -34,7 +34,7 @@
         "enable_torque_verified": false,
         "enable_discrete_verified": false,
         "SingleTrajSolveInfo": {
-            "solve_traj_path": "data/id_test/sample_legs/traj_legs_996305798.json",
+            "solve_traj_path": "data/id_test/sample_legs/traj_legs_821198761.json",
             "export_train_data_path": "data/id_test/solved_legs/traj_legs_996305798.train.json"
         },
         "BatchTrajSolveInfo": {

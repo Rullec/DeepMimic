@@ -50,8 +50,9 @@
 --agent_files data/0908/agents/agent_512.txt
 --train_agents false
 
---output_path output/0909/gen
---model_files output/0909/gen/agent0_model_2020_09_22_13_39_28_572.00.ckpt
+--output_path output/1009/legs_gen_walk
+--model_files output/1009/legs_gen_walk/agent0_model_2020_10_09_18_59_45_496.67.ckpt
+
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
 --traj_recorder_config args/0810/record_traj_conf_3links.json

@@ -44,6 +44,7 @@ std::string tSaveInfo::SaveTraj(const std::string &traj_dir,
     do
     {
         traj_name = cFileUtil::GenerateRandomFilename(traj_rootname);
+        // traj_name = "traj_fix.json";
         final_name = cFileUtil::ConcatFilename(traj_dir, traj_name);
     } while (cFileUtil::ExistsFile(final_name) == true);
 
@@ -138,6 +139,9 @@ void tSaveInfo::SaveTrajV2(Json::Value &root)
 
         // actions
         SaveTruthAction(single_frame, frame_id);
+
+        // tmp: joint forces
+        SaveTruthJointForce(single_frame, frame_id);
 
         root["list"].append(single_frame);
     }

@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 5
---time_lim_max 5
+--time_lim_min 3
+--time_lim_max 3
 --time_lim_exp 0.2
 
 --time_end_lim_min 20
@@ -47,16 +47,13 @@
 --agent_files data/0915/agents/agent_sample.txt
 --train_agents false
 
---output_path output/0909/gen
---model_files output/0909/gen/agent0_model_2020_09_22_13_39_28_572.00.ckpt
+--output_path output/1009/legs_gen_walk
+--model_files output/1009/legs_gen_walk/agent0_model_2020_10_09_18_59_45_496.67.ckpt
+
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
 --traj_recorder_config args/0810/record_traj_conf_3links.json
 
 #---------------------- Inverse Dyanmics config -------------------
---enable_inverse_dynamic_solving false
+--enable_inverse_dynamic_solving true
 --inverse_dynamic_config_file args/0908/samples/id_conf_legs.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_solve_mred_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_sample_conf.json
-# --inverse_dynamic_config_file args/0609/id_confs/id_display_conf.json
-

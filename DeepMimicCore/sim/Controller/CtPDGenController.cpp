@@ -701,7 +701,8 @@ void cCtPDGenController::ConvertActionToTargetPose(tVectorXd &out_theta) const
             double theta = axis_angle[0];
             // tVector axis = cMathUtil::Expand(axis_angle.segment(1, 3),
             // 0).normalized();
-            tVector axis = cMathUtil::Expand(axis_angle.segment(1, 3), 0).normalized();
+            tVector axis =
+                cMathUtil::Expand(axis_angle.segment(1, 3), 0).normalized();
 
             out_theta.segment(st_pos, param_size) =
                 cMathUtil::QuatToVec(
@@ -734,7 +735,12 @@ void cCtPDGenController::CalcActionByTargetPose(tVectorXd &pd_target)
         // MIMIC_INFO("joint {}  target pose {}", i,
         // target_pose.transpose());
         ConvertTargetPoseToAction(i, target_pose);
+
+        // scale the axis in target pose to 0.2
+        if (size == 4)
+            target_pose.segment(1, 3) *= 0.2;
         pd_target.segment(st_pos, size) = target_pose;
+
         // MIMIC_INFO("joint {}  action {}", i, target_pose.transpose());
         st_pos += size;
     }

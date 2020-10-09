@@ -156,6 +156,7 @@ void cSampleIDSolver::PreSim()
     // mSaveInfo.mBuffer_q[cur_frame].transpose() <<" "; fout << "\n buffer u :
     // "; fout << mSaveInfo.mBuffer_u[cur_frame].transpose() <<" "; fout <<
     // std::endl;
+    // std::cout << "------------frame " << cur_frame << " begin----------\n";
 }
 
 void cSampleIDSolver::PostSim()
@@ -182,6 +183,23 @@ void cSampleIDSolver::PostSim()
     // record contact forces
     RecordContactForces(mSaveInfo.mContactForces[cur_frame - 1],
                         mSaveInfo.mTimesteps[cur_frame - 1]);
+
+    // begin to output
+    {
+        // for (auto &x : mSaveInfo.mContactForces[cur_frame - 1])
+        // {
+        //     std::cout << x.mForce.transpose() << std::endl;
+        // }
+        // auto gen_char = dynamic_cast<cSimCharacterGen *>(mSimChar);
+        // if (gen_char != nullptr)
+        // {
+        //     std::cout << "q = " << mSaveInfo.mBuffer_q[cur_frame - 1].norm()
+        //               << std::endl;
+        //     std::cout << "qdot = " << mSaveInfo.mBuffer_u[cur_frame - 1].norm()
+        //               << std::endl;
+        // }
+    }
+
     // std::cout << "Pose4 = " << mSimChar->GetPose().transpose() << std::endl;
     // record multibody info
     RecordMultibodyInfo(

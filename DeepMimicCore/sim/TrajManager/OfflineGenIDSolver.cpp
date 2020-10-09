@@ -18,6 +18,8 @@ cOfflineGenIDSolver::cOfflineGenIDSolver(cSceneImitate *imitate,
 {
     mInited = false;
     mIDResult.clear();
+
+    mRefTraj = new tLoadInfo();
     if (this->mSolveMode == eSolveMode::SingleTrajSolveMode)
     {
         mCurrentTrajPath = mSingleTrajSolveConfig.mSolveTrajPath;
@@ -34,9 +36,11 @@ cOfflineGenIDSolver::cOfflineGenIDSolver(cSceneImitate *imitate,
 
         // 2. set the first traj file as the current traj path
         mCurrentTrajPath = mBatchNameArray[mBatchCurLocalTrajId];
+
         mCurrentOutputPath = "";
         // this->mAdviser->SetTraj(mCurrentTrajPath, "", false);
     }
+    mRefTraj->LoadTraj(mSimChar, mCurrentTrajPath);
 }
 void cOfflineGenIDSolver::Reset()
 {
@@ -68,6 +72,15 @@ void cOfflineGenIDSolver::Reset()
         mBatchCurLocalTrajId++;
         // 2. check whether there is something left we need to solve
 
+        // auto gen_char = dynamic_cast<cSimCharacterGen *>(mSimChar);
+        // tVectorXd gen_force = gen_char->GetGeneralizedForce();
+        // std::cout << "[info] gen force = " << gen_force.norm() << std::endl;
+        // if (gen_force.norm() > 1e-8)
+        // {
+        //     std::cout << "[error] gen force before load traj "
+        //               << gen_force.norm() << std::endl;
+        //     exit(0);
+        // }
         if (mBatchCurLocalTrajId >= mBatchTrajIdArray.size())
         {
             // 3. if not, write to the summary table incrementaly and exit
@@ -84,12 +97,14 @@ void cOfflineGenIDSolver::Reset()
         {
             // 4. if so, set up the new trajs
             mCurrentTrajPath = mBatchNameArray[mBatchCurLocalTrajId];
+            mRefTraj->LoadTraj(mSimChar, mCurrentTrajPath);
             mCurrentOutputPath = "";
             mAdviser->SetTraj(mCurrentTrajPath, mCurrentOutputPath);
+
             // 5. reset the timer, also check the left time of timer
             double timer_max_time = mScene->GetTimer().GetMaxTime();
             double traj_length = mAdviser->GetRefTraj()->GetTimeLength();
-            MIMIC_ASSERT(timer_max_time > traj_length);
+            MIMIC_ASSERT(timer_max_time >= traj_length);
             mScene->GetTimer().Reset();
         }
         mIDResult.clear();
@@ -124,6 +139,16 @@ void cOfflineGenIDSolver::PreSim()
     // std::cout << "pre sim in offline gen solver\n";
     mPosePre = mSimChar->GetPose();
     mVelPre = mSimChar->GetVel();
+
+    // auto gen_char = dynamic_cast<cSimCharacterGen *>(mSimChar);
+    // tVectorXd gen_force = gen_char->GetGeneralizedForce();
+    // std::cout << "[info] presim gen force = " << gen_force.norm() << std::endl;
+    // if (gen_force.norm() > 1e-8)
+    // {
+    //     std::cout << "[error] presim gen force before load traj "
+    //               << gen_force.norm() << std::endl;
+    //     exit(0);
+    // }
     // std::cout << "cur gen force = " << model->GetGenera1lizedForce().norm()
     //           << std::endl;
 }
@@ -153,6 +178,10 @@ void cOfflineGenIDSolver::PostSim()
     ctrl->CalcActionByTargetPose(action);
     mIDResult[mIDResult.size() - 1].action = action;
     std::cout << "action = " << action.transpose() << std::endl;
+
+    // 4. compare the action
+    tVectorXd ref_action = mRefTraj->mActionMat.row(mAdviser->GetRefFrameId());
+    std::cout << "ref action = " << ref_action.transpose() << std::endl;
     // tVectorXd pd_target;
     // ctrl->CalcPDTargetByTorque(mCurTimestep, );
     // pd_target = dynamic_cast<this> std::cout
@@ -178,6 +207,9 @@ void cOfflineGenIDSolver::Init()
 {
     if (mInited == false)
     {
+        // clear force, because when this init function is called, PD controller have no idea whether adviser is enabled, and it will effects the result
+        mSimChar->ClearForces();
+
         auto gen_world = dynamic_cast<cGenWorld *>(mWorld);
         MIMIC_ASSERT(gen_world != nullptr);
         auto bt_world = gen_world->GetInternalGenWorld();
@@ -185,11 +217,12 @@ void cOfflineGenIDSolver::Init()
         bt_world->SetEnableContacrAwareControl();
         mAdviser = bt_world->GetContactAwareAdviser();
         mAdviser->SetTraj(mCurrentTrajPath, mCurrentOutputPath);
+
         double timer_max_time = mScene->GetTimer().GetMaxTime();
         double traj_length = mAdviser->GetRefTraj()->GetTimeLength();
-        if (timer_max_time <= traj_length)
+        if (timer_max_time < traj_length)
         {
-            MIMIC_ERROR("timer max timer {} should > traj length {}",
+            MIMIC_ERROR("timer max timer {} should >= traj length {}",
                         timer_max_time, traj_length);
         }
         mScene->GetTimer().Reset();
