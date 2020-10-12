@@ -35,7 +35,7 @@ class TFNormalizer(Normalizer):
     def normalize_tf(self, x):
         # 对输入进行正则化，便与训练。
         # 如果输入一个x, 输出是一个normlize的话，就是减去均值 / 标准差，变成了0-1之间的数字
-        # 与此同时，还有按照给定的clip进行切割。
+        # 与此同时，还有按照给定的clip进行切割
         norm_x = (x - self.mean_tf) / self.std_tf
         norm_x = tf.clip_by_value(norm_x, -self.clip, self.clip)
         return norm_x
@@ -46,10 +46,13 @@ class TFNormalizer(Normalizer):
         return x
     
     def _build_resource_tf(self):
+        # self.xx_tf: not trainable but can be used directly in training.
+        # these values will be synced periodly
         self.count_tf = tf.get_variable(dtype=tf.int32, name='count', initializer=np.array([self.count], dtype=np.int32), trainable=False)
         self.mean_tf = tf.get_variable(dtype=tf.float32, name='mean', initializer=self.mean.astype(np.float32), trainable=False)
         self.std_tf = tf.get_variable(dtype=tf.float32, name='std', initializer=self.std.astype(np.float32), trainable=False)
         
+        # self.xx_ph: placeholder counterpoint of self.xx_tf. used to assign some calculated value for self.xx_tf periodly
         self.count_ph = tf.get_variable(dtype=tf.int32, name='count_ph', shape=[1])
         self.mean_ph = tf.get_variable(dtype=tf.float32, name='mean_ph', shape=self.mean.shape)
         self.std_ph = tf.get_variable(dtype=tf.float32, name='std_ph', shape=self.std.shape)
@@ -62,8 +65,7 @@ class TFNormalizer(Normalizer):
         return
 
     def _update_resource_tf(self):
-        # 按照给定的mean和std给出更新这个normalizer
-        # 里面有mean 和1std
+        # update train constant self.mean_tf by given self.mean_ph
         feed = {
             self.count_ph: np.array([self.count], dtype=np.int32),
             self.mean_ph: self.mean,

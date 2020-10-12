@@ -7,13 +7,12 @@
 class cCharController : public cController
 {
 public:
-    // norm groups are used to determine how different inputs should be
-    // normalized during training gNormGroupSingle means that the feature is
-    // normalized independently of other features gNormGroupNone means that no
-    // normalization is performed on the feature any other value will group the
-    // features of the same group so that all features in a group are normalized
-    // by the same offset and scale these group IDs must be the same as those in
-    // normalizer.py
+    // norm groups are used to determine how different inputs should be normalized during training
+    // gNormGroupSingle means that the feature is normalized independently of other features
+    // gNormGroupNone means that no normalization is performed on the feature
+    // any other value will group the features of the same group
+    // so that all features in a group are normalized by the same offset and scale
+    // these group IDs must be the same as those in normalizer.py
     const static int gNormGroupSingle;
     const static int gNormGroupNone;
 

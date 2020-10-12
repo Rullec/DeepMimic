@@ -619,6 +619,19 @@ void cCtPDGenController::BuildJointActionBoundsFixed(
 /**
  * \brief               Spherical joints, offset = 0, scale = 1 beside the
  * first and the last number
+ *  a_sph = [v1, v2, v3, v4]
+ *          offset          scale
+ *  v1:       0         1/(2*(h-l))     
+ *  v2:       0               1
+ *  v3:       0               1
+ *  v4:       0             -0.2
+ * 
+
+mean = - offset, mean that action is around [mean], but offset means that action - offset = 0
+std = 1.0 / scale. std means that action is in [-std, std], but scale means action * scale = [-1, 1]
+
+so, mean = - offset
+std = 1.0 / scale
  */
 void cCtPDGenController::BuildJointActionOffsetScaleSphereical(
     int joint_id, Eigen::VectorXd &out_offset, Eigen::VectorXd &out_scale) const

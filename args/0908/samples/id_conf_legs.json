@@ -1,8 +1,8 @@
 {
     "IDMode_bak2": "Online",
-    "IDMode": "OfflineSolve",
+    "IDMode_bak4": "OfflineSolve",
     "IDMode_bak1": "Display",
-    "IDMode_bak4": "Sample",
+    "IDMode": "Sample",
     "comment": [
         "Offline的ID solver有四种模式：sample, save, display, solve.",
         "sample模式: 是批量采样、保存轨迹(trajectory)信息、生成数据信息记录表；对应的配置卸载SampleModeInfo中",

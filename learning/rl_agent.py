@@ -677,12 +677,12 @@ class RLAgent(ABC):
         return MPIUtil.is_root_proc() and self.int_output_dir != ""
 
     def _calc_val_bounds(self, discount):
-        r_min = self.world.env.get_reward_min(self.id)
-        r_max = self.world.env.get_reward_max(self.id)
+        r_min = self.world.env.get_reward_min(self.id)  # 0
+        r_max = self.world.env.get_reward_max(self.id)  # 1
         assert r_min <= r_max
 
-        val_min = r_min / (1.0 - discount)
-        val_max = r_max / (1.0 - discount)
+        val_min = r_min / (1.0 - discount)  # 0
+        val_max = r_max / (1.0 - discount)  # 20 - 100
         return val_min, val_max
 
     def _calc_val_offset_scale(self, discount):
