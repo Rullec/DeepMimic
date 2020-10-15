@@ -57,7 +57,7 @@
 	"enable_action_normalize" : false,
 	"action_std_path": "/home/xudong/Projects/SupervisedRL/output/legs_paths/norm/action_std.npz",
 	"action_mean_path": "/home/xudong/Projects/SupervisedRL/output/legs_paths/norm/action_mean.npz",
-	"net_save_path": "/home/xudong/Projects/SupervisedRL/output/legs_paths/model/sa_net.ckpt-1200",
+	"net_save_path": "/home/xudong/Projects/SupervisedRL/output/legs_paths/model/sa_net.ckpt-350",
     "layers_bak": [64, 32],
     "layers": [128, 64]
 }

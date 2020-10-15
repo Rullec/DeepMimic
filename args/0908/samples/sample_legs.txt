@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 3
---time_lim_max 3
+--time_lim_min 2
+--time_lim_max 2
 --time_lim_exp 0.2
 
 --time_end_lim_min 20
@@ -48,8 +48,7 @@
 --train_agents false
 
 --output_path output/1009/legs_gen_walk
-# --model_files output/1009/legs_gen_walk/agent0_model_2020_10_12_13_11_45_579.13.ckpt
---model_files output/1009/exp/hello
+--model_files output/1009/legs_gen_walk/agent0_model_2020_10_13_12_02_51_572.79.ckpt
 
 #---------------------- TrajRecoder config -------------------
 --enable_traj_recoder false
