@@ -9,10 +9,10 @@ x_axis_guranty = [0 for i in range(mGuranty)]
 y_theta_val = [0 for i in range(mGuranty)]
 theta_lst = []
 for id, cur_line in enumerate(res):
-    if id % paint_sample == 0 :
+    if id % paint_sample == 0:
         phase = float(cur_line.split()[4])
         theta = float(cur_line.split()[7])
         # y_theta_val[int(phase *mGuranty)] += theta > 0 - theta < 0
-        y_theta_val[int(phase *mGuranty)] += theta
+        y_theta_val[int(phase * mGuranty)] += theta
 plt.plot(y_theta_val)
 plt.show()

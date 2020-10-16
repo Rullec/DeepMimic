@@ -2,6 +2,7 @@ import json
 import numpy as np
 import util.math_util as MathUtil
 
+
 class ExpParams(object):
     '''
         什么叫ExpParams？指数参数?期望参数?
@@ -26,9 +27,11 @@ class ExpParams(object):
     def __str__(self):
         str = ''
         str += '{}: {:.2f}\n'.format(self.RATE_KEY, self.rate)
-        str += '{}: {:.2f}\n'.format(self.INIT_ACTION_RATE_KEY, self.init_action_rate)
+        str += '{}: {:.2f}\n'.format(self.INIT_ACTION_RATE_KEY,
+                                     self.init_action_rate)
         str += '{}: {:.2f}\n'.format(self.NOISE_KEY, self.noise)
-        str += '{}: {:.2f}\n'.format(self.NOISE_INTERNAL_KEY, self.noise_internal)
+        str += '{}: {:.2f}\n'.format(self.NOISE_INTERNAL_KEY,
+                                     self.noise_internal)
         str += '{}: {:.2f}\n'.format(self.TEMP_KEY, self.temp)
         return str
 
@@ -53,8 +56,10 @@ class ExpParams(object):
     def lerp(self, other, t):
         lerp_params = ExpParams()
         lerp_params.rate = MathUtil.lerp(self.rate, other.rate, t)
-        lerp_params.init_action_rate = MathUtil.lerp(self.init_action_rate, other.init_action_rate, t)
+        lerp_params.init_action_rate = MathUtil.lerp(
+            self.init_action_rate, other.init_action_rate, t)
         lerp_params.noise = MathUtil.lerp(self.noise, other.noise, t)
-        lerp_params.noise_internal = MathUtil.lerp(self.noise_internal, other.noise_internal, t)
+        lerp_params.noise_internal = MathUtil.lerp(
+            self.noise_internal, other.noise_internal, t)
         lerp_params.temp = MathUtil.log_lerp(self.temp, other.temp, t)
         return lerp_params

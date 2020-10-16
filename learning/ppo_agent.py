@@ -34,7 +34,8 @@ class PPOAgent(PGAgent):
         super()._load_params(json_data)
 
         self.epochs = (
-            1 if (self.EPOCHS_KEY not in json_data) else json_data[self.EPOCHS_KEY]
+            1 if (
+                self.EPOCHS_KEY not in json_data) else json_data[self.EPOCHS_KEY]
         )
         self.batch_size = (
             1024
@@ -73,7 +74,8 @@ class PPOAgent(PGAgent):
         min_replay_size = 2 * local_batch_size  # needed to prevent buffer overflow
         assert self.replay_buffer_size > min_replay_size
 
-        self.replay_buffer_size = np.maximum(min_replay_size, self.replay_buffer_size)
+        self.replay_buffer_size = np.maximum(
+            min_replay_size, self.replay_buffer_size)
 
         return
 
@@ -88,7 +90,7 @@ class PPOAgent(PGAgent):
                 这个critic训练的一般是value function，而actor训练的就是action。
                 然后例如critic用TD训练，而actor用PPO/PG训练。
             这个函数就是建立了actor-critic网络，并且在他们的输出上加了高斯噪声等一系列的东西。
-                
+
         """
         assert self.ACTOR_NET_KEY in json_data
         assert self.CRITIC_NET_KEY in json_data
@@ -190,7 +192,8 @@ class PPOAgent(PGAgent):
             )
 
         # action的范围究竟是不是角度限制?
-        norm_tar_a_tf = self.a_norm.normalize_tf(self.a_tf)  # 外部输入的action变化到分布上
+        norm_tar_a_tf = self.a_norm.normalize_tf(
+            self.a_tf)  # 外部输入的action变化到分布上
         self._norm_a_mean_tf = self.a_norm.normalize_tf(
             self.a_mean_tf
         )  # 把网络声称，也变化到这个分布上。
@@ -208,7 +211,8 @@ class PPOAgent(PGAgent):
         # 所以说，我强烈怀疑是输入的advantage有问题，这就去排查一下。
 
         # 这里定义了loss
-        self.actor_loss_tf = -tf.reduce_mean(tf.minimum(actor_loss0, actor_loss1))
+        self.actor_loss_tf = - \
+            tf.reduce_mean(tf.minimum(actor_loss0, actor_loss1))
 
         # action有上下界
         # print("action bound min = " % self.a_bound_min)
@@ -303,7 +307,8 @@ class PPOAgent(PGAgent):
 
     def _eval_actor(self, s, g, enable_exp):
         s = np.reshape(s, [-1, self.get_state_size()])
-        g = np.reshape(g, [-1, self.get_goal_size()]) if self.has_goal() else None
+        g = np.reshape(g, [-1, self.get_goal_size()]
+                       ) if self.has_goal() else None
 
         feed = {
             self.s_tf: s,
@@ -312,7 +317,8 @@ class PPOAgent(PGAgent):
         }
 
         a, logp, a_mean = self.sess.run(
-            [self.sample_a_tf, self.sample_a_logp_tf, self.a_mean_tf], feed_dict=feed
+            [self.sample_a_tf, self.sample_a_logp_tf,
+                self.a_mean_tf], feed_dict=feed
         )
 
         # if np.random.rand() < 1e-3:
@@ -352,7 +358,8 @@ class PPOAgent(PGAgent):
         new_vals = self._compute_batch_new_vals(start_idx, end_idx, vals)
 
         valid_idx = idx[end_mask]
-        exp_idx = self.replay_buffer.get_idx_filtered(self.EXP_ACTION_FLAG).copy()
+        exp_idx = self.replay_buffer.get_idx_filtered(
+            self.EXP_ACTION_FLAG).copy()
         num_valid_idx = valid_idx.shape[0]
         num_exp_idx = exp_idx.shape[0]
         exp_idx = np.column_stack(
@@ -494,8 +501,10 @@ class PPOAgent(PGAgent):
 
         idx = np.array(list(range(start_idx, end_idx)))
         is_end = self.replay_buffer.is_path_end(idx)
-        is_fail = self.replay_buffer.check_terminal_flag(idx, Env.Terminate.Fail)
-        is_succ = self.replay_buffer.check_terminal_flag(idx, Env.Terminate.Succ)
+        is_fail = self.replay_buffer.check_terminal_flag(
+            idx, Env.Terminate.Fail)
+        is_succ = self.replay_buffer.check_terminal_flag(
+            idx, Env.Terminate.Succ)
         is_fail = np.logical_and(is_end, is_fail)
         is_succ = np.logical_and(is_end, is_succ)
 
@@ -518,7 +527,7 @@ class PPOAgent(PGAgent):
                 idx0 = curr_idx - start_idx
                 idx1 = self.replay_buffer.get_path_end(curr_idx) - start_idx
                 r = rewards[idx0:idx1]
-                v = val_buffer[idx0 : (idx1 + 1)]
+                v = val_buffer[idx0: (idx1 + 1)]
 
                 new_vals[idx0:idx1] = RLUtil.compute_return(
                     r, self.discount, self.td_lambda, v
@@ -530,7 +539,8 @@ class PPOAgent(PGAgent):
     def _update_critic(self, s, g, tar_vals):
         feed = {self.s_tf: s, self.g_tf: g, self.tar_val_tf: tar_vals}
 
-        loss, grads = self.sess.run([self.critic_loss_tf, self.critic_grad_tf], feed)
+        loss, grads = self.sess.run(
+            [self.critic_loss_tf, self.critic_grad_tf], feed)
         self.critic_solver.update(grads)  # 这个是更新critic...
         return loss
 
@@ -558,7 +568,7 @@ class PPOAgent(PGAgent):
         # a_mean, norm_a_mean, a_norm_mean, a_norm_std, a_norm_clip = self.sess.run([self.a_mean_tf, self._norm_a_mean_tf,
         #     self.a_norm.mean_tf, self.a_norm.std_tf, self.a_norm.clip], feed_dict=feed)
         a_mean, norm_a_mean = self.sess.run(
-            [self.a_mean_tf, self._norm_a_mean_tf,], feed_dict=feed
+            [self.a_mean_tf, self._norm_a_mean_tf, ], feed_dict=feed
         )
         # print("a_mean = %s" % str(a_mean))
         # print("a_norm_mean = %s" % str(self.sess.run(self.a_norm.mean_tf)))
@@ -622,7 +632,8 @@ class PPOAgent(PGAgent):
                 else:
                     actor_stepsize /= self.actor_stepsize_decay
 
-                actor_stepsize = np.clip(actor_stepsize, min_stepsize, max_stepsize)
+                actor_stepsize = np.clip(
+                    actor_stepsize, min_stepsize, max_stepsize)
                 self.set_actor_stepsize(actor_stepsize)
 
         return actor_stepsize

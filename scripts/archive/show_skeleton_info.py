@@ -9,7 +9,9 @@ skeleton_path = "data/0424/characters/skeleton_042302_revised.json"
 pd_path = "data/0424/controllers/humanoid3d_ctrl_skeleton_0424.txt"
 #skeleton_path = "data/raw/characters/humanoid3d.txt"
 #pd_path = "data/raw/controllers/humanoid3d_ctrl.txt"
-reduce = lambda f : round(f, 6)
+def reduce(f): return round(f, 6)
+
+
 def parse_pd(file):
     f_pd = open(file, "r")
     value = json.load(f_pd)
@@ -18,6 +20,7 @@ def parse_pd(file):
         name = item["Name"]
         info[name] = {"Kp": item["Kp"], "Kd": item["Kd"]}
     return info
+
 
 def parse_skeleton(file):
     '''
@@ -39,13 +42,13 @@ def parse_skeleton(file):
         for key in key_lst:
             info[key] = i[key]
 
-        Param0, Param1, Param2 = i["Param0"],i["Param1"],i["Param2"]
+        Param0, Param1, Param2 = i["Param0"], i["Param1"], i["Param2"]
         Volume = Param0 * Param1 * Param2
         Length = Param1
-        info["Volume"] = Volume * 1e6 # cm3
-        info["Length"] = Length # m
-        
-        # info["AttachThetaX"] = 
+        info["Volume"] = Volume * 1e6  # cm3
+        info["Length"] = Length  # m
+
+        # info["AttachThetaX"] =
         # add
         info_dict[Name] = info
 
@@ -70,20 +73,21 @@ def parse_skeleton(file):
                 item[key] = reduce(item[key])
     return info_dict
 
-def write_csv(info_dict, path = "data.csv"):
+
+def write_csv(info_dict, path="data.csv"):
     # prepare
     if os.path.exists(path):
         os.remove(path)
-    
+
     def write_tabular_line(lst, f):
         with open(path, "a") as f:
             for i, cont in enumerate(lst):
                 f.write("%s" % cont)
-                if i!= len(lst) - 1:
+                if i != len(lst) - 1:
                     f.write(", ")
             f.write("\n")
     title_lst = list(info_dict["root"].keys())
-    
+
     with open(path, "a") as f:
         write_tabular_line(title_lst, f)
 
@@ -102,20 +106,21 @@ def write_csv(info_dict, path = "data.csv"):
         with open(path, "a") as f:
             write_tabular_line(cont, f)
     print("write csv to %s" % path)
-        
+
+
 if __name__ == "__main__":
 
     skeleton_path = os.path.join(project_dir, skeleton_path)
     pd_path = os.path.join(project_dir, pd_path)
     print("skeleton path = %s" % skeleton_path)
     print("pd path = %s" % pd_path)
-    
+
     # 验证drawshape = bodydefs
     verify_drawshapes_and_bodydefs(skeleton_path)
 
     # 验证bodydefs和skeleton是左右对称的
     # verify_symmetric(skeleton_path)
-    
+
     # 解析skeleton，获取要写入的信息
     ske_info = parse_skeleton(skeleton_path)
 

@@ -4,6 +4,8 @@ import numpy as np
 from env.env import Env
 
 # 这个类是干什么用的? 似乎是检测trajectory有效性的?
+
+
 class Path(object):
     def __init__(self):
         self.clear()
@@ -27,11 +29,11 @@ class Path(object):
 
     def check_vals(self):
         for i_out, vals in enumerate([self.states, self.goals, self.actions, self.logps,
-                  self.rewards]):
+                                      self.rewards]):
             for i_in, v in enumerate(vals):
                 if not np.isfinite(v).all():
                     print("i_out:" + str(i_out))
-                    print("i_in: %d / %d" % (i_in, len(vals)) )
+                    print("i_in: %d / %d" % (i_in, len(vals)))
                     assert 0 == 1
                     return False
         return True
@@ -60,11 +62,11 @@ class Path(object):
         if os.path.exists(filename):
             os.remove(filename)
         cont = {
-            "states" : [i.tolist() for i in self.states],
+            "states": [i.tolist() for i in self.states],
             # "poses" : [i.tolist() for i in self.poses],
-            "actions" : [i.tolist() for i in self.actions],
-            "logps" : [float(i) for i in self.logps],
-            "rewards" : [ float(i) for i in self.rewards],
+            "actions": [i.tolist() for i in self.actions],
+            "logps": [float(i) for i in self.logps],
+            "rewards": [float(i) for i in self.rewards],
             # "contact_info" : [i.tolist() for i in self.contact_info]
         }
         with open(filename, "w") as f:

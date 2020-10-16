@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 import re
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,7 +41,8 @@ def read_one_joint(joint_id, angle_diff_dir):
         print("read %s failed, jumped" % file_name)
 
     def find_floats(string):
-        raw_lst = re.findall(r"[+-]?([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)([eE][+-]?[0-9]+)?", string)
+        raw_lst = re.findall(
+            r"[+-]?([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)([eE][+-]?[0-9]+)?", string)
         lst = []
         for a, b in raw_lst:
             if len(b) == 0:
@@ -57,16 +59,19 @@ def read_one_joint(joint_id, angle_diff_dir):
     for line in cont:
         if line.find("pose") != -1:
             time_str, id_str, cur_str, motion_str = line.split(",")
-            angle_diff.append(np.linalg.norm(np.array(find_floats(cur_str)) - find_floats(motion_str)))
+            angle_diff.append(np.linalg.norm(
+                np.array(find_floats(cur_str)) - find_floats(motion_str)))
 
         elif line.find("vel") != -1:
             time_str, id_str, cur_str, motion_str = line.split(",")
-            vel_diff.append(np.linalg.norm(np.array(find_floats(cur_str)) - find_floats(motion_str)))
+            vel_diff.append(np.linalg.norm(
+                np.array(find_floats(cur_str)) - find_floats(motion_str)))
 
         else:
             raise (ValueError)
     # print(cont)
     return angle_diff, vel_diff
+
 
 def paint_dir(dir_path):
     dir_path = os.path.abspath(dir_path)
@@ -86,12 +91,13 @@ def paint_dir(dir_path):
         # plt.pause(0.01)
         angle, vel = read_one_joint(i, dir_path)
         plt.subplot(5, 5, i + 1)
-        plt.plot(angle, label = "angle")
+        plt.plot(angle, label="angle")
         # plt.plot(vel)
         plt.title(id_name_map[i])
         # plt.legend(["angle", "vel"])
     plt.tight_layout()
     plt.show()
+
 
 if __name__ == '__main__':
     args = sys.argv[1:]

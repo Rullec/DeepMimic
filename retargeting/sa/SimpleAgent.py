@@ -20,15 +20,13 @@ class SimpleAgent(TFAgent):
     def __init__(self, world, id, json_data):
         self.network_initialized = False
         self.state_mean_path = json_data[self.STATE_MEAN_PATH]
-        self.state_std_path =  json_data[self.STATE_STD_PATH]
+        self.state_std_path = json_data[self.STATE_STD_PATH]
         self.action_mean_path = json_data[self.ACTION_MEAN_PATH]
-        self.action_std_path =  json_data[self.ACTION_STD_PATH]
+        self.action_std_path = json_data[self.ACTION_STD_PATH]
         self.enable_action_normalize = json_data[self.ENABLE_ACTION_NORMALIZE]
         self.init_agent(json_data)
 
         super().__init__(world, id, json_data)
-
-
 
     def _build_normalizers(self):
         self.state_std = np.load(self.state_std_path)['std']
@@ -40,7 +38,7 @@ class SimpleAgent(TFAgent):
 
     def _norm_s(self, s):
         return (s - self.state_mean) / self.state_std
-    
+
     def _unnorm_a(self, a):
         # print("unnormalize!\n")
         return a * self.action_std + self.action_mean

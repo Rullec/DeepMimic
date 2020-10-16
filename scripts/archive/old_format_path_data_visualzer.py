@@ -26,6 +26,7 @@ origin_path_dir = "../data/paths"
 # origin_path_dir = "./paths_ori_single"
 files = [os.path.join(origin_path_dir, i) for i in os.listdir(origin_path_dir)]
 
+
 def calc_axis_angle_theta_lst(action):
     global st_num
     assert(type(action) is list)
@@ -44,12 +45,13 @@ def calc_axis_angle_norm_lst(action):
     action = np.array(action)
     axis_angle_norm_lst = []
     for id, cur_st in enumerate(st_num):
-        res = np.linalg.norm(action[cur_st : cur_st + 3])
+        res = np.linalg.norm(action[cur_st: cur_st + 3])
         assert(res > 0)
         axis_angle_norm_lst.append(res)
     return axis_angle_norm_lst
 
-def action_axis_angle_norm_extract(files,max_file = 10):
+
+def action_axis_angle_norm_extract(files, max_file=10):
     '''
         Here are lots of axis angle representation in a single "action"
         this function will calculate 
@@ -73,25 +75,32 @@ def action_axis_angle_norm_extract(files,max_file = 10):
             continue
         with open(file, 'r') as f:
             action_lst = json.load(f)["actions"]
-            return_aa_norm_lst_single_traj = [ [] for i in range(len(st_num))]
-            return_aa_theta_lst_single_traj = [ [] for i in range(len(st_num))]
+            return_aa_norm_lst_single_traj = [[] for i in range(len(st_num))]
+            return_aa_theta_lst_single_traj = [[] for i in range(len(st_num))]
             for single_action in action_lst:
                 single_action_aa_norm = calc_axis_angle_norm_lst(single_action)
-                single_action_aa_theta = calc_axis_angle_theta_lst(single_action)
+                single_action_aa_theta = calc_axis_angle_theta_lst(
+                    single_action)
                 # print(single_action_aa_norm)
                 assert(len(single_action_aa_norm) == len(st_num))
                 for j in range(len(st_num)):
-                    return_aa_norm_lst_single_traj[j].append(single_action_aa_norm[j])
-                    return_aa_theta_lst_single_traj[j].append(single_action_aa_theta[j])
-            return_aa_norm_lst_total_trajs.append(return_aa_norm_lst_single_traj)
-            return_aa_theta_lst_total_trajs.append(return_aa_theta_lst_single_traj)
+                    return_aa_norm_lst_single_traj[j].append(
+                        single_action_aa_norm[j])
+                    return_aa_theta_lst_single_traj[j].append(
+                        single_action_aa_theta[j])
+            return_aa_norm_lst_total_trajs.append(
+                return_aa_norm_lst_single_traj)
+            return_aa_theta_lst_total_trajs.append(
+                return_aa_theta_lst_single_traj)
     return return_aa_norm_lst_total_trajs, return_aa_theta_lst_total_trajs
+
 
 def show_axis_norm():
     '''
         paint joint axis norm
     '''
-    axis_angle_norm_lst, axis_angle_theta_lst = action_axis_angle_norm_extract(files, max_file=8)
+    axis_angle_norm_lst, axis_angle_theta_lst = action_axis_angle_norm_extract(
+        files, max_file=8)
     stop = 100
     for i in range(len(axis_angle_norm_lst)):
         joint_aa_norm_avg_lst = []
@@ -103,9 +112,11 @@ def show_axis_norm():
             avg = np.average(cur_aa_norm_lst)
             var = np.var(cur_aa_norm_lst)
             # print(cur_aa_norm_lst)
-            print("for joint %d, axis norm avg = %.3f, var = %.3f" % (j, avg, var))
-        print("for all joints, axis norm avg = %.3f, var = %.3f" % ( np.average(axis_angle_norm_lst[i]), np.var(axis_angle_norm_lst[i])))
-    
+            print("for joint %d, axis norm avg = %.3f, var = %.3f" %
+                  (j, avg, var))
+        print("for all joints, axis norm avg = %.3f, var = %.3f" % (
+            np.average(axis_angle_norm_lst[i]), np.var(axis_angle_norm_lst[i])))
+
         plt.legend([str(i) for i in st_num])
         plt.xlabel("frame id")
         plt.ylabel("joint axis angle norm")
@@ -119,9 +130,11 @@ def show_axis_norm():
             avg = np.average(cur_aa_thet_lst)
             var = np.var(cur_aa_thet_lst)
             # print(cur_aa_norm_lst)
-            print("for joint %d, axis theta avg = %.3f, var = %.3f" % (j, avg, var))
-        print("for all joints, axis theta avg = %.3f, var = %.3f" % ( np.average(axis_angle_theta_lst[i]), np.var(axis_angle_theta_lst[i])))
-    
+            print("for joint %d, axis theta avg = %.3f, var = %.3f" %
+                  (j, avg, var))
+        print("for all joints, axis theta avg = %.3f, var = %.3f" % (
+            np.average(axis_angle_theta_lst[i]), np.var(axis_angle_theta_lst[i])))
+
         plt.legend([str(i) for i in st_num])
         plt.xlabel("frame id")
         plt.ylabel("joint axis angle theta")
@@ -129,6 +142,7 @@ def show_axis_norm():
 
         plt.show()
         exit(0)
+
 
 def action_axis_angle_theta_extract(file_lst):
     for file_id, file in enumerate(files):
@@ -139,8 +153,10 @@ def action_axis_angle_theta_extract(file_lst):
             action_lst = json.load(f)["actions"]
         for single_action in action_lst:
             for id, joint_st in enumerate(st_num):
-                joint_axis_angle_theta_lst[id].append(single_action[joint_st-1])
+                joint_axis_angle_theta_lst[id].append(
+                    single_action[joint_st-1])
         return joint_axis_angle_theta_lst
+
 
 def action_axis_angle_digit_extract(file_lst):
     global st_num
@@ -157,6 +173,7 @@ def action_axis_angle_digit_extract(file_lst):
                 joint_axis_digits[id].append(single_action[joint_st + 2])
         return joint_axis_digits
 
+
 def show_axis_per_digit():
     joint_axis_digits = action_axis_angle_digit_extract(files)
     print(len(joint_axis_digits))
@@ -167,9 +184,9 @@ def show_axis_per_digit():
             plt_id = (row - 1) * rows + col
 
             joint_id = plt_id - 1
-            if joint_id  == len(joint_axis_digits):
+            if joint_id == len(joint_axis_digits):
                 break
-            
+
             plt.subplot(rows, cols, plt_id)
             cur_joint_seq = joint_axis_digits[joint_id]
             # print(cur_joint_seq)
@@ -179,14 +196,16 @@ def show_axis_per_digit():
             # plt.plot([ np.linalg.norm(cur_joint_seq[i:i+3]) for i in range(0, len(cur_joint_seq), 3)])
             # plt.legend(["x", "y", "z", "norm"])
             plt.legend(["x", "y", "z"])
-            plt.title("joint %d action axis 3 digits info" % st_num[joint_id], y=1)
+            plt.title("joint %d action axis 3 digits info" %
+                      st_num[joint_id], y=1)
             # plt.xlabel("frame")
             plt.ylabel("val")
             # plt.plot([i for i in range(10)])
     plt.title("show buffer in %s" % origin_path_dir)
     plt.show()
     # for id in range(len(st_num)):
-        
+
+
 def show_theta():
     joint_axis_angle_theta_lst = action_axis_angle_theta_extract(files)
     rows = 4
@@ -196,12 +215,13 @@ def show_theta():
             plt_id = (row - 1) * rows + col
 
             joint_id = plt_id - 1
-            if joint_id  == len(joint_axis_angle_theta_lst):
+            if joint_id == len(joint_axis_angle_theta_lst):
                 break
-        
+
             plt.subplot(rows, cols, plt_id)
             plt.plot(joint_axis_angle_theta_lst[joint_id])
-            plt.title("joint %d action axis angle theta info" % st_num[joint_id], y=0.05)
+            plt.title("joint %d action axis angle theta info" %
+                      st_num[joint_id], y=0.05)
     plt.show()
     return
 

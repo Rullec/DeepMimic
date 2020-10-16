@@ -29,7 +29,8 @@ for var in good_vars_name_shape:
     exp_shape = find(name, exp_vars_name_shape)
 
     if exp_shape is not None:
-        print(f"[tf] good model var {name}, shape {shape} in exp shape {exp_shape}")
+        print(
+            f"[tf] good model var {name}, shape {shape} in exp shape {exp_shape}")
         assert shape == exp_shape
     else:
         print(f"fail to find {name}")

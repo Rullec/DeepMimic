@@ -3,6 +3,7 @@ import copy
 import tensorflow as tf
 from learning.normalizer import Normalizer
 
+
 class TFNormalizer(Normalizer):
     # 正则化器(normalizer)
     def __init__(self, sess, scope, size, groups_ids=None, eps=0.02, clip=np.inf):
@@ -44,19 +45,25 @@ class TFNormalizer(Normalizer):
         # 这个unmormalize大概是: 外面输入一个服从标准高斯分布的数，我把他变化到N(mean, std)里面去
         x = norm_x * self.std_tf + self.mean_tf
         return x
-    
+
     def _build_resource_tf(self):
         # self.xx_tf: not trainable but can be used directly in training.
         # these values will be synced periodly
-        self.count_tf = tf.get_variable(dtype=tf.int32, name='count', initializer=np.array([self.count], dtype=np.int32), trainable=False)
-        self.mean_tf = tf.get_variable(dtype=tf.float32, name='mean', initializer=self.mean.astype(np.float32), trainable=False)
-        self.std_tf = tf.get_variable(dtype=tf.float32, name='std', initializer=self.std.astype(np.float32), trainable=False)
-        
+        self.count_tf = tf.get_variable(dtype=tf.int32, name='count', initializer=np.array([
+                                        self.count], dtype=np.int32), trainable=False)
+        self.mean_tf = tf.get_variable(
+            dtype=tf.float32, name='mean', initializer=self.mean.astype(np.float32), trainable=False)
+        self.std_tf = tf.get_variable(
+            dtype=tf.float32, name='std', initializer=self.std.astype(np.float32), trainable=False)
+
         # self.xx_ph: placeholder counterpoint of self.xx_tf. used to assign some calculated value for self.xx_tf periodly
-        self.count_ph = tf.get_variable(dtype=tf.int32, name='count_ph', shape=[1])
-        self.mean_ph = tf.get_variable(dtype=tf.float32, name='mean_ph', shape=self.mean.shape)
-        self.std_ph = tf.get_variable(dtype=tf.float32, name='std_ph', shape=self.std.shape)
-        
+        self.count_ph = tf.get_variable(
+            dtype=tf.int32, name='count_ph', shape=[1])
+        self.mean_ph = tf.get_variable(
+            dtype=tf.float32, name='mean_ph', shape=self.mean.shape)
+        self.std_ph = tf.get_variable(
+            dtype=tf.float32, name='std_ph', shape=self.std.shape)
+
         self._update_op = tf.group(
             self.count_tf.assign(self.count_ph),
             self.mean_tf.assign(self.mean_ph),

@@ -10,6 +10,7 @@ import subprocess
 #     plt.plot(num)
 #     plt.show()
 
+
 def read_log_file(filename):
     try:
         cont = None
@@ -36,7 +37,7 @@ def read_log_file(filename):
                     time_exp_buffer.clear()
             if line.find("Test_Ret") != -1:
                 test_return.append(float(line.split()[3]))
-            if line.find("Timer") != -1: # get timer
+            if line.find("Timer") != -1:  # get timer
                 time_buffer.append(line.split()[8][:-1])
                 time_exp_buffer.append(line.split()[11])
                 # print(line.split())
@@ -45,7 +46,7 @@ def read_log_file(filename):
         # print(time_exp_count)
         # print((train_return))
         # print((test_return))
-        
+
         return train_return, test_return, time_count, time_exp_count
     #     cmd = "cat %s | grep -i train_return | awk '{print $4}' | grep -v =" % filename
     #     ret = subprocess.getoutput(cmd).split()
@@ -62,25 +63,25 @@ def read_log_file(filename):
 
     #     return ret, times
 
-
     except FileExistsError:
         print("file %s is not exist" % filename)
         return None
 
-if __name__ =="__main__":
+
+if __name__ == "__main__":
     # print("succ")
-    args = sys.argv[1:] # file list
-    
+    args = sys.argv[1:]  # file list
+
     # check file valid
     for filename in args:
-        train, test, time, time_exp= read_log_file(filename)
+        train, test, time, time_exp = read_log_file(filename)
         plt.subplot(1, 2, 1)
-        plt.plot(train, label = filename + " train_ret")
+        plt.plot(train, label=filename + " train_ret")
         # plt.plot(test, label = filename + " test_ret")
         plt.legend()
         plt.subplot(1, 2, 2)
-        plt.plot(time, label = filename + " timer")
-        plt.plot(time_exp, label = filename  + " timer exp")
+        plt.plot(time, label=filename + " timer")
+        plt.plot(time_exp, label=filename + " timer exp")
         plt.legend()
         # plt.legend([filename + " train_ret", filename + " test_ret", filename + " timer", ])
     # plt.legend(args)

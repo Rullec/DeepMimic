@@ -3,6 +3,7 @@ import numpy as np
 from enum import Enum
 from learning.normalizer import Normalizer
 
+
 class Env(ABC):
     '''
         deepmimic中的环境类，就是从这里继承下去的
@@ -17,7 +18,7 @@ class Env(ABC):
         return
 
     @abstractmethod
-    def update(self, timestep): # 更新update函数
+    def update(self, timestep):  # 更新update函数
         pass
 
     @abstractmethod
@@ -39,10 +40,10 @@ class Env(ABC):
     def keyboard(self, key, x, y):  # 键盘信号接受，在ENV类中
         pass
 
-    def mouse_click(self, button, state, x, y): # 鼠标点击
+    def mouse_click(self, button, state, x, y):  # 鼠标点击
         pass
 
-    def mouse_move(self, x, y): # 鼠标移动
+    def mouse_move(self, x, y):  # 鼠标移动
         pass
 
     def reshape(self, w, h):    # 变形，这些都是窗口操作
@@ -57,7 +58,7 @@ class Env(ABC):
     def set_playback_speed(self, speed):    # 设置playback速度?什么意思?
         pass
 
-    def set_updates_per_sec(self, updates_per_sec): # 设置帧率?
+    def set_updates_per_sec(self, updates_per_sec):  # 设置帧率?
         pass
 
     @abstractmethod
@@ -68,11 +69,12 @@ class Env(ABC):
     def get_win_height(self):           # 获取窗口信息
         pass
 
-    def get_num_update_substeps(self):  # 这个什么意思? num update substeps, substeps是什么意思?
+    # 这个什么意思? num update substeps, substeps是什么意思?
+    def get_num_update_substeps(self):
         return 1
 
-
     # rl interface
+
     @abstractmethod
     def is_rl_scene(self):  # rl 环境接口，看来他也没有完全的把环境和算法且分开
         return False
@@ -116,7 +118,7 @@ class Env(ABC):
         :return:
         '''
         pass
-    
+
     @abstractmethod
     def get_action_space(self, agent_id):
         '''
@@ -126,7 +128,7 @@ class Env(ABC):
         :return:
         '''
         pass
-    
+
     @abstractmethod
     def get_state_size(self, agent_id):
         pass

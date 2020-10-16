@@ -1,7 +1,8 @@
 import numpy as np
 import copy
 import os
-import time, datetime
+import time
+import datetime
 
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -70,7 +71,7 @@ class RLAgent(ABC):
                 replay_buffer大小
                 初始采样数
                 输出迭代次数
-                
+
         """
         self.world = world
         self.id = id
@@ -78,7 +79,8 @@ class RLAgent(ABC):
         self._mode = self.Mode.TRAIN
 
         assert self._check_action_space(), Logger.print(
-            "Invalid action space, got {:s}".format(str(self.get_action_space()))
+            "Invalid action space, got {:s}".format(
+                str(self.get_action_space()))
         )
 
         self._enable_training = True
@@ -87,7 +89,8 @@ class RLAgent(ABC):
         self.start_time = time.time()
         self._update_counter = 0
 
-        self.update_period = 1.0  # simulated time (seconds) before each training update
+        # simulated time (seconds) before each training update
+        self.update_period = 1.0
         self.iters_per_update = int(1)
         self.discount = 0.95
         self.mini_batch_size = int(32)
@@ -150,7 +153,7 @@ class RLAgent(ABC):
         info_str += '"ID": {:d},\n "Type": "{:s}",\n "ActionSpace": "{:s}",\n "StateDim": {:d},\n "GoalDim": {:d},\n "ActionDim": {:d}'.format(
             self.id,
             self.NAME,
-            action_space_str[action_space_str.rfind(".") + 1 :],
+            action_space_str[action_space_str.rfind(".") + 1:],
             self.get_state_size(),
             self.get_goal_size(),
             self.get_action_size(),
@@ -399,13 +402,15 @@ class RLAgent(ABC):
             self.mini_batch_size = int(json_data[self.MINI_BATCH_SIZE_KEY])
 
         if self.REPLAY_BUFFER_SIZE_KEY in json_data:
-            self.replay_buffer_size = int(json_data[self.REPLAY_BUFFER_SIZE_KEY])
+            self.replay_buffer_size = int(
+                json_data[self.REPLAY_BUFFER_SIZE_KEY])
 
         if self.INIT_SAMPLES_KEY in json_data:
             self.init_samples = int(json_data[self.INIT_SAMPLES_KEY])
 
         if self.NORMALIZER_SAMPLES_KEY in json_data:
-            self.normalizer_samples = int(json_data[self.NORMALIZER_SAMPLES_KEY])
+            self.normalizer_samples = int(
+                json_data[self.NORMALIZER_SAMPLES_KEY])
 
         if self.OUTPUT_ITERS_KEY in json_data:
             self.output_iters = json_data[self.OUTPUT_ITERS_KEY]
@@ -454,8 +459,10 @@ class RLAgent(ABC):
                     print("Failed to delete %s. Reason: %s" % (file_path, e))
 
         num_procs = MPIUtil.get_num_procs()
-        self._local_mini_batch_size = int(np.ceil(self.mini_batch_size / num_procs))
-        self._local_mini_batch_size = np.maximum(self._local_mini_batch_size, 1)
+        self._local_mini_batch_size = int(
+            np.ceil(self.mini_batch_size / num_procs))
+        self._local_mini_batch_size = np.maximum(
+            self._local_mini_batch_size, 1)
         self.mini_batch_size = self._local_mini_batch_size * num_procs
 
         assert (
@@ -530,7 +537,8 @@ class RLAgent(ABC):
                 os.makedirs(self.path_save_dir)
 
             cur_time_str = (
-                str(datetime.datetime.now()).replace(" ", "_").replace(":", "-")
+                str(datetime.datetime.now()).replace(
+                    " ", "_").replace(":", "-")
             )
             filename = os.path.join(self.path_save_dir, cur_time_str + ".json")
             self.path.save(filename)
@@ -602,7 +610,8 @@ class RLAgent(ABC):
         lerp = float(self._total_sample_count) / self.exp_anneal_samples
 
         lerp = np.clip(lerp, 0.0, 1.0)
-        self.exp_params_curr = self.exp_params_beg.lerp(self.exp_params_end, lerp)
+        self.exp_params_curr = self.exp_params_beg.lerp(
+            self.exp_params_end, lerp)
         return
 
     def _update_test_return(self, path):
@@ -619,7 +628,8 @@ class RLAgent(ABC):
         elif self._mode == self.Mode.TEST:
             self._update_mode_test()
         else:
-            assert False, Logger.print("Unsupported RL agent mode" + str(self._mode))
+            assert False, Logger.print(
+                "Unsupported RL agent mode" + str(self._mode))
         return
 
     def _update_mode_train(self):
@@ -632,7 +642,8 @@ class RLAgent(ABC):
     def _update_mode_test(self):
 
         # if the test_episode is bigger
-        print(f"count {self.test_episode_count} test episodes {self.test_episodes}")
+        print(
+            f"count {self.test_episode_count} test episodes {self.test_episodes}")
         if self.test_episode_count * MPIUtil.get_num_procs() >= self.test_episodes:
             global_return = MPIUtil.reduce_sum(self.test_return)
             global_count = MPIUtil.reduce_sum(self.test_episode_count)
@@ -836,9 +847,11 @@ class RLAgent(ABC):
                     # add these variables to the tabular is necessary
                     self.logger.log_tabular("Iteration", self.iter)
                     self.logger.log_tabular("Wall_Time", wall_time)
-                    self.logger.log_tabular("Samples", self._total_sample_count)
+                    self.logger.log_tabular(
+                        "Samples", self._total_sample_count)
                     self.logger.log_tabular("Train_Return", avg_train_return)
-                    self.logger.log_tabular("Test_Return", self.avg_test_return)
+                    self.logger.log_tabular(
+                        "Test_Return", self.avg_test_return)
                     self.logger.log_tabular("State_Mean", s_mean)
                     self.logger.log_tabular("State_Std", s_std)
                     self.logger.log_tabular("Goal_Mean", g_mean)

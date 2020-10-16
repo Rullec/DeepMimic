@@ -63,7 +63,7 @@ def show(diff_lst, joint_names, dofs, offsets, label, y_lim):
         offset = offsets[joint_id]
         name = joint_names[joint_id]
         dof = dofs[joint_id]
-        joint_col = diff_mat[:, offset : offset + dof]
+        joint_col = diff_mat[:, offset: offset + dof]
 
         plt.subplot(3, 6, joint_id + 1)
         plt.ylim(y_lim)

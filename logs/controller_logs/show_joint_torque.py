@@ -37,14 +37,15 @@ if __name__ == "__main__":
     print("begin to analysis {}".format(file))
 
     cont = []
-    with open(file,"r") as f:
+    with open(file, "r") as f:
         cont = f.readlines()
         cont = [i.strip() for i in cont]
     num = len(id_name_map)
     data_lst = [[] for i in range(num)]
     for i in cont:
         _, id, _, _, a, b, c, d = i.split()
-        data_lst[int(id[:-1])].append(np.linalg.norm(np.array([float(a), float(b), float(c), float(d)])))
+        data_lst[int(
+            id[:-1])].append(np.linalg.norm(np.array([float(a), float(b), float(c), float(d)])))
     # print(data_lst)
 
     plt.rcParams["figure.figsize"] = (20, 10)

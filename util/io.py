@@ -26,4 +26,3 @@ def save_buffer_npz(buffer, file_path, compressed=True):
         np.savez_compressed(file_path, **buffer)
     else:
         np.savez(file_path, **buffer)
-

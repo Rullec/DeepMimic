@@ -114,10 +114,12 @@ def build_joint_map_from_old_skeleton_to_new_skeleton(old_joints, new_joints):
     assert all(
         isinstance(item, Joint) for item in new_joints
     ), "New joints is not Joint"
-    assert all(isinstance(item, Joint) for item in old_joints), "Old joint is not Joint"
+    assert all(isinstance(item, Joint)
+               for item in old_joints), "Old joint is not Joint"
 
     for new_joint in new_joints:
-        old_joint_id = find_joint_by_name(new_joint.get_joint_name(), old_joints)
+        old_joint_id = find_joint_by_name(
+            new_joint.get_joint_name(), old_joints)
         joint_id_map[new_joint.get_joint_id()] = old_joint_id
     return joint_id_map
 
@@ -145,7 +147,7 @@ def convert_one_frame(old_frame, joint_map, old_joint_array, new_joint_array):
         #     f"new joint {new_joint_id} offset {new_joint_offset}, old joint {old_joint_id} offset {old_joint_offset}"
         # )
 
-        new_frame += old_frame[old_joint_offset : old_joint_offset + old_joint_dof]
+        new_frame += old_frame[old_joint_offset: old_joint_offset + old_joint_dof]
     return new_frame
     # print(f"new frame {new_frame}")
 
@@ -172,4 +174,3 @@ if __name__ == "__main__":
     #         json.dump(new_motion_json, f_new, indent=4)
     #         print(f" write new json to {new_motion_path}")
     #     # open(new_motion_path, "w") as f_new
-

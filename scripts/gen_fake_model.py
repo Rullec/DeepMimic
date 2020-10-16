@@ -1,9 +1,9 @@
+import learning.nets.net_builder as NetBuilder
+from learning.tf_normalizer import TFNormalizer
+import tensorflow as tf
 import sys
 import numpy as np
 sys.path.append("..")
-import tensorflow as tf
-from learning.tf_normalizer import TFNormalizer
-import learning.nets.net_builder as NetBuilder
 
 
 class DIYAgent:
@@ -54,7 +54,8 @@ class DIYAgent:
 
     def _get_saver_vars(self):
         with self.sess.as_default(), self.graph.as_default():
-            vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.tf_scope)
+            vars = tf.get_collection(
+                tf.GraphKeys.GLOBAL_VARIABLES, scope=self.tf_scope)
             assert len(vars) > 0
         return vars
 

@@ -165,7 +165,8 @@ class TFAgent(RLAgent):
                 )
 
                 # 初始化action normalizer
-                self.a_norm = TFNormalizer(self.sess, "a_norm", self.get_action_size())
+                self.a_norm = TFNormalizer(
+                    self.sess, "a_norm", self.get_action_size())
 
                 # set mean and std for actions
                 # mean = - offset, mean that action is around [mean], but offset means that action + offset = 0
@@ -202,8 +203,10 @@ class TFAgent(RLAgent):
 
     def _get_saver_vars(self):
         with self.sess.as_default(), self.graph.as_default():
-            vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.tf_scope)
-            vars = [v for v in vars if "/" + self.SOLVER_SCOPE + "/" not in v.name]
+            vars = tf.get_collection(
+                tf.GraphKeys.GLOBAL_VARIABLES, scope=self.tf_scope)
+            vars = [v for v in vars if "/" +
+                    self.SOLVER_SCOPE + "/" not in v.name]
             assert len(vars) > 0
         return vars
 

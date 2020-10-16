@@ -69,7 +69,8 @@ class Normalizer(object):
         if new_count > 0:
             # Calculate new mean, and new mean_sq
             new_mean = self._process_group_data(new_sum / new_count, self.mean)
-            new_mean_sq = self._process_group_data(new_sum_sq / new_count, self.mean_sq)
+            new_mean_sq = self._process_group_data(
+                new_sum_sq / new_count, self.mean_sq)
 
             # calculate new mean and new mean_sq by weighting
             w_old = float(self.count) / new_total

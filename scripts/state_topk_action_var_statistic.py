@@ -13,12 +13,15 @@ import torch
 logger = logging.getLogger("state_action_statistic")
 logger.setLevel(logging.DEBUG)
 a = logging.StreamHandler()
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 a.setFormatter(formatter)
 logger.addHandler(a)
 
 cwd = "../"
 # get the state and action of paths
+
+
 def get_paths(data_dir: str):
     assert os.path.exists(data_dir), f"{data_dir} doesn't exist"
     state_npz_path = os.path.join(data_dir, "states.npz")
@@ -30,7 +33,8 @@ def get_paths(data_dir: str):
     state_data = dict(np.load(state_npz_path, "r"))["s"].astype(np.float32)
     action_data = dict(np.load(action_npz_path, "r"))["a"].astype(np.float32)
 
-    logger.info(f"load state data from {state_npz_path} succ, nums {state_data.shape}")
+    logger.info(
+        f"load state data from {state_npz_path} succ, nums {state_data.shape}")
 
     logger.info(
         f"load action data from {action_npz_path} succ, nums {action_data.shape}"
@@ -45,17 +49,21 @@ def get_train_data(table_path: str):
 
     ID_traindata_dir = os.path.join(cwd, root_json["ID_traindata_dir"])
 
-    assert os.path.exists(ID_traindata_dir), f"{ID_traindata_dir} doesn't exist"
+    assert os.path.exists(
+        ID_traindata_dir), f"{ID_traindata_dir} doesn't exist"
     state_npz_path = os.path.join(ID_traindata_dir, "states.npz")
     action_npz_path = os.path.join(ID_traindata_dir, "actions.npz")
 
     assert os.path.exists(state_npz_path), f"{state_npz_path} doesn't exist"
     assert os.path.exists(action_npz_path), f"{action_npz_path} doesn't exist"
 
-    state_data = np.array(dict(np.load(state_npz_path, "r"))["s"], dtype=np.float32)
-    action_data = np.array(dict(np.load(action_npz_path, "r"))["a"], dtype=np.float32)
+    state_data = np.array(dict(np.load(state_npz_path, "r"))[
+                          "s"], dtype=np.float32)
+    action_data = np.array(dict(np.load(action_npz_path, "r"))[
+                           "a"], dtype=np.float32)
 
-    logger.info(f"load state data from {state_npz_path} succ, nums {state_data.shape}")
+    logger.info(
+        f"load state data from {state_npz_path} succ, nums {state_data.shape}")
 
     logger.info(
         f"load action data from {action_npz_path} succ, nums {action_data.shape}"
@@ -67,7 +75,6 @@ traj_summary_path = (
     "/home/xudong/Projects/DeepMimic/data/id_test/solved_legs/summary_legs.json"
 )
 path_dir_path = "/home/xudong/Projects/DeepMimic/data/path_legs"
-
 
 
 # 1. load all of the train data
@@ -153,7 +160,7 @@ def EuclideanDistances_block(state):
         for j in range(split):
             j_size = state_array[j].shape[0]
             final_res[
-                i_st : i_st + i_size, j_st : j_st + j_size
+                i_st: i_st + i_size, j_st: j_st + j_size
             ] = EuclideanDistances_torch(state_array[i], state_array[j])
             j_st += state_array[j].shape[0]
         print(f"split {i} segment calculated done")
@@ -221,11 +228,12 @@ traj_distance = EuclideanDistances_block(traj_state)
 # print(np.argpartition(test, 4)[:4])
 # print(test[np.argpartition(test, 4)[:4]])
 K = 10
-path_idx_array, path_dist_array = find_top_nearest_k(K, path_state, path_distance)
-traj_idx_array, traj_dist_array = find_top_nearest_k(K, traj_state, traj_distance)
+path_idx_array, path_dist_array = find_top_nearest_k(
+    K, path_state, path_distance)
+traj_idx_array, traj_dist_array = find_top_nearest_k(
+    K, traj_state, traj_distance)
 
 # 1. draw path
-import matplotlib.pyplot as plt
 
 # print(traj_action.shape[1])
 
@@ -285,4 +293,3 @@ plt.show()
 #     f"path std {np.sum([np.std(path_action[i]) for i in path_idx_array], axis=1) / len(path_idx_array)}"
 # )
 # print(np.sum([np.std(traj_action[i]) for i in traj_idx_array], axis=1) / len(traj_idx_array)
-

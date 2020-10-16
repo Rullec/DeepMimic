@@ -4,6 +4,7 @@ import learning.tf_util as TFUtil
 from learning.rl_agent import RLAgent
 from util.logger import Logger
 
+
 class RLWorld(object):
     def __init__(self, env, arg_parser):
         TFUtil.disable_gpu()
@@ -12,21 +13,22 @@ class RLWorld(object):
         self.arg_parser = arg_parser
         self._enable_training = True
         self.train_agents = []
-        self.parse_args(arg_parser) # 解析参数，主要解释num_agent, agent的个数。
+        self.parse_args(arg_parser)  # 解析参数，主要解释num_agent, agent的个数。
 
         self.build_agents()
-        
+
         return
 
     def get_enable_training(self):
         return self._enable_training
-    
+
     def set_enable_training(self, enable):
         self._enable_training = enable
         for i in range(len(self.agents)):
             curr_agent = self.agents[i]
             if curr_agent is not None:
-                enable_curr_train = self.train_agents[i] if (len(self.train_agents) > 0) else True
+                enable_curr_train = self.train_agents[i] if (
+                    len(self.train_agents) > 0) else True
                 curr_agent.enable_training = self.enable_training and enable_curr_train
 
         if (self._enable_training):
@@ -37,12 +39,13 @@ class RLWorld(object):
         return
 
     enable_training = property(get_enable_training, set_enable_training)
-    
+
     def parse_args(self, arg_parser):
         self.train_agents = self.arg_parser.parse_bools('train_agents')
         num_agents = self.env.get_num_agents()
         # agent 个数和 worker个数不一样，一个agent代表训练一个策略;而多个worker只是用来增加采样数的
-        assert(len(self.train_agents) == num_agents or len(self.train_agents) == 0)
+        assert(len(self.train_agents) ==
+               num_agents or len(self.train_agents) == 0)
 
         return
 
@@ -76,7 +79,8 @@ class RLWorld(object):
         int_output_path = self.arg_parser.parse_string('int_output_path')
         buffer_path = self.arg_parser.parse_string('buffer_save_path')
         buffer_type = self.arg_parser.parse_string('buffer_save_type')
-        buffer_keys_save_path = self.arg_parser.parse_string('buffer_keys_save_path')
+        buffer_keys_save_path = self.arg_parser.parse_string(
+            'buffer_keys_save_path')
 
         # agent只有一个, worker可以有很多个。多个worker只是用来充分利用资源扩大采样而已。
         for i in range(num_agents):
@@ -157,6 +161,7 @@ class RLWorld(object):
             agent = None
         else:
             agent = AgentBuilder.build_agent(self, id, agent_file)
-            assert (agent != None), 'Failed to build agent {:d} from: {}'.format(id, agent_file)
+            assert (agent != None), 'Failed to build agent {:d} from: {}'.format(
+                id, agent_file)
 
         return agent

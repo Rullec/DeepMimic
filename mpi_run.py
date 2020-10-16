@@ -11,6 +11,8 @@ from multiprocessing import cpu_count
 1. worker数量对应的是什么概念?
 
 '''
+
+
 def main():
     # Command line argument
     args = sys.argv[1:]
@@ -20,7 +22,8 @@ def main():
 
     default_num = cpu_count()
     print("default workers num = %d" % default_num)
-    num_workers = arg_parser.parse_int('num_workers', default_num)    # mpiexec中并行几个进程?
+    num_workers = arg_parser.parse_int(
+        'num_workers', default_num)    # mpiexec中并行几个进程?
     assert(num_workers > 0)
     print(f"final workers num = {num_workers}")
     # exit(1)
@@ -31,6 +34,7 @@ def main():
 
     # subprocess.call(cmd, shell=True)
     return
+
 
 if __name__ == '__main__':
     # print("参数是:  %s " % str(sys.argv[1:]))
