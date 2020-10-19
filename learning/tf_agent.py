@@ -152,7 +152,6 @@ class TFAgent(RLAgent):
                     -self.world.env.build_state_offset(self.id),
                     1 / self.world.env.build_state_scale(self.id),
                 )
-
                 self.g_norm = TFNormalizer(
                     self.sess,
                     "g_norm",

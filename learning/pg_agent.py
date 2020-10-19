@@ -100,9 +100,11 @@ class PGAgent(TFAgent):
         with self.sess.as_default(), self.graph.as_default(), tf.variable_scope(self.tf_scope):
             with tf.variable_scope(self.RESOURCE_SCOPE):
                 val_offset, val_scale = self._calc_val_offset_scale(
-                    self.discount)
+                    self.discount)# -10, 0.1
                 self.val_norm = TFNormalizer(self.sess, 'val_norm', 1)
-                self.val_norm.set_mean_std(-val_offset, 1.0 / val_scale)
+                self.val_norm.set_mean_std(-val_offset, 1.0 / val_scale) # 10, 10
+                # print(f"val norm set mean {-val_offset} std {1.0 / val_scale}")
+                # exit(0)
         return
 
     def _init_normalizers(self):
@@ -114,6 +116,15 @@ class PGAgent(TFAgent):
     def _load_normalizers(self):
         super()._load_normalizers()
         self.val_norm.load()
+        # here print the value of s, a, val, g normalizer
+        lst = {"state": self.s_norm, "action": self.a_norm,
+               "val": self.val_norm, "goal": self.g_norm}
+
+        for key in lst:
+            norm = lst[key]
+            np.set_printoptions(suppress=True)
+            print(f"{key} normalizer \nmean {norm.mean}\nstd {norm.std}")
+
         return
 
     def _build_losses(self, json_data):

@@ -367,7 +367,6 @@ class RLAgent(ABC):
             -self.world.env.build_state_offset(self.id),
             1 / self.world.env.build_state_scale(self.id),
         )
-
         self.g_norm = Normalizer(
             self.get_goal_size(), self.world.env.build_goal_norm_groups(self.id)
         )
@@ -697,13 +696,16 @@ class RLAgent(ABC):
         return val_min, val_max
 
     def _calc_val_offset_scale(self, discount):
-        val_min, val_max = self._calc_val_bounds(discount)
+        val_min, val_max = self._calc_val_bounds(
+            discount)  # min : 0, max : 20 - 100
         val_offset = 0
         val_scale = 1
 
+        # if both the min value and max value is finite (not inf and not nan)
+        # we needs to calculate the offset and scale
         if np.isfinite(val_min) and np.isfinite(val_max):
-            val_offset = -0.5 * (val_max + val_min)
-            val_scale = 2 / (val_max - val_min)
+            val_offset = -0.5 * (val_max + val_min)  # offset 10 - 50
+            val_scale = 2 / (val_max - val_min)  # scale: 0.1  - 0.02
 
         return val_offset, val_scale
 
