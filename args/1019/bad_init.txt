@@ -7,8 +7,7 @@
 --time_end_lim_min 20
 --time_end_lim_max 20
 --time_end_lim_exp 10
-# --anneal_samples 32000000
---anneal_samples 48000000
+--anneal_samples 32000000
 --use_revolute_axis_in_deepmimic_style false
 
 --num_update_substeps 10

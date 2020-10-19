@@ -1,13 +1,13 @@
 {
 	"AgentType": "PPO",
 
-	"ActorNet": "fc_2layers_512_256",
+	"ActorNet": "fc_2layers_128_64",
 	"ActorStepsize": 0.0000025,
 	"ActorMomentum": 0.9,
 	"ActorWeightDecay": 0.0005,
 	"ActorInitOutputScale": 0.01,
 
-	"CriticNet": "fc_2layers_512_256",
+	"CriticNet": "fc_2layers_128_64",
 	"CriticStepsize": 0.01,
 	"CriticMomentum": 0.9,
 	"CriticWeightDecay": 0,
@@ -49,7 +49,7 @@
 		"Temp": 0.001
 	},
 
-	"EnableSavePath": false,
+	"EnableSavePath": true,
 	"PathSaveDir": "./data/path_legs/",
 	"EnableClearPath" : false
 }
