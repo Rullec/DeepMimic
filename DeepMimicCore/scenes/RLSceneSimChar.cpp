@@ -1,11 +1,13 @@
 ﻿#include "RLSceneSimChar.h"
 #include "sim/Controller/CtController.h"
+#include "util/LogUtil.h"
 #include <iostream>
 
 cRLSceneSimChar::cRLSceneSimChar()
 {
     mEnableFallEnd = true;
     mAnnealSamples = gInvalidIdx;
+    mAnnealPow = 4;
 }
 
 cRLSceneSimChar::~cRLSceneSimChar() {}
@@ -17,7 +19,9 @@ void cRLSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
 
     parser->ParseBool("enable_fall_end", mEnableFallEnd);
     parser->ParseInt("anneal_samples", mAnnealSamples);
-
+    parser->ParseDouble("anneal_pow", mAnnealPow);
+    MIMIC_INFO("set anneal pow {}", mAnnealPow);
+    
     mTimerParamsEnd = mTimerParams;
     mArgParser->ParseDouble("time_end_lim_min", mTimerParamsEnd.mTimeMin);
     mArgParser->ParseDouble("time_end_lim_max", mTimerParamsEnd.mTimeMax);
@@ -349,7 +353,8 @@ void cRLSceneSimChar::RegisterAgent(
 
 void cRLSceneSimChar::RegisterAgent(
     const std::shared_ptr<cCharController> &ctrl,
-    const std::shared_ptr<cSimCharacterBase> &character, std::vector<int> &out_ids)
+    const std::shared_ptr<cSimCharacterBase> &character,
+    std::vector<int> &out_ids)
 {
     if (ctrl != nullptr)
     {
@@ -369,7 +374,7 @@ void cRLSceneSimChar::SetupTimerAnnealer(cAnnealer &out_annealer) const
 {
     cAnnealer::tParams params;
     params.mType = cAnnealer::eTypePow;
-    params.mPow = 4.0;
+    params.mPow = mAnnealPow;
     out_annealer.Init(params);
 }
 

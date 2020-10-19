@@ -67,6 +67,7 @@ protected:
     cTimer::tParams mTimerParamsEnd;    // save the "end" time parameters in the config
     cAnnealer mTimerAnnealer;
     int mAnnealSamples;
+    double mAnnealPow;
 
     virtual void ResetParams();
     virtual void ResetScene();
