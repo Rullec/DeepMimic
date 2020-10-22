@@ -601,8 +601,10 @@ class PPOAgent(PGAgent):
             feed,
         )
 
-        # print("ratio = %s " % str(ratio_all))
-        # print("logp = %s " % str(log_p_new))
+        # print("ratio(old_prob/new_prob) = %s " % str(ratio_all))
+        # print("ratio clip = %s " % str(self.ratio_clip))
+        # print("clip frac(exceed prohibited) = %s " % str(clip_frac))
+        # print("new logp = %s " % str(log_p_new))
         assert np.isfinite(ratio_all).all() == True
         assert np.isfinite(log_p_new).all() == True
 

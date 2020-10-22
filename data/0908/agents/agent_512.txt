@@ -22,6 +22,7 @@
 	"InitSamples": 1,
 	"NormalizerSamples": 1000000,
 
+	"TarClipFrac" : 0.1,
 	"RatioClip": 0.2,
 	"NormAdvClip": 4,
 	"TDLambda": 0.95,

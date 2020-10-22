@@ -100,9 +100,10 @@ class PGAgent(TFAgent):
         with self.sess.as_default(), self.graph.as_default(), tf.variable_scope(self.tf_scope):
             with tf.variable_scope(self.RESOURCE_SCOPE):
                 val_offset, val_scale = self._calc_val_offset_scale(
-                    self.discount)# -10, 0.1
+                    self.discount)  # -10, 0.1
                 self.val_norm = TFNormalizer(self.sess, 'val_norm', 1)
-                self.val_norm.set_mean_std(-val_offset, 1.0 / val_scale) # 10, 10
+                self.val_norm.set_mean_std(-val_offset,
+                                           1.0 / val_scale)  # 10, 10
                 # print(f"val norm set mean {-val_offset} std {1.0 / val_scale}")
                 # exit(0)
         return
@@ -407,8 +408,10 @@ class PGAgent(TFAgent):
         return logp
 
     def _log_val(self, s, g):
+        assert False, "log value network is temporarily prohibited"
         val = self._eval_critic(s, g)
         norm_val = self.val_norm.normalize(val)
+        print(f"critic raw val = {val}, normed = {norm_val}")
         self.world.env.log_val(self.id, norm_val[0])
         return
 

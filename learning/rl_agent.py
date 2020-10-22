@@ -488,7 +488,6 @@ class RLAgent(ABC):
 
     def _record_reward(self):
         r = self.world.env.calc_reward(self.id)
-        # print(f"reward {r}")
         return r
 
     # def _record_contact_info(self):
@@ -515,7 +514,6 @@ class RLAgent(ABC):
         # p = self._record_pose()
         g = self._record_goal()
         r = self._record_reward()
-
         # print("[rl agent] end path, r = {}\n".format(r))
         self.path.rewards.append(r)
         self.path.states.append(s)
@@ -543,6 +541,10 @@ class RLAgent(ABC):
             self.path.save(filename)
         return
 
+    def log_reward(self, r):
+        print(f"log reward {r}")
+        self.world.env.log_val(self.id, r)
+
     def _update_new_action(self):
         """
             when the agent need a new action, this function will be called.
@@ -561,6 +563,9 @@ class RLAgent(ABC):
             r = self._record_reward()
             # print("reward : " + str(r))
             self.path.rewards.append(r)
+
+            if self._enable_draw():
+                self.log_reward(r)
             try:
                 assert np.isfinite(r).all() == True
             except:
@@ -600,8 +605,8 @@ class RLAgent(ABC):
         self.path.flags.append(flags)
         self.path.action_mean.append(a_mean)
 
-        if self._enable_draw():
-            self._log_val(s, g)
+        # if self._enable_draw():
+        #     self._log_val(s, g)
 
         return
 

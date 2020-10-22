@@ -46,7 +46,7 @@
 --enable_pdtarget_solve_test false
 
 --agent_files data/0908/agents/agent_512.txt
---train_agents false
+--train_agents true
 
 --output_path output/debug_tar_clip
 --model_files output/supervised/traj_models/mimic_pg_net.ckpt-300
