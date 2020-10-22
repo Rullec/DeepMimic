@@ -49,7 +49,7 @@
 		"Temp": 0.001
 	},
 
-	"EnableSavePath": false,
+	"EnableSavePath": true,
 	"PathSaveDir": "./data/path_legs/",
-	"EnableClearPath" : false
+	"EnableClearPath" : true
 }
