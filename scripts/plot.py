@@ -27,6 +27,9 @@ def read_log_file(filename):
         clip_frac_buffer = []
         actor_loss = []
         critic_loss = []
+        lr = []
+        sample_count = []
+
         for line in cont:
             if line.find("Train_Ret") != -1:
                 try:
@@ -50,6 +53,10 @@ def read_log_file(filename):
                 actor_loss.append(float(line.split()[3]))
             if line.find("Critic_Loss") != -1:  # get timer
                 critic_loss.append(float(line.split()[3]))
+            if line.find("Samples |") != -1:  # sample count
+                sample_count.append(float(line.split()[3])/1e4)
+            if line.find("Actor_Stepsize") != -1:  # learning rate (actor)
+                lr.append(float(line.split()[3]))
                 # print(line.split())
                 # print(time)
         # print((time_count))
@@ -57,7 +64,7 @@ def read_log_file(filename):
         # print((train_return))
         # print((test_return))
 
-        return train_return, test_return, time_count, time_exp_count, clip_frac_buffer, actor_loss, critic_loss
+        return train_return, test_return, time_count, time_exp_count, clip_frac_buffer, actor_loss, critic_loss, sample_count, lr
     #     cmd = "cat %s | grep -i train_return | awk '{print $4}' | grep -v =" % filename
     #     ret = subprocess.getoutput(cmd).split()
     #     ret = [float(i) for i in ret]
@@ -92,30 +99,43 @@ if __name__ == "__main__":
 
     # check file valid
     for filename in args:
-        train, test, time, time_exp, clip_frac, actor_loss, critic_loss = read_log_file(filename)
-        plt.subplot(2, 3, 1)
-        plt.plot(train, label=filename + " train_ret")
-        plt.plot(test, label=filename + " test_ret")
+        train, test, time, time_exp, clip_frac, actor_loss, critic_loss, sample_count, learning_rate = read_log_file(
+            filename)
+        plt.subplot(3, 3, 1)
+        plt.plot(train, label="train")
+        plt.plot(test, label="test")
         plt.title("return")
         plt.legend()
-        plt.subplot(2, 3, 2)
-        plt.plot(time, label=filename + " timer")
-        plt.plot(time_exp, label=filename + " timer exp")
+        plt.subplot(3, 3, 2)
+        plt.plot(time, label="time")
+        plt.plot(time_exp, label="exp")
         plt.title("time")
         plt.legend()
         avg_train_ret_lst = cal_avg_ret(train, time)
-        plt.subplot(2, 3, 3)
+        plt.subplot(3, 3, 3)
         plt.plot(avg_train_ret_lst)
         plt.title("avg train ret")
-        plt.subplot(2, 3, 4)
+        plt.subplot(3, 3, 4)
         plt.plot(clip_frac)
         plt.title("clip fraction")
-        plt.subplot(2, 3, 5)
-        plt.plot(actor_loss, label="actor loss")
-        plt.legend()
-        plt.subplot(2, 3, 6)
-        plt.plot(critic_loss, label="critic loss")
-        plt.legend()
-        # plt.legend([filename + " train_ret", filename + " test_ret", filename + " timer", ])
-    # plt.legend(args)
+        plt.subplot(3, 3, 5)
+        plt.plot(actor_loss)
+        plt.title("actor_loss")
+        plt.subplot(3, 3, 6)
+        plt.plot(critic_loss)
+        plt.title("critic_loss")
+
+        plt.subplot(3, 3, 7)
+        plt.plot(learning_rate)
+        plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+        plt.title("actor_lr")
+
+    
+        plt.subplot(3, 3, 8)
+        plt.plot(sample_count)
+        plt.title("sample_counts")
+
+        plt.suptitle(filename)
+
+    plt.tight_layout()
     plt.show()
