@@ -48,5 +48,5 @@
 --agent_files data/0908/agents/agent_512.txt
 --train_agents true
 
---output_path output/param_search/1_24
+--output_path output/param_search_path_init/1_24
 --model_files output/supervised/path_models/mimic_pg_net.ckpt-500
