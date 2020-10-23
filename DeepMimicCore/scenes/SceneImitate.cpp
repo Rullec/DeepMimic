@@ -948,21 +948,18 @@ double cSceneImitate::CalcRewardImitateFeatherstone(
         exp(-err_scale * vel_scale * vel_err); // joints的速度(实际 - 理想)^2
     double end_eff_reward =
         exp(-err_scale * end_eff_scale * end_eff_err); // end_effector位置误差^2
-    double root_reward = exp(
-        -err_scale * root_scale *
-        root_err); // root
-                   // joint的(位置误差+0.1线速度误差+0.01朝向误差+0.001角速度)^2
-    double com_reward = exp(
-        -err_scale * com_scale *
-        com_err); // 0.1 * (质心速度误差)^2
-                  //    std::cout << "===================================\n";
-                  //    std::cout << "pose_reward:    " << pose_reward << "\n"
-                  //              << "vel_reward:     " << vel_reward << "\n"
-                  //              << "end_eff_reward: " << end_eff_reward <<
-                  //              "\n"
-                  //              << "root_reward:    " << root_reward << "\n"
-                  //              << "com_reward:     " << com_reward << "\n";
-                  //    std::cout << "===================================\n";
+    double root_reward = exp(-err_scale * root_scale * root_err); // root
+        // joint的(位置误差+0.1线速度误差+0.01朝向误差+0.001角速度)^2
+    double com_reward =
+        exp(-err_scale * com_scale * com_err); // 0.1 * (质心速度误差)^2
+    //    std::cout << "===================================\n";
+    //    std::cout << "pose_reward:    " << pose_reward << "\n"
+    //              << "vel_reward:     " << vel_reward << "\n"
+    //              << "end_eff_reward: " << end_eff_reward <<
+    //              "\n"
+    //              << "root_reward:    " << root_reward << "\n"
+    //              << "com_reward:     " << com_reward << "\n";
+    //    std::cout << "===================================\n";
 
     /*
     double pose_w = 0.5;
@@ -1202,10 +1199,8 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
         exp(-err_scale * vel_scale * vel_err); // joints的速度(实际 - 理想)^2
     double end_eff_reward =
         exp(-err_scale * end_eff_scale * end_eff_err); // end_effector位置误差^2
-    double root_reward = exp(
-        -err_scale * root_scale *
-        root_err); // root
-                   // joint的(位置误差+0.1线速度误差+0.01朝向误差+0.001角速度)^2
+    double root_reward = exp(-err_scale * root_scale * root_err); // root
+        // joint的(位置误差+0.1线速度误差+0.01朝向误差+0.001角速度)^2
     double com_reward = exp(-err_scale * com_scale * com_err);
     reward = pose_w * pose_reward + vel_w * vel_reward +
              end_eff_w * end_eff_reward + root_w * root_reward +

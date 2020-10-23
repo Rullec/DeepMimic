@@ -1,10 +1,12 @@
 import tensorflow as tf
 import pickle as pl
 import numpy as np
+from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
+import os
 
-good_model = "/home/xudong/Projects/DeepMimic/output/1009/exp/agent0_model_2020_10_12_14_13_01_11.40.ckpt"
+good_model = "/home/xudong/Projects/SupervisedRL/output/legs_paths_mimic/model/mimic_pg_net.ckpt-150"
 
-exp_model = "hello"
+exp_model = "/home/xudong/Projects/DeepMimic/output/1009/exp/agent0_model_2020_10_12_14_13_01_11.40.ckpt"
 # pickle_model = "/home/xudong/Projects/DeepMimic/output/1009/exp/agent0_model_2020_10_12_14_13_01_11.40.ckpt.weight"
 
 
@@ -14,6 +16,8 @@ exp_model = "hello"
 good_vars_name_shape = tf.train.list_variables(good_model)
 exp_vars_name_shape = tf.train.list_variables(exp_model)
 
+all_vars = tf.global_variables()
+
 
 def find(name, name_shape_list):
     for i in name_shape_list:
@@ -21,6 +25,11 @@ def find(name, name_shape_list):
             return i[1]
     return None
 
+
+print_tensors_in_checkpoint_file(
+    file_name=good_model, tensor_name="agent/resource/a_norm/count", all_tensors=False)
+print_tensors_in_checkpoint_file(
+    file_name=good_model, tensor_name="agent/resource/a_norm/mean", all_tensors=False)
 
 for var in good_vars_name_shape:
     name = var[0]

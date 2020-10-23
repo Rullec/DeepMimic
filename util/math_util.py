@@ -16,7 +16,7 @@ def log_lerp(x, y, t):
 def flatten(arr_list):
     return np.concatenate([np.reshape(a, [-1]) for a in arr_list], axis=0)
 
-
+# P(1) = p(the prob to get 1) , P(0) = 1-p(the prob to get 0)
 def flip_coin(p):
     rand_num = np.random.binomial(1, p, 1)
     return rand_num[0] == 1

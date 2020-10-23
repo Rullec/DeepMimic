@@ -149,20 +149,26 @@ class PPOAgent(PGAgent):
         if self.critic_tf != None:
             Logger.print("Built critic sa: " + critic_net_name)
 
-        # 本网络输出的action所服从的高斯分布的标准差在这里: 是一个噪音乘以全１向量(只是为了扩展维度)
+        # normalized action std = N(0, 0.05)
         self.norm_a_std_tf = self.exp_params_curr.noise * tf.ones(a_size)
 
         norm_a_noise_tf = self.norm_a_std_tf * tf.random_normal(
             shape=tf.shape(self.a_mean_tf)
         )
+
+        # normalized action std = N(0, 0.05) * exp_mask
         norm_a_noise_tf *= tf.expand_dims(self.exp_mask_tf, axis=-1)
         self.norm_a_noise_tf = norm_a_noise_tf
+        
+        # action = a_mean + N(0, 0.05) * exp_mask * action_normalizer_std
         self.sample_a_tf = (
             self.a_mean_tf + norm_a_noise_tf * self.a_norm.std_tf
-        )  # action采样输出, 是mean ->无穷的值 + 噪音
+        )
+
+        # P(action) = P(x = N(0, 0.05) * mask, mean = 0, std = N(0, 0.05))
         self.sample_a_logp_tf = TFUtil.calc_logp_gaussian(
             x_tf=norm_a_noise_tf, mean_tf=None, std_tf=self.norm_a_std_tf
-        )  # 他对应的当前概率是这个
+        )
 
         return
 
@@ -288,20 +294,13 @@ class PPOAgent(PGAgent):
         return
 
     def _decide_action(self, s, g):
-        """
-
-            这个函数会做网络前馈, 得到action
-        :param s:
-        :param g:
-        :return:
-        """
-        # print("decide action")
         assert np.isfinite(s).all() == True
 
         with self.sess.as_default(), self.graph.as_default():
             self._exp_action = self._enable_stoch_policy() and MathUtil.flip_coin(
                 self.exp_params_curr.rate
             )
+            # print(f"[decide action] exp_action_mask = {self._exp_action}")
             a, logp, a_mean = self._eval_actor(s, g, self._exp_action)
         return a[0], logp[0], a_mean[0]
 

@@ -7,7 +7,7 @@
 --time_end_lim_min 20
 --time_end_lim_max 20
 --time_end_lim_exp 5
---anneal_samples 16000000
+--anneal_samples 32000000
 --anneal_pow 4
 --use_revolute_axis_in_deepmimic_style false
 
@@ -48,5 +48,5 @@
 --agent_files data/0908/agents/agent_512.txt
 --train_agents true
 
---output_path output/debug_tar_clip
---model_files output/supervised/traj_models/mimic_pg_net.ckpt-300
+--output_path output/debug_test_mode/
+--model_files supervised_output/legs_paths_mimic/model/mimic_pg_net.ckpt-1200

@@ -111,8 +111,8 @@ class RLAgent(ABC):
         self._buffer_keys_save_path = None
         self._save_buffer = False
         self._buffer_save_type = self.BufferSaveType.BUFFER_NONE
-        self.output_iters = 100
-        self.int_output_iters = 100
+        self.output_iters = 100     # save model per output_iter
+        self.int_output_iters = 100  # test model per int_output_iters
         """
             train return    训练的return?
             test episode    测试用几个episode?
@@ -234,6 +234,7 @@ class RLAgent(ABC):
         :param timestep:
         :return:
         """
+        # print(f"[update] self_mode {self._mode} dt {timestep}")
         # 每一个agent手里面都有world的拷贝, 从world判断是否需要新的action
         if self.need_new_action():
             self._update_new_action()
@@ -542,7 +543,6 @@ class RLAgent(ABC):
         return
 
     def log_reward(self, r):
-        print(f"log reward {r}")
         self.world.env.log_val(self.id, r)
 
     def _update_new_action(self):
@@ -577,6 +577,10 @@ class RLAgent(ABC):
             print("some state is Nan!, s = %s" % str(s))
 
         a, logp, a_mean = self._decide_action(s=s, g=g)
+        # diff = (a - a_mean)
+        # print(f"action diff = {np.linalg.norm(diff)}")
+        # print(
+        #     f"[check] state norm {np.linalg.norm(s)} action_mean norm {np.linalg.norm(a_mean)} action norm {np.linalg.norm(a)}")
         assert len(np.shape(a)) == 1
         assert len(np.shape(logp)) <= 1
 
@@ -625,6 +629,8 @@ class RLAgent(ABC):
         return
 
     def _update_mode(self):
+        pre_mode = self._mode
+        # print(f"begin to update mode, now mode {self._mode}")
         if self._mode == self.Mode.TRAIN:
             self._update_mode_train()
         elif self._mode == self.Mode.TRAIN_END:
@@ -634,6 +640,8 @@ class RLAgent(ABC):
         else:
             assert False, Logger.print(
                 "Unsupported RL agent mode" + str(self._mode))
+        if pre_mode != self._mode:
+            print(f"[mode] mode update from {pre_mode} to {self._mode}")
         return
 
     def _update_mode_train(self):
@@ -655,6 +663,8 @@ class RLAgent(ABC):
             self.avg_test_return = avg_return
 
             if self.enable_training:
+                # print(
+                #     f"current test episode {self.test_episode_count} * proc_num {MPIUtil.get_num_procs()} >= {self.test_episodes}, convert to train mode")
                 self._init_mode_train()
 
             # if we want to save buffer in test mode
@@ -883,6 +893,8 @@ class RLAgent(ABC):
                     prev_iter // self.int_output_iters
                     != self.iter // self.int_output_iters
                 ):
+                    # print(
+                    #     f"[mode_possible] replay buffer inited, and now iter {self.iter} is time to do test")
                     end_training = self.enable_testing()
 
         else:
@@ -897,19 +909,42 @@ class RLAgent(ABC):
             # or the buffer is empty
             if self._total_sample_count >= self.init_samples:
                 self.replay_buffer_initialized = True
+                # print(
+                #     f"[mode_possible] now total sample count {self._total_sample_count} > init sample threshold {self.init_samples}, begin to do test and the replay buffer is inited")
                 end_training = self.enable_testing()
 
         if self._need_normalizer_update:
+            # old_s_mean, old_s_std = self.s_norm.mean, self.s_norm.std
             self._update_normalizers()
+            # new_s_mean, new_s_std = self.s_norm.mean, self.s_norm.std
+
+            # self._check_state_normalizer_update_amplitude(
+            #     old_s_mean, old_s_std, new_s_mean, new_s_std)
+
             #  what normalize and why normalize
             self._need_normalizer_update = (
                 self.normalizer_samples > self._total_sample_count
             )
 
         if end_training:
+            # print(
+            #     f"[mode_possible] end training, set to train end(it is test indeed)")
             self._init_mode_train_end()
 
         return
+
+    def _check_state_normalizer_update_amplitude(self, old_mean, old_std, new_mean, new_std):
+        print("[mode_possible] state normalizer update, before s_norm mean ",
+              old_mean, " std ", old_std)
+        mean_diff = new_mean - old_mean
+        std_diff = new_std - old_std
+        import numpy as np
+        mean_perc = np.abs(np.divide(mean_diff, old_mean))
+        std_perc = np.abs(np.divide(std_diff, old_std))
+        print("[mode_possible] state normalizer update, after s_norm mean ",
+              new_mean, " std ", new_std)
+        print("[mode_possible] state normalizer update, s_norm mean changed percent: ",
+              mean_perc, " std changed percent ", std_perc)
 
     def _get_iters_per_update(self):
         return MPIUtil.get_num_procs() * self.iters_per_update
