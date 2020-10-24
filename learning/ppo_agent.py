@@ -377,6 +377,19 @@ class PPOAgent(PGAgent):
         adv = (adv - adv_mean) / (adv_std + adv_eps)
         adv = np.clip(adv, -self.norm_adv_clip, self.norm_adv_clip)
 
+        if np.isfinite(adv).all() == False:
+            print(f"[error] advantage include Nan or Inf")
+            raw_adv = new_vals[exp_idx[:, 0]] - vals[exp_idx[:, 0]]
+
+            print(f"start idx {start_idx} end idx {end_idx}")
+            print("new val = ", new_vals[exp_idx[:, 0]])
+            print("old val = ", vals[exp_idx[:, 0]])
+            print("raw adv = ", raw_adv)
+            print("now adv = ", adv)
+            print("adv mean = ", adv_mean)
+            print("adv std = ", adv_std)
+            print("norm adv clip ", self.norm_adv_clip)
+            
         critic_loss = 0
         actor_loss = 0
         actor_clip_frac = 0
@@ -510,7 +523,12 @@ class PPOAgent(PGAgent):
         vals = self._eval_critic(states, goals)
         vals[is_fail] = self.val_fail
         vals[is_succ] = self.val_succ
-
+        if np.isfinite(vals).all() == False:
+            print("[error] compute batch vals inf or nan!")
+            print(f"val fail = {self.val_fail} val succ {self.val_succ}")
+            print(f"states = {states}")
+            print(f"vals = {vals}")
+            exit(0)
         return vals
 
     def _compute_batch_new_vals(self, start_idx, end_idx, val_buffer):

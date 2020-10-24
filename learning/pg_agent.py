@@ -316,6 +316,10 @@ class PGAgent(TFAgent):
         critic_stepsize = self.critic_solver.get_stepsize()
         actor_stepsize = self.actor_solver.get_stepsize()
 
+        if np.isfinite(critic_loss).all() == False:
+            print(f"critic loss {critic_loss} is nan or inf")
+            exit(0)
+        print(f"[info] critic loss = {critic_loss}")
         self.logger.log_tabular('Critic_Loss', critic_loss)
         self.logger.log_tabular('Critic_Stepsize', critic_stepsize)
         self.logger.log_tabular('Actor_Loss', actor_loss)
