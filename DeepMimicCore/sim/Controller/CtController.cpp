@@ -178,7 +178,8 @@ bool cCtController::ParseParams(const Json::Value &json)
         json.get("RecordWorldRootPos", mRecordWorldRootPos).asBool();
     mRecordWorldRootRot =
         json.get("RecordWorldRootRot", mRecordWorldRootRot).asBool();
-
+    // MIMIC_ERROR("controller parse param, update rate is {}", mUpdateRate);
+    // exit(0);
     return succ;
 }
 
@@ -214,6 +215,7 @@ bool cCtController::CheckNeedNewAction(double timestep) const
     // MIMIC_DEBUG("check need new action update rate {}", mUpdateRate);
     bool new_action =
         cMathUtil::CheckNextInterval(timestep, curr_time, 1 / mUpdateRate);
+    // MIMIC_INFO("check need new action {}", new_action);
     return new_action;
 }
 
@@ -411,7 +413,7 @@ void cCtController::BuildStatePose(Eigen::VectorXd &out_pose) const
     tMatrix origin_trans =
         mChar
             ->BuildOriginTrans(); // 世界坐标系到root坐标系的变换(包含平移和旋转),
-                                  // 但旋转只在Y轴上, 位移只在XZ轴上
+    // 但旋转只在Y轴上, 位移只在XZ轴上
     // std::cout << "origin_trans = " << origin_trans << std::endl;
     // 世界坐标系的向量，在root坐标系下的表达
     tQuaternion origin_quat = cMathUtil::RotMatToQuaternion(origin_trans);
@@ -481,9 +483,8 @@ void cCtController::BuildStatePose(Eigen::VectorXd &out_pose) const
             {
                 // 是root但不记录位置，或者说不是root
                 curr_pos[3] = 1;
-                curr_pos = origin_trans *
-                           curr_pos; // link全局位置:
-                                     // 从世界坐标系到root坐标系的变换(换系).
+                curr_pos = origin_trans * curr_pos; // link全局位置:
+                    // 从世界坐标系到root坐标系的变换(换系).
                 curr_pos -= root_pos_rel;
                 curr_pos[3] = 0;
             }

@@ -1,11 +1,12 @@
 import os
-kernel_num = 2
+kernel_num = 7
 arg_file_lst = [
-    "args/1021/path_init_param_search/search_0.5_16.txt",
-    "args/1021/path_init_param_search/search_0.5_24.txt",
-    "args/1021/path_init_param_search/search_1_16.txt",
-    "args/1021/path_init_param_search/search_1_24.txt"
+    # "args/1024/100hz_train.txt",
+    # "args/1024/60hz_train.txt",
+    "args/1024/300hz_train.txt",
+    "args/1024/600hz_train.txt"
 ]
+
 
 cmd_lst = []
 # set up the log and error
