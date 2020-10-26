@@ -1,5 +1,5 @@
 #include "OfflineGenIDSolver.h"
-#include "BulletGenDynamics/btGenController/btGenContactAwareAdviser.h"
+#include "BulletGenDynamics/btGenController/btGenContactAwareController.h"
 #include "BulletGenDynamics/btGenController/btTraj.h"
 #include "BulletGenDynamics/btGenModel/RobotModelDynamics.h"
 #include "BulletGenDynamics/btGenWorld.h"
@@ -215,7 +215,7 @@ void cOfflineGenIDSolver::Init()
         auto bt_world = gen_world->GetInternalGenWorld();
         MIMIC_ASSERT(bt_world != nullptr);
         bt_world->SetEnableContacrAwareControl();
-        mAdviser = bt_world->GetContactAwareAdviser();
+        mAdviser = bt_world->GetContactAwareController();
         mAdviser->SetTraj(mCurrentTrajPath, mCurrentOutputPath);
 
         double timer_max_time = mScene->GetTimer().GetMaxTime();

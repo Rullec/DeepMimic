@@ -4,7 +4,7 @@
 
 class cSceneImitate;
 class tSingleFrameIDResult;
-class btGenContactAwareAdviser;
+class btGenContactAwareController;
 class cOfflineGenIDSolver : public cOfflineIDSolver
 {
 public:
@@ -23,7 +23,7 @@ protected:
     SingleTrajSolve(std::vector<tSingleFrameIDResult> &IDResult) override final;
     virtual void BatchTrajsSolve(const std::string &path) override final;
 
-    btGenContactAwareAdviser *mAdviser;
+    btGenContactAwareController *mAdviser;
     double mCurTimestep;
     bool mInited;
     std::string mCurrentTrajPath;
