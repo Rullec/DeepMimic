@@ -31,32 +31,35 @@ def read_log_file(filename):
         sample_count = []
 
         for line in cont:
-            if line.find("Train_Ret") != -1:
-                try:
-                    train_return.append(float(line.split()[3]))
-                except ValueError:
-                    print("[log] line err = " + line)
-                    continue
-                if len(time_buffer) != 0:
-                    time_count.append(float(time_buffer[-1]))
-                    time_buffer.clear()
-                    time_exp_count.append(float(time_exp_buffer[-1][:-1]))
-                    time_exp_buffer.clear()
-            if line.find("Test_Ret") != -1:
-                test_return.append(float(line.split()[3]))
-            if line.find("Timer said") != -1:  # get timer
-                time_buffer.append(line.split()[8][:-1])
-                time_exp_buffer.append(line.split()[11])
-            if line.find("Clip") != -1:  # get timer
-                clip_frac_buffer.append(float(line.split()[3]))
-            if line.find("Actor_Loss") != -1:  # get timer
-                actor_loss.append(float(line.split()[3]))
-            if line.find("Critic_Loss") != -1:  # get timer
-                critic_loss.append(float(line.split()[3]))
-            if line.find("Samples |") != -1:  # sample count
-                sample_count.append(float(line.split()[3])/1e4)
-            if line.find("Actor_Stepsize") != -1:  # learning rate (actor)
-                lr.append(float(line.split()[3]))
+            try:
+                if line.find("Train_Ret") != -1:
+                    try:
+                        train_return.append(float(line.split()[3]))
+                    except ValueError:
+                        print("[log] line err = " + line)
+                        continue
+                    if len(time_buffer) != 0:
+                        time_count.append(float(time_buffer[-1]))
+                        time_buffer.clear()
+                        time_exp_count.append(float(time_exp_buffer[-1][:-1]))
+                        time_exp_buffer.clear()
+                if line.find("Test_Ret") != -1:
+                    test_return.append(float(line.split()[3]))
+                if line.find("Timer said") != -1:  # get timer
+                    time_buffer.append(line.split()[8][:-1])
+                    time_exp_buffer.append(line.split()[11])
+                if line.find("Clip") != -1:  # get timer
+                    clip_frac_buffer.append(float(line.split()[3]))
+                if line.find("Actor_Loss") != -1:  # get timer
+                    actor_loss.append(float(line.split()[3]))
+                if line.find("Critic_Loss") != -1:  # get timer
+                    critic_loss.append(float(line.split()[3]))
+                if line.find("Samples |") != -1:  # sample count
+                    sample_count.append(float(line.split()[3])/1e4)
+                if line.find("Actor_Stepsize") != -1:  # learning rate (actor)
+                    lr.append(float(line.split()[3]))
+            except:
+                continue
                 # print(line.split())
                 # print(time)
         # print((time_count))
@@ -127,10 +130,9 @@ if __name__ == "__main__":
 
         plt.subplot(3, 3, 7)
         plt.plot(learning_rate)
-        plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+        plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
         plt.title("actor_lr")
 
-    
         plt.subplot(3, 3, 8)
         plt.plot(sample_count)
         plt.title("sample_counts")

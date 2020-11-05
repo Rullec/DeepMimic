@@ -48,4 +48,4 @@
 --train_agents false
 
 --output_path output/1105/oneleg_swing
---model_files output/1105/oneleg_swing/agent0_model_2020_11_05_22_33_29_7.93.ckpt
+--model_files output/1105/oneleg_swing/agent0_model_2020_11_05_23_21_30_13.11.ckpt
