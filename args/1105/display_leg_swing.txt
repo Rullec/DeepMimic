@@ -1,0 +1,7 @@
+--scene kin_char
+
+--logging_level trace
+--use_revolute_axis_in_deepmimic_style false
+--character_file data/1105/characters/skeleton_swing_oneleg.json
+--motion_file data/1105/motions/leg_swing.txt
+

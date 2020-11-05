@@ -1,0 +1,7 @@
+--scene kin_char
+
+--logging_level trace
+--use_revolute_axis_in_deepmimic_style false
+--character_file data/1105/characters/skeleton_3link_robot.json
+--motion_file data/1105/motions/walk_3links_robot.txt
+

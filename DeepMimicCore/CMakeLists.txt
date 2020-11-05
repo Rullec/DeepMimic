@@ -16,12 +16,14 @@ execute_process(
 message(STATUS "python inc path: ${PYTHON_INC}")
 message(STATUS "python lib path: ${PYTHON_LIB}") 
 
-set(EIGEN_INC /home/xudong/Projects/include/)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(EIGEN3 REQUIRED eigen3)
+include_directories(${EIGEN3_INCLUDE_DIRS})
+
 set(BULLTER_INC /home/xudong/Projects/bullet3/src)
 if(APPLE)
     set(PYTHON_INC /Users/xudong/anaconda3/envs/spinningup/include/python3.6m)
     set(PYTHON_LIB /Users/xudong/anaconda3/envs/spinningup/lib -lpython3.6m)
-    set(EIGEN_INC /Users/xudong/Projects/include/)
     set(BULLTER_INC /Users/xudong/Projects/bullet3/src)
     # find_package(GLEW REQUIRED)
     find_package(PkgConfig REQUIRED)
@@ -56,7 +58,7 @@ link_directories(${OpenGL_LIBRARY_DIRS})
 add_definitions(${OpenGL_DEFINITIONS})
 add_definitions(-DBT_USE_DOUBLE_PRECISION -std=c++17 -march=native)
 
-set(include_dir ${PYTHON_INC} ${EIGEN_INC} ${BULLTER_INC} ${CMAKE_CURRENT_SOURCE_DIR})
+set(include_dir ${PYTHON_INC} ${BULLTER_INC} ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${include_dir})
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")

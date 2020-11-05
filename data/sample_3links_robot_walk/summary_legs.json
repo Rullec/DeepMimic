@@ -1,0 +1,33 @@
+{
+	"ID_traindata_dir" : "",
+	"item_list" : 
+	[
+		{
+			"ID_train_filename" : "",
+			"length_second" : 1.9999999999999998,
+			"mr_traj_filename" : "",
+			"num_of_frame" : 1200,
+			"sample_traj_filename" : "traj_legs_7694339.json"
+		},
+		{
+			"ID_train_filename" : "",
+			"length_second" : 1.9999999999999998,
+			"mr_traj_filename" : "",
+			"num_of_frame" : 1200,
+			"sample_traj_filename" : "traj_legs_267604720.json"
+		},
+		{
+			"ID_train_filename" : "",
+			"length_second" : 1.9999999999999998,
+			"mr_traj_filename" : "",
+			"num_of_frame" : 1200,
+			"sample_traj_filename" : "traj_legs_1138085018.json"
+		}
+	],
+	"mr_traj_dir" : "",
+	"sample_char_file" : "data/1105/characters/skeleton_3link_robot.json",
+	"sample_controller_file" : "data/1105/controllers/ctrl_3links_robot.txt",
+	"sample_num_of_trajs" : 3,
+	"sample_timestamp" : "2020-11-05 22:03:21\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+	"sample_traj_dir" : "data/sample_3links_robot_walk"
+}
