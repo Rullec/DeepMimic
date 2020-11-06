@@ -105,22 +105,24 @@ if __name__ == "__main__":
         train, test, time, time_exp, clip_frac, actor_loss, critic_loss, sample_count, learning_rate = read_log_file(
             filename)
         plt.subplot(3, 3, 1)
-        plt.plot(train, label="train")
-        plt.plot(test, label="test")
-        plt.title("return")
-        plt.legend()
+        plt.plot(train)
+        plt.title("train_return")
+        
         plt.subplot(3, 3, 2)
         plt.plot(time, label="time")
         plt.plot(time_exp, label="exp")
-        plt.title("time")
         plt.legend()
+        plt.title("time")
+
         avg_train_ret_lst = cal_avg_ret(train, time)
         plt.subplot(3, 3, 3)
         plt.plot(avg_train_ret_lst)
         plt.title("avg train ret")
+        
         plt.subplot(3, 3, 4)
-        plt.plot(clip_frac)
-        plt.title("clip fraction")
+        plt.plot(test)
+        plt.title("test return")
+
         plt.subplot(3, 3, 5)
         plt.plot(actor_loss)
         plt.title("actor_loss")
@@ -137,6 +139,9 @@ if __name__ == "__main__":
         plt.plot(sample_count)
         plt.title("sample_counts")
 
+        plt.subplot(3, 3, 9)
+        plt.plot(clip_frac)
+        plt.title("clip fraction")
         plt.suptitle(filename)
 
     plt.tight_layout()

@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 5
---time_lim_max 5
+--time_lim_min 3
+--time_lim_max 3
 --time_lim_exp 0.2
 
 --time_end_lim_min 20
@@ -48,4 +48,7 @@
 --train_agents false
 
 --output_path output/1105/oneleg_swing
---model_files output/1105/oneleg_swing/agent0_model_2020_11_06_13_07_41_9.76.ckpt
+--model_files output/1105/oneleg_swing/agent0_model_2020_11_06_15_29_07_32.28.ckpt
+
+--enable_inverse_dynamic_solving true
+--inverse_dynamic_config_file args/1105/leg_swing_idconf.json

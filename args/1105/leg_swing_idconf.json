@@ -1,0 +1,13 @@
+{
+    "IDMode": "Sample",
+ 
+    "SampleModeInfo": {
+        "sample_num": 3,
+        "sample_trajs_dir": "data/sample_leg_swing",
+        "sample_trajs_rootname": "traj_legswing.json",
+        "summary_table_filename": "summary_legswing.json",
+        "enable_sample_ID_test": false,
+        "clear_old_data": true,
+        "traj_file_version": 2
+    }
+}
