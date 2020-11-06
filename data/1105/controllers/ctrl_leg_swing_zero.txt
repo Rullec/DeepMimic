@@ -12,32 +12,32 @@
 		{
 			"ID": 0,
 			"Name": "root",
-			"Kp": 0,
-			"Kd": 0,
+			"Kp":0,
+			"Kd":0,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 1,
 			"Name": "LeftLeg",
-			"Kp": 50,
-			"Kd": 10,
+			"Kp": 0,
+			"Kd": 0,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 2,
 			"Name": "LeftFoot",
-			"Kp": 30,
-			"Kd": 10,
+			"Kp": 0,
+			"Kd": 0,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		},
 		{
 			"ID": 3,
 			"Name": "LFootTongue",
-			"Kp": 20,
-			"Kd": 5,
+			"Kp": 0,
+			"Kd": 0,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		}

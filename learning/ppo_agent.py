@@ -159,7 +159,7 @@ class PPOAgent(PGAgent):
         # normalized action std = N(0, 0.05) * exp_mask
         norm_a_noise_tf *= tf.expand_dims(self.exp_mask_tf, axis=-1)
         self.norm_a_noise_tf = norm_a_noise_tf
-        
+
         # action = a_mean + N(0, 0.05) * exp_mask * action_normalizer_std
         self.sample_a_tf = (
             self.a_mean_tf + norm_a_noise_tf * self.a_norm.std_tf
@@ -389,7 +389,7 @@ class PPOAgent(PGAgent):
             print("adv mean = ", adv_mean)
             print("adv std = ", adv_std)
             print("norm adv clip ", self.norm_adv_clip)
-            
+
         critic_loss = 0
         actor_loss = 0
         actor_clip_frac = 0
@@ -558,6 +558,24 @@ class PPOAgent(PGAgent):
 
         loss, grads = self.sess.run(
             [self.critic_loss_tf, self.critic_grad_tf], feed)
+
+        def compute_max_abs(grads):
+            assert type(grads) == list
+            cur_max = 0
+            for i in grads:
+                assert(type(i) == np.ndarray)
+                cur_max = max(np.max(np.abs(i)), cur_max)
+            return cur_max
+
+        # grad clip
+        clip_threshold = 100
+        old_max = compute_max_abs(grads)
+        if old_max > clip_threshold:
+            for i in range(len(grads)):
+                grads[i] = np.clip(grads[i], -clip_threshold, clip_threshold)
+            print(
+                f"[warn] cliped max critic grad abs from {old_max} to {clip_threshold}")
+        
         self.critic_solver.update(grads)  # 这个是更新critic...
         return loss
 
