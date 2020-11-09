@@ -1,8 +1,8 @@
 {
     "IDMode_bak2": "Online",
-    "IDMode": "OfflineSolve",
+    "IDMode_bak4": "OfflineSolve",
     "IDMode_bak1": "Display",
-    "IDMode_bak4": "Sample",
+    "IDMode": "Sample",
     "DisplayModeInfo": {
         "_comment": "this section focus on the setting of display mode",
         "display_traj_path": "data/id_test/sample_fullbody/traj_fullbody_968252281.json",
@@ -10,8 +10,8 @@
         "output_motion_info_path": "angmom_buffer_details.log"
     },
     "SampleModeInfo": {
-        "sample_num": 50,
-        "sample_trajs_dir": "data/id_test/sample_fullbody_bigfoot",
+        "sample_num": 1,
+        "sample_trajs_dir": "data/id_test/sample_fullbody",
         "sample_trajs_rootname": "traj_fullbody.json",
         "summary_table_filename": "summary_fullbody.json",
         "enable_sample_ID_test": false,
