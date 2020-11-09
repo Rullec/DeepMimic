@@ -444,7 +444,7 @@ void cSampleIDSolver::Reset()
     a.length_second =
         mSaveInfo.mTimesteps[mSaveInfo.mCurFrameId - 1] * mSaveInfo.mCurFrameId;
     a.frame_num = mSaveInfo.mCurFrameId;
-
+    mSaveInfo.mIntegrationScheme = GetIntegrationSchemeWorld();
     a.sample_traj_filename = mSaveInfo.SaveTraj(
         mSampleInfo.mSampleTrajsDir, mSampleInfo.mSampleTrajsRootName,
         mSampleInfo.mSampleTrajVer);

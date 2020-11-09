@@ -52,6 +52,7 @@ public:
     static void SetGeneralizedPos(cSimCharacterBase *sim_char,
                                   const tVectorXd &q);
     virtual void ClearID();
+    std::string GetIntegrationSchemeWorld() const;
 
 protected:
     // tLogger mLogger;
@@ -204,4 +205,7 @@ private:
                          const tVectorXd &mBuffer_u_dot, int frame_id,
                          const tEigenArr<tVector> &mExternalForces,
                          const tEigenArr<tVector> &mExternalTorques) const;
+
+    std::string GetIntegrationSchemeWorldFea() const;
+    std::string GetIntegrationSchemeWorldGen() const;
 };

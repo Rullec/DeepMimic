@@ -1243,3 +1243,8 @@ bool cIDSolver::IsMaxVel() const
         MIMIC_ERROR("Unsupport char type {}", mSimCharType);
     }
 }
+
+std::string cIDSolver::GetIntegrationSchemeWorldFea() const
+{
+    return "semi_implicit";
+}

@@ -270,3 +270,21 @@ void cIDSolver::RecordExternalPerturb(tEigenArr<tVector> &mPerturbForces,
     // if (manager.GetNumPerturbs() != 0)
     //     exit(0);
 }
+
+std::string cIDSolver::GetIntegrationSchemeWorld() const
+{
+    MIMIC_INFO("get GetIntegrationSchemeWorld, world type {}",
+               mWorld->GetWorldType());
+    if (eWorldType::GENERALIZED_WORLD == mWorld->GetWorldType())
+    {
+        return GetIntegrationSchemeWorldGen();
+    }
+    else if (eWorldType::FEATHERSTONE_WORLD == mWorld->GetWorldType())
+    {
+        return GetIntegrationSchemeWorldFea();
+    }
+    else
+    {
+        MIMIC_ERROR("Unsupported");
+    }
+}

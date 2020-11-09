@@ -21,7 +21,7 @@ void cWorldBase::tConstraintHandle::Clear()
 
 cWorldBase::~cWorldBase() {}
 
-eWorldType cWorldBase::GetWorldType() { return mType; }
+eWorldType cWorldBase::GetWorldType() const { return mType; }
 
 cWorldBase::cWorldBase(eWorldType type) : mContactManager(this)
 {

@@ -41,6 +41,9 @@ cOfflineGenIDSolver::cOfflineGenIDSolver(cSceneImitate *imitate,
         // this->mAdviser->SetTraj(mCurrentTrajPath, "", false);
     }
     mRefTraj->LoadTraj(mSimChar, mCurrentTrajPath);
+
+    // check the integration scheme
+    MIMIC_ASSERT(mRefTraj->mIntegrationScheme == GetIntegrationSchemeWorld());
 }
 void cOfflineGenIDSolver::Reset()
 {
@@ -98,6 +101,8 @@ void cOfflineGenIDSolver::Reset()
             // 4. if so, set up the new trajs
             mCurrentTrajPath = mBatchNameArray[mBatchCurLocalTrajId];
             mRefTraj->LoadTraj(mSimChar, mCurrentTrajPath);
+            MIMIC_ASSERT(mRefTraj->mIntegrationScheme ==
+                         GetIntegrationSchemeWorld());
             mCurrentOutputPath = "";
             mAdviser->SetTraj(mCurrentTrajPath, mCurrentOutputPath);
 

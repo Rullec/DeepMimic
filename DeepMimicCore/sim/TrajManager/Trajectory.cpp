@@ -126,7 +126,7 @@ void tSaveInfo::SaveTrajV2(Json::Value &root)
     root["epoch"] = mCurEpoch;
     root["list"] = Json::Value(Json::arrayValue);
     root["version"] = 2;
-
+    root["integration_scheme"] = mIntegrationScheme;
     for (int frame_id = 0; frame_id < mCurFrameId; frame_id++)
     {
         SaveCommonInfo(single_frame, frame_id);
@@ -269,6 +269,7 @@ tLoadInfo::tLoadInfo()
     mEnableOutputMotionInfo = false;
     mOutputMotionInfoPath = "";
     mVersion = eTrajFileVersion::UNSET;
+    mIntegrationScheme = "";
 }
 
 /*
@@ -452,6 +453,9 @@ void tLoadInfo::LoadTrajV2(cSimCharacterBase *sim_char,
     // int pos_size = 0;
     tVectorXd raw_pose = sim_char->GetPose();
     Json::Value list_json = data_json["list"];
+
+    mIntegrationScheme =
+        cJsonUtil::ParseAsString("integration_scheme", data_json);
     MIMIC_ASSERT(list_json.isNull() == false);
     const int target_version = cJsonUtil::ParseAsInt("version", data_json);
     MIMIC_ASSERT(target_version == 2);

@@ -283,3 +283,11 @@ tVectorXd cIDSolver::CalcGeneralizedVelGen(const tVectorXd &q_before,
 {
     return (q_after - q_before) / timestep;
 }
+
+std::string cIDSolver::GetIntegrationSchemeWorldGen() const
+{
+    MIMIC_ASSERT(eWorldType::GENERALIZED_WORLD == mWorld->GetWorldType());
+    auto gen_world = dynamic_cast<cGenWorld *>(mWorld)->GetInternalGenWorld();
+    return btGeneralizeWorld::GetIntegrationSchemeStr(
+        gen_world->GetIntegrationScheme());
+}

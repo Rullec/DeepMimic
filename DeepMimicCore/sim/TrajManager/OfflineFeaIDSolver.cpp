@@ -29,6 +29,8 @@ void cOfflineFeaIDSolver::PreSim()
         MIMIC_INFO("begin to solve traj {}",
                    mSingleTrajSolveConfig.mSolveTrajPath);
         mLoadInfo.LoadTraj(mSimChar, mSingleTrajSolveConfig.mSolveTrajPath);
+        MIMIC_ASSERT(mLoadInfo.mIntegrationScheme ==
+                     GetIntegrationSchemeWorld());
         SingleTrajSolve(mResult);
         std::string export_dir =
             cFileUtil::GetDir(mSingleTrajSolveConfig.mExportDataPath);
@@ -160,12 +162,11 @@ void cOfflineFeaIDSolver::SingleTrajSolve(
         mSimChar,
         mLoadInfo.mPosMat.row(0)); // set up the sim char pos from mLoadInfo
     mSimChar->PostUpdate(0);
-    mScene
-        ->ResolveCharGroundIntersectInverseDynamic(); // Resolve intersection
-                                                      // between char and the
-                                                      // ground. Sync to KinChar
-                                                      // is also included.
-    mKinChar->Update(mLoadInfo.mTimesteps[0]);        // Go for another timestep
+
+    // Resolve intersection between char and the ground. Sync to KinChar is also included.
+    mScene->ResolveCharGroundIntersectInverseDynamic();
+
+    mKinChar->Update(mLoadInfo.mTimesteps[0]); // Go for another timestep
     mCharController->Update(mLoadInfo.mTimesteps[0]);
 
     // 4. solve ID for each frame
@@ -349,6 +350,8 @@ void cOfflineFeaIDSolver::BatchTrajsSolve(const std::string &table_path)
         int global_id = traj_id_array[local_id];
         std::string target_traj_filename_full = traj_name_array[local_id];
         mLoadInfo.LoadTraj(mSimChar, target_traj_filename_full);
+        MIMIC_ASSERT(mLoadInfo.mIntegrationScheme ==
+                     GetIntegrationSchemeWorld());
         SingleTrajSolve(mResult);
         AddBatchInfoMPI(global_id, target_traj_filename_full, mResult,
                         old_batch_info,

@@ -45,6 +45,7 @@ void LoadMotion(const std::string &path,
 struct tSaveInfo
 {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+    std::string mIntegrationScheme = ""; // the integration scheme of simulation
     std::string mSaveTrajRoot = "";
     std::string mSaveMotionRoot = "";
     int mCurEpoch = 0;
@@ -130,6 +131,7 @@ struct tLoadInfo
         mTruthJointForces; // The ground truth joint torques loaded from
                            // some .traj files will be storaged here. mostly
                            // for debug purpose
+    std::string mIntegrationScheme;
     int mTotalFrame;
     int mCurFrame;
     bool mEnableOutputMotionInfo; // if this option is set to true, when the
