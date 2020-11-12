@@ -29,7 +29,8 @@ public:
 protected:
     cKinCharacter::tParams mCharParams;
     std::shared_ptr<cKinCharacter> mChar;
-
+    bool mEnableOutputTraj;     // output the ref motion to traj
+    std::string mOuputTrajPath; // save path
     virtual void ParseCharParams(const std::shared_ptr<cArgParser> &parser,
                                  cKinCharacter::tParams &out_params) const;
 
@@ -38,4 +39,5 @@ protected:
                                 std::shared_ptr<cKinCharacter> &out_char) const;
     virtual void ResetCharacters();
     virtual void UpdateCharacters(double timestep);
+    virtual void ExportMotionToTraj() const;
 };

@@ -1,7 +1,11 @@
 #include "SceneKinChar.h"
 #include "util/LogUtil.h"
 
-cSceneKinChar::cSceneKinChar() {}
+cSceneKinChar::cSceneKinChar()
+{
+    mEnableOutputTraj = false;
+    mOuputTrajPath = "";
+}
 
 cSceneKinChar::~cSceneKinChar() {}
 
@@ -11,20 +15,25 @@ void cSceneKinChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
 {
     cScene::ParseArgs(parser);
     ParseCharParams(parser, mCharParams);
+
+    // begin to parse the output traj trajectory
+    parser->ParseBool("enable_output_traj", mEnableOutputTraj);
+    parser->ParseStringCritic("output_traj_path", this->mOuputTrajPath);
+    MIMIC_INFO("Enable output traj {} to {}", mEnableOutputTraj,
+               mOuputTrajPath);
 }
 
 void cSceneKinChar::Reset() { ResetCharacters(); }
 
 void cSceneKinChar::Clear() { mChar.reset(); }
-// #include <iostream>
+
 void cSceneKinChar::Update(double time_elapsed)
 {
     UpdateCharacters(time_elapsed);
-    // auto & kin_char = GetCharacter();
-    // std::cout <<"correct root pos = " << kin_char->GetRootPos().transpose()
-    // << std::endl; std::cout <<"correct root rot = " <<
-    // kin_char->GetRootRotation().coeffs().transpose() << std::endl; std::cout
-    // <<"correct pose = " << kin_char->GetPose().transpose() << std::endl;
+
+    // output the traj and set false
+    if (mEnableOutputTraj == true)
+        this->ExportMotionToTraj(), mEnableOutputTraj = false;
 }
 
 const std::shared_ptr<cKinCharacter> &cSceneKinChar::GetCharacter() const
@@ -94,4 +103,14 @@ void cSceneKinChar::ResetCharacters() { mChar->Reset(); }
 void cSceneKinChar::UpdateCharacters(double timestep)
 {
     mChar->Update(timestep);
+}
+
+#include "sim/TrajManager/Trajectory.h"
+void cSceneKinChar::ExportMotionToTraj() const
+{
+    const cMotion &motion = mChar->GetMotion();
+    MIMIC_INFO("frame num {}", motion.GetNumFrames());
+    tSaveInfo saveinfo;
+    saveinfo.SaveTrajV2FromMotion(GetCharacter()->GetNumJoints(), &motion,
+                                  this->mOuputTrajPath);
 }

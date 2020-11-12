@@ -120,6 +120,7 @@ void tSaveInfo::SaveTrajV2(Json::Value &root)
     6. rewards
     7. motion ref time
     8. action
+    9. truth joint force (individual)
 */
 
     Json::Value single_frame;
@@ -1036,4 +1037,45 @@ tSummaryTable::tSummaryTable()
     mSampleTrajDir = "";
     mEpochInfos.clear();
     // mLogger = cLogUtil::CreateLogger("tSummaryTable");
+}
+
+void tSaveInfo::SaveTrajV2FromMotion(int num_of_links, const cMotion *motion,
+                                     const std::string path)
+{
+
+    /*  .traj v2 is simplified version compared with v1.
+    Only save these keywords in v2:
+    1. char_pose
+    2. timestep
+    3. frame id
+    4. contact num
+    5. contact_info
+    6. rewards
+    7. motion ref time
+    8. action
+*/
+    // 1. allocate vars above
+    // 2. translate char pose, timestep, frame id, motion ref time,
+    // others, set empty
+    int num_of_frames = motion->GetNumFrames();
+    mCurEpoch = 0;
+    mCurFrameId = num_of_frames;
+    for (int i = 0; i < num_of_frames; i++)
+    {
+        mCharPoses[i] = motion->GetFrame(i);
+        mTimesteps[i] = motion->GetFrameDuration(i);
+        mContactForces[i].clear();
+        mRewards[i] = 0;
+        mRefTime[i] = motion->GetFrameTime(i);
+        mTruthAction[i] = tVectorXd::Zero(mCharPoses[i].size() - 7);
+        mTruthJointForces[i].resize(num_of_links - 1);
+        for (auto &x : mTruthJointForces[i])
+            x.setZero();
+    }
+
+    // 3. export
+    Json::Value root;
+    SaveTrajV2(root);
+    cJsonUtil::WriteJson(path, root, true);
+    MIMIC_INFO("SaveTrajV2 from motion saved succ to {}", path);
 }
