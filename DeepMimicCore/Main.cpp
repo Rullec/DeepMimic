@@ -422,7 +422,6 @@ void InitFrameBuffers(void)
 
 void InitDraw(int argc, char **argv)
 {
-    // std::cout << "[debug] Init Draw begin" << std::endl;
     glutInit(&argc, argv);
     // std::cout << "[debug] Init Draw begin 2" << std::endl;
 #ifdef __APPLE__

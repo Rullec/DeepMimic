@@ -36,4 +36,5 @@ protected:
     std::vector<int> mBatchTrajIdArray;
     std::vector<std::string> mBatchNameArray;
     int mBatchCurLocalTrajId;
+    std::string mContactAwareCtrlPath;
 };

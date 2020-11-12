@@ -1,6 +1,6 @@
 #include "OfflineGenIDSolver.h"
-#include "BulletGenDynamics/btGenController/btGenContactAwareController.h"
-#include "BulletGenDynamics/btGenController/btTraj.h"
+#include "BulletGenDynamics/btGenController/ContactAwareController/btGenContactAwareController.h"
+#include "BulletGenDynamics/btGenController/Trajectory/btTraj.h"
 #include "BulletGenDynamics/btGenModel/RobotModelDynamics.h"
 #include "BulletGenDynamics/btGenWorld.h"
 #include "scenes/SceneImitate.h"
@@ -8,6 +8,7 @@
 #include "sim/Controller/CtPDGenController.h"
 #include "sim/World/GenWorld.h"
 #include "util/FileUtil.h"
+#include "util/JsonUtil.h"
 #include "util/LogUtil.h"
 #include "util/MPIUtil.h"
 #include <iostream>
@@ -41,6 +42,8 @@ cOfflineGenIDSolver::cOfflineGenIDSolver(cSceneImitate *imitate,
         // this->mAdviser->SetTraj(mCurrentTrajPath, "", false);
     }
     mRefTraj->LoadTraj(mSimChar, mCurrentTrajPath);
+
+    mContactAwareCtrlPath = cJsonUtil::ParseAsString("ctrl_config", config);
 }
 void cOfflineGenIDSolver::Reset()
 {
@@ -214,7 +217,7 @@ void cOfflineGenIDSolver::Init()
         MIMIC_ASSERT(gen_world != nullptr);
         auto bt_world = gen_world->GetInternalGenWorld();
         MIMIC_ASSERT(bt_world != nullptr);
-        bt_world->SetEnableContacrAwareControl();
+        bt_world->AddController(mContactAwareCtrlPath);
         mAdviser = bt_world->GetContactAwareController();
         mAdviser->SetTraj(mCurrentTrajPath, mCurrentOutputPath);
 
