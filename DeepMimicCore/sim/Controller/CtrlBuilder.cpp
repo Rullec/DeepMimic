@@ -3,12 +3,13 @@
 #include "sim/Controller/CtPDFeaController.h"
 #include "sim/Controller/CtPDGenController.h"
 #include "sim/Controller/CtVelController.h"
+#include "sim/Controller/SimbiconController.h"
 #include "util/LogUtil.h"
 #include <iostream>
 using namespace std;
 
 const std::string gCharCtrlName[cCtrlBuilder::eCharCtrlMax] = {
-    "none", "ct", "ct_pd", "ct_pd_gen", "ct_vel"};
+    "none", "ct", "ct_pd", "ct_pd_gen", "ct_vel", "ct_simbicon"};
 
 cCtrlBuilder::tCtrlParams::tCtrlParams()
 {
@@ -45,9 +46,7 @@ void cCtrlBuilder::ParseCharCtrl(const std::string &char_ctrl_str,
 
     if (!found)
     {
-        assert(false &&
-               "Unsupported character controller\n"); // unsupported character
-                                                      // controller
+        MIMIC_ERROR("Unsupported controller {} type", char_ctrl_str);
     }
 }
 
@@ -71,6 +70,9 @@ bool cCtrlBuilder::BuildController(const tCtrlParams &params,
         break;
     case eCharCtrlCtVel:
         succ = BuildCtVelController(params, out_ctrl);
+        break;
+    case eCharctrlSimbicon:
+        succ = BuildSimbiconController(params, out_ctrl);
         break;
     default:
         assert(false &&
@@ -129,6 +131,22 @@ bool cCtrlBuilder::BuildCtVelController(
     ctrl->SetGravity(params.mGravity);
     ctrl->Init(params.mChar.get(), params.mCtrlFile);
 
+    out_ctrl = ctrl;
+    return succ;
+}
+
+/**
+ * \brief               Build simbicon controller (Simple bipedal controller)
+ * 
+*/
+#include "SimbiconController.h"
+bool cCtrlBuilder::BuildSimbiconController(
+    const tCtrlParams &params, std::shared_ptr<cCharController> &out_ctrl)
+{
+    bool succ = true;
+    std::shared_ptr<cSimbiconController> ctrl =
+        std::shared_ptr<cSimbiconController>(new cSimbiconController());
+    ctrl->Init(params.mChar.get(), params.mCtrlFile);
     out_ctrl = ctrl;
     return succ;
 }

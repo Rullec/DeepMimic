@@ -13,6 +13,7 @@ set(CONTROLLER_SRC
     Controller/CtrlBuilder.cpp
     Controller/CtVelController.cpp
     Controller/DeepMimicCharController.cpp
+    Controller/SimbiconController.cpp
     Controller/ExpPDController.cpp
     Controller/ImpPDController.cpp
     Controller/PDController.cpp

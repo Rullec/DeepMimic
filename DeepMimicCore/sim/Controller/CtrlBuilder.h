@@ -18,6 +18,7 @@ public:
         eCharCtrlCtPD,
         eCharCtrlCtPDGen,
         eCharCtrlCtVel,
+        eCharctrlSimbicon,
         eCharCtrlMax,
         NUM_CTRL_TYPE
     };
@@ -93,6 +94,9 @@ protected:
     static bool
     BuildCtCmdPDController(const tCtrlParams &params,
                            std::shared_ptr<cCharController> &out_ctrl);
+    static bool
+    BuildSimbiconController(const tCtrlParams &params,
+                            std::shared_ptr<cCharController> &out_ctrl);
 };
 
 const std::string gCharCtrlStr[cCtrlBuilder::eCharCtrl::NUM_CTRL_TYPE] = {

@@ -317,13 +317,13 @@ void cDeepMimicCharController::BuildStatePose(Eigen::VectorXd &out_pose) const
             // 对于当前这个link
             const auto &curr_part = mChar->GetBodyPart(i);
             tVector curr_pos = curr_part->GetPos();
-            std::cout << "curr_pos1 : " << curr_pos.sum() << std::endl;
+            // std::cout << "curr_pos1 : " << curr_pos.sum() << std::endl;
             curr_pos[3] = 1;
             curr_pos = origin_trans * curr_pos;
-            std::cout << "curr_pos2 : " << curr_pos.sum() << std::endl;
+            // std::cout << "curr_pos2 : " << curr_pos.sum() << std::endl;
             curr_pos[3] = 0;
             curr_pos -= root_pos_rel;
-            std::cout << "curr_pos3 : " << curr_pos.sum() << std::endl;
+            // std::cout << "curr_pos3 : " << curr_pos.sum() << std::endl;
 
             // 在最后一帧，后面这些curr_pos都是Nan
             out_pose.segment(idx, mPosDim) = curr_pos.segment(0, mPosDim);

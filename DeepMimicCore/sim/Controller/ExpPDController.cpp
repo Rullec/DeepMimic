@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "sim/SimItems/SimCharacter.h"
+#include "util/LogUtil.h"
 
 cExpPDController::cExpPDController() {}
 
@@ -13,7 +14,7 @@ void cExpPDController::Init(cSimCharacterBase *character,
     cController::Init(character);
     int num_joints = mChar->GetNumJoints();
     mPDCtrls.resize(num_joints);
-    assert(pd_params.rows() == num_joints);
+    MIMIC_ASSERT(pd_params.rows() == num_joints);
 
     int root_id = mChar->GetRootID();
     for (int j = 0; j < num_joints; ++j)

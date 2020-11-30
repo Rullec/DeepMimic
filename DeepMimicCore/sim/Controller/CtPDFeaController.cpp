@@ -3,8 +3,6 @@
 #include <iostream>
 using namespace std;
 
-const std::string gPDControllersKey = "PDControllers";
-
 cCtPDFeaController::cCtPDFeaController() : cCtController()
 {
     mGravity = gGravity;
