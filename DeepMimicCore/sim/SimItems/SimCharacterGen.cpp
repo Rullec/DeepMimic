@@ -38,6 +38,8 @@ tVector ConvertEulerAngleVelToAxisAngleVel(const tVector &ea_vel)
 {
     MIMIC_ASSERT(std::fabs(ea_vel[3]) < 1e-10);
     // std::cout << "euler anble vel = " << ea_vel.transpose() << std::endl;
+    std::cout << "here is a bug, please check the note and correct it\n";
+    exit(1);
     double dt = 1e-2;
 
     tVector aa_vel =

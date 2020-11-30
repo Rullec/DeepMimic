@@ -218,13 +218,13 @@ void cPDController::GetTargetTheta(Eigen::VectorXd &out_theta) const
 
     if (UseWorldCoord() && joint_type == cKinTree::eJointTypeSpherical)
     {
-        Eigen::VectorXd pose;
+        Eigen::VectorXd pose;   // joint current local rot
         joint.BuildPose(pose);
 
-        tQuaternion world_rot = joint.CalcWorldRotation();
-        tQuaternion rel_rot = cMathUtil::VecToQuat(pose);
+        tQuaternion world_rot = joint.CalcWorldRotation();  // joint current world rot
+        tQuaternion rel_rot = cMathUtil::VecToQuat(pose);   // joint current local rot
 
-        tQuaternion tar_q = cMathUtil::VecToQuat(out_theta);
+        tQuaternion tar_q = cMathUtil::VecToQuat(out_theta);    // target rotation of this joint in world frame
         tQuaternion diff = world_rot.conjugate() *
                            tar_q; // diference between target world and world
         tar_q =

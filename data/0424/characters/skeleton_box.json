@@ -17,9 +17,9 @@
          "ID" : 0,
          "Mass" : 1.0,
          "Name" : "root",
-         "Param0" : 1,
-         "Param1" : 1,
-         "Param2" : 1,
+         "Param0" : 0.5,
+         "Param1" : 0.5,
+         "Param2" : 0.5,
          "Shape" : "box",
          "TopScale" : 1.0
       }
@@ -60,9 +60,9 @@
          "ColorR" : 0.89999997615814209,
          "ID" : 0,
          "Name" : "root",
-         "Param0" : 1,
-         "Param1" : 1,
-         "Param2" : 1,
+         "Param0" : 0.5,
+         "Param1" : 0.5,
+         "Param2" : 0.5,
          "ParentJoint" : 0,
          "Shape" : "box",
          "TopScale" : 1.0
@@ -89,7 +89,7 @@
             "Name" : "root",
             "Parent" : -1,
             "TorqueLim" : 0.0,
-            "Type" : "none"
+            "Type" : "bipedal_none"
          }
       ]
    }

@@ -1,0 +1,10 @@
+--scene kin_char
+
+--logging_level trace
+--use_revolute_axis_in_deepmimic_style false
+--character_file data/1127/characters/lower_halfbody_torso.json
+# --motion_file data/1127/motions/lower_torso_stepping.txt
+--motion_file data/1127/motions/test.json
+
+--enable_output_traj true
+--output_traj_path /tmp/tmp.save

@@ -153,8 +153,8 @@
             "LimLow2" : 0.0,
             "Name" : "root",
             "Parent" : -1,
-            "TorqueLim" : 0.0,
-            "Type" : "none"
+            "TorqueLim" : 100.0,
+            "Type" : "bipedal_none"
          },
          {
             "AttachThetaX" : 0.0,
@@ -174,8 +174,8 @@
             "LimLow2" : 0.0,
             "Name" : "LeftLeg",
             "Parent" : 0,
-            "TorqueLim" : 200.0,
-            "Type" : "revolute"
+            "TorqueLim" : 50,
+            "Type" : "spherical"
          }
       ]
    }

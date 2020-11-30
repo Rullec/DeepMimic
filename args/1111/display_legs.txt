@@ -2,8 +2,8 @@
 
 --logging_level trace
 --use_revolute_axis_in_deepmimic_style false
---character_file data/1111/characters/skeleton_bipedal_legs_bigroot.json
---motion_file data/1111/motions/simbicon_bipedal_legs.txt
+--character_file data/1111/characters/skeleton_legs_bigroot.json
+--motion_file data/1111/motions/simbicon_stepping.txt
 
 --enable_output_traj true
 --output_traj_path /tmp/tmp.save

@@ -20,7 +20,7 @@
          "Param0" : 1,
          "Param1" : 1,
          "Param2" : 1,
-         "Shape" : "sphere",
+         "Shape" : "box",
          "TopScale" : 1.0
       }
    ],
@@ -64,7 +64,7 @@
          "Param1" : 1,
          "Param2" : 1,
          "ParentJoint" : 0,
-         "Shape" : "sphere",
+         "Shape" : "box",
          "TopScale" : 1.0
       }
    ],

@@ -66,7 +66,8 @@ tVector cSimBodyJointGen::CalcWorldPos(const tVector &local_pos) const
 }
 tVector cSimBodyJointGen::CalcWorldVel() const
 {
-    return cMathUtil::Expand(mJoint->GetJointVel(), 0);
+    tVector3d vel = mJoint->GetJKv() * mRobotModel->Getqdot();
+    return cMathUtil::Expand(vel, 0);
 }
 tVector cSimBodyJointGen::CalcWorldVel(const tVector &local_pos) const
 {
@@ -76,7 +77,8 @@ tVector cSimBodyJointGen::CalcWorldVel(const tVector &local_pos) const
 }
 tVector cSimBodyJointGen::CalcWorldAngVel() const
 {
-    return cMathUtil::Expand(mJoint->GetJointOmega(), 0);
+    tVector3d omega = mJoint->GetJKw() * mRobotModel->Getqdot();
+    return cMathUtil::Expand(omega, 0);
 }
 
 double cSimBodyJointGen::GetTorqueLimit() const { return mTorqueLimit; }
