@@ -287,7 +287,7 @@ int CalcDisplayAnimTime(int num_timesteps)
 void Shutdown()
 {
     gCore->Shutdown();
-    // exit(0);
+    exit(0);
 }
 
 int GetCurrTime() { return glutGet(GLUT_ELAPSED_TIME); }
@@ -365,7 +365,6 @@ void ChangePlaybackSpeed(double delta)
 void Keyboard(unsigned char key, int x, int y)
 {
     gCore->Keyboard(key, x, y);
-
     switch (key)
     {
     case 27: // escape

@@ -176,7 +176,7 @@
          "ColorR": 0.89999997615814209,
          "EnableFallContact": 0,
          "ID": 7,
-         "Mass": 20,
+         "Mass": 10,
          "Name": "torso",
          "Param0": 0.27,
          "Param1": 0.4,
