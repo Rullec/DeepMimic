@@ -12,20 +12,19 @@ public:
     cExpPDController();
     virtual ~cExpPDController();
 
-    virtual void Init(cSimCharacterBase *character,
-                      const Eigen::MatrixXd &pd_params);
+    virtual void Init(cSimCharacterBase *character, const tMatrixXd &pd_params);
     virtual void Reset();
     virtual void Clear();
     virtual void Update(double time_step);
-    virtual void UpdateControlForce(double time_step, Eigen::VectorXd &out_tau);
+    virtual void UpdateControlForce(double time_step, tVectorXd &out_tau);
 
     virtual int GetNumJoints() const;
     virtual int GetNumDof() const;
 
-    virtual void GetTargetTheta(int joint_id, Eigen::VectorXd &out_theta) const;
-    virtual void SetTargetTheta(int joint_id, const Eigen::VectorXd &theta);
-    virtual void GetTargetVel(int joint_id, Eigen::VectorXd &out_vel) const;
-    virtual void SetTargetVel(int joint_id, const Eigen::VectorXd &vel);
+    virtual void GetTargetTheta(int joint_id, tVectorXd &out_theta) const;
+    virtual void SetTargetTheta(int joint_id, const tVectorXd &theta);
+    virtual void GetTargetVel(int joint_id, tVectorXd &out_vel) const;
+    virtual void SetTargetVel(int joint_id, const tVectorXd &vel);
     virtual bool UseWorldCoord(int joint_id) const;
     virtual void SetUseWorldCoord(int joint_id, bool use);
     virtual void SetKp(int joint_id, double kp);

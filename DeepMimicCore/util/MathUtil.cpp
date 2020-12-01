@@ -3,7 +3,7 @@
 #include <iostream>
 #include <time.h>
 // const enum eRotationOrder gRotationOrder = eRotationOrder::XYZ;
-
+const tVector gGravity = tVector(0, -9.8, 0, 0);
 cRand cMathUtil::gRand = cRand();
 
 int cMathUtil::Clamp(int val, int min, int max)

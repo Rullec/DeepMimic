@@ -161,6 +161,7 @@ public:
                              const tVectorXd &qdot) override;
     virtual void Setqdot(const tVectorXd &qdot) override;
 
+    
 protected:
     /// vars
     std::shared_ptr<cCharController> mController;

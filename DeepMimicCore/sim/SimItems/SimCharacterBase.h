@@ -156,6 +156,9 @@ public:
     virtual void SetEnablejointTorqueControl(bool v_) = 0;
     virtual std::string GetCharFilename() = 0;
 
+    virtual void PushPoseVelState(std::string name);
+    virtual void PopPoseVelState(std::string name);
+
 protected:
     virtual bool LoadBodyDefs(const std::string &char_file,
                               Eigen::MatrixXd &out_body_defs) = 0;
@@ -197,4 +200,12 @@ protected:
     virtual btCollisionObject *GetCollisionObject() = 0;
 
     eSimCharacterType mSimcharType;
+
+    struct tTmpState
+    {
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+        std::string mName;
+        tVectorXd mPose, mVel;
+    };
+    tEigenArr<tTmpState> mStateStack;
 };

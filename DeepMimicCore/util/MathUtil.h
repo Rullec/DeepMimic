@@ -47,8 +47,7 @@ typedef tEigenArr<tVector> tVectorArr;
 
 const double gRadiansToDegrees = 57.2957795;
 const double gDegreesToRadians = 1.0 / gRadiansToDegrees;
-const tVector gGravity = tVector(0, -9.8, 0, 0);
-// const tVector gGravity = tVector(0, 0, 0, 0);
+extern const tVector gGravity;
 const double gInchesToMeters = 0.0254;
 const double gFeetToMeters = 0.3048;
 

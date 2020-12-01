@@ -60,6 +60,7 @@ void cExpPDController::UpdateControlForce(double time_step,
     if (time_step > 0)
     {
         CalcControlForces(time_step, out_tau);
+        std::cout << "[exp pd] out tau = " << out_tau.transpose() << std::endl;
     }
 }
 
@@ -74,6 +75,10 @@ void cExpPDController::GetTargetTheta(int joint_id,
     pd_ctrl.GetTargetTheta(out_theta);
 }
 
+/**
+ * \brief               Set the target pose for each joint
+ * 
+*/
 void cExpPDController::SetTargetTheta(int joint_id,
                                       const Eigen::VectorXd &theta)
 {

@@ -88,5 +88,3 @@ protected:
     virtual void PostProcessTargetPose(Eigen::VectorXd &out_pose) const;
     virtual void PostProcessTargetVel(Eigen::VectorXd &out_vel) const;
 };
-
-const std::string gPDControllersKey = "PDControllers";

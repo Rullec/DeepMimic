@@ -2,7 +2,7 @@
 #include "sim/SimItems/SimCharacter.h"
 #include <iostream>
 using namespace std;
-
+extern const std::string gPDControllersKey;
 cCtPDFeaController::cCtPDFeaController() : cCtController()
 {
     mGravity = gGravity;

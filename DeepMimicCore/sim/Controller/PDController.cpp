@@ -4,6 +4,8 @@
 #include "sim/SimItems/SimCharacter.h"
 #include "util/FileUtil.h"
 
+
+extern const std::string gPDControllersKey = "PDControllers";
 const std::string gPDParamKeys[cPDController::eParamMax] = {
     "JointID",      "Kp",           "Kd",           "TargetTheta0",
     "TargetTheta1", "TargetTheta2", "TargetTheta3", "TargetTheta4",
@@ -161,12 +163,20 @@ void cPDController::SetKd(double kd) { mParams[eParamKd] = kd; }
 
 double cPDController::GetKd() const { return mParams[eParamKd]; }
 
+/**
+ * \brief           set the target pose, explicit PD controller for a single joint
+ * 
+ * For spherical joint, the target pose must be the quaternion
+ * For revolute joint, the target pose is a single angle
+ * For root joint, the target pose
+ * 
+*/
 void cPDController::SetTargetTheta(const Eigen::VectorXd &theta)
 {
     int theta_size = static_cast<int>(theta.size());
     int joint_dim = GetJointDim();
-    assert(theta_size == joint_dim);
-    assert(theta_size < 7);
+    MIMIC_ASSERT(theta_size == joint_dim);
+    MIMIC_ASSERT(theta_size < 7);
     Eigen::VectorXd theta_proc = theta;
     PostProcessTargetPose(theta_proc);
     mParams.segment(eParamTargetTheta0, theta_size) = theta_proc;
@@ -218,13 +228,16 @@ void cPDController::GetTargetTheta(Eigen::VectorXd &out_theta) const
 
     if (UseWorldCoord() && joint_type == cKinTree::eJointTypeSpherical)
     {
-        Eigen::VectorXd pose;   // joint current local rot
+        Eigen::VectorXd pose; // joint current local rot
         joint.BuildPose(pose);
 
-        tQuaternion world_rot = joint.CalcWorldRotation();  // joint current world rot
-        tQuaternion rel_rot = cMathUtil::VecToQuat(pose);   // joint current local rot
+        tQuaternion world_rot =
+            joint.CalcWorldRotation(); // joint current world rot
+        tQuaternion rel_rot =
+            cMathUtil::VecToQuat(pose); // joint current local rot
 
-        tQuaternion tar_q = cMathUtil::VecToQuat(out_theta);    // target rotation of this joint in world frame
+        tQuaternion tar_q = cMathUtil::VecToQuat(
+            out_theta); // target rotation of this joint in world frame
         tQuaternion diff = world_rot.conjugate() *
                            tar_q; // diference between target world and world
         tar_q =
@@ -406,7 +419,7 @@ void cPDController::PostProcessTargetPose(Eigen::VectorXd &out_pose) const
 {
     const cSimBodyJoint &joint = GetJoint();
     int joint_dim = GetJointDim();
-    assert(out_pose.size() == joint_dim);
+    MIMIC_ASSERT(out_pose.size() == joint_dim);
 
     cKinTree::eJointType joint_type = joint.GetType();
     if (joint_type == cKinTree::eJointTypeSpherical)
