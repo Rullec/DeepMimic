@@ -950,7 +950,7 @@ void cSceneSimChar::PreUpdate(double timestep)
     // ClearJointForces();
 }
 
-bool gAnimating = true;
+bool gAnimating = false;
 void cSceneSimChar::PostUpdate(double timestep)
 {
     mWorldBase->PostUpdate();

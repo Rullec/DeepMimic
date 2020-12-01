@@ -6,6 +6,7 @@
 cRLSceneSimChar::cRLSceneSimChar()
 {
     mEnableFallEnd = true;
+    mEnableVelExpEnd = true;
     mAnnealSamples = gInvalidIdx;
     mAnnealPow = 4;
 }
@@ -20,8 +21,9 @@ void cRLSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     parser->ParseBool("enable_fall_end", mEnableFallEnd);
     parser->ParseInt("anneal_samples", mAnnealSamples);
     parser->ParseDouble("anneal_pow", mAnnealPow);
+    parser->ParseBoolCritic("enable_vel_explode_end", mEnableVelExpEnd);
     MIMIC_INFO("set anneal pow {}", mAnnealPow);
-    
+
     mTimerParamsEnd = mTimerParams;
     mArgParser->ParseDouble("time_end_lim_min", mTimerParamsEnd.mTimeMin);
     mArgParser->ParseDouble("time_end_lim_max", mTimerParamsEnd.mTimeMax);
@@ -247,10 +249,20 @@ bool cRLSceneSimChar::CheckValidEpisode() const
         double max_vel_threshold = 100.0;
         const auto &sim_char = GetCharacter(i);
         bool exp = sim_char->HasVelExploded(max_vel_threshold); // 速度爆炸的
-        if (exp)
+
+        // velocity exploded
+        if (exp == true)
         {
-            // 如果速度速度爆炸，表明失效
-            return false;
+            // if we enable vel-explosion end, return false, means invalid episode, scene reset
+            if (mEnableVelExpEnd == true)
+            {
+                return false;
+            }
+            else
+            {
+                // else, even vel-explosion occurs, we assume it is still valid
+                return true;
+            }
         }
     }
     return true;

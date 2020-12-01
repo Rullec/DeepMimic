@@ -1,11 +1,11 @@
 ﻿#include "Character.h"
-#include <assert.h>
 #include "util/json/json.h"
+#include <assert.h>
 
+#include "render/DrawUtil.h"
+#include "render/MeshUtil.h"
 #include "util/FileUtil.h"
 #include "util/JsonUtil.h"
-#include "render/MeshUtil.h"
-#include "render/DrawUtil.h"
 #include <iostream>
 using namespace std;
 
@@ -17,382 +17,363 @@ const std::string gMeshesKey = "Meshes";
 
 cCharacter::cCharacter()
 {
-	mID = gInvalidIdx;
-	ResetParams();
+    mID = gInvalidIdx;
+    ResetParams();
 }
 
-cCharacter::~cCharacter()
-{
-}
+cCharacter::~cCharacter() {}
 
-void cCharacter::SetID(int id)
-{
-	mID = id;
-}
+void cCharacter::SetID(int id) { mID = id; }
 
-int cCharacter::GetID() const
-{
-	return mID;
-}
+int cCharacter::GetID() const { return mID; }
 
 bool cCharacter::Init(const std::string &char_file, bool load_draw_shapes)
 {
-	Clear();
+    Clear();
 
-	bool succ = true;
-	if (char_file != "")
-	{
-		std::ifstream f_stream(char_file);
-		Json::Reader reader;
-		Json::Value root;
-		// 读入character 结构文件 - 这个只是解析文件，并且把他变成Json格式而已。
-		succ = reader.parse(f_stream, root);
-		f_stream.close();
-		//cout <<"parse skeleton " << succ << endl;
-		if (succ)
-		{
-			// 如果解析json成功，则load skeleton 装载结构;
-			if (root[gSkeletonKey].isNull())
-			{
-				succ = false;
-			}
-			else
-			{
-				// load "Skeleton":"Joints" Key in character file (skeleton.json)
-				// It doesn't storage any joint name or link name.
-				succ = LoadSkeleton(root[gSkeletonKey]);
-			}
-		}
-	}
+    bool succ = true;
+    if (char_file != "")
+    {
+        std::ifstream f_stream(char_file);
+        Json::Reader reader;
+        Json::Value root;
+        // 读入character 结构文件 - 这个只是解析文件，并且把他变成Json格式而已。
+        succ = reader.parse(f_stream, root);
+        f_stream.close();
+        //cout <<"parse skeleton " << succ << endl;
+        if (succ)
+        {
+            // 如果解析json成功，则load skeleton 装载结构;
+            if (root[gSkeletonKey].isNull())
+            {
+                succ = false;
+            }
+            else
+            {
+                // load "Skeleton":"Joints" Key in character file (skeleton.json)
+                // It doesn't storage any joint name or link name.
+                succ = LoadSkeleton(root[gSkeletonKey]);
+            }
+        }
+    }
 
-	if (succ)
-	{
-		InitDefaultState();
+    if (succ)
+    {
+        InitDefaultState();
 
-		if (cDrawUtil::EnableDraw() && load_draw_shapes)
-		{
-			succ &= LoadMeshes(char_file, mMeshes);		// deprecated, currently there is no "Meshes" key.
+        if (cDrawUtil::EnableDraw() && load_draw_shapes)
+        {
+            succ &= LoadMeshes(
+                char_file,
+                mMeshes); // deprecated, currently there is no "Meshes" key.
 
-			// load key "DrawShapeDefs" in chracter file
-			succ &= LoadDrawShapeDefs(char_file, mDrawShapeDefs);
-		}
-	}
+            // load key "DrawShapeDefs" in chracter file
+            succ &= LoadDrawShapeDefs(char_file, mDrawShapeDefs);
+        }
+    }
 
-	if (!succ)
-	{
-		printf("Failed to parse character from file %s.\n", char_file.c_str());
-	}
-	mCharFilename = char_file;
-	return succ;
+    if (!succ)
+    {
+        printf("Failed to parse character from file %s.\n", char_file.c_str());
+    }
+    mCharFilename = char_file;
+    return succ;
 }
 
 void cCharacter::Clear()
 {
-	ResetParams();
-	mPose.resize(0);
-	mVel.resize(0);
-	mPose0.resize(0);
-	mVel0.resize(0);
+    ResetParams();
+    mPose.resize(0);
+    mVel.resize(0);
+    mPose0.resize(0);
+    mVel0.resize(0);
 
-	mDrawShapeDefs.resize(0, 0);
-	mMeshes.clear();
+    mDrawShapeDefs.resize(0, 0);
+    mMeshes.clear();
 
-	mDrawShapeDefsName.clear();
-	mSkeletonJointsName.clear();
-	mBodyDefsName.clear();
+    mDrawShapeDefsName.clear();
+    mSkeletonJointsName.clear();
+    mBodyDefsName.clear();
 }
 
-void cCharacter::Update(double time_step)
-{
-}
+void cCharacter::Update(double time_step) {}
 
 void cCharacter::Reset()
 {
-	ResetParams();
+    ResetParams();
 
-	const Eigen::VectorXd& pose0 = GetPose0();
-	const Eigen::VectorXd& vel0 = GetVel0();
-	
-	SetPose(pose0);
-	SetVel(vel0);
+    const Eigen::VectorXd &pose0 = GetPose0();
+    const Eigen::VectorXd &vel0 = GetVel0();
+
+    SetPose(pose0);
+    SetVel(vel0);
 }
 
+/**
+ * \brief			get num of freedom,
+ * spherical = 4
+ * root = 7
+ * 
+ * this freedom is defined as the size of control parameter
+*/
 int cCharacter::GetNumDof() const
 {
-	int dofs = cKinTree::GetNumDof(mJointMat);
-	return dofs;
+    int dofs = cKinTree::GetNumDof(mJointMat);
+    return dofs;
 }
 
-const Eigen::MatrixXd& cCharacter::GetJointMat() const
-{
-	return mJointMat;
-}
+const Eigen::MatrixXd &cCharacter::GetJointMat() const { return mJointMat; }
 
 int cCharacter::GetNumJoints() const
 {
-	return cKinTree::GetNumJoints(mJointMat);
+    return cKinTree::GetNumJoints(mJointMat);
 }
 
-const Eigen::VectorXd& cCharacter::GetPose() const
+const Eigen::VectorXd &cCharacter::GetPose() const { return mPose; }
+
+void cCharacter::SetPose(const Eigen::VectorXd &pose)
 {
-	return mPose;
+    assert(pose.size() == GetNumDof());
+    mPose = pose;
 }
 
-void cCharacter::SetPose(const Eigen::VectorXd& pose)
+const Eigen::VectorXd &cCharacter::GetPose0() const { return mPose0; }
+
+void cCharacter::SetPose0(const Eigen::VectorXd &pose) { mPose0 = pose; }
+
+const Eigen::VectorXd &cCharacter::GetVel() const { return mVel; }
+
+void cCharacter::SetVel(const Eigen::VectorXd &vel)
 {
-	assert(pose.size() == GetNumDof());
-	mPose = pose;
+    assert(vel.size() == GetNumDof());
+    mVel = vel;
 }
 
-const Eigen::VectorXd& cCharacter::GetPose0() const
-{
-	return mPose0;
-}
+const Eigen::VectorXd &cCharacter::GetVel0() const { return mVel0; }
 
-void cCharacter::SetPose0(const Eigen::VectorXd& pose)
-{
-	mPose0 = pose;
-}
-
-const Eigen::VectorXd& cCharacter::GetVel() const
-{
-	return mVel;
-}
-
-void cCharacter::SetVel(const Eigen::VectorXd& vel)
-{
-	assert(vel.size() == GetNumDof());
-	mVel = vel;
-}
-
-const Eigen::VectorXd& cCharacter::GetVel0() const
-{
-	return mVel0;
-}
-
-void cCharacter::SetVel0(const Eigen::VectorXd& vel)
-{
-	mVel0 = vel;
-}
+void cCharacter::SetVel0(const Eigen::VectorXd &vel) { mVel0 = vel; }
 
 int cCharacter::GetRootID() const
 {
-	int root_id = cKinTree::GetRoot(mJointMat);
-	return root_id;
+    int root_id = cKinTree::GetRoot(mJointMat);
+    return root_id;
 }
 
 tVector cCharacter::GetRootPos() const
 {
-	tVector pos = cKinTree::GetRootPos(mJointMat, mPose);
-	return pos;
+    tVector pos = cKinTree::GetRootPos(mJointMat, mPose);
+    return pos;
 }
 
-void cCharacter::GetRootRotation(tVector& out_axis, double& out_theta) const
+void cCharacter::GetRootRotation(tVector &out_axis, double &out_theta) const
 {
-	tQuaternion quat = GetRootRotation();
-	cMathUtil::QuaternionToAxisAngle(quat, out_axis, out_theta);
+    tQuaternion quat = GetRootRotation();
+    cMathUtil::QuaternionToAxisAngle(quat, out_axis, out_theta);
 }
 
 tQuaternion cCharacter::GetRootRotation() const
 {
-	return cKinTree::GetRootRot(mJointMat, mPose);
+    return cKinTree::GetRootRot(mJointMat, mPose);
 }
 
-void cCharacter::SetRootPos(const tVector& pos)
+void cCharacter::SetRootPos(const tVector &pos)
 {
-	cKinTree::SetRootPos(mJointMat, pos, mPose);
+    cKinTree::SetRootPos(mJointMat, pos, mPose);
 }
 
-void cCharacter::SetRootPos0(const tVector& pos)
+void cCharacter::SetRootPos0(const tVector &pos)
 {
-	cKinTree::SetRootPos(mJointMat, pos, mPose0);
+    cKinTree::SetRootPos(mJointMat, pos, mPose0);
 }
 
-void cCharacter::SetRootRotation(const tQuaternion& q)
+void cCharacter::SetRootRotation(const tQuaternion &q)
 {
-	cKinTree::SetRootRot(mJointMat, q, mPose);
+    cKinTree::SetRootRot(mJointMat, q, mPose);
 }
 
-void cCharacter::RotateRoot(const tQuaternion& rot)
+void cCharacter::RotateRoot(const tQuaternion &rot)
 {
-	tQuaternion root_rot = GetRootRotation();
-	root_rot = rot * root_rot;
-	root_rot.normalize();
-	SetRootRotation(root_rot);
+    tQuaternion root_rot = GetRootRotation();
+    root_rot = rot * root_rot;
+    root_rot.normalize();
+    SetRootRotation(root_rot);
 }
 
-void cCharacter::SetRootVel(const tVector& vel)
+void cCharacter::SetRootVel(const tVector &vel)
 {
-	cKinTree::SetRootVel(mJointMat, vel, mVel);
+    cKinTree::SetRootVel(mJointMat, vel, mVel);
 }
 
-void cCharacter::SetRootAngVel(const tVector& ang_vel)
+void cCharacter::SetRootAngVel(const tVector &ang_vel)
 {
-	cKinTree::SetRootAngVel(mJointMat, ang_vel, mVel);
+    cKinTree::SetRootAngVel(mJointMat, ang_vel, mVel);
 }
 
 tQuaternion cCharacter::CalcHeadingRot() const
 {
-	return cKinTree::CalcHeadingRot(mJointMat, mPose);
+    return cKinTree::CalcHeadingRot(mJointMat, mPose);
 }
 
 double cCharacter::CalcHeading() const
 {
-	return cKinTree::CalcHeading(mJointMat, mPose);
+    return cKinTree::CalcHeading(mJointMat, mPose);
 }
 
 // return a transformation matrix which can convert points in world frame to root local frame
 tMatrix cCharacter::BuildOriginTrans() const
 {
-	return cKinTree::BuildOriginTrans(mJointMat, mPose);
+    return cKinTree::BuildOriginTrans(mJointMat, mPose);
 }
 
 int cCharacter::GetParamOffset(int joint_id) const
 {
-	return cKinTree::GetParamOffset(mJointMat, joint_id);
+    return cKinTree::GetParamOffset(mJointMat, joint_id);
 }
 
 int cCharacter::GetParamSize(int joint_id) const
 {
-	return cKinTree::GetParamSize(mJointMat, joint_id);
+    return cKinTree::GetParamSize(mJointMat, joint_id);
 }
 
 bool cCharacter::IsEndEffector(int joint_id) const
 {
-	return cKinTree::IsEndEffector(mJointMat, joint_id);
+    return cKinTree::IsEndEffector(mJointMat, joint_id);
 }
 
 int cCharacter::GetParentJoint(int joint_id) const
 {
-	return cKinTree::GetParent(mJointMat, joint_id);
+    return cKinTree::GetParent(mJointMat, joint_id);
 }
 
 tVector cCharacter::CalcJointPos(int joint_id) const
 {
-	tVector pos = cKinTree::CalcJointWorldPos(mJointMat, mPose, joint_id);
-	return pos;
+    tVector pos = cKinTree::CalcJointWorldPos(mJointMat, mPose, joint_id);
+    return pos;
 }
 
 tVector cCharacter::CalcJointVel(int joint_id) const
 {
-	tVector pos = cKinTree::CalcJointWorldVel(mJointMat, mPose, mVel, joint_id);
-	return pos;
+    tVector pos = cKinTree::CalcJointWorldVel(mJointMat, mPose, mVel, joint_id);
+    return pos;
 }
 
-void cCharacter::CalcJointWorldRotation(int joint_id, tVector& out_axis, double& out_theta) const
+void cCharacter::CalcJointWorldRotation(int joint_id, tVector &out_axis,
+                                        double &out_theta) const
 {
-	cKinTree::CalcJointWorldTheta(mJointMat, mPose, joint_id, out_axis, out_theta);
+    cKinTree::CalcJointWorldTheta(mJointMat, mPose, joint_id, out_axis,
+                                  out_theta);
 }
 
 tQuaternion cCharacter::CalcJointWorldRotation(int joint_id) const
 {
-	tVector axis;
-	double theta;
-	CalcJointWorldRotation(joint_id, axis, theta);
-	return cMathUtil::AxisAngleToQuaternion(axis, theta);
+    tVector axis;
+    double theta;
+    CalcJointWorldRotation(joint_id, axis, theta);
+    return cMathUtil::AxisAngleToQuaternion(axis, theta);
 }
 
 double cCharacter::CalcJointChainLength(int joint_id) const
 {
-	auto chain = cKinTree::FindJointChain(mJointMat, GetRootID(), joint_id);
-	return cKinTree::CalcChainLength(mJointMat, chain);
+    auto chain = cKinTree::FindJointChain(mJointMat, GetRootID(), joint_id);
+    return cKinTree::CalcChainLength(mJointMat, chain);
 }
 
 tMatrix cCharacter::BuildJointWorldTrans(int joint_id) const
 {
-	// std::cout <<"tMatrix character::BuildJointWorldTrans(int joint_id) const " << joint_id << std::endl;
-	return cKinTree::JointWorldTrans(mJointMat, mPose, joint_id);
+    // std::cout <<"tMatrix character::BuildJointWorldTrans(int joint_id) const " << joint_id << std::endl;
+    return cKinTree::JointWorldTrans(mJointMat, mPose, joint_id);
 }
 
-void cCharacter::CalcAABB(tVector& out_min, tVector& out_max) const
+void cCharacter::CalcAABB(tVector &out_min, tVector &out_max) const
 {
-	cKinTree::CalcAABB(mJointMat, mPose, out_min, out_max);
+    cKinTree::CalcAABB(mJointMat, mPose, out_min, out_max);
 }
 
 int cCharacter::CalcNumEndEffectors() const
 {
-	int num_end = 0;
-	for (int j = 0; j < GetNumJoints(); ++j)
-	{
-		if (IsEndEffector(j))
-		{
-			++num_end;
-		}
-	}
-	return num_end;
+    int num_end = 0;
+    for (int j = 0; j < GetNumJoints(); ++j)
+    {
+        if (IsEndEffector(j))
+        {
+            ++num_end;
+        }
+    }
+    return num_end;
 }
 
 // weights for each joint used to compute the pose error during training
 double cCharacter::GetJointDiffWeight(int joint_id) const
 {
-	return cKinTree::GetJointDiffWeight(mJointMat, joint_id);
+    return cKinTree::GetJointDiffWeight(mJointMat, joint_id);
 }
 
-bool cCharacter::WriteState(const std::string& file) const
+bool cCharacter::WriteState(const std::string &file) const
 {
-	return WriteState(file, tMatrix::Identity());
+    return WriteState(file, tMatrix::Identity());
 }
 
-bool cCharacter::WriteState(const std::string& file, const tMatrix& root_trans) const
+bool cCharacter::WriteState(const std::string &file,
+                            const tMatrix &root_trans) const
 {
-	Eigen::VectorXd pose = GetPose();
-	Eigen::VectorXd vel = GetVel();
+    Eigen::VectorXd pose = GetPose();
+    Eigen::VectorXd vel = GetVel();
 
-	tQuaternion trans_q = cMathUtil::RotMatToQuaternion(root_trans);
+    tQuaternion trans_q = cMathUtil::RotMatToQuaternion(root_trans);
 
-	tVector root_pos = cKinTree::GetRootPos(mJointMat, pose);
-	tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, pose);
-	tVector root_vel = cKinTree::GetRootVel(mJointMat, vel);
-	tVector root_ang_vel = cKinTree::GetRootAngVel(mJointMat, vel);
+    tVector root_pos = cKinTree::GetRootPos(mJointMat, pose);
+    tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, pose);
+    tVector root_vel = cKinTree::GetRootVel(mJointMat, vel);
+    tVector root_ang_vel = cKinTree::GetRootAngVel(mJointMat, vel);
 
-	root_pos[3] = 1;
-	root_pos = root_trans * root_pos;
-	root_pos[3] = 0;
+    root_pos[3] = 1;
+    root_pos = root_trans * root_pos;
+    root_pos[3] = 0;
 
-	root_rot = trans_q * root_rot;
-	root_vel = root_trans * root_vel;
-	root_ang_vel = root_trans * root_ang_vel;
+    root_rot = trans_q * root_rot;
+    root_vel = root_trans * root_vel;
+    root_ang_vel = root_trans * root_ang_vel;
 
-	cKinTree::SetRootPos(mJointMat, root_pos, pose);
-	cKinTree::SetRootRot(mJointMat, root_rot, pose);
-	cKinTree::SetRootVel(mJointMat, root_vel, vel);
-	cKinTree::SetRootAngVel(mJointMat, root_ang_vel, vel);
+    cKinTree::SetRootPos(mJointMat, root_pos, pose);
+    cKinTree::SetRootRot(mJointMat, root_rot, pose);
+    cKinTree::SetRootVel(mJointMat, root_vel, vel);
+    cKinTree::SetRootAngVel(mJointMat, root_ang_vel, vel);
 
-	std::string json = BuildStateJson(pose, vel);
-	FILE* f = cFileUtil::OpenFile(file, "w");
-	if (f != nullptr)
-	{
-		fprintf(f, "%s", json.c_str());
-		cFileUtil::CloseFile(f);
-		return true;
-	}
-	return false;
+    std::string json = BuildStateJson(pose, vel);
+    FILE *f = cFileUtil::OpenFile(file, "w");
+    if (f != nullptr)
+    {
+        fprintf(f, "%s", json.c_str());
+        cFileUtil::CloseFile(f);
+        return true;
+    }
+    return false;
 }
 
-bool cCharacter::ReadState(const std::string& file)
+bool cCharacter::ReadState(const std::string &file)
 {
-	std::ifstream f_stream(file);
-	Json::Reader reader;
-	Json::Value root;
-	bool succ = reader.parse(f_stream, root);
-	f_stream.close();
+    std::ifstream f_stream(file);
+    Json::Reader reader;
+    Json::Value root;
+    bool succ = reader.parse(f_stream, root);
+    f_stream.close();
 
-	if (succ && !root[gPoseKey].isNull())
-	{
-		Eigen::VectorXd pose;
-		succ &= ParseState(root[gPoseKey], pose);
-		cKinTree::PostProcessPose(mJointMat, pose);
-		SetPose(pose);
-	}
+    if (succ && !root[gPoseKey].isNull())
+    {
+        Eigen::VectorXd pose;
+        succ &= ParseState(root[gPoseKey], pose);
+        cKinTree::PostProcessPose(mJointMat, pose);
+        SetPose(pose);
+    }
 
-	if (succ && !root[gVelKey].isNull())
-	{
-		Eigen::VectorXd vel;
-		succ &= ParseState(root[gVelKey], vel);
-		SetVel(vel);
-	}
+    if (succ && !root[gVelKey].isNull())
+    {
+        Eigen::VectorXd vel;
+        succ &= ParseState(root[gVelKey], vel);
+        SetVel(vel);
+    }
 
-	return succ;
+    return succ;
 }
 
 /*
@@ -400,134 +381,131 @@ bool cCharacter::ReadState(const std::string& file)
 
 	It will parse the json value passed in, extract the data under key "Skeleton" then "Joints"
 */
-bool cCharacter::LoadSkeleton(const Json::Value& root)
+bool cCharacter::LoadSkeleton(const Json::Value &root)
 {
-	// set up joint info in mJointMat
-	mSkeletonJointsName.clear();
-	return cKinTree::Load(root, mJointMat, mSkeletonJointsName);	
-
+    // set up joint info in mJointMat
+    mSkeletonJointsName.clear();
+    return cKinTree::Load(root, mJointMat, mSkeletonJointsName);
 }
 
 void cCharacter::InitDefaultState()
 {
-	int state_size = GetNumDof();
-	cKinTree::BuildDefaultPose(mJointMat, mPose0);
-	cKinTree::BuildDefaultVel(mJointMat, mVel0);
-	mPose = mPose0;
-	mVel = mVel0;
+    int state_size = GetNumDof();
+    cKinTree::BuildDefaultPose(mJointMat, mPose0);
+    cKinTree::BuildDefaultVel(mJointMat, mVel0);
+    mPose = mPose0;
+    mVel = mVel0;
 }
 
-bool cCharacter::HasDrawShapes() const
+bool cCharacter::HasDrawShapes() const { return mDrawShapeDefs.size() > 0; }
+
+const Eigen::MatrixXd &cCharacter::GetDrawShapeDefs() const
 {
-	return mDrawShapeDefs.size() > 0;
+    return mDrawShapeDefs;
 }
 
-const Eigen::MatrixXd& cCharacter::GetDrawShapeDefs() const
+const std::shared_ptr<cDrawMesh> &cCharacter::GetMesh(int i) const
 {
-	return mDrawShapeDefs;
-}
-
-const std::shared_ptr<cDrawMesh>& cCharacter::GetMesh(int i) const
-{
-	assert(i >= 0 && i < GetNumMeshes());
-	return mMeshes[i];
+    assert(i >= 0 && i < GetNumMeshes());
+    return mMeshes[i];
 }
 
 int cCharacter::GetNumMeshes() const
 {
-	return static_cast<int>(mMeshes.size());
+    return static_cast<int>(mMeshes.size());
 }
 
-void cCharacter::ResetParams()
+void cCharacter::ResetParams() {}
+
+bool cCharacter::ParseState(const Json::Value &root,
+                            Eigen::VectorXd &out_state) const
 {
+    bool succ = cJsonUtil::ReadVectorJson(root, out_state);
+    int num_dof = GetNumDof();
+    assert(out_state.size() == num_dof);
+    return succ;
 }
 
-bool cCharacter::ParseState(const Json::Value& root, Eigen::VectorXd& out_state) const
+std::string cCharacter::BuildStateJson(const Eigen::VectorXd &pose,
+                                       const Eigen::VectorXd &vel) const
 {
-	bool succ = cJsonUtil::ReadVectorJson(root, out_state);
-	int num_dof = GetNumDof();
-	assert(out_state.size() == num_dof);
-	return succ;
+    std::string json = "";
+
+    std::string pose_json = cJsonUtil::BuildVectorJson(pose);
+    std::string vel_json = cJsonUtil::BuildVectorJson(vel);
+
+    json = "{\n\"Pose\":" + pose_json + ",\n\"Vel\":" + vel_json + "\n}";
+    return json;
 }
 
-std::string cCharacter::BuildStateJson(const Eigen::VectorXd& pose, const Eigen::VectorXd& vel) const
+bool cCharacter::LoadDrawShapeDefs(const std::string &char_file,
+                                   Eigen::MatrixXd &out_draw_defs)
 {
-	std::string json = "";
+    bool succ = cKinTree::LoadDrawShapeDefs(char_file, out_draw_defs,
+                                            mDrawShapeDefsName);
 
-	std::string pose_json = cJsonUtil::BuildVectorJson(pose);
-	std::string vel_json = cJsonUtil::BuildVectorJson(vel);
-
-	json = "{\n\"Pose\":" + pose_json + ",\n\"Vel\":" + vel_json + "\n}";
-	return json;
+    return succ;
 }
 
-
-bool cCharacter::LoadDrawShapeDefs(const std::string& char_file, Eigen::MatrixXd& out_draw_defs) 
+bool cCharacter::LoadMeshes(
+    const std::string &char_file,
+    std::vector<std::shared_ptr<cDrawMesh>> &out_meshes) const
 {
-	bool succ = cKinTree::LoadDrawShapeDefs(char_file, out_draw_defs, mDrawShapeDefsName);
+    bool succ = true;
+    std::string str;
 
-	return succ;
+    std::ifstream f_stream(char_file.c_str());
+    Json::Value root;
+    Json::Reader reader;
+    succ = reader.parse(f_stream, root);
+    f_stream.close();
+
+    if (succ)
+    {
+        if (!root[gMeshesKey].isNull())
+        {
+            Json::Value meshes = root.get(gMeshesKey, 0);
+            int num_meshes = meshes.size();
+
+            succ = true;
+            out_meshes.resize(num_meshes);
+            for (int i = 0; i < num_meshes; ++i)
+            {
+                std::string curr_path = meshes.get(i, "").asString();
+                std::shared_ptr<cDrawMesh> curr_mesh =
+                    std::shared_ptr<cDrawMesh>(new cDrawMesh);
+                succ &= cMeshUtil::LoadObj(curr_path, *curr_mesh);
+                if (succ)
+                {
+                    out_meshes[i] = curr_mesh;
+                }
+                else
+                {
+                    printf("Failed to load mesh from %s\n", curr_path.c_str());
+                    assert(false);
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!succ)
+    {
+        printf("Failed to load meshes from %s\n", char_file.c_str());
+        assert(false);
+    }
+
+    return succ;
 }
 
-bool cCharacter::LoadMeshes(const std::string& char_file, std::vector<std::shared_ptr<cDrawMesh>>& out_meshes) const
-{
-	bool succ = true;
-	std::string str;
-
-	std::ifstream f_stream(char_file.c_str());
-	Json::Value root;
-	Json::Reader reader;
-	succ = reader.parse(f_stream, root);
-	f_stream.close();
-
-	if (succ)
-	{
-		if (!root[gMeshesKey].isNull())
-		{
-			Json::Value meshes = root.get(gMeshesKey, 0);
-			int num_meshes = meshes.size();
-
-			succ = true;
-			out_meshes.resize(num_meshes);
-			for (int i = 0; i < num_meshes; ++i)
-			{
-				std::string curr_path = meshes.get(i, "").asString();
-				std::shared_ptr<cDrawMesh> curr_mesh = std::shared_ptr<cDrawMesh>(new cDrawMesh);
-				succ &= cMeshUtil::LoadObj(curr_path, *curr_mesh);
-				if (succ)
-				{
-					out_meshes[i] = curr_mesh;
-				}
-				else
-				{
-					printf("Failed to load mesh from %s\n", curr_path.c_str());
-					assert(false);
-					break;
-				}
-			}
-		}
-	}
-
-	if (!succ)
-	{
-		printf("Failed to load meshes from %s\n", char_file.c_str());
-		assert(false);
-	}
-
-	return succ;
-}
-
-std::string cCharacter::GetBodyName(int id) const
-{
-	return mBodyDefsName[id];
-}
+std::string cCharacter::GetBodyName(int id) const { return mBodyDefsName[id]; }
 
 std::string cCharacter::GetJointName(int id) const
 {
-	return mSkeletonJointsName[id];
+    return mSkeletonJointsName[id];
 }
 
 std::string cCharacter::GetDrawShapeName(int id) const
 {
-	return mDrawShapeDefsName[id];
+    return mDrawShapeDefsName[id];
 }

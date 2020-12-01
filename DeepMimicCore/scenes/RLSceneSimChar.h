@@ -64,10 +64,12 @@ public:
 protected:
     bool mEnableFallEnd;
     cAgentRegistry mAgentReg;
-    cTimer::tParams mTimerParamsEnd;    // save the "end" time parameters in the config
+    cTimer::tParams
+        mTimerParamsEnd; // save the "end" time parameters in the config
     cAnnealer mTimerAnnealer;
     int mAnnealSamples;
     double mAnnealPow;
+    bool mEnableVelExpEnd;
 
     virtual void ResetParams();
     virtual void ResetScene();
@@ -83,11 +85,13 @@ protected:
     virtual bool EnableFallEnd() const;
 
     virtual void RegisterAgents();
-    virtual void RegisterAgent(const std::shared_ptr<cCharController> &ctrl,
-                               const std::shared_ptr<cSimCharacterBase> &character);
-    virtual void RegisterAgent(const std::shared_ptr<cCharController> &ctrl,
-                               const std::shared_ptr<cSimCharacterBase> &character,
-                               std::vector<int> &out_ids);
+    virtual void
+    RegisterAgent(const std::shared_ptr<cCharController> &ctrl,
+                  const std::shared_ptr<cSimCharacterBase> &character);
+    virtual void
+    RegisterAgent(const std::shared_ptr<cCharController> &ctrl,
+                  const std::shared_ptr<cSimCharacterBase> &character,
+                  std::vector<int> &out_ids);
 
     virtual void SetupTimerAnnealer(cAnnealer &out_annealer) const;
     virtual void UpdateTimerParams();

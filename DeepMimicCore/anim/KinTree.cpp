@@ -12,7 +12,7 @@ const int cKinTree::gRootDim = gPosDim + gRotDim;
 const int cKinTree::gInvalidJointID = -1;
 
 // Json keys
-const std::string gJointTypeNames[cKinTree::eJointTypeMax] = {
+extern const std::string gJointTypeNames[cKinTree::eJointTypeMax] = {
     "revolute", "planar", "prismatic", "fixed", "spherical", "none"};
 
 const std::string gJointsKey = "Joints";
@@ -938,9 +938,8 @@ int cKinTree::GetParent(const Eigen::MatrixXd &joint_mat, int joint_id)
 {
     int parent =
         static_cast<int>(joint_mat(joint_id, cKinTree::eJointDescParent));
-    assert(parent <
-           joint_id); // joints should always be ordered as such
-                      // since some algorithms will assume this ordering
+    assert(parent < joint_id); // joints should always be ordered as such
+        // since some algorithms will assume this ordering
     return parent;
 }
 
@@ -1745,7 +1744,11 @@ void cKinTree::PostProcessPose(const Eigen::MatrixXd &joint_mat,
     int root_id = GetRoot(joint_mat);
     int root_offset = GetParamOffset(joint_mat, root_id);
     out_pose.segment(root_offset + gPosDim, gRotDim).normalize();
-
+    if (out_pose.size() != cKinTree::GetNumDof(joint_mat))
+    {
+        MIMIC_ERROR("pose size {} char dof {}", out_pose.size(),
+                    cKinTree::GetNumDof(joint_mat))
+    }
     for (int j = 1; j < num_joints; ++j)
     {
         eJointType joint_type = GetJointType(joint_mat, j);
