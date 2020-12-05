@@ -20,8 +20,8 @@
 		{
 			"ID": 1,
 			"Name": "LeftLeg",
-			"Kp": 100,
-			"Kd": 5,
+			"Kp": 5,
+			"Kd": 1,
 			"TargetTheta0": 0,
 			"UseWorldCoord": 0
 		}

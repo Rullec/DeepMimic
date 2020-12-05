@@ -98,8 +98,8 @@ protected:
     tParams mParams;
     std::shared_ptr<cWorldBase> mWorld;
     std::shared_ptr<cMultiBody> mMultiBody;
-    std::shared_ptr<cSimBodyLink> mParent;
-    std::shared_ptr<cSimBodyLink> mChild;
+    std::shared_ptr<cSimBodyLink> mParent; // joint's parent link
+    std::shared_ptr<cSimBodyLink> mChild;  // joint's child link
 
     // all torques and forces are in local coordinates
     cSpAlg::tSpVec mTotalTau;

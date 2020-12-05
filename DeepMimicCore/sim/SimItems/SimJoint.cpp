@@ -3,6 +3,7 @@
 #include "BulletDynamics/Featherstone/btMultiBodyPoint2Point.h"
 #include "SimBodyLink.h"
 #include "SimRigidBody.h"
+#include "util/LogUtil.h"
 #include <iostream>
 
 cSimJoint::tParams::tParams()
@@ -21,7 +22,7 @@ cSimJoint::tParams::tParams()
     mChildRot.setIdentity();
 }
 
-cSimJoint::cSimJoint() {}
+cSimJoint::cSimJoint() { MIMIC_ERROR("SimJoint hasn't been instantialized"); }
 
 cSimJoint::~cSimJoint()
 {
@@ -89,7 +90,8 @@ tQuaternion cSimJoint::CalcWorldBaseRotation() const
     return q;
 }
 
-void cSimJoint::CalcWorldBaseRotation(tVector &out_axis, double &out_theta) const
+void cSimJoint::CalcWorldBaseRotation(tVector &out_axis,
+                                      double &out_theta) const
 {
     tMatrix mat = BuildWorldTrans();
     cMathUtil::RotMatToAxisAngle(mat, out_axis, out_theta);

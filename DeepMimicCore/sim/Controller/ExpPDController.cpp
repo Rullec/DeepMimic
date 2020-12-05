@@ -156,5 +156,5 @@ void cExpPDController::CalcControlForces(double time_step,
 
 void cExpPDController::ApplyControlForces(const Eigen::VectorXd &tau)
 {
-    mChar->ApplyControlForces(tau);
+    MIMIC_ERROR("apply control force {}", tau.transpose());
 }

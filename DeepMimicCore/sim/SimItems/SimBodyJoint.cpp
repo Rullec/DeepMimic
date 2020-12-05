@@ -82,6 +82,11 @@ tQuaternion cSimBodyJoint::CalcWorldRotation() const
     return q;
 }
 
+/**
+ * \brief               Get the world rotation of this joint
+ * 
+ * For the detals, please check "BuildWorldTrans"
+*/
 void cSimBodyJoint::CalcWorldRotation(tVector &out_axis,
                                       double &out_theta) const
 {
@@ -89,29 +94,33 @@ void cSimBodyJoint::CalcWorldRotation(tVector &out_axis,
     cMathUtil::RotMatToAxisAngle(mat, out_axis, out_theta);
 }
 
+/**
+ * \brief               Build the world transformation of this joint
+ * 
+ * consider a root joint as an example, here we think:
+ *          root_joint_freedom_rotation * rootjoint_to_child_link_rest_rotation  = link_world_rotation
+ * 
+ * so, the joint's world rotation is defined as 
+ *      joint_world_rotation = link_world_rotation * joint_to_childlink_rest_rotation.inverse()
+ *                           = root_joint_freedom_rotation (for root joint) 
+ *                          = parent_link_world_rotation * parent_link_to_child_joint_rotation * joint_freedom_rotation (for other joint)
+*/
 tMatrix cSimBodyJoint::BuildWorldTrans() const
 {
-    // if(IsRoot())
-    // {
-    // 	std::cout <<"for root tMatrix cSimBodyJoint::BuildWorldTrans()\n";
-    // }
     tMatrix mat = tMatrix::Identity();
+
+    // if this joint has a child link
     if (HasChild())
     {
+        // get the child link's world transform
         mat = mChild->GetWorldTransform();
-        // if(IsRoot())
-        // {
-        // 	std::cout <<"mat = child link world transform = \n" << mat <<
-        // std::endl;
-        // }
         mat = mat * BuildJointChildTrans();
-        // if(IsRoot())
-        // {
-        // 	std::cout <<"mat final = \n" << mat << std::endl;
-        // }
     }
     else
     {
+        MIMIC_ERROR("how can this be possbile, a single joint with no link?");
+        // if the joint doesn't have a child link
+        // how can it be possible?
         mat = mParent->GetWorldTransform();
         mat = mat * BuildJointParentTrans();
     }
@@ -312,6 +321,11 @@ int cSimBodyJoint::GetParamSize() const
     return cKinTree::GetJointParamSize(GetType());
 }
 
+/**
+ * \brief               Build the current pose of this joint
+ * for revolute joint, the joint pose is the rotation angle
+ * for spherical joint, the joint pose is 
+*/
 void cSimBodyJoint::BuildPose(Eigen::VectorXd &out_pose) const
 {
     const btScalar *data = mMultiBody->getJointPosMultiDof(mParams.mID);
@@ -347,8 +361,15 @@ void cSimBodyJoint::BuildPose(Eigen::VectorXd &out_pose) const
         break;
     case cKinTree::eJointTypeSpherical:
     {
+        // rotation quaternion, joint local rotation
         tQuaternion q = tQuaternion(data[3], data[0], data[1], data[2]);
+        std::cout << "[joint pose] raw q = " << q.coeffs().transpose()
+                  << std::endl;
+        // convert from link frame to joint frame?
         q = mParams.mChildRot.conjugate() * q * mParams.mChildRot;
+        std::cout << "[joint pose] new q = " << q.coeffs().transpose()
+                  << std::endl;
+        exit(0);
         bool flip = (q.w() < 0);
         out_pose[0] = (flip) ? -q.w() : q.w();
         out_pose[1] = (flip) ? -q.x() : q.x();

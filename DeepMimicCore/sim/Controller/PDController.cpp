@@ -4,7 +4,6 @@
 #include "sim/SimItems/SimCharacter.h"
 #include "util/FileUtil.h"
 
-
 extern const std::string gPDControllersKey = "PDControllers";
 const std::string gPDParamKeys[cPDController::eParamMax] = {
     "JointID",      "Kp",           "Kd",           "TargetTheta0",
@@ -203,30 +202,52 @@ bool cPDController::UseWorldCoord() const
     return mParams[eParamUseWorldCoord] != 0;
 }
 
+/**
+ * \brief               Calculate the local PD target theta
+ * for revolute: size(out_theta) = 1
+ * for spherical: size(out_theta) = 4
+ * 
+*/
 void cPDController::GetTargetTheta(Eigen::VectorXd &out_theta) const
 {
     const cSimBodyJoint &joint = GetJoint();
     cKinTree::eJointType joint_type = joint.GetType();
+    /*
+        revolute joint dim: 1
+        spherical joint dim: 4
+        root joint dim: 7
+    */
     out_theta = mParams.segment(eParamTargetTheta0, GetJointDim());
 
-    if (UseWorldCoord() && joint_type == cKinTree::eJointTypeRevolute)
+    /*
+        for revolute joint, calculate the local PD target,
+        when can drive the joint to meet the desired world target
+    */
+    if (UseWorldCoord() == true && joint_type == cKinTree::eJointTypeRevolute)
     {
         tVector axis_world;
         double theta_world;
-        joint.CalcWorldRotation(axis_world, theta_world);
+        joint.CalcWorldRotation(
+            axis_world,
+            theta_world); // get the world orientation of the joint, freedom rotation is included
 
         Eigen::VectorXd pose;
-        joint.BuildPose(pose);
+        joint.BuildPose(pose); // get the rotation angle of this joint
         double theta_rel = pose[0];
-        tVector axis_rel = joint.GetAxisRel();
+        tVector axis_rel =
+            joint
+                .GetAxisRel(); // revolute is rotated along with x axis, [1, 0, 0]
+        tVector axis_ref =
+            joint.CalcAxisWorld(); // joint rotation axis in world frame
 
-        tVector axis_ref = joint.CalcAxisWorld();
+        // I felt hard to understand this LOC, deprecate it in 20201201
+        MIMIC_ERROR("hard to understance and cannot confirm");
         double theta_offset = axis_world.dot(axis_ref) * theta_world -
                               axis_rel.dot(axis_ref) * theta_rel;
         out_theta(0) -= theta_offset;
     }
 
-    if (UseWorldCoord() && joint_type == cKinTree::eJointTypeSpherical)
+    if (UseWorldCoord() == true && joint_type == cKinTree::eJointTypeSpherical)
     {
         Eigen::VectorXd pose; // joint current local rot
         joint.BuildPose(pose);
@@ -279,6 +300,11 @@ void cPDController::ApplyControlForces(const Eigen::VectorXd &tau)
     mChar->ApplyControlForces(tau);
 }
 
+/**
+ * \brief               Calculate joint torque
+ * 
+ * the size of out_joint_tau = CtrlDims()
+*/
 void cPDController::CalcJointTau(double time_step,
                                  Eigen::VectorXd &out_joint_tau)
 {
@@ -291,15 +317,19 @@ void cPDController::CalcJointTau(double time_step,
         break;
     case cKinTree::eJointTypePlanar:
         CalcJointTauPlanar(time_step, out_joint_tau);
+        MIMIC_ASSERT(false);
         break;
     case cKinTree::eJointTypePrismatic:
         CalcJointTauPrismatic(time_step, out_joint_tau);
+        MIMIC_ASSERT(false);
         break;
     case cKinTree::eJointTypeFixed:
         CalcJointTauFixed(time_step, out_joint_tau);
+        MIMIC_ASSERT(false);
         break;
     case cKinTree::eJointTypeSpherical:
         CalcJointTauSpherical(time_step, out_joint_tau);
+        MIMIC_ASSERT(false);
         break;
     default:
         assert(false); // unsupported joint type
@@ -307,6 +337,12 @@ void cPDController::CalcJointTau(double time_step,
     }
 }
 
+/**
+ * \brief           Calculate Exp control force for revolute
+ * out_joint_tau.size = 1
+ * 
+ * the output_joint_tau is expressed in joint's local coordinate, a real number
+*/
 void cPDController::CalcJointTauRevolute(double time_step,
                                          Eigen::VectorXd &out_joint_tau)
 {
@@ -315,21 +351,27 @@ void cPDController::CalcJointTauRevolute(double time_step,
     double kp = GetKp();
     double kd = GetKd();
 
+    // 1. get target joint angle
     Eigen::VectorXd tar_pose;
     Eigen::VectorXd tar_vel;
     GetTargetTheta(tar_pose);
     GetTargetVel(tar_vel);
-
+    printf("[debug] revolute target theta %.3f, target vel %.3f\n", tar_pose[0],
+           tar_vel[0]);
+    
+    
+    // 2. get current joint angle
     Eigen::VectorXd pose;
     joint.BuildPose(pose);
-    double theta = pose[0];
+    double cur_theta = pose[0]; 
 
+    // 3. get current joint angle vel
     Eigen::VectorXd joint_vel;
     joint.BuildVel(joint_vel);
-    double vel = joint_vel[0];
+    double cur_vel = joint_vel[0];
 
-    double theta_err = tar_pose[0] - theta;
-    double vel_err = tar_vel[0] - vel;
+    double theta_err = tar_pose[0] - cur_theta;
+    double vel_err = tar_vel[0] - cur_vel;
     double t = kp * theta_err + kd * vel_err;
     // std::cout << "Revolute: theta: " << theta << " theta err: " << theta_err
     // << " vel_err: " << vel_err << std::endl;

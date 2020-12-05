@@ -68,6 +68,13 @@ void cSimbiconController::UpdateBuildTau(double time_step, tVectorXd &out_tau)
 }
 
 /**
+ * \brief           Given the control force out_tau, apply it to the character
+*/
+void cSimbiconController::UpdateApplyTau(const tVectorXd &out_tau)
+{
+    mChar->ApplyControlForces(out_tau);
+}
+/**
  * 
 */
 void cSimbiconController::Reset() { cCtPDController::Reset(); }
@@ -144,4 +151,12 @@ void cSimbiconController::SetTargetVel(const tVectorXd &tar_vel)
             mPDCtrl.SetTargetVel(i, tar_vel.segment(offset, size));
         }
     }
+}
+
+/**
+ * \brief               Verify control force
+*/
+void cSimbiconController::VerifyControlForce(const tVectorXd &force)
+{
+    MIMIC_ERROR("begin to verify control force {}", force.transpose());
 }

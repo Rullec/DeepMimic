@@ -23,6 +23,7 @@ public:
                                Eigen::VectorXd &out_tau) override final;
     virtual void UpdateBuildTau(double time_step,
                                 Eigen::VectorXd &out_tau) override final;
+    virtual void UpdateApplyTau(const tVectorXd &out_tau) override final;
     virtual void Reset() override final;
     virtual void Clear() override final;
 
@@ -40,4 +41,5 @@ protected:
     virtual void InitFSM(const Json::Value &conf);
     virtual void SetTargetTheta(const tVectorXd &tar_pose);
     virtual void SetTargetVel(const tVectorXd &tar_vel);
+    virtual void VerifyControlForce(const tVectorXd &force);
 };

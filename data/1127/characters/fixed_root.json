@@ -15,7 +15,7 @@
          "ColorR": 0.89999997615814209,
          "EnableFallContact": 0,
          "ID": 0,
-         "Mass": 12,
+         "Mass": 10,
          "Name": "root",
          "Param0": 0.27000000000000002,
          "Param1": 0.12809999999999999,
@@ -176,7 +176,7 @@
          "ColorR": 0.89999997615814209,
          "EnableFallContact": 0,
          "ID": 7,
-         "Mass": 12,
+         "Mass": 10,
          "Name": "torso",
          "Param0": 0.27,
          "Param1": 0.4,
@@ -546,7 +546,7 @@
             "Name": "root",
             "Parent": -1,
             "TorqueLim": 100.0,
-            "Type": "none"
+            "Type": "fixed_none"
          },
          {
             "AttachThetaX": 0.0,

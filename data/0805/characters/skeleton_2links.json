@@ -154,7 +154,7 @@
             "Name" : "root",
             "Parent" : -1,
             "TorqueLim" : 100.0,
-            "Type" : "bipedal_none"
+            "Type" : "none"
          },
          {
             "AttachThetaX" : 0.0,
