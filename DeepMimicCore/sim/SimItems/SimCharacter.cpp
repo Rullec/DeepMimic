@@ -60,7 +60,7 @@ bool cSimCharacter::Init(const std::shared_ptr<cWorldBase> &world,
     succ &= succ_skeleton;
     SetID(params.mID);
     RemoveFromWorld();
-    mWorld = world;
+    mBaseWorld = world;
     mEnableContactFall = params.mEnableContactFall;
 
     if (succ_skeleton)
@@ -274,7 +274,7 @@ void cSimCharacter::SetVel(const Eigen::VectorXd &vel)
 {
     cCharacter::SetVel(vel);
 
-    double world_scale = mWorld->GetScale();
+    double world_scale = mBaseWorld->GetScale();
     int root_id = cKinTree::GetRoot(mJointMat);
     tVector root_vel = cKinTree::GetRootVel(mJointMat, vel);
     tVector root_ang_vel = cKinTree::GetRootAngVel(mJointMat, vel);
@@ -872,7 +872,7 @@ void cSimCharacter::SetPose(const Eigen::VectorXd &pose)
 {
     cCharacter::SetPose(pose);
 
-    double world_scale = mWorld->GetScale();
+    double world_scale = mBaseWorld->GetScale();
     int root_id = cKinTree::GetRoot(mJointMat);
     tVector root_pos = cKinTree::GetRootPos(mJointMat, pose);
     tQuaternion root_rot = cKinTree::GetRootRot(mJointMat, pose).normalized();
@@ -939,7 +939,7 @@ bool cSimCharacter::BuildSimBody(const tParams &params)
         succ &= BuildBodyLinks();
         succ &= BuildJoints();
 
-        mWorld->AddCharacter(this);
+        mBaseWorld->AddCharacter(this);
 
         mVecBuffer0.resize(mMultiBody->getNumLinks() + 1);
         mVecBuffer1.resize(mMultiBody->getNumLinks() + 1);
@@ -957,7 +957,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody> &out_body)
 
     // base is always identity and the mass/ inertia is zero.
     // the normal "root" is the child of base
-    double world_scale = mWorld->GetScale();
+    double world_scale = mBaseWorld->GetScale();
     int num_joints = GetNumJoints();
     bool fixed_base = FixedBase();
     btVector3 base_intertia = btVector3(0, 0, 0);
@@ -1190,7 +1190,7 @@ bool cSimCharacter::BuildMultiBody(std::shared_ptr<cMultiBody> &out_body)
         // std::cout << "[add collider] filter group " << j << " = " <<
         // collisionFilterGroup << std::endl; std::cout << "[add collider]
         // filter mask " << j << " = " << collisionFilterMask << std::endl;
-        mWorld->AddCollisionObject(col_obj, collisionFilterGroup,
+        mBaseWorld->AddCollisionObject(col_obj, collisionFilterGroup,
                                    collisionFilterMask);
         mMultiBody->getLink(j).m_collider = col_obj;
     }
@@ -1204,7 +1204,7 @@ bool cSimCharacter::BuildJointLimits(std::shared_ptr<cMultiBody> &out_body)
 {
     // 这里增加的约束，并不是bullet中rigid body之间的point2point等约束
     // 而是角度限制约束, 对于btMultiBody而言，这个约束是必要的。
-    double world_scale = mWorld->GetScale();
+    double world_scale = mBaseWorld->GetScale();
     for (int j = 0; j < GetNumJoints(); ++j)
     {
         cKinTree::eJointType joint_type = cKinTree::GetJointType(mJointMat, j);
@@ -1267,7 +1267,7 @@ bool cSimCharacter::BuildBodyLinks()
         curr_part->SetColGroup(col_group);
         curr_part->SetColMask(col_mask);
 
-        curr_part->Init(mWorld, mMultiBody, params);
+        curr_part->Init(mBaseWorld, mMultiBody, params);
     }
 
     return true;
@@ -1280,18 +1280,18 @@ btCollisionShape *cSimCharacter::BuildCollisionShape(const cShape::eShape shape,
     switch (shape)
     {
     case cShape::eShapeBox:
-        col_shape = mWorld->BuildBoxShape(shape_size);
+        col_shape = mBaseWorld->BuildBoxShape(shape_size);
         break;
     case cShape::eShapeCapsule:
         col_shape =
-            mWorld->BuildCapsuleShape(0.5 * shape_size[0], shape_size[1]);
+            mBaseWorld->BuildCapsuleShape(0.5 * shape_size[0], shape_size[1]);
         break;
     case cShape::eShapeSphere:
-        col_shape = mWorld->BuildSphereShape(0.5 * shape_size[0]);
+        col_shape = mBaseWorld->BuildSphereShape(0.5 * shape_size[0]);
         break;
     case cShape::eShapeCylinder:
         col_shape =
-            mWorld->BuildCylinderShape(0.5 * shape_size[0], shape_size[1]);
+            mBaseWorld->BuildCylinderShape(0.5 * shape_size[0], shape_size[1]);
         break;
     default:
         printf("Unsupported body link shape\n");
@@ -1374,7 +1374,7 @@ bool cSimCharacter::BuildJoints()
                 joint_to_parent); // joint pos in parent joint coord
         }
 
-        curr_joint.Init(mWorld, mMultiBody, parent_link, child_link,
+        curr_joint.Init(mBaseWorld, mMultiBody, parent_link, child_link,
                         joint_params);
     }
 
@@ -1445,14 +1445,14 @@ bool cSimCharacter::FixedBase() const
 
 void cSimCharacter::RemoveFromWorld()
 {
-    if (mWorld != nullptr)
+    if (mBaseWorld != nullptr)
     {
-        mWorld->RemoveCharacter(this);
+        mBaseWorld->RemoveCharacter(this);
         mJoints.clear();
         mBodyParts.clear();
         mCons.clear();
         mMultiBody.reset();
-        mWorld.reset();
+        mBaseWorld.reset();
     }
 }
 
@@ -1532,7 +1532,7 @@ void cSimCharacter::UpdateLinkVel()
     // 利用bullet计算速度
     mMultiBody->compTreeLinkVelocities(&ang_vel_buffer[0], &vel_buffer[0]);
 
-    double world_scale = mWorld->GetScale();
+    double world_scale = mBaseWorld->GetScale();
     for (int b = 0; b < GetNumBodyParts(); ++b)
     {
         if (IsValidBodyPart(b))
@@ -1707,7 +1707,7 @@ std::string cSimCharacter::GetCharFilename() { return mCharFilename; }
 
 const std::shared_ptr<cWorldBase> &cSimCharacter::GetWorld() const
 {
-    return mWorld;
+    return mBaseWorld;
 }
 
 const std::shared_ptr<cMultiBody> &cSimCharacter::GetMultiBody() const

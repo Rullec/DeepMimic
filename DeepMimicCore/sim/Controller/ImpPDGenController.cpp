@@ -171,8 +171,7 @@ void cPDCtrl::CheckVelExplode()
  */
 void cPDCtrl::UpdateControlForceNative(double dt, tVectorXd &out_tau)
 {
-    tVectorXd q = mChar->Getq(), qdot = mChar->Getqdot(),
-              qddot = mChar->Getqddot();
+    tVectorXd q = mChar->Getq(), qdot = mChar->Getqdot();
     out_tau =
         mKp.cwiseProduct(mTarget_q - q) + mKd.cwiseProduct(mTarget_qdot - qdot);
 }

@@ -13,7 +13,9 @@ const int cKinTree::gInvalidJointID = -1;
 
 // Json keys
 extern const std::string gJointTypeNames[cKinTree::eJointTypeMax] = {
-    "revolute", "planar", "prismatic", "fixed", "spherical", "none"};
+    "revolute",   "planar",         "prismatic",    "fixed",
+    "spherical",  "none",           "bipedal_none", "limit_none",
+    "fixed_none", "ball_in_socket", "universal"};
 
 const std::string gJointsKey = "Joints";
 const std::string gJointsNameKey = "Name";
@@ -536,79 +538,277 @@ bool cKinTree::HasValidRoot(const Eigen::MatrixXd &joint_desc)
     return root != gInvalidJointID;
 }
 
+/**
+ * \brief           Given current pose, calcualte the global position of root joint
+*/
 tVector cKinTree::GetRootPos(const Eigen::MatrixXd &joint_mat,
-                             const Eigen::VectorXd &state)
+                             const Eigen::VectorXd &pose)
 {
     int root_id = GetRoot(joint_mat);
-    tVector pos = tVector::Zero();
     int param_offset = GetParamOffset(joint_mat, root_id);
-    pos.segment(0, gPosDim) = state.segment(param_offset, gPosDim);
+    tVector pos = tVector::Zero();
+
+    switch (cKinTree::GetJointType(joint_mat, root_id))
+    {
+    case eJointType::eJointTypeNone:
+        pos.segment(0, gPosDim) = pose.segment(param_offset, gPosDim);
+        break;
+    case eJointType::eJointTypeBipedalNone:
+        // Y & Z translation
+        pos[1] = pose[0];
+        pos[2] = pose[1];
+        break;
+    case eJointType::eJointTypeLimitNone:
+        // only X translation
+        pos[0] = pose[0];
+        break;
+    case eJointType::eJointTypeFixedNone:
+        // fixed at origin
+        break;
+    default:
+        MIMIC_ASSERT(false);
+        break;
+    }
+
     return pos;
 }
 
+/**
+ * \brief           Given root position, set it into the output pose
+*/
 void cKinTree::SetRootPos(const Eigen::MatrixXd &joint_mat, const tVector &pos,
-                          Eigen::VectorXd &out_state)
+                          Eigen::VectorXd &out_pose)
 {
     int root_id = GetRoot(joint_mat);
     int param_offset = GetParamOffset(joint_mat, root_id);
-    out_state.segment(param_offset, gPosDim) = pos.segment(0, gPosDim);
+
+    switch (cKinTree::GetJointType(joint_mat, root_id))
+    {
+    case eJointType::eJointTypeNone:
+        out_pose.segment(param_offset, gPosDim) = pos.segment(0, gPosDim);
+        break;
+    case eJointType::eJointTypeBipedalNone:
+        // Y & Z translation
+        out_pose[0] = pos[1];
+        out_pose[1] = pos[2];
+        break;
+    case eJointType::eJointTypeLimitNone:
+        // only X translation
+        out_pose[0] = pos[0];
+        break;
+    case eJointType::eJointTypeFixedNone:
+        // fixed at origin
+        break;
+    default:
+        MIMIC_ASSERT(false);
+        break;
+    }
 }
 
+/**
+ * \brief       Get the orientation quaternion of root joint
+*/
 tQuaternion cKinTree::GetRootRot(const Eigen::MatrixXd &joint_mat,
                                  const Eigen::VectorXd &state)
 {
     int root_id = GetRoot(joint_mat);
     int param_offset = GetParamOffset(joint_mat, root_id);
-    tQuaternion rot =
-        cMathUtil::VecToQuat(state.segment(param_offset + gPosDim, gRotDim));
+    tQuaternion rot = tQuaternion::Identity();
+    switch (cKinTree::GetJointType(joint_mat, root_id))
+    {
+    case eJointType::eJointTypeNone:
+        rot = cMathUtil::VecToQuat(
+            state.segment(param_offset + gPosDim, gRotDim));
+        break;
+    case eJointType::eJointTypeBipedalNone:
+        // X rotation
+        rot = cMathUtil::AxisAngleToQuaternion(tVector(1, 0, 0, 0) *
+                                               state[param_offset + 2]);
+        break;
+    case eJointType::eJointTypeLimitNone:
+        // no rotation
+
+        break;
+    case eJointType::eJointTypeFixedNone:
+        // no rotation
+        break;
+    default:
+        MIMIC_ASSERT(false);
+        break;
+    }
+
     return rot;
 }
 
+/**
+ * \brief           Set the rotation of root joint
+*/
 void cKinTree::SetRootRot(const Eigen::MatrixXd &joint_mat,
                           const tQuaternion &rot, Eigen::VectorXd &out_state)
 {
     int root_id = GetRoot(joint_mat);
     int param_offset = GetParamOffset(joint_mat, root_id);
     // [w, x, y, z] set to ratation of root joint
-    out_state.segment(param_offset + gPosDim, gRotDim) =
-        cMathUtil::QuatToVec(rot).segment(0, gRotDim);
+
+    switch (cKinTree::GetJointType(joint_mat, root_id))
+    {
+    case eJointType::eJointTypeNone:
+
+        out_state.segment(param_offset + gPosDim, gRotDim) =
+            cMathUtil::QuatToVec(rot).segment(0, gRotDim);
+        break;
+    case eJointType::eJointTypeBipedalNone:
+        // X rotation, param_offset + 2
+        out_state[param_offset + 2] =
+            cMathUtil::QuaternionToAxisAngle(rot).dot(tVector(1, 0, 0, 0));
+
+        break;
+    case eJointType::eJointTypeLimitNone:
+        // no rotation
+
+        break;
+    case eJointType::eJointTypeFixedNone:
+        // no rotation
+        break;
+    default:
+        MIMIC_ASSERT(false);
+        break;
+    }
 }
 
+/**
+ * \brief       Get the lin vel of root joint
+*/
 tVector cKinTree::GetRootVel(const Eigen::MatrixXd &joint_mat,
-                             const Eigen::VectorXd &vel)
+                             const Eigen::VectorXd &total_vel)
 {
     int root_id = GetRoot(joint_mat);
-    tVector pos = tVector::Zero();
+    tVector lin_vel = tVector::Zero();
     int param_offset = GetParamOffset(joint_mat, root_id);
-    pos.segment(0, gPosDim) = vel.segment(param_offset, gPosDim);
-    return pos;
+
+    switch (cKinTree::GetJointType(joint_mat, root_id))
+    {
+    case eJointType::eJointTypeNone:
+        lin_vel.segment(0, gPosDim) = total_vel.segment(param_offset, gPosDim);
+        break;
+    case eJointType::eJointTypeBipedalNone:
+        // Y & Z translation vel
+        lin_vel[1] = total_vel[param_offset + 0];
+        lin_vel[2] = total_vel[param_offset + 1];
+
+        break;
+    case eJointType::eJointTypeLimitNone:
+        // X translation vel
+        lin_vel[0] = total_vel[param_offset];
+
+        break;
+    case eJointType::eJointTypeFixedNone:
+        // no rotation
+        break;
+    default:
+        MIMIC_ASSERT(false);
+        break;
+    }
+
+    return lin_vel;
 }
 
-void cKinTree::SetRootVel(const Eigen::MatrixXd &joint_mat, const tVector &vel,
-                          Eigen::VectorXd &out_vel)
+/**
+ * \brief           
+*/
+void cKinTree::SetRootVel(const Eigen::MatrixXd &joint_mat,
+                          const tVector &lin_vel, Eigen::VectorXd &out_vel)
 {
     int root_id = GetRoot(joint_mat);
     int param_offset = GetParamOffset(joint_mat, root_id);
-    out_vel.segment(param_offset, gPosDim) = vel.segment(0, gPosDim);
+
+    switch (cKinTree::GetJointType(joint_mat, root_id))
+    {
+    case eJointType::eJointTypeNone:
+        out_vel.segment(param_offset, gPosDim) = lin_vel.segment(0, gPosDim);
+
+        break;
+    case eJointType::eJointTypeBipedalNone:
+        // Y & Z translation vel
+        out_vel[param_offset + 0] = lin_vel[1];
+        out_vel[param_offset + 1] = lin_vel[2];
+
+        break;
+    case eJointType::eJointTypeLimitNone:
+        // X translation vel
+        out_vel[param_offset] = lin_vel[0];
+
+        break;
+    case eJointType::eJointTypeFixedNone:
+        // no rotation
+        break;
+    default:
+        MIMIC_ASSERT(false);
+        break;
+    }
 }
 
+/**
+ * \brief       Get the ang vel of root joint
+*/
 tVector cKinTree::GetRootAngVel(const Eigen::MatrixXd &joint_mat,
-                                const Eigen::VectorXd &vel)
+                                const Eigen::VectorXd &total_vel)
 {
     int root_id = GetRoot(joint_mat);
     tVector ang_vel = tVector::Zero();
     int param_offset = GetParamOffset(joint_mat, root_id);
-    ang_vel.segment(0, gRotDim) = vel.segment(param_offset + gPosDim, gRotDim);
+
+    switch (cKinTree::GetJointType(joint_mat, root_id))
+    {
+    case eJointType::eJointTypeNone:
+        ang_vel.segment(0, gRotDim) =
+            total_vel.segment(param_offset + gPosDim, gRotDim);
+        break;
+    case eJointType::eJointTypeBipedalNone:
+        // X ang vel
+        ang_vel[0] = total_vel[param_offset + 2];
+        break;
+    case eJointType::eJointTypeLimitNone:
+        // no ang vel
+        break;
+    case eJointType::eJointTypeFixedNone:
+        // no rotation
+        break;
+    default:
+        MIMIC_ASSERT(false);
+        break;
+    }
     return ang_vel;
 }
 
+/**
+ * \brief           Set root ang vel
+*/
 void cKinTree::SetRootAngVel(const Eigen::MatrixXd &joint_mat,
                              const tVector &ang_vel, Eigen::VectorXd &out_vel)
 {
     int root_id = GetRoot(joint_mat);
     int param_offset = GetParamOffset(joint_mat, root_id);
-    out_vel.segment(param_offset + gPosDim, gRotDim) =
-        ang_vel.segment(0, gRotDim);
+
+    switch (cKinTree::GetJointType(joint_mat, root_id))
+    {
+    case eJointType::eJointTypeNone:
+        out_vel.segment(param_offset + gPosDim, gRotDim) =
+            ang_vel.segment(0, gRotDim);
+        break;
+    case eJointType::eJointTypeBipedalNone:
+        out_vel[param_offset + 2] = ang_vel[0];
+        break;
+    case eJointType::eJointTypeLimitNone:
+        // no ang vel
+        break;
+    case eJointType::eJointTypeFixedNone:
+        // no rotation
+        break;
+    default:
+        MIMIC_ASSERT(false);
+        break;
+    }
 }
 
 tVector cKinTree::CalcJointWorldPos(const Eigen::MatrixXd &joint_mat,
@@ -868,7 +1068,31 @@ int cKinTree::GetParamSize(const Eigen::MatrixXd &joint_mat, int joint_id)
 {
     eJointType joint_type = cKinTree::GetJointType(joint_mat, joint_id);
     bool is_root = cKinTree::IsRoot(joint_mat, joint_id);
-    int size = (is_root) ? gRootDim : GetJointParamSize(joint_type);
+    int size = -1;
+    if (is_root)
+    {
+        switch (joint_type)
+        {
+        case eJointType::eJointTypeNone:
+            size = gRootDim;
+            break;
+        case eJointType::eJointTypeLimitNone:
+            size = 1;
+            break;
+        case eJointType::eJointTypeFixedNone:
+            size = 0;
+            break;
+        case eJointType::eJointTypeBipedalNone:
+            size = 3;
+            break;
+
+        default:
+            BTGEN_ASSERT(false);
+            break;
+        }
+    }
+    else
+        size = GetJointParamSize(joint_type);
     return size;
 }
 
@@ -2221,9 +2445,25 @@ tMatrix cKinTree::ChildParentTransSpherical(const Eigen::MatrixXd &joint_mat,
 void cKinTree::BuildDefaultPoseRoot(const Eigen::MatrixXd &joint_mat,
                                     Eigen::VectorXd &out_pose)
 {
-    int dim = gRootDim;
+    int root = GetRoot(joint_mat);
+    int dim = GetParamSize(joint_mat, root);
+    ;
     out_pose = Eigen::VectorXd::Zero(dim);
-    out_pose(gPosDim) = 1; // w, x, y, z
+    switch (GetJointType(joint_mat, root))
+    {
+    case eJointType::eJointTypeNone:
+        out_pose(gPosDim) = 1; // w, x, y, z
+        break;
+    case eJointType::eJointTypeBipedalNone:
+        break;
+    case eJointType::eJointTypeLimitNone:
+        break;
+    case eJointType::eJointTypeFixedNone:
+        break;
+    default:
+        MIMIC_ASSERT(false);
+        break;
+    }
 }
 
 void cKinTree::BuildDefaultPoseRevolute(Eigen::VectorXd &out_pose)
@@ -2260,7 +2500,7 @@ void cKinTree::BuildDefaultPoseSpherical(Eigen::VectorXd &out_pose)
 void cKinTree::BuildDefaultVelRoot(const Eigen::MatrixXd &joint_mat,
                                    Eigen::VectorXd &out_pose)
 {
-    int dim = gRootDim;
+    int dim = GetParamSize(joint_mat, GetRoot(joint_mat));
     out_pose = Eigen::VectorXd::Zero(dim);
 }
 

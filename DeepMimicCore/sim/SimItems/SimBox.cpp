@@ -39,6 +39,6 @@ void cSimBox::Init(const std::shared_ptr<cWorldBase> &world, const tParams &para
     SetRotation(params.mAxis, params.mTheta);
 }
 
-tVector cSimBox::GetSize() const { return mWorld->GetSizeBox(*this); }
+tVector cSimBox::GetSize() const { return mBaseWorld->GetSizeBox(*this); }
 
 cShape::eShape cSimBox::GetShape() const { return cShape::eShapeBox; }

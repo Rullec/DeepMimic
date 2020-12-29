@@ -31,4 +31,4 @@ tVector cSimPlane::GetCoeffs() const { return GetSize(); }
 
 cShape::eShape cSimPlane::GetShape() const { return cShape::eShapePlane; }
 
-tVector cSimPlane::GetSize() const { return mWorld->GetSizePlane(*this); }
+tVector cSimPlane::GetSize() const { return mBaseWorld->GetSizePlane(*this); }

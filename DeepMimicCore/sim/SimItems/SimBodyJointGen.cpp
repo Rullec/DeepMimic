@@ -44,7 +44,10 @@ tMatrix cSimBodyJointGen::BuildWorldTrans() const
 }
 bool cSimBodyJointGen::IsRoot() const
 {
-    return mJointType == cKinTree::eJointType::eJointTypeNone;
+    return (mJointType == cKinTree::eJointType::eJointTypeNone) ||
+           (mJointType == cKinTree::eJointType::eJointTypeLimitNone) ||
+           (mJointType == cKinTree::eJointType::eJointTypeFixedNone) ||
+           (mJointType == cKinTree::eJointType::eJointTypeBipedalNone);
 }
 
 void cSimBodyJointGen::AddTau(const Eigen::VectorXd &tau)
@@ -161,7 +164,23 @@ int cSimBodyJointGen::GetPoseSize() const
     case cKinTree::eJointType::eJointTypeRevolute:
         size = 1;
         break;
-
+    case cKinTree::eJointType::eJointTypeBipedalNone:
+        // bipedal none, only x axis rot and YOZ translation, let pose = 3
+        size = 3;
+        break;
+    case cKinTree::eJointType::eJointTypeLimitNone:
+        // limit none, only x axis translation
+        size = 1;
+        break;
+    case cKinTree::eJointType::eJointTypeFixedNone:
+        size = 0;
+        break;
+    case cKinTree::eJointType::eJointTypeBallInSocket:
+        // ball in socket, quaternion pose
+        size = 4;
+    case cKinTree::eJointType::eJointTypeUniversal:
+        BTGEN_ASSERT("undertemined for universal pose");
+        break;
     default:
         MIMIC_ERROR("Unsupported joint type {}", GetType());
         break;
@@ -274,8 +293,20 @@ cKinTree::eJointType cSimBodyJointGen::FetchJointType() const
     case JointType::SPHERICAL_JOINT:
         type = cKinTree::eJointType::eJointTypeSpherical;
         break;
+    case JointType::BIPEDAL_NONE_JOINT:
+        type = cKinTree::eJointType::eJointTypeBipedalNone;
+        break;
+    case JointType::FIXED_NONE_JOINT:
+        type = cKinTree::eJointType::eJointTypeFixedNone;
+        break;
+    case JointType::BALLINSOCKET_JOINT:
+        type = cKinTree::eJointType::eJointTypeBallInSocket;
+        break;
+    case JointType::UNIVERSAL_JOINT:
+        type = cKinTree::eJointType::eJointTypeUniversal;
+        break;
     default:
-        MIMIC_ERROR("invalid jont type {}", mJoint->GetJointType());
+        MIMIC_ERROR("invalid joint type {}", mJoint->GetJointType());
         break;
     }
     return type;

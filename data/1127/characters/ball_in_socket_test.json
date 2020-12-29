@@ -158,24 +158,32 @@
          },
          {
             "AttachThetaX": 0.0,
-            "AttachThetaY": -0.0,
+            "AttachThetaY": 0.0,
             "AttachThetaZ": 0.0,
             "AttachX": 0.0848,
-            "AttachY": -0.048000000000000001,
+            "AttachY": -0.048,
             "AttachZ": -0.0038,
             "DiffWeight": 1.0,
             "ID": 1,
             "IsEndEffector": 0.0,
-            "LimHigh0": 3.0,
-            "LimHigh1": 0.0,
+            "LimHigh0": 1.0,
+            "LimHigh1": 1.0,
             "LimHigh2": 0.0,
-            "LimLow0": -3.0,
-            "LimLow1": 0.0,
+            "LimLow0": -1.0,
+            "LimLow1": -1.0,
             "LimLow2": 0.0,
             "Name": "LeftLeg",
             "Parent": 0,
             "TorqueLim": 50,
-            "Type": "spherical"
+            "Axis": [
+               1,
+               0,
+               0,
+               0,
+               1,
+               0
+            ],
+            "Type": "ball_in_socket"
          }
       ]
    }

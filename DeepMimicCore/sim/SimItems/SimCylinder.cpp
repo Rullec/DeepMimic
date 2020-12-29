@@ -53,6 +53,6 @@ double cSimCylinder::GetRadius() const
     return 0.5 * size[0];
 }
 
-tVector cSimCylinder::GetSize() const { return mWorld->GetSizeCylinder(*this); }
+tVector cSimCylinder::GetSize() const { return mBaseWorld->GetSizeCylinder(*this); }
 
 cShape::eShape cSimCylinder::GetShape() const { return cShape::eShapeCylinder; }

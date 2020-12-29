@@ -69,7 +69,7 @@ void cSimBodyLinkGen::Init(const std::shared_ptr<cWorldBase> &world,
     //           << std::endl;
 
     // dont' need to init variables of cSimBodyLink
-    mWorld = world;
+    mBaseWorld = world;
     mColShape =
         std::unique_ptr<btCollisionShape>(mLinkCollider->getCollisionShape());
     mType = eType::eTypeDynamic;
@@ -175,7 +175,7 @@ bool cSimBodyLinkGen::GetEnableFallContact() { return mEnableContactFall; }
 
 const std::shared_ptr<cWorldBase> &cSimBodyLinkGen::GetWorld() const
 {
-    return mWorld;
+    return mBaseWorld;
 }
 const btCollisionObject *cSimBodyLinkGen::GetCollisionObject() const
 {
@@ -227,7 +227,7 @@ bool cSimBodyLinkGen::IsEndEffector() const
 
 bool cSimBodyLinkGen::IsInContact() const
 {
-    return mWorld->IsInContact(mContactHandle);
+    return mBaseWorld->IsInContact(mContactHandle);
 }
 
 std::string cSimBodyLinkGen::GetName() const { return mLink->GetName(); }

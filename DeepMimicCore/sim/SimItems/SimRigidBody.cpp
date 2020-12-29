@@ -42,14 +42,14 @@ tVector cSimRigidBody::GetLinearVelocity() const
     auto &body = GetSimBody();
     const btVector3 &bt_vel = body->getLinearVelocity();
     tVector vel = tVector(bt_vel[0], bt_vel[1], bt_vel[2], 0);
-    vel /= mWorld->GetScale();
+    vel /= mBaseWorld->GetScale();
     return vel;
 }
 
 tVector cSimRigidBody::GetLinearVelocity(const tVector &local_pos) const
 {
     auto &body = GetSimBody();
-    double scale = mWorld->GetScale();
+    double scale = mBaseWorld->GetScale();
     tMatrix3d rot_mat = GetLocalToWorldRotMat();
     tVector rel_pos = tVector::Zero();
     rel_pos.segment(0, 3) = rot_mat * local_pos.segment(0, 3);
@@ -67,7 +67,7 @@ tVector cSimRigidBody::GetLinearVelocity(const tVector &local_pos) const
 void cSimRigidBody::SetLinearVelocity(const tVector &vel)
 {
     auto &body = GetSimBody();
-    btScalar scale = static_cast<btScalar>(mWorld->GetScale());
+    btScalar scale = static_cast<btScalar>(mBaseWorld->GetScale());
     body->setLinearVelocity(scale * btVector3(static_cast<btScalar>(vel[0]),
                                               static_cast<btScalar>(vel[1]),
                                               static_cast<btScalar>(vel[2])));
@@ -109,7 +109,7 @@ void cSimRigidBody::ApplyForce(const tVector &force, const tVector &local_pos)
                                    static_cast<btScalar>(force[1]),
                                    static_cast<btScalar>(force[2]));
 
-    btScalar scale = static_cast<btScalar>(mWorld->GetScale());
+    btScalar scale = static_cast<btScalar>(mBaseWorld->GetScale());
     tMatrix3d rot_mat = GetLocalToWorldRotMat();
     tVector rel_pos = tVector::Zero();
     rel_pos.segment(0, 3) = rot_mat * local_pos.segment(0, 3);
@@ -126,7 +126,7 @@ void cSimRigidBody::ApplyForce(const tVector &force, const tVector &local_pos)
 void cSimRigidBody::ApplyTorque(const tVector &torque)
 {
     auto &body = GetSimBody();
-    btScalar scale = static_cast<btScalar>(mWorld->GetScale());
+    btScalar scale = static_cast<btScalar>(mBaseWorld->GetScale());
     body->applyTorque(scale * scale *
                       btVector3(static_cast<btScalar>(torque[0]),
                                 static_cast<btScalar>(torque[1]),
@@ -162,7 +162,7 @@ void cSimRigidBody::DisableDeactivation()
 void cSimRigidBody::Constrain(const tVector &linear_factor,
                               const tVector &angular_factor)
 {
-    mWorld->Constrain(*this, linear_factor, angular_factor);
+    mBaseWorld->Constrain(*this, linear_factor, angular_factor);
 }
 
 bool cSimRigidBody::HasSimBody() const { return mSimBody != nullptr; }
@@ -191,28 +191,28 @@ void cSimRigidBody::Init(const std::shared_ptr<cWorldBase> &world)
 
 void cSimRigidBody::AddToWorld(const std::shared_ptr<cWorldBase> &world)
 {
-    if (mWorld != nullptr)
+    if (mBaseWorld != nullptr)
     {
         RemoveFromWorld();
     }
 
-    mWorld = world;
-    mWorld->AddRigidBody(*this);
+    mBaseWorld = world;
+    mBaseWorld->AddRigidBody(*this);
 }
 
 void cSimRigidBody::RemoveFromWorld()
 {
-    if (mWorld != nullptr && mSimBody != nullptr)
+    if (mBaseWorld != nullptr && mSimBody != nullptr)
     {
         int num_cons = GetNumConstraints();
         for (int c = num_cons - 1; c >= 0; --c)
         {
             cFeaWorld::tConstraintHandle cons = GetConstraint(c);
-            mWorld->RemoveConstraint(cons);
+            mBaseWorld->RemoveConstraint(cons);
         }
 
-        mWorld->RemoveRigidBody(*this);
-        mWorld.reset();
+        mBaseWorld->RemoveRigidBody(*this);
+        mBaseWorld.reset();
         mSimBody.reset();
         mColShape.reset();
     }

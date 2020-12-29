@@ -32,7 +32,7 @@ void cSimBodyLink::Init(const std::shared_ptr<cWorldBase> &world,
     const btVector3 bt_inertia = mult_body->getLinkInertia(mJointID);
     mInertia = tVector(bt_inertia[0], bt_inertia[1], bt_inertia[2], 0);
 
-    mWorld = world;
+    mBaseWorld = world;
     mMultiBody = mult_body;
     mType = eTypeDynamic;
 
@@ -92,14 +92,14 @@ void cSimBodyLink::SetFriction(double friction)
 void cSimBodyLink::ApplyForce(const tVector &force)
 {
     // bullet中的apply force
-    btScalar scale = static_cast<btScalar>(mWorld->GetScale());
+    btScalar scale = static_cast<btScalar>(mBaseWorld->GetScale());
     mMultiBody->addLinkForce(mJointID,
                              scale * btVector3(force[0], force[1], force[2]));
 }
 
 void cSimBodyLink::ApplyForce(const tVector &force, const tVector &local_pos)
 {
-    btScalar scale = static_cast<btScalar>(mWorld->GetScale());
+    btScalar scale = static_cast<btScalar>(mBaseWorld->GetScale());
     tMatrix world_mat = GetWorldTransform();
     tVector world_pos = world_mat * local_pos;
     tVector torque = world_pos.cross3(force);
@@ -111,7 +111,7 @@ void cSimBodyLink::ApplyForce(const tVector &force, const tVector &local_pos)
 void cSimBodyLink::ApplyTorque(const tVector &torque)
 {
 
-    btScalar scale = static_cast<btScalar>(mWorld->GetScale());
+    btScalar scale = static_cast<btScalar>(mBaseWorld->GetScale());
     mMultiBody->addLinkTorque(
         mJointID, scale * scale * btVector3(torque[0], torque[1], torque[2]));
     std::cout << "[link] apply torque " << scale * scale * torque.transpose()
@@ -148,16 +148,16 @@ void cSimBodyLink::InitSize(tVector &out_size) const
     switch (mObjShape)
     {
     case cShape::eShapeBox:
-        out_size = mWorld->GetSizeBox(*this);
+        out_size = mBaseWorld->GetSizeBox(*this);
         break;
     case cShape::eShapeCapsule:
-        out_size = mWorld->GetSizeCapsule(*this);
+        out_size = mBaseWorld->GetSizeCapsule(*this);
         break;
     case cShape::eShapeSphere:
-        out_size = mWorld->GetSizeSphere(*this);
+        out_size = mBaseWorld->GetSizeSphere(*this);
         break;
     case cShape::eShapeCylinder:
-        out_size = mWorld->GetSizeCylinder(*this);
+        out_size = mBaseWorld->GetSizeCylinder(*this);
         break;
     default:
         printf("Unsupported body link shape\n");
@@ -194,10 +194,10 @@ cShape::eShape cSimBodyLink::FetchObjShape() const
 
 void cSimBodyLink::RemoveFromWorld()
 {
-    if (mWorld != nullptr && mColObj != nullptr)
+    if (mBaseWorld != nullptr && mColObj != nullptr)
     {
-        mWorld->RemoveCollisionObject(GetCollisionObject());
-        mWorld.reset();
+        mBaseWorld->RemoveCollisionObject(GetCollisionObject());
+        mBaseWorld.reset();
         mColShape.reset();
         mColObj.reset();
     }

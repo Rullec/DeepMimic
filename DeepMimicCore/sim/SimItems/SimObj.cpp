@@ -3,7 +3,7 @@
 #include <sim/World/GenWorld.h>
 using namespace std;
 
-cSimObj::cSimObj() : mWorld(nullptr)
+cSimObj::cSimObj() : mBaseWorld(nullptr)
 {
     mType = eTypeDynamic;
     mColGroup = cContactManager::gFlagAll;
@@ -27,7 +27,7 @@ tVector cSimObj::GetPos() const
     // << origin.y() <<" "
     //  << origin.z() <<" " << origin.w() <<" " << endl;
     tVector pos = tVector(origin[0], origin[1], origin[2], 0);
-    pos /= mWorld->GetScale();
+    pos /= mBaseWorld->GetScale();
     // cout << "tVector cSimObj::GetPos() const, return pos = " <<
     // pos.transpose() << endl;
     return pos; // 返回世界坐标位置
@@ -38,7 +38,7 @@ void cSimObj::SetPos(const tVector &pos)
     btCollisionObject *col_obj = GetCollisionObject();
     btTransform trans = col_obj->getWorldTransform();
 
-    btScalar scale = static_cast<btScalar>(mWorld->GetScale());
+    btScalar scale = static_cast<btScalar>(mBaseWorld->GetScale());
     trans.setOrigin(scale * btVector3(static_cast<btScalar>(pos[0]),
                                       static_cast<btScalar>(pos[1]),
                                       static_cast<btScalar>(pos[2])));
@@ -95,7 +95,7 @@ tMatrix cSimObj::GetWorldTransform() const
     const btTransform &bt_trans = col_obj->getWorldTransform();
     const btMatrix3x3 &basis = bt_trans.getBasis();
     const btVector3 &origin = bt_trans.getOrigin();
-    double scale = mWorld->GetScale();
+    double scale = mBaseWorld->GetScale();
 
     tMatrix trans = tMatrix::Identity();
     for (int i = 0; i < 3; ++i)
@@ -162,7 +162,7 @@ void cSimObj::RegisterContact(int contact_flags, int filter_flags)
 {
     if (!mContactHandle.IsValid())
     {
-        mContactHandle = mWorld->RegisterContact(contact_flags, filter_flags);
+        mContactHandle = mBaseWorld->RegisterContact(contact_flags, filter_flags);
         assert(mContactHandle.IsValid());
     }
     else
@@ -178,7 +178,7 @@ void cSimObj::UpdateContact(int contact_flags, int filter_flags)
 
     if (mContactHandle.IsValid())
     {
-        mWorld->UpdateContact(mContactHandle);
+        mBaseWorld->UpdateContact(mContactHandle);
     }
 }
 
@@ -189,21 +189,21 @@ const cContactManager::tContactHandle &cSimObj::GetContactHandle() const
 
 bool cSimObj::IsInContact() const
 {
-    bool in_contact = mWorld->IsInContact(mContactHandle);
+    bool in_contact = mBaseWorld->IsInContact(mContactHandle);
     return in_contact;
 }
 
 bool cSimObj::IsInContactGenGround() const
 {
     bool in_contact =
-        std::dynamic_pointer_cast<cGenWorld>(mWorld)->IsInContactGenGround(
+        std::dynamic_pointer_cast<cGenWorld>(mBaseWorld)->IsInContactGenGround(
             mContactHandle);
     return in_contact;
 }
 
 const tEigenArr<cContactManager::tContactPt> &cSimObj::GetContactPts() const
 {
-    return mWorld->GetContactPts(mContactHandle);
+    return mBaseWorld->GetContactPts(mContactHandle);
 }
 
 short cSimObj::GetColGroup() const { return mColGroup; }
@@ -227,7 +227,7 @@ void cSimObj::CalcAABB(tVector &out_min, tVector &out_max) const
     btVector3 bt_max;
     shape->getAabb(obj->getWorldTransform(), bt_min,
                    bt_max); // bullet method: get AABB
-    double scale = mWorld->GetScale();
+    double scale = mBaseWorld->GetScale();
 
     out_min = tVector(bt_min[0], bt_min[1], bt_min[2], 0) / scale;
     out_max = tVector(bt_max[0], bt_max[1], bt_max[2], 0) / scale;
@@ -238,7 +238,7 @@ const btCollisionShape *cSimObj::GetCollisionShape() const
     return mColShape.get();
 }
 
-const std::shared_ptr<cWorldBase> &cSimObj::GetWorld() const { return mWorld; }
+const std::shared_ptr<cWorldBase> &cSimObj::GetWorld() const { return mBaseWorld; }
 
 std::string cSimObj::GetName() const { return mName; }
 

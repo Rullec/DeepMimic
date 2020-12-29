@@ -398,6 +398,9 @@ void cCtPDGenController::BuildJointActionBounds(int joint_id,
         BuildJointActionBoundsFixed(joint_id, out_min, out_max);
         break;
     case cKinTree::eJointType::eJointTypeNone:
+    case cKinTree::eJointType::eJointTypeLimitNone:
+    case cKinTree::eJointType::eJointTypeFixedNone:
+    case cKinTree::eJointType::eJointTypeBipedalNone:
         BuildJointActionBoundsNone(joint_id, out_min, out_max);
         break;
     default:
@@ -420,6 +423,9 @@ void cCtPDGenController::BuildJointActionOffsetScale(
         BuildJointActionOffsetScaleSphereical(joint_id, out_offset, out_scale);
         break;
     case cKinTree::eJointType::eJointTypeNone:
+    case cKinTree::eJointType::eJointTypeLimitNone:
+    case cKinTree::eJointType::eJointTypeBipedalNone:
+    case cKinTree::eJointType::eJointTypeFixedNone:
         BuildJointActionOffsetScaleNone(joint_id, out_offset, out_scale);
         break;
     case cKinTree::eJointType::eJointTypeRevolute:
@@ -428,7 +434,6 @@ void cCtPDGenController::BuildJointActionOffsetScale(
     case cKinTree::eJointType::eJointTypeFixed:
         BuildJointActionOffsetScaleFixed(joint_id, out_offset, out_scale);
         break;
-
     default:
         MIMIC_ERROR("Unsupported joint type {}", joint.GetType());
         break;
@@ -518,6 +523,9 @@ int cCtPDGenController::GetJointActionSize(int id) const
     switch (type)
     {
     case cKinTree::eJointType::eJointTypeNone:
+    case cKinTree::eJointType::eJointTypeBipedalNone:
+    case cKinTree::eJointType::eJointTypeFixedNone:
+    case cKinTree::eJointType::eJointTypeLimitNone:
         size = 0;
         break;
     case cKinTree::eJointType::eJointTypeRevolute:
@@ -598,8 +606,7 @@ void cCtPDGenController::BuildJointActionBoundsSpherical(
 void cCtPDGenController::BuildJointActionBoundsNone(
     int joint_id, Eigen::VectorXd &out_min, Eigen::VectorXd &out_max) const
 {
-    MIMIC_ASSERT(mChar->GetJoint(joint_id).GetType() ==
-                 cKinTree::eJointType::eJointTypeNone);
+    MIMIC_ASSERT(mChar->GetJoint(joint_id).IsRoot());
     int size = GetJointActionSize(joint_id);
     MIMIC_ASSERT(size == 0);
     out_min.resize(size);
@@ -684,8 +691,7 @@ void cCtPDGenController::BuildJointActionOffsetScaleFixed(
 void cCtPDGenController::BuildJointActionOffsetScaleNone(
     int joint_id, Eigen::VectorXd &out_offset, Eigen::VectorXd &out_scale) const
 {
-    MIMIC_ASSERT(mChar->GetJoint(joint_id).GetType() ==
-                 cKinTree::eJointType::eJointTypeNone);
+    MIMIC_ASSERT(mChar->GetJoint(joint_id).IsRoot());
     int action_size = GetJointActionSize(joint_id);
     MIMIC_ASSERT(action_size == 0);
     out_offset.resize(action_size);

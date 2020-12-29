@@ -46,6 +46,6 @@ double cSimSphere::GetRadius() const
     return 0.5 * size[0];
 }
 
-tVector cSimSphere::GetSize() const { return mWorld->GetSizeSphere(*this); }
+tVector cSimSphere::GetSize() const { return mBaseWorld->GetSizeSphere(*this); }
 
 cShape::eShape cSimSphere::GetShape() const { return cShape::eShapeSphere; }

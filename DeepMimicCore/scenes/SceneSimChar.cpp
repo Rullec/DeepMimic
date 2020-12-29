@@ -783,7 +783,7 @@ void cSceneSimChar::ResolveCharGroundIntersect(
             const auto &part = out_char->GetBodyPart(b);
             part->CalcAABB(aabb_min,
                            aabb_max); // calculate the AABB at this
-                                      // momentum (reply on bullet API)
+                                      // momentum (rely on bullet API)
 
             tVector mid =
                 0.5 * (aabb_min + aabb_max); // find the center of this box

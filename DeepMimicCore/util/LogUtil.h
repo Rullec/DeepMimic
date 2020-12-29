@@ -37,7 +37,7 @@ private:
 
 #define SPD_AUGMENTED_LOG(X, ...)                                              \
     cLogUtil::mGlobalLogger->X(                                                \
-        fmt::format("[{}:{}@{}] ", __FILENAME__, __FUNCTION__, __LINE__) +     \
+        fmt::format("[{}:{} @ {}] ", __FILENAME__, __LINE__, __FUNCTION__) +     \
         fmt::format(__VA_ARGS__))
 
 #define MIMIC_OUTPUT(...)                                                      \

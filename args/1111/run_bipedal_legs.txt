@@ -1,7 +1,7 @@
 --scene imitate
 
---time_lim_min 0.01
---time_lim_max 0.01
+--time_lim_min 10.5
+--time_lim_max 10.5
 --time_lim_exp 0.2
 
 --time_end_lim_min 20
@@ -9,6 +9,7 @@
 --time_end_lim_exp 5
 --anneal_samples 16000000
 --use_revolute_axis_in_deepmimic_style false
+--enable_vel_explode_end true
 
 --num_update_substeps 10
 --num_sim_substeps 1
@@ -42,5 +43,5 @@
 # --model_files output/1111/biepdal_legs_walk/agent0_model_2020_10_12_13_11_45_579.13.ckpt
 
 #---------------------- Inverse Dyanmics config -------------------
---enable_inverse_dynamic_solving true
+--enable_inverse_dynamic_solving false
 --inverse_dynamic_config_file args/1111/ID_bipedal.json

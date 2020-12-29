@@ -63,7 +63,7 @@ bool cSimCharacterGen::Init(const std::shared_ptr<cWorldBase> &world,
                             const cSimCharacterBase::tParams &params)
 {
     MIMIC_DEBUG("init generalized char, world scale is {}", world->GetScale());
-    mWorld = world;
+    mBaseWorld = world;
     mCharFilename = params.mCharFile;
 
     cRobotModelDynamics::Init(params.mCharFile.c_str(), world->GetScale(),
@@ -72,7 +72,8 @@ bool cSimCharacterGen::Init(const std::shared_ptr<cWorldBase> &world,
     MIMIC_ASSERT(gen_world != nullptr &&
                  "cSimCharGen can only be managed in Generalized world");
 
-    cRobotModelDynamics::InitSimVars(gen_world->GetInternalWorld(), true, true);
+    cRobotModelDynamics::InitSimVars(gen_world->GetInternalGenWorld(), "",
+                                     true);
     world->AddCharacter(this);
 
     SetComputeSecondDerive(true);
@@ -199,7 +200,7 @@ tVector cSimCharacterGen::GetRootPos() const
 {
     int root_id = 0;
     auto root_joint = mJointGenArray[root_id];
-    MIMIC_ASSERT(cKinTree::eJointType::eJointTypeNone == root_joint->GetType());
+    MIMIC_ASSERT(root_joint->IsRoot() == true);
 
     return mJointGenArray[root_id]->CalcWorldPos();
 }
@@ -268,7 +269,30 @@ const Eigen::MatrixXd &cSimCharacterGen::GetBodyDefs() const
  */
 void cSimCharacterGen::SetRootPos(const tVector &pos)
 {
-    mPose.segment(0, 3) = pos.segment(0, 3);
+
+    switch (GetRoot()->GetJointType())
+    {
+    case JointType::NONE_JOINT:
+        // for root joint, the global pos is the start 3 elements
+        mPose.segment(0, 3) = pos.segment(0, 3);
+        /* code */
+        break;
+    case JointType::BIPEDAL_NONE_JOINT:
+        // YOZ translation in the first two elements
+        mPose[0] = pos[1];
+        mPose[1] = pos[2];
+        break;
+    case JointType::LIMIT_NONE_JOINT:
+        // only x translation
+        mPose[0] = pos[0];
+        break;
+    case JointType::FIXED_NONE_JOINT:
+        break;
+
+    default:
+        BTGEN_ASSERT(false);
+        break;
+    }
     SetPose(mPose);
     // mq.segment(0, 3) = pos.segment(0, 3);
     // Apply(mq, false);
@@ -279,7 +303,6 @@ void cSimCharacterGen::SetRootPos(const tVector &pos)
  */
 void cSimCharacterGen::SetRootRotation(const tVector &axis, double theta)
 {
-
     tQuaternion root_qua = cMathUtil::AxisAngleToQuaternion(axis, theta);
     SetRootTransform(GetRootPos(), root_qua);
 }
@@ -289,11 +312,37 @@ void cSimCharacterGen::SetRootRotation(const tQuaternion &q_)
     SetRootTransform(GetRootPos(), q_);
 }
 
+/**
+ * \brief           Set the transform of root joint, the ang vel should be rotated accordly
+*/
 void cSimCharacterGen::SetRootTransform(const tVector &pos,
                                         const tQuaternion &rot)
 {
     // MIMIC_ERROR("this functions needs to be tested well.\n");
 
+    switch (GetRoot()->GetJointType())
+    {
+    case JointType::NONE_JOINT:
+        SetRootTransformNone(pos, rot);
+        break;
+    case JointType::BIPEDAL_NONE_JOINT:
+        SetRootTransformBipedalNone(pos, rot);
+        break;
+    case JointType::FIXED_NONE_JOINT:
+        SetRootTransformFixedNone(pos, rot);
+        break;
+    case JointType::LIMIT_NONE_JOINT:
+        SetRootTransformLimitNone(pos, rot);
+        break;
+    default:
+        BTGEN_ASSERT(false);
+        break;
+    }
+}
+
+void cSimCharacterGen::SetRootTransformNone(const tVector &pos,
+                                            const tQuaternion &rot)
+{
     // 1. record old info
     int num_of_links = GetNumOfLinks();
     auto link = static_cast<Link *>(mLinkGenArray[0]->GetInternalLink());
@@ -348,22 +397,103 @@ void cSimCharacterGen::SetRootTransform(const tVector &pos,
     BuildPose(mPose);
     BuildVel(mVel);
 }
+void cSimCharacterGen::SetRootTransformLimitNone(const tVector &pos,
+                                                 const tQuaternion &rot)
+{
+    BTGEN_ASSERT(false);
+}
+void cSimCharacterGen::SetRootTransformFixedNone(const tVector &pos,
+                                                 const tQuaternion &rot)
+{
+    BTGEN_ASSERT(false);
+}
 
+/**
+ * \brief       Set the root transform for bipedal none joint
+ *  dof = [Y translation, Z translation, X rotation] 
+*/
+void cSimCharacterGen::SetRootTransformBipedalNone(const tVector &pos,
+                                                   const tQuaternion &rot)
+{
+    double y_translation = pos[1], z_translation = pos[2];
+    double x_rotation =
+        cMathUtil::QuaternionToAxisAngle(rot).dot(tVector(1, 0, 0, 0));
+    mq[0] = y_translation;
+    mq[1] = z_translation;
+    mq[2] = x_rotation;
+    Setq(mq);
+
+    // we do not need to rotation qdot in bipedal none joint
+    BuildPose(mPose);
+    BuildVel(mVel);
+}
+
+/**
+ * \brief           Set the lin vel of root joint
+*/
 void cSimCharacterGen::SetRootVel(const tVector &vel)
 {
-    mqdot.segment(0, 3) = vel.segment(0, 3);
+    switch (GetRoot()->GetJointType())
+    {
+    case JointType::NONE_JOINT:
+        // none root joint has full 6 DOF motion
+        mqdot.segment(0, 3) = vel.segment(0, 3);
+        break;
+    case JointType::BIPEDAL_NONE_JOINT:
+        // mqdot[0] : Y axis lin vel
+        // mqdot[1] : Z axis lin vel
+        mqdot[0] = vel[1];
+        mqdot[1] = vel[2];
+        break;
+    case JointType::LIMIT_NONE_JOINT:
+        // mqdot[0] = X axis lin vel
+        mqdot[0] = vel[0];
+        break;
+    case JointType::FIXED_NONE_JOINT:
+        // no lin vel for fixed root joint
+        break;
+    default:
+        BTGEN_ASSERT(false);
+        break;
+    }
     Setqdot(mqdot);
     BuildVel(mVel);
 }
 
+/**
+ * \brief           Set the ang vel for root joint
+*/
 void cSimCharacterGen::SetRootAngVel(const tVector &ang_vel)
 {
-    mqdot.segment(3, 3) = mLinkGenArray[0]
-                              ->GetInternalLink()
-                              ->GetJKw()
-                              .block(0, 3, 3, 3)
-                              .inverse() *
-                          ang_vel.segment(0, 3);
+    // w = Jw * qdot
+    switch (GetRoot()->GetJointType())
+    {
+    case JointType::NONE_JOINT:
+        // none root joint has 3 dof angvel
+        mqdot.segment(3, 3) = mLinkGenArray[0]
+                                  ->GetInternalLink()
+                                  ->GetJKw()
+                                  .block(0, 3, 3, 3)
+                                  .inverse() *
+                              ang_vel.segment(0, 3);
+        break;
+    case JointType::BIPEDAL_NONE_JOINT:
+
+        // mqdot[2] : X axis ang vel
+        mqdot[2] = ang_vel[0];
+        break;
+    case JointType::LIMIT_NONE_JOINT:
+        // mqdot[0] = X axis lin vel
+        // no ang vel
+        break;
+    case JointType::FIXED_NONE_JOINT:
+        // no lin vel for fixed root joint
+        break;
+    default:
+        BTGEN_ASSERT(false);
+        break;
+    }
+
     Setqdot(mqdot);
     BuildVel(mVel);
 }
@@ -392,86 +522,12 @@ void cSimCharacterGen::SetPose(const Eigen::VectorXd &pose)
     tVectorXd q = ConvertPoseToq(pose);
     SetqAndqdot(q, mqdot);
     mPose = pose;
-    // // verify
-    // tVectorXd res_pose = ConvertqToPose(q);
-    // tVectorXd diff = res_pose - pose;
-    // double norm = diff.norm();
-    // if (norm > 1e-6 && pose.norm() > 1e-10)
-    // {
-    //     MIMIC_DEBUG("SetPose goal {}", pose.transpose());
-    //     MIMIC_DEBUG("SetPose result {}", res_pose.transpose());
-    //     MIMIC_DEBUG("SetPose result q {}", q.transpose());
-    //     MIMIC_DEBUG("SetPose diff {}", diff.transpose());
-    //     MIMIC_ERROR("SetPose diff norm {}", norm);
-
-    //     // when the pose is totally zero, ignore this assert
-    // }
-    // std::cout << "SetPose: q = " << q.transpose() << std::endl;
 }
 void cSimCharacterGen::SetVel(const Eigen::VectorXd &vel)
 {
     tVectorXd qdot = ConvertPosevelToqdot(vel);
     Setqdot(qdot);
     mVel = vel;
-    // std::cout << "set qdot = " << qdot.transpose() << std::endl;
-    // verify
-    // tVectorXd res_vel = ConvertqdotToPoseVel(qdot);
-    // tVectorXd diff = res_vel - vel;
-    // double norm = diff.norm();
-    // if (norm > 1e-6)
-    // {
-    //     MIMIC_DEBUG("SetVel goal {}", vel.transpose());
-    //     MIMIC_DEBUG("SetVel result {}", res_vel.transpose());
-    //     MIMIC_DEBUG("SetVel diff {}", diff.transpose());
-    //     MIMIC_DEBUG("SetVel diff norm {}", norm);
-    //     int dof_st = 0;
-    //     for (int i = 0; i < GetNumOfJoint(); i++)
-    //     {
-    //         int pose_size = -1;
-    //         auto joint = GetJointById(i);
-    //         switch (joint->GetJointType())
-    //         {
-    //         case JointType::FIXED_JOINT:
-    //             pose_size = 0;
-    //             break;
-    //         case JointType::REVOLUTE_JOINT:
-    //             pose_size = 1;
-    //             break;
-    //         case JointType::SPHERICAL_JOINT:
-    //             pose_size = 4;
-    //             break;
-    //         case JointType::NONE_JOINT:
-    //             pose_size = 7;
-    //             break;
-    //         default:
-    //             MIMIC_ERROR("unsupported");
-    //             break;
-    //         }
-    //         if (diff.segment(dof_st, pose_size).norm() > 1e-6)
-    //         {
-    //             MIMIC_WARN("Joint {} {} convert vel to qdot failed", i,
-    //                        joint->GetName());
-    //             tVectorXd target_vel = vel.segment(dof_st, pose_size);
-    //             tVectorXd result_vel = res_vel.segment(dof_st, pose_size);
-    //             tVectorXd new_res_vel = ConvertAxisAngleVelToEulerAngleVel(
-    //                 target_vel.segment(0, 4));
-    //             std::cout << "target vel = " << target_vel.transpose()
-    //                       << std::endl;
-    //             std::cout << "res vel = " << result_vel.transpose()
-    //                       << std::endl;
-    //             std::cout << "new res vel = " << new_res_vel.transpose()
-    //                       << std::endl;
-    //             tVectorXd new_target_vel =
-    //                 ConvertEulerAngleVelToAxisAngleVel(new_res_vel);
-    //             std::cout << "new target vel = " <<
-    //             new_target_vel.transpose()
-    //                       << std::endl;
-    //             exit(1);
-    //         }
-    //         dof_st += pose_size;
-    //     }
-    //     MIMIC_ASSERT(norm < 1e-6);
-    // }
 }
 
 tVector cSimCharacterGen::CalcJointPos(int joint_id) const
@@ -792,7 +848,7 @@ void cSimCharacterGen::SetAngularDamping(double damping) { MIMIC_ERROR("no"); }
 
 const std::shared_ptr<cWorldBase> &cSimCharacterGen::GetWorld() const
 {
-    return mWorld;
+    return mBaseWorld;
 }
 
 // cSimObj Interface
@@ -878,7 +934,7 @@ bool cSimCharacterGen::BuildBodyLinks()
         mLinkGenArray.push_back(link);
         // mLinkBaseArray.push_back(std::dynamic_pointer_cast<cSimBodyLink>(link));
 
-        link->Init(this->mWorld, this, i);
+        link->Init(this->mBaseWorld, this, i);
         // std::cout << "link handle id = " << link->GetContactHandle().mID
         //           << std::endl;
     }
@@ -911,7 +967,7 @@ bool cSimCharacterGen::BuildJoints()
     for (int i = 0; i < GetNumOfJoint(); i++)
     {
         auto joint = std::shared_ptr<cSimBodyJointGen>(new cSimBodyJointGen());
-        joint->Init(mWorld, this, i);
+        joint->Init(mBaseWorld, this, i);
         mJointGenArray.push_back(joint);
         // mJointBaseArray.push_back(
         //     std::dynamic_pointer_cast<cSimBodyJoint>(joint));
@@ -1059,7 +1115,17 @@ tVectorXd cSimCharacterGen::ConvertqToPose(const tVectorXd &q) const
             pose[pose_st + 3] = joint_rot.z();
             pose_st += 4, q_st += 3;
         }
+        case JointType::BIPEDAL_NONE_JOINT:
+        {
+            // convert q to pose
+            // direct give the value
+            pose.segment(pose_st, 3) = q.segment(q_st, 3);
+            pose_st += 3;
+            q_st += 3;
+        }
+        break;
         default:
+            MIMIC_ASSERT(false);
             break;
         }
     }
@@ -1104,7 +1170,17 @@ tVectorXd cSimCharacterGen::ConvertqdotToPoseVel(const tVectorXd &qdot) const
                 cMathUtil::Expand(qdot.segment(q_st, 3), 0));
             pose_st += 4, q_st += 3;
         }
+        break;
+        case JointType::BIPEDAL_NONE_JOINT:
+        {
+            MIMIC_ASSERT(joint->GetNumOfFreedom() == 3);
+            pose_vel.segment(pose_st, 3) = qdot.segment(q_st, 3);
+            pose_st += 3;
+            q_st += 3;
+            break;
+        }
         default:
+            MIMIC_ASSERT(false);
             break;
         }
     }
@@ -1146,6 +1222,15 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
             pose_idx += 4, q_idx += 3;
         }
         break;
+
+        case JointType::BIPEDAL_NONE_JOINT:
+        {
+            // convert bipedal none joint's pose (size=3) to q (size = 3)
+            q.segment(q_idx, 3) = pose.segment(pose_idx, 3);
+            q_idx += 3;
+            pose_idx += 3;
+        }
+        break;
         case JointType::FIXED_JOINT:
             break;
         case JointType::REVOLUTE_JOINT:
@@ -1184,7 +1269,9 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
             //           << std::endl;
             pose_idx += 4, q_idx += 3;
         }
+
         default:
+            MIMIC_ASSERT(false);
             break;
         }
     }
@@ -1230,6 +1317,13 @@ cSimCharacterGen::ConvertPosevelToqdot(const tVectorXd &pose_vel) const
             pose_idx += 4, q_idx += 3;
         }
         break;
+        case JointType::BIPEDAL_NONE_JOINT:
+        {
+            qdot.segment(q_idx, 3) = pose_vel.segment(pose_idx, 3);
+            q_idx += 3;
+            pose_idx += 3;
+            break;
+        }
         case JointType::FIXED_JOINT:
             break;
         case JointType::REVOLUTE_JOINT:
@@ -1248,6 +1342,7 @@ cSimCharacterGen::ConvertPosevelToqdot(const tVectorXd &pose_vel) const
             pose_idx += 4, q_idx += 3;
         }
         default:
+            MIMIC_ASSERT(false);
             break;
         }
     }

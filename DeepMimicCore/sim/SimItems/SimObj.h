@@ -66,7 +66,7 @@ public:
     virtual void SetName(const std::string &name);
 
 protected:
-    std::shared_ptr<cWorldBase> mWorld;
+    std::shared_ptr<cWorldBase> mBaseWorld;
     std::unique_ptr<btCollisionShape> mColShape;
     cContactManager::tContactHandle mContactHandle;
     bool mEnableContactFall; // current this variable is only used in

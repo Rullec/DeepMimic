@@ -161,7 +161,6 @@ public:
                              const tVectorXd &qdot) override;
     virtual void Setqdot(const tVectorXd &qdot) override;
 
-    
 protected:
     /// vars
     std::shared_ptr<cCharController> mController;
@@ -213,7 +212,11 @@ protected:
     tVectorXd ConvertqdotToPoseVel(const tVectorXd &pose) const;
 
     tVectorXd ConvertPosevelToqdot(const tVectorXd &pose_vel) const;
-
+    void SetRootTransformNone(const tVector &pos, const tQuaternion &rot);
+    void SetRootTransformLimitNone(const tVector &pos, const tQuaternion &rot);
+    void SetRootTransformFixedNone(const tVector &pos, const tQuaternion &rot);
+    void SetRootTransformBipedalNone(const tVector &pos,
+                                     const tQuaternion &rot);
     // buffer for storaging all links & joints
     // std::vector<Link *> mLinkArray;
     // std::vector<Joint *> mJointArray;

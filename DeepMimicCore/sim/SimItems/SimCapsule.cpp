@@ -54,4 +54,4 @@ double cSimCapsule::GetRadius() const
 
 cShape::eShape cSimCapsule::GetShape() const { return cShape::eShapeCapsule; }
 
-tVector cSimCapsule::GetSize() const { return mWorld->GetSizeCapsule(*this); }
+tVector cSimCapsule::GetSize() const { return mBaseWorld->GetSizeCapsule(*this); }
