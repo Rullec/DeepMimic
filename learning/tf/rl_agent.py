@@ -7,14 +7,14 @@ import datetime
 from abc import ABC, abstractmethod
 from enum import Enum
 
-from learning.path import *
-from learning.exp_params import ExpParams
-from learning.normalizer import Normalizer
-from learning.replay_buffer import ReplayBuffer
+from learning.tf.path import *
+from learning.tf.exp_params import ExpParams
+from learning.tf.normalizer import Normalizer
+from learning.tf.replay_buffer import ReplayBuffer
 from util.logger import Logger
 import util.mpi_util as MPIUtil
 import util.math_util as MathUtil
-import learning.rl_util as RLUtil
+import learning.tf.rl_util as RLUtil
 import shutil
 
 

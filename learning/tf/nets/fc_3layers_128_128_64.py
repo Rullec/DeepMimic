@@ -1,11 +1,11 @@
 import tensorflow as tf
-import learning.tf_util as TFUtil
+import learning.tf.tf_util as TFUtil
 
-NAME = "fc_2layers_256_128"
+NAME = "fc_3layers_128_128_64"
 
 
 def build_net(input_tfs, reuse=False):
-    layers = [256, 128]
+    layers = [128, 128, 64]
     activation = tf.nn.relu
 
     input_tf = tf.concat(axis=-1, values=input_tfs)

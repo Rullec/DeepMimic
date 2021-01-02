@@ -1,12 +1,12 @@
 from mpi4py import MPI
 import tensorflow as tf
 import numpy as np
-import learning.tf_util as TFUtil
+import learning.tf.tf_util as TFUtil
 import util.math_util as MathUtil
 import util.mpi_util as MPIUtil
 from util.logger import Logger
 
-from learning.solvers.solver import Solver
+from learning.tf.solvers.solver import Solver
 
 
 class MPISolver(Solver):

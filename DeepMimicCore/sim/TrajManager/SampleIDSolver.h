@@ -54,7 +54,7 @@ protected:
     //                       // record the symbol of theta for each spherical
     //                       joint
     //                       // when sampling this can help the following ID
-    //                       // procedure and following supervised learning.
+    //                       // procedure and following supervised learning.tf.
     // bool mEnableSyncThetaDist; // sync the action theta distribution between
     //                            // processes
 };

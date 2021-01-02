@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 import tensorflow as tf
-from learning.normalizer import Normalizer
+from learning.tf.normalizer import Normalizer
 
 
 class TFNormalizer(Normalizer):

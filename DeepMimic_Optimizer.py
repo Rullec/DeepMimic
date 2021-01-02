@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 from env.deepmimic_env import DeepMimicEnv
-from learning.rl_world import RLWorld
+from learning.tf.rl_world import RLWorld
 from util.logger import Logger
 from DeepMimic import update_world, update_timestep, build_world
 import util.mpi_util as MPIUtil

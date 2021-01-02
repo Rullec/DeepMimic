@@ -177,6 +177,28 @@ private:
                                          Eigen::VectorXd &out_pose) const;
 };
 
+#ifdef __APPLE__
+
+// trim from start (in place)
+static inline std::string &ltrim(std::string &s)
+{
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
+                return !std::isspace(ch);
+            }));
+    return s;
+}
+
+// trim from end (in place)
+static inline std::string &rtrim(std::string &s)
+{
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+                return !std::isspace(ch);
+            }).base(),
+            s.end());
+    return s;
+}
+#else
+
 // trim from start
 static inline std::string &ltrim(std::string &s)
 {
@@ -196,6 +218,7 @@ static inline std::string &rtrim(std::string &s)
     return s;
 }
 
+#endif
 // trim from both ends
 static inline std::string &trim(std::string &s) { return ltrim(rtrim(s)); }
 

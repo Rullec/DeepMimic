@@ -1,4 +1,4 @@
-from learning.pg_agent import PGAgent
+from learning.tf.pg_agent import PGAgent
 
 
 class PGRTAgent(PGAgent):

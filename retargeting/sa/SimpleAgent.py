@@ -1,7 +1,7 @@
 from typing import Optional, List, Any, Union, Tuple
 
-from learning.tf_agent import TFAgent
-import learning.tf_util as TFUtil
+from learning.tf.tf_agent import TFAgent
+import learning.tf.tf_util as TFUtil
 from util.io import load_buffer_npz
 import numpy as np
 import tensorflow as tf

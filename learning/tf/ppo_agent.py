@@ -2,10 +2,10 @@ import numpy as np
 import copy as copy
 import tensorflow as tf
 
-from learning.pg_agent import PGAgent
-from learning.solvers.mpi_solver import MPISolver
-import learning.tf_util as TFUtil
-import learning.rl_util as RLUtil
+from learning.tf.pg_agent import PGAgent
+from learning.tf.solvers.mpi_solver import MPISolver
+import learning.tf.tf_util as TFUtil
+import learning.tf.rl_util as RLUtil
 from util.logger import Logger
 import util.mpi_util as MPIUtil
 import util.math_util as MathUtil

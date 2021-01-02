@@ -1,5 +1,5 @@
-import learning.nets.net_builder as NetBuilder
-from learning.tf_normalizer import TFNormalizer
+import learning.tf.nets.net_builder as NetBuilder
+from learning.tf.tf_normalizer import TFNormalizer
 import tensorflow as tf
 import sys
 import numpy as np

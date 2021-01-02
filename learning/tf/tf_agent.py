@@ -2,9 +2,9 @@ import numpy as np
 import tensorflow as tf
 from abc import abstractmethod
 
-from learning.rl_agent import RLAgent
+from learning.tf.rl_agent import RLAgent
 from util.logger import Logger
-from learning.tf_normalizer import TFNormalizer
+from learning.tf.tf_normalizer import TFNormalizer
 import datetime
 import pickle
 

@@ -1,5 +1,5 @@
 import tensorflow as tf
-import learning.tf_util as TFUtil
+import learning.tf.tf_util as TFUtil
 import numpy as np
 import datetime
 import os

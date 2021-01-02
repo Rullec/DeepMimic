@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from enum import Enum
-from learning.normalizer import Normalizer
+from learning.tf.normalizer import Normalizer
 
 
 class Env(ABC):

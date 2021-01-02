@@ -1,10 +1,10 @@
-import learning.nets.fc_2layers_1024units as fc_2layers_1024units
-import learning.nets.fc_2layers_256_128 as fc_2layers_256_128
-import learning.nets.fc_2layers_512_128 as fc_2layers_512_128
-import learning.nets.fc_2layers_512_256 as fc_2layers_512_256
-import learning.nets.fc_3layers_128_128_64 as fc_3layers_128_128_64
-import learning.nets.fc_2layers_128_64 as fc_2layers_128_64
-import learning.nets.fc_2layers_256_256 as fc_2layers_256_256
+import learning.tf.nets.fc_2layers_1024units as fc_2layers_1024units
+import learning.tf.nets.fc_2layers_256_128 as fc_2layers_256_128
+import learning.tf.nets.fc_2layers_512_128 as fc_2layers_512_128
+import learning.tf.nets.fc_2layers_512_256 as fc_2layers_512_256
+import learning.tf.nets.fc_3layers_128_128_64 as fc_3layers_128_128_64
+import learning.tf.nets.fc_2layers_128_64 as fc_2layers_128_64
+import learning.tf.nets.fc_2layers_256_256 as fc_2layers_256_256
 
 
 def build_net(net_name, input_tfs, reuse=False):

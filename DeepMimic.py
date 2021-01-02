@@ -12,7 +12,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
 from env.deepmimic_env import DeepMimicEnv
-from learning.rl_world import RLWorld
+from learning.tf.rl_world import RLWorld
 from util.arg_parser import ArgParser
 from util.logger import Logger
 import util.mpi_util as MPIUtil

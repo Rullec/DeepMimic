@@ -25,4 +25,11 @@ Trajectory.cpp
 MPIUtil.cpp
 )
 add_library(UTIL ${DIR_SRCS})
-target_link_libraries(UTIL spdlog::spdlog JSON stdc++fs ${MPI_LIBRARIES} )
+
+
+target_link_libraries(UTIL spdlog::spdlog JSON ${MPI_LIBRARIES} )
+
+if(Linux)
+    target_link_libraries(UTIL stdc++fs)
+endif()
+

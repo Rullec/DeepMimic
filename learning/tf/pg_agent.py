@@ -2,12 +2,12 @@ import numpy as np
 import tensorflow as tf
 import copy
 
-from learning.tf_agent import TFAgent
-from learning.solvers.mpi_solver import MPISolver
-import learning.tf_util as TFUtil
-import learning.nets.net_builder as NetBuilder
-from learning.tf_normalizer import TFNormalizer
-import learning.rl_util as RLUtil
+from learning.tf.tf_agent import TFAgent
+from learning.tf.solvers.mpi_solver import MPISolver
+import learning.tf.tf_util as TFUtil
+import learning.tf.nets.net_builder as NetBuilder
+from learning.tf.tf_normalizer import TFNormalizer
+import learning.tf.rl_util as RLUtil
 from util.logger import Logger
 import util.mpi_util as MPIUtil
 import util.math_util as MathUtil

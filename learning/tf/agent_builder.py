@@ -1,6 +1,6 @@
 import json
 import numpy as np
-from learning.ppo_agent import PPOAgent
+from learning.tf.ppo_agent import PPOAgent
 from retargeting.sa.SimpleAgent import SimpleAgent
 from retargeting.pg.PGRTAgent import PGRTAgent
 
