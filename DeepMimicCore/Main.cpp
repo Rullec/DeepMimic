@@ -36,24 +36,25 @@ double gUpdatesPerSec = 0;
 std::vector<std::string> gArgs;
 std::unique_ptr<cDeepMimicCore> gCore;
 
+auto convert_to_vector_double = [](const std::vector<double> &vec) {
+    // const tVectorXd ret = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(
+    //     vec.data(), vec.size());
+    // std::vector<double> a = {1, 2, 3, 4};
+    const Eigen::VectorXd ret =
+        Eigen::Map<const Eigen::VectorXd, Eigen::Unaligned>(vec.data(),
+                                                            vec.size());
+    return ret;
+};
+auto convert_to_vector_int = [](const std::vector<int> &vec) {
+    // Eigen::VectorXi ret(vec.data(), vec.size());
+    const Eigen::VectorXi ret =
+        Eigen::Map<const Eigen::VectorXi, Eigen::Unaligned>(vec.data(),
+                                                            vec.size());
+    return ret;
+};
 void SetupDeepMimicCore()
 {
-    auto convert_to_vector_double = [](const std::vector<double> &vec) {
-        // const tVectorXd ret = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(
-        //     vec.data(), vec.size());
-        // std::vector<double> a = {1, 2, 3, 4};
-        const Eigen::VectorXd ret =
-            Eigen::Map<const Eigen::VectorXd, Eigen::Unaligned>(vec.data(),
-                                                                vec.size());
-        return ret;
-    };
-    auto convert_to_vector_int = [](const std::vector<int> &vec) {
-        // Eigen::VectorXi ret(vec.data(), vec.size());
-        const Eigen::VectorXi ret =
-            Eigen::Map<const Eigen::VectorXi, Eigen::Unaligned>(vec.data(),
-                                                                vec.size());
-        return ret;
-    };
+
     bool enable_draw = true;
     gCore = std::unique_ptr<cDeepMimicCore>(new cDeepMimicCore(enable_draw));
     gCore->ParseArgs(gArgs); // 参数解析ok
@@ -170,6 +171,9 @@ void Update(double time_elapsed)
             if (gCore->NeedNewAction(id))
             {
                 auto s = gCore->RecordState(id);
+                // std::cout << "cur state = "
+                //           << convert_to_vector_double(s).transpose()
+                //           << std::endl;
                 auto g = gCore->RecordGoal(id);
                 double r = gCore->CalcReward(id);
                 MIMIC_INFO("current reward {}", r);
