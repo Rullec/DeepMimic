@@ -46,7 +46,7 @@ class RLAgent(ABC):
     NORMALIZER_SAMPLES_KEY = "NormalizerSamples"
 
     OUTPUT_ITERS_KEY = "OutputIters"
-    INT_OUTPUT_ITERS_KEY = "IntOutputIters"
+    INTERMEDIATE_OUTPUT_ITERS_KEY = "IntOutputIters"
     TEST_EPISODES_KEY = "TestEpisodes"
 
     EXP_ANNEAL_SAMPLES_KEY = "ExpAnnealSamples"
@@ -106,13 +106,13 @@ class RLAgent(ABC):
         self.beginning_sample_count = 0
 
         self._output_dir = ""
-        self._int_output_dir = ""
+        self._intermediate_output_dir = ""
         self._buffer_output_path = None
         self._buffer_keys_save_path = None
         self._save_buffer = False
         self._buffer_save_type = self.BufferSaveType.BUFFER_NONE
         self.output_iters = 100     # save model per output_iter
-        self.int_output_iters = 100  # test model per int_output_iters
+        self.intermediate_output_iters = 100  # test model per intermediate_output_iters
         """
             train return    训练的return?
             test episode    测试用几个episode?
@@ -173,14 +173,14 @@ class RLAgent(ABC):
 
     output_dir = property(get_output_dir, set_output_dir)
 
-    def get_int_output_dir(self):
-        return self._int_output_dir
+    def get_intermediate_output_dir(self):
+        return self._intermediate_output_dir
 
-    def set_int_output_dir(self, out_dir):
-        self._int_output_dir = out_dir
+    def set_intermediate_output_dir(self, out_dir):
+        self._intermediate_output_dir = out_dir
         return
 
-    int_output_dir = property(get_int_output_dir, set_int_output_dir)
+    intermediate_output_dir = property(get_intermediate_output_dir, set_intermediate_output_dir)
 
     def get_buffer_output_dir(self):
         return self._buffer_output_path
@@ -229,8 +229,8 @@ class RLAgent(ABC):
         return
 
     def update(self, timestep):
-        """
-            this function just... update agent
+        """update agent by a given timestep
+            
         :param timestep:
         :return:
         """
@@ -330,7 +330,7 @@ class RLAgent(ABC):
         pass
 
     @abstractmethod
-    def _get_int_output_path(self):
+    def _get_intermediate_output_path(self):
         pass
 
     @abstractmethod
@@ -415,8 +415,8 @@ class RLAgent(ABC):
         if self.OUTPUT_ITERS_KEY in json_data:
             self.output_iters = json_data[self.OUTPUT_ITERS_KEY]
 
-        if self.INT_OUTPUT_ITERS_KEY in json_data:
-            self.int_output_iters = json_data[self.INT_OUTPUT_ITERS_KEY]
+        if self.INTERMEDIATE_OUTPUT_ITERS_KEY in json_data:
+            self.intermediate_output_iters = json_data[self.INTERMEDIATE_OUTPUT_ITERS_KEY]
 
         if self.TEST_EPISODES_KEY in json_data:
             self.test_episodes = int(json_data[self.TEST_EPISODES_KEY])
@@ -698,8 +698,8 @@ class RLAgent(ABC):
     def _enable_output(self):
         return MPIUtil.is_root_proc() and self.output_dir != ""
 
-    def _enable_int_output(self):
-        return MPIUtil.is_root_proc() and self.int_output_dir != ""
+    def _enable_intermediate_output(self):
+        return MPIUtil.is_root_proc() and self.intermediate_output_dir != ""
 
     def _calc_val_bounds(self, discount):
         r_min = self.world.env.get_reward_min(self.id)  # 0
@@ -752,12 +752,12 @@ class RLAgent(ABC):
                 os.makedirs(output_dir)
             self.save_model(output_path)
 
-        if self._enable_int_output() and self.iter % self.int_output_iters == 0:
-            int_output_path = self._get_int_output_path()
-            int_output_dir = os.path.dirname(int_output_path)
-            if not os.path.exists(int_output_dir):
-                os.makedirs(int_output_dir)
-            self.save_model(int_output_path)
+        if self._enable_intermediate_output() and self.iter % self.intermediate_output_iters == 0:
+            intermediate_output_path = self._get_intermediate_output_path()
+            intermediate_output_dir = os.path.dirname(intermediate_output_path)
+            if not os.path.exists(intermediate_output_dir):
+                os.makedirs(intermediate_output_dir)
+            self.save_model(intermediate_output_path)
 
         self.iter = iter
         return
@@ -885,13 +885,13 @@ class RLAgent(ABC):
                     # print("打印表格啦!")
                     Logger.print("")
 
-                    if self._enable_output() and curr_iter % self.int_output_iters == 0:
+                    if self._enable_output() and curr_iter % self.intermediate_output_iters == 0:
                         self.logger.dump_tabular()
 
-                # test per self.int_output_iters
+                # test per self.intermediate_output_iters
                 if (
-                    prev_iter // self.int_output_iters
-                    != self.iter // self.int_output_iters
+                    prev_iter // self.intermediate_output_iters
+                    != self.iter // self.intermediate_output_iters
                 ):
                     # print(
                     #     f"[mode_possible] replay buffer inited, and now iter {self.iter} is time to do test")

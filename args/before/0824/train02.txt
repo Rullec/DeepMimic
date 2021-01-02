@@ -29,5 +29,5 @@
 --train_agents true
 
 --output_path output_0824
-# --int_output_path output/intermediate
+# --intermediate_output_path output/intermediate
 --model_files output/standard_082401.ckpt

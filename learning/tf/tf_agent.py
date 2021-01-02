@@ -87,9 +87,9 @@ class TFAgent(RLAgent):
         )
         return file_path
 
-    def _get_int_output_path(self):
-        assert self.int_output_dir != ""
-        file_path = self.int_output_dir + (
+    def _get_intermediate_output_path(self):
+        assert self.intermediate_output_dir != ""
+        file_path = self.intermediate_output_dir + (
             "/agent{:d}_models/agent{:d}_int_model_{:010d}.ckpt"
         ).format(self.id, self.id, self.iter)
         return file_path

@@ -56,7 +56,6 @@ class RLWorld(object):
     def build_agents(self):
         '''
             初始化RLworld的时候，调用这个类, 完成对制定个数num_agent个agent的构建
-
         :return:
         '''
         num_agents = self.env.get_num_agents()
@@ -76,7 +75,7 @@ class RLWorld(object):
 
         # model的输出path
         output_path = self.arg_parser.parse_string('output_path')
-        int_output_path = self.arg_parser.parse_string('int_output_path')
+        intermediate_output_path = self.arg_parser.parse_string('intermediate_output_path')
         buffer_path = self.arg_parser.parse_string('buffer_save_path')
         buffer_type = self.arg_parser.parse_string('buffer_save_type')
         buffer_keys_save_path = self.arg_parser.parse_string(
@@ -91,7 +90,7 @@ class RLWorld(object):
 
             if curr_agent is not None:
                 curr_agent.output_dir = output_path
-                curr_agent.int_output_dir = int_output_path
+                curr_agent.intermediate_output_dir = intermediate_output_path
 
                 if buffer_path != '':
                     curr_agent.buffer_output_path = buffer_path

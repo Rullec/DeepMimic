@@ -32,5 +32,5 @@
 --train_agents true
 
 --output_path output
-# --int_output_path output/intermediate
+# --intermediate_output_path output/intermediate
 --model_files output/agent0_model_2019_08_24_04_40_17551.46.ckpt

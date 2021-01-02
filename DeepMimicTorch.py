@@ -1,22 +1,22 @@
-import sys
 import os
+import sys
 if sys.platform == "darwin":
     os.environ["PMIX_MCA_gds"] = "hash"
 
-import numpy as np
-import random
-import platform as os_pt
-
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
-
-from env.deepmimic_env import DeepMimicEnv
-from learning.tf.rl_world import RLWorld
-from util.arg_parser import ArgParser
-from util.logger import Logger
-import util.mpi_util as MPIUtil
 import util.util as Util
+import util.mpi_util as MPIUtil
+from util.logger import Logger
+from util.arg_parser import ArgParser
+from learning.torch.rl_world_torch import RLWorldTorch
+from env.deepmimic_env import DeepMimicEnv
+from OpenGL.GLU import *
+from OpenGL.GLUT import *
+from OpenGL.GL import *
+import platform as os_pt
+import random
+import os
+import numpy as np
+
 
 # Dimensions of the window we are drawing into.
 win_width = 800
@@ -344,7 +344,8 @@ def build_world(args, enable_draw, playback_speed=1):
     # 参数解析器，之前已经看过，就是一个dict(value - list )而已
     arg_parser = build_arg_parser(args)
     env = DeepMimicEnv(args, enable_draw)   # 先创建env
-    world = RLWorld(env, arg_parser)        # 然后在创建world, (创建完world再创建agent)
+    # 然后在创建world, (创建完world再创建agent)
+    world = RLWorldTorch(env, arg_parser)
     world.env.set_playback_speed(playback_speed)
     # 为什么环境总是要被先创建?因为agent是依赖world中的env才能给出维度信息的，才能act的。world是舞台
     # 先有环境再有人
