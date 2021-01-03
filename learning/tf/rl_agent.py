@@ -50,13 +50,13 @@ class RLAgent(ABC):
     TEST_EPISODES_KEY = "TestEpisodes"
 
     EXP_ANNEAL_SAMPLES_KEY = "ExpAnnealSamples"
+    BEGINNING_SAMPLE_COUNT_KEY = "BeginningSampleCount"
     EXP_PARAM_BEG_KEY = "ExpParamsBeg"
     EXP_PARAM_END_KEY = "ExpParamsEnd"
 
     ENABLE_SAVE_PATH_KEY = "EnableSavePath"
     ENABLE_CLEAR_PATH_KEY = "EnableClearPath"
     PATH_SAVE_DIR_KEY = "PathSaveDir"
-    BEGINNING_SAMPLE_COUNT_KEY = "BeginningSampleCount"
 
     def __init__(self, world, id, json_data):
         """
@@ -180,7 +180,8 @@ class RLAgent(ABC):
         self._intermediate_output_dir = out_dir
         return
 
-    intermediate_output_dir = property(get_intermediate_output_dir, set_intermediate_output_dir)
+    intermediate_output_dir = property(
+        get_intermediate_output_dir, set_intermediate_output_dir)
 
     def get_buffer_output_dir(self):
         return self._buffer_output_path
@@ -230,7 +231,7 @@ class RLAgent(ABC):
 
     def update(self, timestep):
         """update agent by a given timestep
-            
+
         :param timestep:
         :return:
         """
@@ -376,7 +377,7 @@ class RLAgent(ABC):
             1 / self.world.env.build_goal_scale(self.id),
         )
 
-        self.a_norm = Normalizer(self.world.env.get_action_size())
+        self.a_norm = Normalizer(self.world.env.get_action_size(self.id))
         self.a_norm.set_mean_std(
             -self.world.env.build_action_offset(self.id),
             1 / self.world.env.build_action_scale(self.id),
@@ -545,74 +546,9 @@ class RLAgent(ABC):
     def log_reward(self, r):
         self.world.env.log_val(self.id, r)
 
+    @abstractmethod
     def _update_new_action(self):
-        """
-            when the agent need a new action, this function will be called.
-
-        :return:
-        """
-        # 获取新的action
-        s = self._record_state()
-        # c = self._record_contact_info()
-        # p = self._record_pose()
-        g = self._record_goal()
-        # print("goal is %s" % str(g))
-        # exit()
-
-        if not (self._is_first_step()):
-            r = self._record_reward()
-            # print("reward : " + str(r))
-            self.path.rewards.append(r)
-
-            if self._enable_draw():
-                self.log_reward(r)
-            try:
-                assert np.isfinite(r).all() == True
-            except:
-                print("some reward is Nan!, r = %s" % str(r))
-
-        try:
-            assert np.isfinite(s).all() == True
-        except:
-            print("some state is Nan!, s = %s" % str(s))
-
-        a, logp, a_mean = self._decide_action(s=s, g=g)
-        # diff = (a - a_mean)
-        # print(f"action diff = {np.linalg.norm(diff)}")
-        # print(
-        #     f"[check] state norm {np.linalg.norm(s)} action_mean norm {np.linalg.norm(a_mean)} action norm {np.linalg.norm(a)}")
-        assert len(np.shape(a)) == 1
-        assert len(np.shape(logp)) <= 1
-
-        flags = self._record_flags()
-        # 应用action
-        # reward并不马上给出，而是在下次apply action的时候得到
-        try:
-            assert np.isfinite(a).all() == True
-        except:
-            print("some action is Nan!, a = %s" % str(a))
-        self._apply_action(a)
-        # print(s)
-        # print(np.isfinite(s).all())
-        # print("state shape : " + str(s.shape))  # (275,)
-        # print("goal : " + str(g))   # (0, )这个不对啊
-        # print("action shape : %s, action is all zero" % str(a.shape)) # (80, )
-        # print("logp : " + str(logp))# 实数: 114.27289?怎么会这么大?
-        # path里面有所有信息: state goal actions logps flags，每次就是存进去。
-        # 所以现在的问题就是，为什么这些state action goal a logp会是nan?
-        self.path.states.append(s)
-        # self.path.contact_info.append(c)
-        # self.path.poses.append(p)
-        self.path.goals.append(g)
-        self.path.actions.append(a)
-        self.path.logps.append(logp)
-        self.path.flags.append(flags)
-        self.path.action_mean.append(a_mean)
-
-        # if self._enable_draw():
-        #     self._log_val(s, g)
-
-        return
+        pass
 
     def _update_exp_params(self):
         lerp = float(self._total_sample_count) / self.exp_anneal_samples

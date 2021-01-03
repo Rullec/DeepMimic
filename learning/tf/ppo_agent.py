@@ -575,7 +575,7 @@ class PPOAgent(PGAgent):
                 grads[i] = np.clip(grads[i], -clip_threshold, clip_threshold)
             print(
                 f"[warn] cliped max critic grad abs from {old_max} to {clip_threshold}")
-        
+
         self.critic_solver.update(grads)  # 这个是更新critic...
         return loss
 
@@ -680,4 +680,66 @@ class PPOAgent(PGAgent):
             self._actor_stepsize_ph: stepsize,
         }
         self.sess.run(self._actor_stepsize_update_op, feed)
+        return
+
+    def _update_new_action(self):
+        pass
+        """
+            when the agent need a new action, this function will be called.
+
+        :return:
+        """
+        # 获取新的action
+        s = self._record_state()
+        # c = self._record_contact_info()
+        # p = self._record_pose()
+        g = self._record_goal()
+        # print("goal is %s" % str(g))
+        # exit()
+
+        if not (self._is_first_step()):
+            r = self._record_reward()
+            # print("reward : " + str(r))
+            self.path.rewards.append(r)
+
+            if self._enable_draw():
+                self.log_reward(r)
+            try:
+                assert np.isfinite(r).all() == True
+            except:
+                print("some reward is Nan!, r = %s" % str(r))
+
+        try:
+            assert np.isfinite(s).all() == True
+        except:
+            print("some state is Nan!, s = %s" % str(s))
+
+        a, logp, a_mean = self._decide_action(s=s, g=g)
+        # diff = (a - a_mean)
+        # print(f"action diff = {np.linalg.norm(diff)}")
+        # print(
+        #     f"[check] state norm {np.linalg.norm(s)} action_mean norm {np.linalg.norm(a_mean)} action norm {np.linalg.norm(a)}")
+        assert len(np.shape(a)) == 1
+        assert len(np.shape(logp)) <= 1
+
+        flags = self._record_flags()
+        # 应用action
+        # reward并不马上给出，而是在下次apply action的时候得到
+        try:
+            assert np.isfinite(a).all() == True
+        except:
+            print("some action is Nan!, a = %s" % str(a))
+        self._apply_action(a)
+        self.path.states.append(s)
+        # self.path.contact_info.append(c)
+        # self.path.poses.append(p)
+        self.path.goals.append(g)
+        self.path.actions.append(a)
+        self.path.logps.append(logp)
+        self.path.flags.append(flags)
+        self.path.action_mean.append(a_mean)
+
+        # if self._enable_draw():
+        #     self._log_val(s, g)
+
         return

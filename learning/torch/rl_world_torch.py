@@ -1,5 +1,7 @@
 import numpy as np
 import learning.torch.agent_builder_torch as AgentBuilderTorch
+from learning.tf.rl_agent import RLAgent
+from util.logger import Logger
 
 
 class RLWorldTorch(object):
@@ -17,6 +19,27 @@ class RLWorldTorch(object):
 
         return
 
+    def get_enable_training(self):
+        return self._enable_training
+
+    def set_enable_training(self, enable):
+        self._enable_training = enable
+        for i in range(len(self.agents)):
+            curr_agent = self.agents[i]
+            if curr_agent is not None:
+                enable_curr_train = self.train_agents[i] if (
+                    len(self.train_agents) > 0) else True
+                curr_agent.enable_training = self.enable_training and enable_curr_train
+
+        if (self._enable_training):
+            self.env.set_mode(RLAgent.Mode.TRAIN)
+        else:
+            self.env.set_mode(RLAgent.Mode.TEST)
+
+        return
+
+    enable_training = property(get_enable_training, set_enable_training)
+
     def parse_args(self, sarg_parser):
         self.train_agents = self.arg_parser.parse_bools('train_agents')
         num_agents = self.env.get_num_agents()
@@ -27,5 +50,117 @@ class RLWorldTorch(object):
         return
 
     def build_agents(self):
-        assert False
+        '''
+            初始化RLworld的时候，调用这个类, 完成对制定个数num_agent个agent的构建
+        :return:
+        '''
+        num_agents = self.env.get_num_agents()
+        self.agents = []
+
+        Logger.print('')
+        Logger.print('Num Agents: {:d}'.format(num_agents))
+
+        # 在RL world中，拿到agent文件、模型文件、输出路径
+        # agent包括:
+        agent_files = self.arg_parser.parse_strings('agent_files')
+        assert(len(agent_files) == num_agents or len(agent_files) == 0)
+
+        # model就是DRL网络结构和参数文件(ckpt)
+        model_files = self.arg_parser.parse_strings('model_files')
+        assert(len(model_files) == num_agents or len(model_files) == 0)
+
+        # model的输出path
+        output_path = self.arg_parser.parse_string('output_path')
+        intermediate_output_path = self.arg_parser.parse_string(
+            'intermediate_output_path')
+        buffer_path = self.arg_parser.parse_string('buffer_save_path')
+        buffer_type = self.arg_parser.parse_string('buffer_save_type')
+        buffer_keys_save_path = self.arg_parser.parse_string(
+            'buffer_keys_save_path')
+
+        # agent只有一个, worker可以有很多个。多个worker只是用来充分利用资源扩大采样而已。
+        for i in range(num_agents):
+            curr_file = agent_files[i]
+
+            # build agent 就在这行，对agent建立actor critic网络
+            curr_agent = self._build_agent(i, curr_file)
+
+            if curr_agent is not None:
+                curr_agent.output_dir = output_path
+                curr_agent.intermediate_output_dir = intermediate_output_path
+
+                if buffer_path != '':
+                    curr_agent.buffer_output_path = buffer_path
+                    if buffer_type != '':
+                        curr_agent.buffer_save_type = buffer_type
+                    if buffer_keys_save_path != '':
+                        curr_agent.buffer_keys_save_path = buffer_keys_save_path
+
+                Logger.print(str(curr_agent))
+
+                if (len(model_files) > 0):
+                    curr_model_file = model_files[i]
+                    if curr_model_file != 'none':
+                        curr_agent.load_model(curr_model_file)
+                        curr_agent.save_model(curr_model_file)
+
+            self.agents.append(curr_agent)
+            Logger.print('')
+
+        self.set_enable_training(self.enable_training)
+        return
+
+    def _build_agent(self, id, agent_file):
+        Logger.print('Agent {:d}: {}'.format(id, agent_file))
+        if (agent_file == 'none'):
+            agent = None
+        else:
+            agent = AgentBuilderTorch.build_agent_torch(self, id, agent_file)
+            assert (agent != None), 'Failed to build agent {:d} from: {}'.format(
+                id, agent_file)
+
+        return agent
+
+    def update(self, timestep):
+        self._update_agents(timestep)
+        self._update_env(timestep)
+        return
+
+    def _update_agents(self, timestep):
+        for agent in self.agents:
+            if (agent is not None):
+                agent.update(timestep)
+        return
+
+    def _update_env(self, timestep):
+        self.env.update(timestep)
+        return
+
+    def shutdown(self):
+        self.env.shutdown()
+        return
+
+    def end_episode(self):
+        self._end_episode_agents()
+        return
+
+    def _end_episode_agents(self):
+        for agent in self.agents:
+            if (agent != None):
+                agent.end_episode()
+        return
+
+    def reset(self):
+        self._reset_agents()
+        self._reset_env()
+        return
+
+    def _reset_agents(self):
+        for agent in self.agents:
+            if (agent != None):
+                agent.reset()
+        return
+
+    def _reset_env(self):
+        self.env.reset()
         return
