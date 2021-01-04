@@ -540,6 +540,17 @@ double cDeepMimicCore::CalcReward(int agent_id) const
     return 0;
 }
 
+/**
+ * \brief       Calculate the dervative of d(reward)/d(action)
+ * note that the action must be normalized
+*/
+std::vector<std::vector<double>> cDeepMimicCore::CalcDRewardDAction() const
+{
+    std::vector<std::vector<double>> mat(0);
+    MIMIC_ASSERT("CalcDRewardDAction hasn't been implemented");
+    return mat;
+}
+
 double cDeepMimicCore::GetRewardMin(int agent_id) const
 {
     const auto &rl_scene = GetRLScene();

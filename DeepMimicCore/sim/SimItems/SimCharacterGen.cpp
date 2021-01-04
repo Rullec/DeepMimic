@@ -751,6 +751,7 @@ bool cSimCharacterGen::EnableBodyPartFallContact(int idx) const
  */
 void cSimCharacterGen::SetBodyPartFallContact(int idx, bool enable)
 {
+    MIMIC_ASSERT(idx < mLinkGenArray.size());
     mLinkGenArray[idx]->SetEnableFallContact(enable);
 }
 

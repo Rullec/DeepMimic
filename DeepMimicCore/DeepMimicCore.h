@@ -1,122 +1,129 @@
 ﻿#include <iostream>
 
-#include "util/ArgParser.h"
 #include "render/TextureDesc.h"
-#include "scenes/Scene.h"
-#include "scenes/RLScene.h"
 #include "scenes/DrawScene.h"
+#include "scenes/RLScene.h"
+#include "scenes/Scene.h"
+#include "util/ArgParser.h"
 
-// 这个类里面是怎么做的get action space的?
 class cDeepMimicCore
 {
 public:
-	// cDeepMimicCore类的构造函数就是一个boll enable_draw
-	// 解析参数不是在constructor中得来的; 而是后续调用的
-	cDeepMimicCore(bool enable_draw);
-	virtual ~cDeepMimicCore();
+    cDeepMimicCore(bool enable_draw);
+    virtual ~cDeepMimicCore();
 
-	virtual void SeedRand(int seed);
-	virtual void ParseArgs(const std::vector<std::string>& args);
-	virtual void Init();
-	virtual void Update(double timestep);
-	virtual void Reset();
+    virtual void SeedRand(int seed);
+    virtual void ParseArgs(const std::vector<std::string> &args);
+    virtual void Init();
+    virtual void Update(double timestep);
+    virtual void Reset();
 
-	virtual double GetTime() const;
-	virtual std::string GetName() const;
-	virtual bool EnableDraw() const;
+    virtual double GetTime() const;
+    virtual std::string GetName() const;
+    virtual bool EnableDraw() const;
 
-	virtual void Draw();
-	virtual void Keyboard(int key, int x, int y);
-	virtual void MouseClick(int button, int state, int x, int y);
-	virtual void MouseMove(int x, int y);
-	virtual void Reshape(int w, int h);
+    virtual void Draw();
+    virtual void Keyboard(int key, int x, int y);
+    virtual void MouseClick(int button, int state, int x, int y);
+    virtual void MouseMove(int x, int y);
+    virtual void Reshape(int w, int h);
 
-	virtual void Shutdown();
-	virtual bool IsDone() const;
-	virtual cDrawScene* GetDrawScene() const;
+    virtual void Shutdown();
+    virtual bool IsDone() const;
+    virtual cDrawScene *GetDrawScene() const;
 
-	virtual void SetPlaybackSpeed(double speed);
-	virtual void SetUpdatesPerSec(double updates_per_sec);
+    virtual void SetPlaybackSpeed(double speed);
+    virtual void SetUpdatesPerSec(double updates_per_sec);
 
-	virtual int GetWinWidth() const;
-	virtual int GetWinHeight() const;
+    virtual int GetWinWidth() const;
+    virtual int GetWinHeight() const;
 
-	virtual int GetNumUpdateSubsteps() const;
+    virtual int GetNumUpdateSubsteps() const;
 
-	// RL interface
-	virtual bool IsRLScene() const;
-	virtual int GetNumAgents() const;
-	virtual bool NeedNewAction(int agent_id) const;
-	virtual std::vector<double> RecordState(int agent_id) const;
-	virtual std::vector<double> RecordPose(int agent_id) const;
-	virtual std::vector<double> RecordGoal(int agent_id) const;
-	virtual std::vector<double> RecordContactInfo(int agent_id) const;
-	virtual void RestoreContactInfo(int agent_id, const std::vector<double> & contact_info) const;
-	
-	virtual void SetAction(int agent_id, const std::vector<double>& action);
-	virtual void LogVal(int agent_id, double val);
+    // RL interface
+    virtual bool IsRLScene() const;
+    virtual int GetNumAgents() const;
+    virtual bool NeedNewAction(int agent_id) const;
+    virtual std::vector<double> RecordState(int agent_id) const;
+    virtual std::vector<double> RecordPose(int agent_id) const;
+    virtual std::vector<double> RecordGoal(int agent_id) const;
+    virtual std::vector<double> RecordContactInfo(int agent_id) const;
+    virtual void
+    RestoreContactInfo(int agent_id,
+                       const std::vector<double> &contact_info) const;
 
-	virtual int GetActionSpace(int agent_id) const;
-	virtual int GetStateSize(int agent_id) const;
-	virtual int GetGoalSize(int agent_id) const;
-	virtual int GetActionSize(int agent_id) const;
-	virtual int GetNumActions(int agent_id) const; // for discrete actions
+    virtual void SetAction(int agent_id, const std::vector<double> &action);
+    virtual void LogVal(int agent_id, double val);
 
-	virtual std::vector<double> BuildStateOffset(int agent_id) const;
-	virtual std::vector<double> BuildStateScale(int agent_id) const;
-	virtual std::vector<double> BuildGoalOffset(int agent_id) const;
-	virtual std::vector<double> BuildGoalScale(int agent_id) const;
-	virtual std::vector<double> BuildActionOffset(int agent_id) const;
-	virtual std::vector<double> BuildActionScale(int agent_id) const;
-	virtual std::vector<double> BuildActionBoundMin(int agent_id) const;
-	virtual std::vector<double> BuildActionBoundMax(int agent_id) const;
+    virtual int GetActionSpace(int agent_id) const;
+    virtual int GetStateSize(int agent_id) const;
+    virtual int GetGoalSize(int agent_id) const;
+    virtual int GetActionSize(int agent_id) const;
+    virtual int GetNumActions(int agent_id) const; // for discrete actions
 
-	virtual std::vector<int> BuildStateNormGroups(int agent_id) const;
-	virtual std::vector<int> BuildGoalNormGroups(int agent_id) const;
+    virtual std::vector<double> BuildStateOffset(int agent_id) const;
+    virtual std::vector<double> BuildStateScale(int agent_id) const;
+    virtual std::vector<double> BuildGoalOffset(int agent_id) const;
+    virtual std::vector<double> BuildGoalScale(int agent_id) const;
+    virtual std::vector<double> BuildActionOffset(int agent_id) const;
+    virtual std::vector<double> BuildActionScale(int agent_id) const;
+    virtual std::vector<double> BuildActionBoundMin(int agent_id) const;
+    virtual std::vector<double> BuildActionBoundMax(int agent_id) const;
 
-	virtual double CalcReward(int agent_id) const;
-	virtual double GetRewardMin(int agent_id) const;
-	virtual double GetRewardMax(int agent_id) const;
-	virtual double GetRewardFail(int agent_id);
-	virtual double GetRewardSucc(int agent_id);
+    virtual std::vector<int> BuildStateNormGroups(int agent_id) const;
+    virtual std::vector<int> BuildGoalNormGroups(int agent_id) const;
 
-	virtual bool IsEpisodeEnd() const;
-	virtual bool CheckValidEpisode() const;
-	virtual int CheckTerminate(int agent_id) const;
-	virtual void SetMode(int mode);
-	virtual void SetSampleCount(int count);
+    virtual double CalcReward(int agent_id) const;
+    virtual double GetRewardMin(int agent_id) const;
+    virtual double GetRewardMax(int agent_id) const;
+    virtual double GetRewardFail(int agent_id);
+    virtual double GetRewardSucc(int agent_id);
+
+    virtual bool IsEpisodeEnd() const;
+    virtual bool CheckValidEpisode() const;
+    virtual int CheckTerminate(int agent_id) const;
+    virtual void SetMode(int mode);
+    virtual void SetSampleCount(int count);
+
+    // Diff MBRL interfaces
+    virtual std::vector<std::vector<double>> CalcDRewardDAction() const;
 
 protected:
-	unsigned long int mRandSeed;
+    unsigned long int mRandSeed;
 
-	std::shared_ptr<cArgParser> mArgParser;
-	std::shared_ptr<cScene> mScene;
-	std::shared_ptr<cRLScene> mRLScene;
+    std::shared_ptr<cArgParser> mArgParser;
+    std::shared_ptr<cScene> mScene;
+    std::shared_ptr<cRLScene> mRLScene;
 
-	std::shared_ptr<cTextureDesc> mDefaultFrameBuffer;
+    std::shared_ptr<cTextureDesc> mDefaultFrameBuffer;
 
-	int mNumUpdateSubsteps;
+    int mNumUpdateSubsteps;
 
-	// info for rendering
-	double mPlaybackSpeed;
-	double mUpdatesPerSec; // FPS counter
-	
-	// info for solving inverse dynamics
-	bool mEnableInverseDynamicSolving;
-	std::string mInverseDynamicTrajectoryPath;
-	virtual void SetupScene();
-	virtual void ClearScene();
+    // info for rendering
+    double mPlaybackSpeed;
+    double mUpdatesPerSec; // FPS counter
 
-	virtual int GetCurrTime() const;
-	virtual void InitFrameBuffer();
-	virtual void CalcDeviceCoord(int pixel_x, int pixel_y, double& out_device_x, double& out_device_y) const;
+    // info for solving inverse dynamics
+    bool mEnableInverseDynamicSolving;
+    std::string mInverseDynamicTrajectoryPath;
+    virtual void SetupScene();
+    virtual void ClearScene();
 
-	virtual double GetAspectRatio();
-	virtual void CopyFrame(cTextureDesc& src) const;
+    virtual int GetCurrTime() const;
+    virtual void InitFrameBuffer();
+    virtual void CalcDeviceCoord(int pixel_x, int pixel_y, double &out_device_x,
+                                 double &out_device_y) const;
 
-	virtual const std::shared_ptr<cRLScene>& GetRLScene() const;
-	virtual void ConvertVector(const Eigen::VectorXd& in_vec, std::vector<double>& out_vec) const;
-	virtual void ConvertVector(const Eigen::VectorXi& in_vec, std::vector<int>& out_vec) const;
-	virtual void ConvertVector(const std::vector<double>& in_vec, Eigen::VectorXd& out_vec) const;
-	virtual void ConvertVector(const std::vector<int>& in_vec, Eigen::VectorXi& out_vec) const;
+    virtual double GetAspectRatio();
+    virtual void CopyFrame(cTextureDesc &src) const;
+
+    virtual const std::shared_ptr<cRLScene> &GetRLScene() const;
+    virtual void ConvertVector(const Eigen::VectorXd &in_vec,
+                               std::vector<double> &out_vec) const;
+    virtual void ConvertVector(const Eigen::VectorXi &in_vec,
+                               std::vector<int> &out_vec) const;
+    virtual void ConvertVector(const std::vector<double> &in_vec,
+                               Eigen::VectorXd &out_vec) const;
+    virtual void ConvertVector(const std::vector<int> &in_vec,
+                               Eigen::VectorXi &out_vec) const;
 };

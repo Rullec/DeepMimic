@@ -1958,21 +1958,42 @@ void cKinTree::CalcVel(const Eigen::MatrixXd &joint_mat,
     }
 }
 
+/**
+ * \brief           Given a pose, normalize all the quaternion in it
+*/
 void cKinTree::PostProcessPose(const Eigen::MatrixXd &joint_mat,
                                Eigen::VectorXd &out_pose)
 {
-    // mostly to normalize quaternions
-    // 对姿势的后处理, 就是对各个四元数的归一化
-    // 如果四元数不归一化的话，旋转矩阵就无法满足正交性，R.T=R^-1
+    // 1. handle the root joint
+    int root = GetRoot(joint_mat);
+
+    int root_offset = GetParamOffset(joint_mat, root);
+    switch (GetJointType(joint_mat, root))
+    {
+    case eJointType::eJointTypeNone:
+        out_pose.segment(root_offset + gPosDim, gRotDim).normalize();
+        break;
+    case eJointType::eJointTypeBipedalNone:
+        break;
+    case eJointType::eJointTypeLimitNone:
+        break;
+    case eJointType::eJointTypeFixedNone:
+        break;
+    default:
+        MIMIC_ERROR("root joint type {} illegal",
+                    GetJointType(joint_mat, root));
+        break;
+    }
+
     int num_joints = GetNumJoints(joint_mat);
-    int root_id = GetRoot(joint_mat);
-    int root_offset = GetParamOffset(joint_mat, root_id);
-    out_pose.segment(root_offset + gPosDim, gRotDim).normalize();
+
     if (out_pose.size() != cKinTree::GetNumDof(joint_mat))
     {
         MIMIC_ERROR("pose size {} char dof {}", out_pose.size(),
                     cKinTree::GetNumDof(joint_mat))
     }
+
+    // 2. handle other spherical joints
     for (int j = 1; j < num_joints; ++j)
     {
         eJointType joint_type = GetJointType(joint_mat, j);
