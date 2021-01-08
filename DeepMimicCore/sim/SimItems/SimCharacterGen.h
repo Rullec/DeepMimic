@@ -160,6 +160,15 @@ public:
     virtual void SetqAndqdot(const tVectorXd &q,
                              const tVectorXd &qdot) override;
     virtual void Setqdot(const tVectorXd &qdot) override;
+    virtual tMatrixXd CalcDqDpose(const tVectorXd &pose);
+    virtual tMatrixXd CalcDposedq(const tVectorXd &q);
+    virtual void TestCalcDposedq();
+    virtual tMatrixXd CalcDveldqdot(const tVectorXd &qdot);
+    virtual void TestCalcDveldqdot();
+    virtual void PushState(const std::string &tag,
+                           bool only_vel_and_force = false);
+    virtual void PopState(const std::string &tag,
+                          bool only_vel_and_force = false);
 
 protected:
     /// vars

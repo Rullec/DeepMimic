@@ -2,10 +2,11 @@
 
 #include <assert.h>
 
+#include "DrawSceneDiffImitate.h"
 #include "DrawSceneImitate.h"
 #include "DrawSceneKinChar.h"
+#include "SceneDiffImitate.h"
 #include "SceneImitate.h"
-
 void cSceneBuilder::BuildScene(const std::string &scene_name,
                                std::shared_ptr<cScene> &out_scene)
 {
@@ -21,6 +22,10 @@ void cSceneBuilder::BuildScene(const std::string &scene_name,
     else if (scene_name == "imitate")
     {
         out_scene = std::shared_ptr<cSceneImitate>(new cSceneImitate());
+    }
+    else if (scene_name == "diff_imitate")
+    {
+        out_scene = std::shared_ptr<cSceneDiffImitate>(new cSceneDiffImitate());
     }
     else
     {
@@ -44,6 +49,11 @@ void cSceneBuilder::BuildDrawScene(const std::string &scene_name,
     else if (scene_name == "imitate")
     {
         out_scene = std::shared_ptr<cDrawSceneImitate>(new cDrawSceneImitate());
+    }
+    else if (scene_name == "diff_imitate")
+    {
+        out_scene =
+            std::shared_ptr<cDrawSceneDiffImitate>(new cDrawSceneDiffImitate());
     }
     else
     {

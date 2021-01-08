@@ -45,6 +45,9 @@ public:
     virtual void
     BuildActionOffsetScale(Eigen::VectorXd &out_offset,
                            Eigen::VectorXd &out_scale) const override;
+    tMatrixXd CalcDCtrlForceDAction(double dt);
+
+    virtual void ApplyAction(const Eigen::VectorXd &action);
 
 protected:
     cImpPDGenController *mPDGenController;
@@ -52,6 +55,7 @@ protected:
     tVectorXd mCurAction, mCurPDTargetPose;
     tLoadInfo *mLoadInfo;
     bool mEnableGuidedAction;
+    bool mEnableDerivativeTest;
     std::string mGuidedTrajFile;
     int mInternalFrameId; // internal frame id counting
     virtual bool ParseParams(const Json::Value &json);
@@ -64,7 +68,6 @@ protected:
     virtual void SetupPDControllers(const Json::Value &json,
                                     const tVector &gravity);
     virtual void UpdatePDCtrls(double time_step, Eigen::VectorXd &out_tau);
-    virtual void ApplyAction(const Eigen::VectorXd &action);
     virtual void BuildJointActionBounds(int joint_id, Eigen::VectorXd &out_min,
                                         Eigen::VectorXd &out_max) const;
     virtual void BuildJointActionBoundsRevolute(int joint_id,
@@ -109,4 +112,15 @@ protected:
 
     void ConvertTargetPoseToAction(int joint_id,
                                    Eigen::VectorXd &out_theta) const;
+
+    tMatrixXd CalcDTargetqDAction(const tVectorXd &action);
+    tMatrixXd CalcDTargetqDTargetpose(const tVectorXd &tar_pose);
+    tVectorXd ConvertTargetPoseToq(const tVectorXd &tar_pose) const;
+    void TestDTargetqDAction();
+    tMatrixXd CalcDCtrlForceDTargetq(double dt);
+    void TestDCtrlForceDTargetq();
+
+    void TestDCtrlForceDAction();
+
+    tVectorXd ConvertActionToTargetq(const tVectorXd &action) const;
 };

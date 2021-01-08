@@ -2105,16 +2105,16 @@ void cKinTree::VelToPoseDiff(const Eigen::MatrixXd &joint_mat,
         return theta =arctan(-z/x). If we rotate the world frame theta angle
   along with its own Y axis, we will get root frame. this angle means: a
   rotation that can convert vecs in root local frame to world frame
-          O-------------------------X
-        / |\ (theta)
+      O-------------------------X
+    / |\ (theta)
    /  | \
   z'  |  \
-          |  _\|
-          |	 x'
-          |
-          |
-          |
-          Z
+      |  _\|
+      |	  x'
+      |
+      |
+      |
+      Z
 
 */
 double cKinTree::CalcHeading(const Eigen::MatrixXd &joint_mat,

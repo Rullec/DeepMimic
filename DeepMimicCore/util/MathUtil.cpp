@@ -613,12 +613,231 @@ double cMathUtil::QuatTheta(const tQuaternion &dq)
         1 -
         q1.w() *
             q1.w()); // sin(theta) which "theta" is the rotation angle/2 in dq
-    if (sin_theta > 0.0001)
+    if (sin_theta > 1e-7)
     {
         theta = 2 * std::acos(q1.w());            // this is angle now
         theta = cMathUtil::NormalizeAngle(theta); // noramlize angle
     }
     return theta;
+}
+
+/**
+ * \brief               Calculate d(q1 * q0.conj) / dq0
+*/
+tMatrix cMathUtil::Calc_Dq1q0conj_Dq0(const tQuaternion &q0,
+                                      const tQuaternion &q1)
+{
+    double a1 = q1.w(), b1 = q1.x(), c1 = q1.y(), d1 = q1.z();
+    tMatrix deriv = tMatrix::Zero();
+    deriv.col(0) = tVector(a1, b1, c1, d1);
+    deriv.col(1) = tVector(b1, -a1, -d1, c1);
+    deriv.col(2) = tVector(c1, d1, -a1, -b1);
+    deriv.col(3) = tVector(d1, -c1, b1, -a1);
+    return deriv;
+}
+
+/**
+ * \brief           calculate d(Quaternion)/(daxis angle)
+*/
+tMatrix cMathUtil::Calc_DQuaternion_DAxisAngle(const tVector &aa)
+{
+    double theta = aa.norm();
+    tMatrix dQuaterniondAA = tMatrix::Zero();
+
+    if (std::fabs(theta) < 1e-5)
+    {
+        dQuaterniondAA.row(0) = -1 / 3 * aa.transpose();
+        dQuaterniondAA(1, 0) = 0.5;
+        dQuaterniondAA(2, 1) = 0.5;
+        dQuaterniondAA(3, 2) = 0.5;
+    }
+    else
+    {
+        dQuaterniondAA.row(0) =
+            -0.5 * std::sin(theta / 2) * aa.transpose() / theta;
+        for (int i = 0; i < 3; i++)
+        {
+            tVector daaidaa = tVector::Zero();
+            daaidaa[i] = 1.0;
+
+            dQuaterniondAA.row(1 + i) =
+                (daaidaa * theta - aa[i] * aa / theta) / (theta * theta) *
+                    std::sin(theta / 2) +
+                aa[i] / theta * std::cos(theta / 2) / (2 * theta) * aa;
+        }
+    }
+
+    // std::cout << "diff mat = \n" << dQuaterniondAA << std::endl;
+    dQuaterniondAA.col(3).setZero();
+    return dQuaterniondAA;
+}
+
+/**
+ * \brief           calculate d(quaternion)/d(euler_angles)
+*/
+tMatrixXd cMathUtil::Calc_DQuaterion_DEulerAngles(const tVector &euler_angles,
+                                                  eRotationOrder order)
+{
+    tMatrixXd dqdeuler = tMatrixXd::Zero(4, 3);
+    if (order == eRotationOrder ::XYZ)
+    {
+        double e_x = euler_angles[0], e_y = euler_angles[1],
+               e_z = euler_angles[2];
+        double cx = std::cos(e_x / 2), sx = std::sin(e_x / 2);
+        double cy = std::cos(e_y / 2), sy = std::sin(e_y / 2);
+        double cz = std::cos(e_z / 2), sz = std::sin(e_z / 2);
+        dqdeuler.col(0) = 0.5 * tVector(cx * sy * sz - cy * cz * sx,
+                                        sx * sy * sz + cx * cy * cz,
+                                        cx * cy * sz - cz * sx * sy,
+                                        -cx * cz * sy - cy * sx * sz);
+
+        dqdeuler.col(1) = 0.5 * tVector(cy * sx * sz - cx * cz * sy,
+                                        -cx * cy * sz - cz * sx * sy,
+                                        cx * cy * cz - sx * sy * sz,
+                                        -cy * cz * sx - cx * sy * sz);
+
+        dqdeuler.col(2) = 0.5 * tVector(cz * sx * sy - cx * cy * sz,
+                                        -cx * cz * sy - cy * sx * sz,
+                                        cy * cz * sx - cx * sy * sz,
+                                        sx * sy * sz + cx * cy * cz);
+    }
+    else
+    {
+        MIMIC_ERROR("invalid rotation order");
+    }
+    return dqdeuler;
+}
+
+void cMathUtil::TestCalc_DQuaterion_DEulerAngles()
+{
+    tVector euler_angles = tVector::Random();
+    tQuaternion old_qua =
+        cMathUtil::EulerAnglesToQuaternion(euler_angles, eRotationOrder::XYZ);
+    double eps = 1e-5;
+    tMatrixXd ideal_dqde = cMathUtil::Calc_DQuaterion_DEulerAngles(
+        euler_angles, eRotationOrder::XYZ);
+    // std::cout << "ideal_dqde = \n" << ideal_dqde << std::endl;
+    for (int i = 0; i < 3; i++)
+    {
+        euler_angles[i] += eps;
+        tQuaternion new_qua = cMathUtil::EulerAnglesToQuaternion(
+            euler_angles, eRotationOrder::XYZ);
+        tVector num_dqde =
+            (cMathUtil::QuatToVec(new_qua) - cMathUtil::QuatToVec(old_qua)) /
+            eps;
+        tVector ideal_dqdei = ideal_dqde.col(i);
+        tVector diff = ideal_dqdei - num_dqde;
+        if (diff.norm() > 10 * eps)
+        {
+            std::cout
+                << "[error] TestCalc_DQuaterion_DEulerAngles fail for col " << i
+                << std::endl;
+            std::cout << "ideal = " << ideal_dqdei.transpose() << std::endl;
+            std::cout << "num = " << num_dqde.transpose() << std::endl;
+            std::cout << "diff = " << diff.transpose() << std::endl;
+
+            exit(0);
+        }
+        euler_angles[i] -= eps;
+    }
+    std::cout << "[log] TestCalc_DQuaterion_DEulerAngles succ\n";
+}
+void cMathUtil::TestCalc_DQuaterniontDAxisAngle()
+{
+    tVector aa = tVector::Random();
+    aa[3] = 0;
+    tQuaternion qua = cMathUtil::AxisAngleToQuaternion(aa);
+    tMatrix dqua_daa = cMathUtil::Calc_DQuaternion_DAxisAngle(aa);
+    double eps = 1e-5;
+    for (int i = 0; i < 3; i++)
+    {
+        aa[i] += eps;
+        tQuaternion new_qua = cMathUtil::AxisAngleToQuaternion(aa);
+        tVector num_deriv_raw = (new_qua.coeffs() - qua.coeffs()) / eps;
+        tVector num_deriv;
+        num_deriv[0] = num_deriv_raw[3];
+        num_deriv.segment(1, 3) = num_deriv_raw.segment(0, 3);
+        tVector ideal_deriv = dqua_daa.col(i);
+        tVector diff = ideal_deriv - num_deriv;
+        if (diff.norm() > 10 * eps)
+        {
+            std::cout << "[error] TestDiffQuaterniontDAxisAngle fail for " << i
+                      << std::endl;
+            std::cout << i << " diff = " << diff.transpose() << std::endl;
+            std::cout << "ideal = " << ideal_deriv.transpose() << std::endl;
+            std::cout << "num = " << num_deriv.transpose() << std::endl;
+        }
+        aa[i] -= eps;
+    }
+    std::cout << "[log] TestDiffQuaterniontDAxisAngle succ\n";
+}
+
+void cMathUtil::TestCalc_Dq1q0conj_Dq0()
+{
+    MIMIC_INFO("Dq1q0conjDq0 begin test!");
+    tQuaternion q1 = tQuaternion::UnitRandom(), q0 = tQuaternion::UnitRandom();
+    tQuaternion old_q1_q0_conj = q1 * q0.conjugate();
+    double eps = 1e-5;
+
+    tMatrix deriv = cMathUtil::Calc_Dq1q0conj_Dq0(q0, q1);
+    for (int i = 0; i < 4; i++)
+    {
+        switch (i)
+        {
+        case 0:
+            q0.w() += eps;
+            break;
+        case 1:
+            q0.x() += eps;
+            break;
+        case 2:
+            q0.y() += eps;
+            break;
+        case 3:
+            q0.z() += eps;
+            break;
+
+        default:
+            break;
+        }
+        // q0.normalize();
+        tQuaternion new_q1_q0_conj = q1 * q0.conjugate();
+        tVector chaos_order_d =
+            (new_q1_q0_conj.coeffs() - old_q1_q0_conj.coeffs()) / eps;
+        tVector d = tVector(chaos_order_d[3], chaos_order_d[0],
+                            chaos_order_d[1], chaos_order_d[2]);
+
+        tVector diff = d - deriv.col(i);
+
+        if (diff.norm() > 10 * eps)
+        {
+            printf("[error] TestDq1q0conjDq0_experimental fail for %d\n", i);
+            std::cout << "d = " << d.transpose() << std::endl;
+            // printf("d= %.5f, %.5f, %.5f, %.5f\n", );
+            std::cout << "ideal d = " << deriv.col(i).transpose() << std::endl;
+            std::cout << "diff = " << diff.norm() << std::endl;
+            exit(0);
+        }
+        switch (i)
+        {
+        case 0:
+            q0.w() -= eps;
+            break;
+        case 1:
+            q0.x() -= eps;
+            break;
+        case 2:
+            q0.y() -= eps;
+            break;
+        case 3:
+            q0.z() -= eps;
+            break;
+
+        default:
+            break;
+        }
+    }
+    printf("[log] TestDq1q0conjDq0_experimental succ\n");
 }
 
 tQuaternion cMathUtil::VecDiffQuat(const tVector &v0, const tVector &v1)

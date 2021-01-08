@@ -1,4 +1,4 @@
---scene imitate
+--scene diff_imitate
 
 --time_lim_min 10.5
 --time_lim_max 10.5
@@ -34,7 +34,7 @@
 --sync_char_root_rot false
 
 #----------------Guided Action Controller-----------------
---reward_file data/0420/rewards/reward_weight.json
+--reward_file data/0103/rewards/reward_weight_only_pose_vel.json
 
 --agent_files data/0103/agents/agent_diffMBRL_test.txt
 --train_agents false

@@ -47,9 +47,8 @@ public:
     virtual void Update(double time_elapsed);
 
     virtual int GetNumChars() const;
-    virtual const std::shared_ptr<cSimCharacterBase> &GetCharacter() const;
-    virtual const std::shared_ptr<cSimCharacterBase> &
-    GetCharacter(int char_id) const;
+    virtual std::shared_ptr<cSimCharacterBase> GetCharacter() const;
+    virtual std::shared_ptr<cSimCharacterBase> GetCharacter(int char_id) const;
     virtual const std::shared_ptr<cWorldBase> &GetWorld() const;
     virtual tVector GetCharPos() const;
     virtual const std::shared_ptr<cGround> &GetGround() const;
@@ -112,7 +111,8 @@ protected:
     bool mPauseAtFirst; // pause at the first frame
     std::string mTorqueRecordFile;
     bool mEnableJointTorqueControl;
-    std::vector<int> mFallContactBodies; // reset the scene when some bodies get contacted with ground
+    std::vector<int>
+        mFallContactBodies; // reset the scene when some bodies get contacted with ground
     bool mEnableGuidedControl;
     std::string mGuidedTrajFile;
 
@@ -131,7 +131,7 @@ protected:
     bool mEnableID;
     std::string mIDInfoPath;
     std::shared_ptr<cIDSolver> mIDSolver;
-
+    double mTimestep;
     // traj recoder info
     // bool mEnableTrajRecord;
     // std::string mTrajRecorderConfig;

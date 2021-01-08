@@ -139,6 +139,15 @@ public:
     static tVector QuatToVec(const tQuaternion &q);
     static tQuaternion QuatDiff(const tQuaternion &q0, const tQuaternion &q1);
     static double QuatDiffTheta(const tQuaternion &q0, const tQuaternion &q1);
+    static tMatrix Calc_Dq1q0conj_Dq0(const tQuaternion &q0,
+                                      const tQuaternion &q1);
+    static void TestCalc_Dq1q0conj_Dq0();
+    static tMatrix Calc_DQuaternion_DAxisAngle(const tVector &aa);
+    static tMatrixXd Calc_DQuaterion_DEulerAngles(const tVector &euler_angles,
+                                                  eRotationOrder order);
+    static void TestCalc_DQuaterion_DEulerAngles();
+    static void TestCalc_DQuaterniontDAxisAngle();
+
     static double QuatTheta(const tQuaternion &dq);
     static tQuaternion VecDiffQuat(const tVector &v0, const tVector &v1);
     static tVector QuatRotVec(const tQuaternion &q, const tVector &dir);

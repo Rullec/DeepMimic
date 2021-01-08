@@ -85,41 +85,6 @@ double cSceneImitate::CalcRewardImitate(cSimCharacterBase &sim_char,
 {
     if (mEnableAngleDiffLog == true)
         DiffLogOutput(sim_char, kin_char);
-
-    // double size = sim_char.GetPose().size();
-    // tVectorXd new_pose = tVectorXd::Ones(size);
-    // tVectorXd new_vel = tVectorXd::Ones(size);
-    // tVectorXd old_pose = sim_char.GetPose();
-    // std::cout << "[before] cur pose = " << sim_char.GetPose().transpose()
-    //           << std::endl;
-    // for (int i = 0; i < sim_char.GetNumBodyParts(); i++)
-    // {
-    //     std::cout << "[before] link " << i
-    //               << " pos = " <<
-    //               sim_char.GetBodyPart(i)->GetPos().transpose()
-    //               << std::endl;
-    // }
-    // tVectorXd new_pose = tVectorXd::Random(size);
-    // tVectorXd new_vel = tVectorXd::Random(size);
-    // new_pose[3] = 1;
-    // new_pose[7] = 1;
-    // new_pose[12] = 1;
-    // new_pose[3] = 10;
-    // new_pose = old_pose;
-    // new_pose.segment(7, new_pose.size() - 7).setZero();
-    // sim_char.SetPose(new_pose);
-    // sim_char.SetVel(new_vel);
-
-    // std::cout << "[after] cur pose = " << sim_char.GetPose().transpose()
-    //           << std::endl;
-    // for (int i = 0; i < sim_char.GetNumBodyParts(); i++)
-    // {
-    //     std::cout << "[after] link " << i
-    //               << " pos = " <<
-    //               sim_char.GetBodyPart(i)->GetPos().transpose()
-    //               << std::endl;
-    // }
-    // exit(1);
     double reward = 0;
     if (eSimCharacterType::Featherstone == sim_char.GetCharType())
     {
@@ -580,6 +545,17 @@ void cSceneImitate::SetRewardParams(Json::Value &root)
     RewParams.root_w = reward_weight_terms["root_w"].asDouble();
     RewParams.com_w = reward_weight_terms["com_w"].asDouble();
 
+    // normalize these weights
+    {
+        double total = RewParams.pose_w + RewParams.vel_w +
+                       RewParams.end_eff_w + RewParams.root_w + RewParams.com_w;
+
+        RewParams.pose_w /= total;
+        RewParams.vel_w /= total;
+        RewParams.end_eff_w /= total;
+        RewParams.root_w /= total;
+        RewParams.com_w /= total;
+    }
     RewParams.pose_scale = scale_terms["pose_scale"].asDouble();
     RewParams.vel_scale = scale_terms["vel_scale"].asDouble();
     RewParams.end_eff_scale = scale_terms["end_eff_scale"].asDouble();
@@ -759,14 +735,6 @@ double cSceneImitate::CalcRewardImitateFeatherstone(
     double end_eff_w = RewParams.end_eff_w;
     double root_w = RewParams.root_w;
     double com_w = RewParams.com_w;
-
-    // normalize
-    double total_w = pose_w + vel_w + end_eff_w + root_w + com_w;
-    pose_w /= total_w;
-    vel_w /= total_w;
-    end_eff_w /= total_w;
-    root_w /= total_w;
-    com_w /= total_w;
 
     // 又有一个scale
     const double pose_scale = RewParams.pose_scale;
@@ -1005,13 +973,6 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
     double root_w = RewParams.root_w;
     double com_w = RewParams.com_w;
 
-    double total_w = pose_w + vel_w + end_eff_w + root_w + com_w;
-    pose_w /= total_w;
-    vel_w /= total_w;
-    end_eff_w /= total_w;
-    root_w /= total_w;
-    com_w /= total_w;
-
     const double pose_scale = RewParams.pose_scale;
     const double vel_scale = RewParams.vel_scale;
     const double end_eff_scale = RewParams.end_eff_scale;
@@ -1112,48 +1073,39 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
         bool is_end_eff = sim_char.IsEndEffector(j);
         if (is_end_eff)
         {
-            // calculate the ref end effector pos(pos0) and true end
-            // effector pos(pos1) in both world frame according to mPose
-            // and mkinchar.getPose()
+            /* 
+                calculate the ref end effector pos(pos0) and true end
+                effector pos(pos1) in both world frame according to mPose
+                and mkinchar.getPose()
+            */
             tVector pos0 = sim_char.CalcJointPos(j);
             tVector pos1 = cKinTree::CalcJointWorldPos(joint_mat, pose1, j);
-            // fout << "joint " << j << " end effector pos0 " <<
-            // pos0.transpose()
-            //  << std::endl;
-            // fout << "joint " << j << " end effector pos1 " <<
-            // pos1.transpose()
-            //  << std::endl;
-            // ground_h0: get the height of ground. It is zero here.
-            // ground_h1: get the origin's y component. It should be
-            // zero as well in this case
+            /* 
+                ground_h0: get the height of ground. It is zero here.
+                ground_h1: get the origin's y component. It should be zero as well in this case
+            */
             double ground_h0 = mGround->SampleHeight(pos0);
             double ground_h1 = kin_char.GetOriginPos()[1];
 
-            // calculate the relative position of end effector for sim
-            // char with respect to root position, then minus ground
-            // height calculate the relative position of end effector
-            // for kin char with respect to root position, then minus
-            // ground height
+            /* 
+                calculate the relative position of end effector for sim
+                char with respect to root position, then minus ground
+                height calculate the relative position of end effector
+                for kin char with respect to root position, then minus
+                ground height
+            */
             tVector pos_rel0 = pos0 - root_pos0;
             tVector pos_rel1 = pos1 - root_pos1;
             pos_rel0[1] = pos0[1] - ground_h0;
             pos_rel1[1] = pos1[1] - ground_h1;
-            // fout << "joint " << j << " end effector before pos_rel0 "
-            //  << pos_rel0.transpose() << std::endl;
-            // fout << "joint " << j << " end effector before pos_rel1 "
-            //  << pos_rel1.transpose() << std::endl;
+
             // represented them in both root joint local frame:
             pos_rel0 = origin_trans * pos_rel0;
             pos_rel1 = kin_origin_trans * pos_rel1;
 
-            // fout << "joint " << j << " end effector pos_rel0 "
-            //  << pos_rel0.transpose() << std::endl;
-            // fout << "joint " << j << " end effector pos_rel1 "
-            //  << pos_rel1.transpose() << std::endl;
             // calculate the end effector diff
             double curr_end_err = (pos_rel1 - pos_rel0).squaredNorm();
-            // fout << "joint " << j << " cur end effector " << curr_end_err
-            //  << std::endl;
+
             end_eff_err += curr_end_err;
             ++num_end_effs;
 
@@ -1205,7 +1157,24 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
     reward = pose_w * pose_reward + vel_w * vel_reward +
              end_eff_w * end_eff_reward + root_w * root_reward +
              com_w * com_reward;
+    printf("pose %.5f, vel %.5f, end %.5f, root %.5f, com %.5f\n", pose_reward,
+           vel_reward, end_eff_reward, root_reward, com_reward);
+    {
+        double another_pose_rew = CalcPoseReward(sim_char, kin_char);
+        double another_vel_rew = CalcVelReward(sim_char, kin_char);
+        double another_end_effector_rew =
+            CalcEndEffectorReward(sim_char, kin_char);
+        BTGEN_ASSERT(std::fabs(another_pose_rew - pose_w * pose_reward) < 1e-6);
+        BTGEN_ASSERT(std::fabs(another_vel_rew - vel_w * vel_reward) < 1e-6);
 
+        printf("another ee rew = %.5f, raw ee rew = %.5f\n",
+               another_end_effector_rew, end_eff_w * end_eff_reward);
+        BTGEN_ASSERT(std::fabs(another_end_effector_rew -
+                               end_eff_w * end_eff_reward) < 1e-6);
+        // std::cout << "new pose rew = " << another_pose_rew << std::endl;
+        // std::cout << "old pose rew = " << pose_w * pose_reward << std::endl;
+        // exit(0);
+    }
     // fout << "pose reward = " << pose_reward << "\n";
     // fout << "vel reward = " << vel_reward << "\n";
     // fout << "end eff reward = " << end_eff_reward << "\n";
@@ -1232,4 +1201,154 @@ void cSceneImitate::CalcKinCharCOMAndCOMVelByGenChar(
     tVector &com_world, tVector &com_vel_world) const
 {
     sim_char->CalcCOMAndCOMVel(pose, vel, com_world, com_vel_world);
+}
+
+/**
+ * \brief           Calculate pose-similar reward
+*/
+double cSceneImitate::CalcPoseReward(cSimCharacterGen &sim_char,
+                                     const cKinCharacter &kin_char) const
+{
+    const Eigen::VectorXd &pose0 = sim_char.GetPose();
+    const Eigen::VectorXd &pose1 = kin_char.GetPose();
+    const auto &joint_mat = sim_char.GetJointMat();
+    int root_id = cKinTree::GetRoot(joint_mat);
+    double root_rot_w = mJointWeights[root_id];
+    double pose_err = 0;
+    pose_err += root_rot_w *
+                cKinTree::CalcRootRotErr(joint_mat, pose0,
+                                         pose1); // pow(diff_rot_rot_theta, 2)
+    int num_joints = sim_char.GetNumJoints();
+    for (int j = root_id + 1; j < num_joints; ++j)
+    {
+        // ROOT is not included in this part of code.
+        double w = mJointWeights[j];
+        double curr_pose_err = cKinTree::CalcPoseErr(
+            joint_mat, j, pose0, pose1); // calculate the joint angle diff
+
+        // add joint angle diff and joint vel diff to pose_err and vel_err
+        pose_err += w * curr_pose_err;
+    }
+    double pose_reward =
+        RewParams.pose_w *
+        exp(-RewParams.err_scale * RewParams.pose_scale * pose_err);
+    return pose_reward;
+}
+
+double cSceneImitate::CalcVelReward(cSimCharacterGen &sim_char,
+                                    const cKinCharacter &kin_char) const
+{
+    double vel_err = 0;
+    const tVectorXd &vel0 = sim_char.GetVel();
+    const tVectorXd &vel1 = kin_char.GetVel();
+    tMatrixXd joint_mat = sim_char.GetJointMat();
+
+    // 1. root vel err
+    int root_id = cKinTree::GetRoot(joint_mat);
+    double root_rot_w = mJointWeights[root_id];
+    vel_err += root_rot_w * cKinTree::CalcRootAngVelErr(joint_mat, vel0, vel1);
+
+    // 2. joint vel err
+    for (int j = root_id + 1; j < cKinTree::GetNumJoints(joint_mat); ++j)
+    {
+        // ROOT is not included in this part of code.
+        double curr_vel_err = cKinTree::CalcVelErr(
+            joint_mat, j, vel0, vel1); // calculate the joint vel diff
+
+        vel_err += mJointWeights[j] * curr_vel_err;
+    }
+
+    double vel_reward =
+        exp(-RewParams.err_scale * RewParams.vel_scale * vel_err);
+    return vel_reward * RewParams.vel_w;
+}
+
+/**
+ * \brief           Calculate the end effector reward
+*/
+double cSceneImitate::CalcEndEffectorReward(cSimCharacterGen &sim_char,
+                                            const cKinCharacter &kin_char) const
+{
+    const auto &joint_mat = sim_char.GetJointMat();
+
+    // sim_char: simulation character
+    // kin_char: the representation of motion data
+    const Eigen::VectorXd &pose0 = sim_char.GetPose();
+    const Eigen::VectorXd &pose1 = kin_char.GetPose();
+    tMatrix origin_trans =
+        sim_char.BuildOriginTrans(); // convert all points in sim char world
+                                     // frame into sim char root local frame
+    tMatrix kin_origin_trans =
+        kin_char.BuildOriginTrans(); // convert all points in kin char world
+                                     // frame into kinchar root local frame
+    tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
+    tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
+    double end_eff_err = 0;
+
+    int num_end_effs = 0;
+    int num_joints = sim_char.GetNumJoints();
+    assert(num_joints == mJointWeights.size());
+
+    for (int j = 0; j < num_joints; ++j)
+    {
+
+        if (sim_char.IsEndEffector(j))
+        {
+            /* 
+                calculate the ref end effector pos(pos0) and true end
+                effector pos(pos1) in both world frame according to mPose
+                and mkinchar.getPose()
+            */
+            tVector pos0 = sim_char.CalcJointPos(j);
+            tVector pos1 = cKinTree::CalcJointWorldPos(joint_mat, pose1, j);
+            /* 
+                ground_h0: get the height of ground. It is zero here.
+                ground_h1: get the origin's y component. It should be zero as well in this case
+            */
+            double ground_h0 = mGround->SampleHeight(pos0);
+            double ground_h1 = kin_char.GetOriginPos()[1];
+
+            /* 
+                calculate the relative position of end effector for sim
+                char with respect to root position, then minus ground
+                height calculate the relative position of end effector
+                for kin char with respect to root position, then minus
+                ground height
+            */
+            tVector pos_rel0 = pos0 - root_pos0;
+            tVector pos_rel1 = pos1 - root_pos1;
+            pos_rel0[1] = pos0[1] - ground_h0;
+            pos_rel1[1] = pos1[1] - ground_h1;
+
+            // represented them in both root joint local frame:
+            pos_rel0 = origin_trans * pos_rel0;
+            pos_rel1 = kin_origin_trans * pos_rel1;
+
+            // calculate the end effector diff
+            double curr_end_err = (pos_rel1 - pos_rel0).squaredNorm();
+
+            end_eff_err += curr_end_err;
+            ++num_end_effs;
+
+            /* summary:
+                    This portion of code, calculate the ideal relative
+               position of end effector with respect to ideal root pos
+               for sim char and its corrosponding vector for kin char.
+                    Then compare them as an error.
+            */
+        }
+    }
+
+    if (num_end_effs > 0)
+    {
+        end_eff_err /= num_end_effs;
+    }
+    double err_scale = RewParams.err_scale,
+           end_eff_scale = RewParams.end_eff_scale,
+           end_eff_w = RewParams.end_eff_w;
+    double end_eff_reward =
+        end_eff_w *
+        exp(-err_scale * end_eff_scale * end_eff_err); // end_effector位置误差^2
+
+    return end_eff_reward;
 }

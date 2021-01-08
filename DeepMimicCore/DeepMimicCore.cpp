@@ -544,10 +544,26 @@ double cDeepMimicCore::CalcReward(int agent_id) const
  * \brief       Calculate the dervative of d(reward)/d(action)
  * note that the action must be normalized
 */
+#include "scenes/DrawSceneDiffImitate.h"
+#include "scenes/SceneDiffImitate.h"
 std::vector<std::vector<double>> cDeepMimicCore::CalcDRewardDAction() const
 {
     std::vector<std::vector<double>> mat(0);
-    MIMIC_ASSERT("CalcDRewardDAction hasn't been implemented");
+    if (EnableDraw() == true)
+    {
+        auto draw_res =
+            std::dynamic_pointer_cast<cDrawSceneDiffImitate>(mRLScene);
+        auto res =
+            std::dynamic_pointer_cast<cSceneDiffImitate>(draw_res->GetScene());
+        res->Test();
+        // MIMIC_ASSERT(res != nullptr);
+    }
+    else
+    {
+        MIMIC_ASSERT(false);
+    }
+
+    MIMIC_WARN("CalcDRewardDAction hasn't been implemented, only do test");
     return mat;
 }
 

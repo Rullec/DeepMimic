@@ -1,5 +1,6 @@
 #include "CtPDGenController.h"
 #include "ImpPDGenController.h"
+#include "PDController.h"
 #include "sim/SimItems/SimCharacterBase.h"
 #include "sim/SimItems/SimCharacterGen.h"
 #include "sim/SimItems/SimJoint.h"
@@ -35,22 +36,12 @@ void cCtPDGenController::Init(cSimCharacterBase *character,
 {
     cCtController::Init(character, param_file);
 
-    // // load the parameter file again
+    // load the parameter file again
     // MIMIC_INFO("PDGenController is initialized {}", param_file);
-    // Json::Value root;
-    // MIMIC_ASSERT(cJsonUtil::LoadJson(param_file, root));
-
-    // mEnableLoadedAction = cJsonUtil::ParseAsBool("EnableLoadedAction", root);
-
-    // if (mEnableLoadedAction)
-    // {
-    //     mGuidedTrajFile = cJsonUtil::ParseAsString("GuidedTrajFile", root);
-
-    //     MIMIC_ASSERT(cFileUtil::ExistsFile(mGuidedTrajFile) &&
-    //                  "the traj file doesn't exist ");
-    //     MIMIC_INFO("ActionGuide enabled; traj file {}", mGuidedTrajFile);
-    //     mLoadInfo = new tLoadInfo();
-    // }
+    Json::Value root;
+    MIMIC_ASSERT(cJsonUtil::LoadJson(param_file, root));
+    mEnableDerivativeTest =
+        cJsonUtil::ParseAsBool("EnableTestDerivative", root);
 }
 
 void cCtPDGenController::SetGuidedControlInfo(bool enable,
@@ -200,9 +191,9 @@ void cCtPDGenController::UpdateBuildTauPD(double dt, Eigen::VectorXd &out_tau)
 {
 
     // std::ofstream fout(pd_log, std::ios::app);
-    tVectorXd target_q, target_qdot;
+    // tVectorXd target_q, target_qdot;
     // fout << "---------------------\n";
-    mPDGenController->GetPDTarget_q(target_q, target_qdot);
+    // mPDGenController->GetPDTarget_q(target_q, target_qdot);
     // fout << "target q = " << target_q.transpose() << std::endl;
     // fout << "target qdot = " << target_qdot.transpose() << std::endl;
 
@@ -289,8 +280,7 @@ void cCtPDGenController::PostUpdateBuildTau() { mInternalFrameId++; }
  * \brief               Create the internal Stable PD controller by given
  * parameters
  */
-#include "PDController.h"
-#include "sim/SimItems/SimCharacterGen.h"
+
 void cCtPDGenController::SetupPDControllers(const Json::Value &json,
                                             const tVector &gravity)
 {
@@ -374,6 +364,13 @@ void cCtPDGenController::ApplyAction(const Eigen::VectorXd &action)
     //           << std::endl;
     // 3. convert pose to q, then set q and qdot to the stable PD controller
     SetPDTargets(mCurPDTargetPose);
+
+    if (mEnableDerivativeTest == true)
+    {
+        // TestDTargetqDAction();
+        // TestDCtrlForceDTargetq();
+        TestDCtrlForceDAction();
+    }
 }
 
 /**
@@ -453,17 +450,17 @@ void cCtPDGenController::SetPDTargets(const Eigen::VectorXd &reduce_target_pose)
     MIMIC_ASSERT(GetActionSize() == reduce_target_pose.size());
 
     // expand to the full size
-    const int root_pose_size = 7;
-    tVectorXd full_target_pose =
-        tVectorXd::Zero(root_pose_size + reduce_target_pose.size());
-    full_target_pose[3] = 1.0;
-    full_target_pose.segment(root_pose_size, reduce_target_pose.size()) =
-        reduce_target_pose;
+    // const int root_pose_size = 7;
+    // tVectorXd full_target_pose =
+    //     tVectorXd::Zero(root_pose_size + reduce_target_pose.size());
+    // full_target_pose[3] = 1.0;
+    // full_target_pose.segment(root_pose_size, reduce_target_pose.size()) =
+    //     reduce_target_pose;
 
     MIMIC_ASSERT(eSimCharacterType::Generalized == mChar->GetCharType());
 
     auto gen_char = static_cast<cSimCharacterGen *>(mChar);
-    tVectorXd q_goal = gen_char->ConvertPoseToq(full_target_pose),
+    tVectorXd q_goal = ConvertTargetPoseToq(reduce_target_pose),
               qdot_goal = tVectorXd::Zero(gen_char->Getqdot().size());
     // std::cout << "target pose = " << full_target_pose.transpose() <<
     // std::endl; std::cout << "target q = " << q_goal.transpose() << std::endl;
@@ -809,4 +806,222 @@ void cCtPDGenController::CalcPDTargetByTorque(double dt, const tVectorXd &pose,
 {
     pd_target =
         mPDGenController->CalcPDTargetByControlForce(dt, pose, vel, torque);
+}
+
+/**
+ * \brief           Calc d(target_q) / d(a)
+ * 
+ *  pipeline: action -> normalized target pose -> target q
+*/
+tMatrixXd cCtPDGenController::CalcDTargetqDAction(const tVectorXd &action)
+{
+    // 1. action -> normalized target pose
+    tMatrixXd DTarPose_DAction =
+        tMatrixXd::Zero(GetActionSize(), GetActionSize());
+    int cur_idx = 0;
+
+    for (int i = 0; i < mChar->GetNumJoints(); i++)
+    {
+        const auto &joint = mChar->GetJoint(i);
+        int size = GetJointActionSize(i);
+        if (joint.GetType() == cKinTree::eJointType::eJointTypeSpherical)
+        {
+            MIMIC_ERROR("unsupported");
+        }
+        else
+        {
+            DTarPose_DAction.block(cur_idx, cur_idx, size, size).setIdentity();
+        }
+
+        cur_idx += size;
+    }
+
+    // 2. target pose -> target q
+    auto gen_char = dynamic_cast<cSimCharacterGen *>(mChar);
+    tVectorXd tar_pose = action;
+    ConvertActionToTargetPose(tar_pose);
+    tMatrixXd Dq_DTarPose = CalcDTargetqDTargetpose(tar_pose);
+    tMatrixXd DqDAction = Dq_DTarPose * DTarPose_DAction;
+
+    return DqDAction;
+}
+
+/**
+ * \brief               Test jacobian d(target_q)/d(action)
+ * the target q has full length, the 
+*/
+void cCtPDGenController::TestDTargetqDAction()
+{
+    // 1. get current target q, and the derivative
+    auto gen_char = dynamic_cast<cSimCharacterGen *>(mChar);
+    tVectorXd action_old = mAction;
+    tVectorXd tar_pose_old = action_old;
+    tMatrixXd DTargetqDa = CalcDTargetqDAction(action_old);
+    ConvertActionToTargetPose(tar_pose_old);
+    tVectorXd target_q_old = ConvertTargetPoseToq(tar_pose_old);
+
+    // 2. begin to set up new infos
+    double eps = 1e-5;
+    for (int i = 0; i < GetActionSize(); i++)
+    {
+        tVectorXd action_new = action_old;
+        action_new[i] += eps;
+        tVectorXd tarpose_new = action_new;
+        ConvertActionToTargetPose(tarpose_new);
+
+        tVectorXd target_q_new = ConvertTargetPoseToq(tarpose_new);
+        tVectorXd num_DtargetqDa = (target_q_new - target_q_old) / eps;
+        tVectorXd ideal_DtargetqDa = DTargetqDa.col(i);
+        tVectorXd diff = ideal_DtargetqDa - num_DtargetqDa;
+        if (diff.norm() > 10 * eps)
+        {
+            std::cout << "[error] TestDTargetqDAction " << i
+                      << " failed, diff = " << diff.transpose() << std::endl;
+            exit(0);
+        }
+
+        action_new[i] -= eps;
+    }
+    std::cout << "[log] TestDTargetqDAction succ = \n"
+              << DTargetqDa << std::endl;
+}
+
+/**
+ * \brief               Calculate the jacobian d(target_q)/d(target_pose)
+ *  here, the target_pose has no root info. but for other joints it is the same as a normal "pose"
+ *  the target_q is full-length gen coord
+*/
+tMatrixXd cCtPDGenController::CalcDTargetqDTargetpose(const tVectorXd &tar_pose)
+{
+    MIMIC_ASSERT(tar_pose.size() == GetActionSize());
+    auto gen_char = dynamic_cast<cSimCharacterGen *>(mChar);
+    int root_id = cKinTree::GetRoot(gen_char->GetJointMat());
+    int total_pose_size = cKinTree::GetNumDof(gen_char->GetJointMat());
+    int root_pose_size =
+        cKinTree::GetParamSize(gen_char->GetJointMat(), root_id);
+    tVectorXd expand_pose = tVectorXd::Zero(total_pose_size);
+    expand_pose.segment(root_pose_size, total_pose_size - root_pose_size) =
+        tar_pose;
+
+    tMatrixXd DqDpose = gen_char->CalcDqDpose(expand_pose);
+    int root_q_size = gen_char->GetRoot()->GetNumOfFreedom();
+    int total_q_size = gen_char->GetNumOfFreedom();
+    return DqDpose.block(0, root_pose_size, total_q_size,
+                         total_pose_size - root_pose_size);
+}
+
+/**
+ * \brief           convert the target pose (PD target pose, has no root info) to full-length gen coordinate q
+*/
+tVectorXd
+cCtPDGenController::ConvertTargetPoseToq(const tVectorXd &tar_pose) const
+{
+    MIMIC_ASSERT(tar_pose.size() == GetActionSize());
+    auto gen_char = dynamic_cast<cSimCharacterGen *>(mChar);
+    const tMatrixXd &joint_mat = gen_char->GetJointMat();
+    int root_id = cKinTree::GetRoot(joint_mat);
+    int total_pose_size = cKinTree::GetNumDof(joint_mat);
+    int root_pose_size = cKinTree::GetParamSize(joint_mat, root_id);
+    tVectorXd full_tar_pose = tVectorXd::Zero(total_pose_size);
+    full_tar_pose.segment(root_pose_size, total_pose_size - root_pose_size) =
+        tar_pose;
+    return gen_char->ConvertPoseToq(full_tar_pose);
+}
+
+/**
+ * \brief           calculate jacobian d(gen_ctrl_force)/d(target_q) based on SPD
+ * the gen_ctrl force is full-length generalized force
+ * the target_q is the full length generalized force
+ *  For more details, please check the note "20201121 重新思考SPD"
+ * 
+ *      d(\tau)/d(q_bar) = Kp - dt * Kd * (M + dt * Kd).inv() * Kp
+*/
+tMatrixXd cCtPDGenController::CalcDCtrlForceDTargetq(double dt)
+{
+    return mPDGenController->CalcDCtrlForceDTargetq(dt);
+}
+
+/**
+ * \brief           calculate jacobian d(gen_ctrl_force)/d(target_q) based on SPD
+*/
+void cCtPDGenController::TestDCtrlForceDTargetq()
+{
+    double dt = 1e-3;
+    mPDGenController->TestDCtrlForceDTargetq(dt);
+
+    std::cout << "[log] TestDCtrlForceDTargetq succ\n";
+}
+
+/**
+ * \brief           Calc jacobian d(ctrl_force)/d(action)
+ * 
+ *      d(ctrl_force)/d(action)
+ *      =
+ *      d(ctrl_force)/d(target_q)
+ *      \*
+ *      d(target_q)/d(d action)
+*/
+tMatrixXd cCtPDGenController::CalcDCtrlForceDAction(double dt)
+{
+    return CalcDCtrlForceDTargetq(dt) * CalcDTargetqDAction(mAction);
+}
+
+/**
+ * \brief           test the jacobian d(ctrl_force)/d(action)
+*/
+void cCtPDGenController::TestDCtrlForceDAction()
+{
+    // 1. get current control force, get the jacobian
+    auto gen_char = dynamic_cast<cSimCharacterGen *>(mChar);
+    int dof = gen_char->GetNumOfFreedom();
+    tVectorXd old_action = mAction;
+    double dt = 1e-3;
+    tMatrixXd dctrlforce_da = CalcDCtrlForceDAction(dt);
+    tVectorXd old_q = ConvertActionToTargetq(old_action);
+    mPDGenController->SetPDTarget_q(old_q, tVectorXd::Zero(dof));
+    tVectorXd old_tau;
+    mPDGenController->UpdateControlForce(dt, old_tau);
+    // 2. calc the numerical derivatives
+    double eps = 1e-5;
+    for (int i = 0; i < GetActionSize(); i++)
+    {
+        old_action[i] += eps;
+        tVectorXd tar_q = ConvertActionToTargetq(old_action);
+        mPDGenController->SetPDTarget_q(tar_q, tVectorXd::Zero(dof));
+
+        tVectorXd new_tau;
+        mPDGenController->UpdateControlForce(dt, new_tau);
+        tVectorXd num_deriv = (new_tau - old_tau) / eps;
+        tVectorXd ana_deriv = dctrlforce_da.col(i);
+        tVectorXd diff = ana_deriv - num_deriv;
+        if (diff.norm() > 10 * eps)
+        {
+            std::cout << "[error] TestDCtrlForceDAction failed for " << i
+                      << std::endl;
+            std::cout << "num = " << num_deriv.transpose() << std::endl;
+            std::cout << "old tau = " << old_tau.transpose() << std::endl;
+            std::cout << "new tau = " << new_tau.transpose() << std::endl;
+            std::cout << "ana = " << ana_deriv.transpose() << std::endl;
+            std::cout << "diff = " << diff.transpose() << std::endl;
+            exit(0);
+        }
+        old_action[i] -= eps;
+    }
+
+    // 3. restore
+    tVectorXd tar_q = ConvertTargetPoseToq(old_action);
+    mPDGenController->SetPDTarget_q(tar_q, tVectorXd::Zero(dof));
+    std::cout << "[log] TestDCtrlForceDAction succ = \n"
+              << dctrlforce_da << std::endl;
+}
+
+/**
+ * \brief       convert action to target q (which is the input of ImpPDGenController)
+*/
+tVectorXd
+cCtPDGenController::ConvertActionToTargetq(const tVectorXd &action) const
+{
+    tVectorXd target_pose = action;
+    ConvertActionToTargetPose(target_pose);
+    return ConvertTargetPoseToq(target_pose);
 }

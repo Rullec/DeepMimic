@@ -1,4 +1,4 @@
---scene imitate
+--scene diff_imitate
 
 --time_lim_min 10.5
 --time_lim_max 10.5

@@ -151,7 +151,7 @@ void cPDCtrl::InitGains(const tVectorXd &kp, const tVectorXd &kd)
  * \brief                   Check and warn the velocity explode in qdot
  * (generalized velocity) when we try to calculate the control forces
  */
-void cPDCtrl::CheckVelExplode()
+void cPDCtrl::CheckVelExplode() const
 {
     tVectorXd qdot = mChar->Getqdot();
     for (int i = 0; i < mChar->GetNumOfFreedom(); i++)
@@ -179,7 +179,7 @@ void cPDCtrl::UpdateControlForceNative(double dt, tVectorXd &out_tau)
 /**
  * \brief                   Stable PD
  */
-void cPDCtrl::UpdateControlForceSPD(double dt, tVectorXd &out_tau)
+void cPDCtrl::UpdateControlForceSPD(double dt, tVectorXd &out_tau) const
 {
     tVectorXd q_cur = mChar->Getq(), qdot_cur = mChar->Getqdot();
     tVectorXd q_next_err = mTarget_q - (q_cur + dt * qdot_cur);
@@ -203,7 +203,7 @@ void cPDCtrl::UpdateControlForceSPD(double dt, tVectorXd &out_tau)
     // exit(1);
 }
 
-void cPDCtrl::PostProcessControlForce(tVectorXd &out_tau)
+void cPDCtrl::PostProcessControlForce(tVectorXd &out_tau) const
 {
     // set the torque of root joint to zero
     auto root_joint = mChar->GetRoot();
@@ -282,4 +282,52 @@ tVectorXd cPDCtrl::CalcPDTargetByControlForce(double dt, const tVectorXd &pose,
     gen_char->SetPose(before_pose);
     gen_char->SetVel(before_vel);
     return target;
+}
+
+/**
+ * \brief           calculate jacobian d(gen_ctrl_force)/d(target_q) based on SPD
+ * the gen_ctrl force is full-length generalized force
+ * the target_q is the full length generalized force
+ *  For more details, please check the note "20201121 重新思考SPD"
+ * 
+ *      d(\tau)/d(q_bar) = Kp - dt * Kd * (M + dt * Kd).inv() * Kp
+*/
+tMatrixXd cPDCtrl::CalcDCtrlForceDTargetq(double dt)
+{
+    auto gen_char = dynamic_cast<cSimCharacterGen *>(mChar);
+    tMatrixXd mat_Kp = mKp.asDiagonal(), mat_Kd = mKd.asDiagonal();
+    tMatrixXd M_tilde_inv = (mChar->GetMassMatrix() + dt * mat_Kd).inverse();
+    return mat_Kp - dt * mat_Kd * M_tilde_inv * mat_Kp;
+}
+
+/**
+ * \brief           test jacobian d(gen_ctrl_force)/d(target_q) based on SPD
+*/
+void cPDCtrl::TestDCtrlForceDTargetq(double dt)
+{
+    // 1. get old control force and the derivatives
+    auto gen_char = dynamic_cast<cSimCharacterGen *>(mChar);
+    int dof = gen_char->GetNumOfFreedom();
+    tVectorXd old_tar_q = mTarget_q, old_tar_qdot = mTarget_qdot;
+    tVectorXd old_tau = tVectorXd::Zero(dof);
+    UpdateControlForce(dt, old_tau);
+    tMatrixXd DctrlforceDtargetq = CalcDCtrlForceDTargetq(dt);
+
+    // 2. check the numerical derivatives
+    double eps = 1e-5;
+    for (int i = 0; i < dof; i++)
+    {
+        mTarget_q[i] += eps;
+        tVectorXd new_tau;
+        UpdateControlForce(dt, new_tau);
+        tVectorXd num_deriv = (new_tau - old_tau) / eps;
+        tVectorXd ideal_deriv = DctrlforceDtargetq.col(i);
+        tVectorXd diff = ideal_deriv - num_deriv;
+        BTGEN_ASSERT(diff.norm() < 10 * eps);
+        mTarget_q[i] -= eps;
+    }
+
+    // 3. restore
+    mTarget_q = old_tar_q;
+    mTarget_qdot = old_tar_qdot;
 }

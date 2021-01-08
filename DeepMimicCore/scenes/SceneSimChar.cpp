@@ -73,6 +73,7 @@ cSceneSimChar::cSceneSimChar()
     mWorldParams.mNumSubsteps = 1;
     mWorldParams.mScale = 1;
     mWorldParams.mGravity = gGravity;
+    mTimestep = 0;
 }
 
 cSceneSimChar::~cSceneSimChar() { Clear(); }
@@ -169,7 +170,7 @@ void cSceneSimChar::Init()
     BuildGround();
     BuildCharacters();
 
-    auto &cur_char = GetCharacter();
+    auto cur_char = GetCharacter();
     auto multibody = dynamic_cast<cSimCharacterGen *>(cur_char.get());
     // Init the position of our character, accoridng to the ref motion
     InitCharacterPos();
@@ -197,7 +198,8 @@ void cSceneSimChar::Clear()
 void cSceneSimChar::Update(double time_elapsed)
 {
     // MIMIC_DEBUG("timestep = {}", time_elapsed);
-    auto &sim_char = GetCharacter();
+    mTimestep = time_elapsed;
+    auto sim_char = GetCharacter();
     auto multibody = dynamic_cast<cSimCharacterGen *>(sim_char.get());
     // std::cout << "[update] pose 0 = " << sim_char->GetPose().transpose()
     //           << std::endl;
@@ -272,12 +274,12 @@ int cSceneSimChar::GetNumChars() const
     return static_cast<int>(mChars.size());
 }
 
-const std::shared_ptr<cSimCharacterBase> &cSceneSimChar::GetCharacter() const
+std::shared_ptr<cSimCharacterBase> cSceneSimChar::GetCharacter() const
 {
     return GetCharacter(gDefaultCharID);
 }
 
-const std::shared_ptr<cSimCharacterBase> &
+std::shared_ptr<cSimCharacterBase>
 cSceneSimChar::GetCharacter(int char_id) const
 {
     return mChars[char_id];

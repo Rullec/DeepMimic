@@ -360,27 +360,17 @@ void cKinCharacter::CalcPose(double time, Eigen::VectorXd &out_pose) const
     tQuaternion root_rot = cKinTree::GetRootRot(
         mJointMat,
         out_pose); // then find out current root_rot in the ref motion
-    // std::cout <<"root pos from motion data = " << root_pos.transpose() <<
-    // std::endl;
 
     // 3. root_rot = mOriginRot * root_ref_rot
     root_delta_rot = mOriginRot * root_delta_rot;
     root_rot = root_delta_rot * root_rot;
     root_pos += root_delta;
-    // std::cout <<"root delta = " << root_delta.transpose() << std::endl;
-    // std::cout <<"root pos after root delta = " << root_pos.transpose() <<
-    // std::endl; std::cout <<"root delta rot = " <<
-    // root_delta_rot.coeffs().transpose() << std::endl;
 
     // 4. rotate root_pos with mOriginRot, strange?
     root_pos = cMathUtil::QuatRotVec(root_delta_rot, root_pos);
-    // std::cout <<"root pos after root_delta rot = " << root_pos.transpose() <<
-    // std::endl; std::cout <<"mOrigin = " << mOrigin.transpose() << std::endl;
 
     // 5. move root_pos with mOrigin? stange...
     root_pos += mOrigin;
-    // std::cout <<"root pos after mOrigin = " << root_pos.transpose() <<
-    // std::endl;
 
     // 6. write new root_pos and root_rot to out_pose
     // final_root_pos = mOriginRot * root_ref_pos  + mOrigin

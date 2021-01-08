@@ -2,7 +2,7 @@
 #include "sim/World/WorldBase.h"
 
 class btGeneralizeWorld;
-struct btGenContactForce;
+class btGenContactForce;
 class cGenWorld : virtual public cWorldBase
 {
 public:

@@ -17,6 +17,7 @@ tVector ConvertAxisAngleVelToEulerAngleVel(const tVector &aa_vel)
     // return cMathUtil::AxisAngleToEuler(aa_vel.normalized(),
     //                                    aa_vel.norm() * dt) /
     //        dt;
+    MIMIC_ERROR("here is a bug, please fix it\n");
     {
         // std::cout
         // << "----------convert axis angle vel to euler angle vel---------\n";
@@ -1617,4 +1618,239 @@ void cSimCharacterGen::CalcCOMAndCOMVel(const tVectorXd &pose,
     cRobotModelDynamics::Apply(q_old, true);
     // cRobotModelDynamics::PopState("CalcCOMAndCOMVel");
     cRobotModelDynamics::SetComputeSecondDerive(true);
+}
+
+/**
+ * \brief           Calculate d pose d q
+*/
+tMatrixXd cSimCharacterGen::CalcDposedq(const tVectorXd &q_cur)
+{
+    int total_pose_size = cKinTree::GetNumDof(GetJointMat());
+    int total_q_size = GetNumOfFreedom();
+    tMatrixXd dPosedq = tMatrixXd::Zero(total_pose_size, total_q_size);
+    int pose_idx = 0, q_idx = 0;
+
+    int num_of_joints = GetNumOfJoint();
+    for (int i = 0; i < num_of_joints; i++)
+    {
+        auto joint = static_cast<Joint *>(GetJointById(i));
+        int q_size = joint->GetNumOfFreedom();
+        int pose_size = cKinTree::GetParamSize(GetJointMat(), i);
+        switch (joint->GetJointType())
+        {
+        case JointType::NONE_JOINT:
+        {
+            // pose [tx, ty, tz, w, x, y, z]
+            // q [tx, ty, tz, ex, ey, ez]
+            dPosedq.block(pose_idx, q_idx, 3, 3).setIdentity();
+            dPosedq.block(pose_idx + 3, q_idx + 3, 4, 3) =
+                cMathUtil::Calc_DQuaterion_DEulerAngles(
+                    cMathUtil::Expand(q_cur.segment(q_idx + 3, 3), 0),
+                    eRotationOrder::XYZ);
+        }
+        break;
+
+        case JointType::BIPEDAL_NONE_JOINT:
+        {
+            // pose = q
+            dPosedq.block(pose_idx, q_idx, pose_size, q_size).setIdentity();
+        }
+        break;
+        case JointType::FIXED_JOINT:
+            break;
+        case JointType::REVOLUTE_JOINT:
+        {
+            dPosedq(pose_idx, q_idx) = 1;
+        }
+        break;
+        case JointType::SPHERICAL_JOINT:
+        {
+            dPosedq.block(pose_idx, q_idx, pose_size, q_size) =
+                cMathUtil::Calc_DQuaterion_DEulerAngles(
+                    cMathUtil::Expand(q_cur.segment(q_idx, 3), 0),
+                    eRotationOrder::XYZ);
+        }
+        default:
+            MIMIC_ASSERT(false);
+            break;
+        }
+        q_idx += q_size;
+        pose_idx += pose_size;
+    }
+    // std::cout << "final q = " << q.transpose() << std::endl;
+    // std::cout << "------------convert end-----------\n";
+    return dPosedq;
+}
+
+/**
+ * \brief           calculate the jacobian d(q)/d(pose)
+ *  all input pose here should be noramlized
+*/
+tMatrixXd cSimCharacterGen::CalcDqDpose(const tVectorXd &pose)
+{
+    int total_pose_size = cKinTree::GetNumDof(GetJointMat());
+    MIMIC_ASSERT(pose.size() == total_pose_size);
+    int total_q_size = GetNumOfFreedom();
+    tMatrixXd dPosedq = tMatrixXd::Zero(total_pose_size, total_q_size);
+    int pose_idx = 0, q_idx = 0;
+
+    int num_of_joints = GetNumOfJoint();
+    for (int i = 0; i < num_of_joints; i++)
+    {
+        auto joint = static_cast<Joint *>(GetJointById(i));
+        int q_size = joint->GetNumOfFreedom();
+        int pose_size = cKinTree::GetParamSize(GetJointMat(), i);
+
+        switch (joint->GetJointType())
+        {
+        case JointType::REVOLUTE_JOINT:
+        {
+            dPosedq.block(pose_idx, q_idx, pose_size, q_size).setIdentity();
+            break;
+        }
+        case JointType::BIPEDAL_NONE_JOINT:
+        {
+            dPosedq.block(pose_idx, q_idx, pose_size, q_size).setIdentity();
+            break;
+        }
+        default:
+            MIMIC_ERROR("unsupported joint type {}", joint->GetJointType());
+            break;
+        }
+        pose_idx += pose_size;
+        q_idx += q_size;
+    }
+    return dPosedq;
+}
+/**
+ * \brief           Test dPose_dq
+*/
+void cSimCharacterGen::TestCalcDposedq()
+{
+    tVectorXd q_old = mq;
+    mq.setRandom();
+    Setq(mq);
+    tVectorXd old_pose = mPose;
+    double eps = 1e-5;
+    tMatrixXd dpose_dq = CalcDposedq(this->mq);
+    for (int i = 0; i < mq.size(); i++)
+    {
+        mq[i] += eps;
+        Setq(mq);
+        tVectorXd num_dpose_dqi = (mPose - old_pose) / eps;
+        tVectorXd ideal_dpose_dqi = dpose_dq.col(i);
+        tVectorXd diff = ideal_dpose_dqi - num_dpose_dqi;
+        if (diff.norm() > 10 * eps)
+        {
+            std::cout << "[error] TestCalcDposedq fail for " << i << std::endl;
+            std::cout << "num = " << num_dpose_dqi.transpose() << std::endl;
+            std::cout << "ideal = " << ideal_dpose_dqi.transpose() << std::endl;
+            std::cout << "diff = " << diff.transpose() << std::endl;
+            exit(0);
+        }
+        mq[i] -= eps;
+    }
+    Setq(q_old);
+    std::cout << "[log] TestCalcDposedq succ\n";
+}
+
+/**
+ * \brief           Calc d(vel)/dqdot
+ * vel is deepmimic vel vector 
+ * qdot is the generalized velocity
+*/
+tMatrixXd cSimCharacterGen::CalcDveldqdot(const tVectorXd &qdot_cur)
+{
+    int total_vel_size = cKinTree::GetNumDof(GetJointMat());
+    int total_qdot_size = GetNumOfFreedom();
+    tMatrixXd dvel_dqdot = tMatrixXd::Zero(total_vel_size, total_qdot_size);
+    int qdot_idx = 0, vel_idx = 0;
+    for (int j_id = 0; j_id < GetNumOfJoint(); j_id++)
+    {
+        auto joint = static_cast<Joint *>(GetJointById(j_id));
+        int qdot_size = joint->GetNumOfFreedom();
+        int vel_size = cKinTree::GetParamSize(GetJointMat(), j_id);
+        switch (joint->GetJointType())
+        {
+        case JointType::BIPEDAL_NONE_JOINT:
+        {
+            dvel_dqdot.block(vel_idx, qdot_idx, vel_size, qdot_size)
+                .setIdentity();
+            break;
+        }
+        case JointType::NONE_JOINT:
+        {
+            // aa = J_w * qdot
+            dvel_dqdot.block(vel_idx, qdot_idx, 3, 3).setIdentity();
+            dvel_dqdot.block(vel_idx + 3, qdot_idx + 3, 3, 3) =
+                joint->GetLocalJkw().block(0, 3, 3, 3);
+            break;
+        }
+        case JointType::SPHERICAL_JOINT:
+        {
+            dvel_dqdot.block(vel_idx, qdot_idx, 3, 3) = joint->GetLocalJkw();
+            break;
+        }
+        case JointType::REVOLUTE_JOINT:
+        {
+            dvel_dqdot(vel_idx, qdot_idx) = 1;
+            break;
+        }
+        default:
+        {
+            MIMIC_ERROR("unsupported joint type {}", joint->GetJointType());
+        }
+        }
+        qdot_idx += qdot_size;
+        vel_idx += vel_size;
+    }
+    return dvel_dqdot;
+}
+
+/**
+ * \brief           Test CalcDveldqdot
+ * 
+*/
+void cSimCharacterGen::TestCalcDveldqdot()
+{
+    tVectorXd qdot_old = mqdot;
+    mqdot.setRandom();
+    Setqdot(mqdot);
+    tVectorXd old_vel = mVel;
+    double eps = 1e-5;
+    tMatrixXd dvel_dqdot = CalcDveldqdot(mqdot);
+    for (int i = 0; i < mqdot.size(); i++)
+    {
+        mqdot[i] += eps;
+        Setqdot(mqdot);
+        tVectorXd num_dvel_dqi = (mVel - old_vel) / eps;
+        tVectorXd ideal_dvel_dqi = dvel_dqdot.col(i);
+        tVectorXd diff = ideal_dvel_dqi - num_dvel_dqi;
+        if (diff.norm() > 10 * eps)
+        {
+            std::cout << "[error] TestCalcDveldqdot fail for " << i
+                      << std::endl;
+            std::cout << "num = " << num_dvel_dqi.transpose() << std::endl;
+            std::cout << "ideal = " << ideal_dvel_dqi.transpose() << std::endl;
+            std::cout << "diff = " << diff.transpose() << std::endl;
+            exit(0);
+        }
+        mqdot[i] -= eps;
+    }
+    Setqdot(qdot_old);
+    // std::cout << "dvel_dqdot = \n" << dvel_dqdot << std::endl;
+    std::cout << "[log] TestCalcDveldqdot succ\n";
+}
+
+void cSimCharacterGen::PushState(const std::string &tag,
+                                 bool only_vel_and_force /* = false*/)
+{
+    cRobotModelDynamics::PushState(tag, only_vel_and_force);
+}
+void cSimCharacterGen::PopState(const std::string &tag,
+                                bool only_vel_and_force /* = false*/)
+{
+    cRobotModelDynamics::PopState(tag, only_vel_and_force);
+    BuildPose(mPose);
+    BuildVel(mVel);
 }

@@ -306,12 +306,23 @@ public:
     static double CalcPoseErr(const Eigen::MatrixXd &joint_mat, int joint_id,
                               const Eigen::VectorXd &pose0,
                               const Eigen::VectorXd &pose1);
+    static tVectorXd CalcDPoseErrDPose0(const Eigen::MatrixXd &joint_mat,
+                                        int joint_id,
+                                        const Eigen::VectorXd &pose0,
+                                        const Eigen::VectorXd &pose1);
+    static tVectorXd CalcDRootRotVelErrDVel0(const Eigen::MatrixXd &joint_mat,
+                                             const Eigen::VectorXd &Vel0,
+                                             const Eigen::VectorXd &Vel1);
+
     static double CalcRootPosErr(const Eigen::MatrixXd &joint_mat,
                                  const Eigen::VectorXd &pose0,
                                  const Eigen::VectorXd &pose1);
     static double CalcRootRotErr(const Eigen::MatrixXd &joint_mat,
                                  const Eigen::VectorXd &pose0,
                                  const Eigen::VectorXd &pose1);
+    static tVectorXd CalcDRootRotErrDPose0(const Eigen::MatrixXd &joint_mat,
+                                           const Eigen::VectorXd &pose0,
+                                           const Eigen::VectorXd &pose1);
 
     static void CalcVelDiff(const Eigen::MatrixXd &joint_mat,
                             const Eigen::VectorXd &vel0,

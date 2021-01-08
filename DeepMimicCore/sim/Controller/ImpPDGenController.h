@@ -19,9 +19,12 @@ public:
     virtual void UpdateControlForce(double dt, tVectorXd &out_tau);
     virtual void SetPDTarget_q(const tVectorXd &q, const tVectorXd &qdot);
     virtual void GetPDTarget_q(tVectorXd &q, tVectorXd &qdot) const;
-    virtual tVectorXd CalcPDTargetByControlForce(double dt, const tVectorXd &pose,
-                                              const tVectorXd &vel,
-                                              const tVectorXd &ctrl_force) const;
+    virtual tVectorXd
+    CalcPDTargetByControlForce(double dt, const tVectorXd &pose,
+                               const tVectorXd &vel,
+                               const tVectorXd &ctrl_force) const;
+    tMatrixXd CalcDCtrlForceDTargetq(double dt);
+    void TestDCtrlForceDTargetq(double dt);
 
 protected:
     tVectorXd mKp, mKd; // Kp & Kd controll parameter
@@ -31,8 +34,8 @@ protected:
     void InitGains(const tVectorXd &kp, const tVectorXd &kd);
     void VerifyController();
     int GetPDTargetSize();
-    void CheckVelExplode();
+    void CheckVelExplode() const;
     void UpdateControlForceNative(double dt, tVectorXd &out_tau);
-    void UpdateControlForceSPD(double dt, tVectorXd &out_tau);
-    void PostProcessControlForce(tVectorXd &out_tau);
+    void UpdateControlForceSPD(double dt, tVectorXd &out_tau) const;
+    void PostProcessControlForce(tVectorXd &out_tau) const;
 };

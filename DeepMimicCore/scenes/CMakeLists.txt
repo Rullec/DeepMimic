@@ -14,6 +14,8 @@ Scene.cpp
 SceneImitate.cpp
 SceneKinChar.cpp
 SceneSimChar.cpp
+SceneDiffImitate.cpp
+DrawSceneDiffImitate.cpp
 )
 add_library(SCENES ${DIR_SRCS} )
 target_link_libraries(SCENES UTIL SIM)

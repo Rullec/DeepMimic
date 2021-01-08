@@ -114,7 +114,12 @@ protected:
                                   const cKinCharacter &ref_char) const;
     virtual double CalcRewardImitateGen(cSimCharacterGen &sim_char,
                                         const cKinCharacter &ref_char) const;
-
+    virtual double CalcPoseReward(cSimCharacterGen &sim_char,
+                                  const cKinCharacter &kin_char) const;
+    virtual double CalcVelReward(cSimCharacterGen &sim_char,
+                                 const cKinCharacter &kin_char) const;
+    virtual double CalcEndEffectorReward(cSimCharacterGen &sim_char,
+                                         const cKinCharacter &kin_char) const;
     virtual void DiffLogOutput(const cSimCharacterBase &sim_char,
                                const cKinCharacter &ref_char) const;
     virtual void SetMotionAsAction();

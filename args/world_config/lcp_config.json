@@ -14,6 +14,8 @@
     "joint_limit_penetration_resolve_erp": 1,
     "enable_sequential_impulse_calculation": false,
     "enable_frictional_sequential_impulse": false,
+    "enable_gradient_over_control_force": true,
+    "enable_test_gradient_over_control_force": false,
     "use_sequential_impulse_result": false,
     "max_iters_sequential_impulse": 100,
     "converge_threshold_sequential_impulse": 0.1,
@@ -22,5 +24,5 @@
     "diagonal_eps": 1e-8,
     "mu": 1,
     "num_of_friction_cone": 4,
-    "enable_lcp_profiling": true
+    "enable_lcp_profiling": false
 }

@@ -5,6 +5,7 @@ set(DIR_SRCS
 Character.cpp
 KinCharacter.cpp
 KinTree.cpp
+KinTreeDiff.cpp
 Motion.cpp
 Shape.cpp
 )

@@ -177,6 +177,8 @@ void Update(double time_elapsed)
                 auto g = gCore->RecordGoal(id);
                 double r = gCore->CalcReward(id);
                 MIMIC_INFO("current reward {}", r);
+                if (global_action.size() != 0)
+                    gCore->CalcDRewardDAction();
                 // exit(1);
                 // std::cout << "main get reward = " << r << std::endl;
                 // std::cout <<"state = ";
@@ -186,8 +188,8 @@ void Update(double time_elapsed)
 
                 if (global_action.size() == 0)
                 {
-                    global_action = tVectorXd::Zero(gCore->GetActionSize(id));
-                    // global_action << 1, 0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1,
+                    global_action = tVectorXd::Ones(gCore->GetActionSize(id));
+                    // global_action <dRootRotErr_dpose0_total< 1, 0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1,
                     // 1,
                     //     0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1;
                     // global_action << 1, 0.2, 0.2, 0.2, 0, 1, 0.2, 0.2, 0.2,
@@ -209,6 +211,8 @@ void Update(double time_elapsed)
                 MIMIC_INFO("main: set ref motion as action {}",
                            global_action.transpose());
                 // action[action.size() - 1] = 1.3;
+                std::cout << "set action = " << global_action.transpose()
+                          << std::endl;
                 gCore->SetAction(id, action);
             }
         }
@@ -261,7 +265,7 @@ void Reshape(int w, int h)
 void StepAnim(double time_step)
 {
     Update(time_step);
-    gAnimating = false;
+    gAnimating = true;
     glutPostRedisplay();
 }
 
