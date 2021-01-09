@@ -28,6 +28,9 @@ class ReplayBufferTorch(object):
     def get_drda(self):
         return self.drda_lst
 
+    def get_avg_reward(self):
+        return self.get_total_reward() / self.get_size()
+
     def get_total_reward(self):
         return np.sum(self.reward_lst)
 

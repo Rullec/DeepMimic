@@ -38,11 +38,23 @@ class TorchAgent(RLAgent):
         return
 
     def save_model(self, out_path):
-        assert False, "save model hasn't been implemented"
+        tar_dir = os.path.dirname(out_path)
+        if False == os.path.exists(tar_dir):
+            os.makedirs(tar_dir)
+        torch.save(self.action.state_dict(), out_path)
+
+        print(
+            f"[log] torch save model to {out_path}, param {np.sum([np.linalg.norm(i.detach()) for i in self.action.parameters()])}")
+
         return
 
     def load_model(self, in_path):
-        assert False, "load model hasn't been implemented"
+        if os.path.exists(in_path) == False:
+            return
+        self.action.load_state_dict(torch.load(in_path))
+        print(
+            f"[log] torch load model from {in_path}, param {np.sum([np.linalg.norm(i.detach()) for i in self.action.parameters()])}")
+        # exit(0)
         return
 
     def _decide_action(self, s, g):
@@ -94,41 +106,9 @@ class TorchAgent(RLAgent):
         assert(pesudo_loss.shape == w_torch.shape)
         persudo_loss_sum = -torch.sum(pesudo_loss)
         persudo_loss_sum.backward()
-        # print(
-        #     f"old param norm {np.linalg.norm( [np.linalg.norm(i.detach()) for i in self.action.parameters()] )}")
+
         self.optimizer.step()
         self._set_lr(max(0.98 * self._get_lr(), 1e-7))
-        # print(
-        #     f"new param norm {np.linalg.norm( [np.linalg.norm(i.detach()) for i in self.action.parameters()] )}")
-
-        # print(f"optimizer step done")
-        # print(f"drdas torch shape {drdas_torch.shape}")
-        # print(f"action torch shape {action_torch.shape}")
-        # exit(0)
-        # actions = self.action(states)
-        # print(f"actions {actions}")
-        # exit(0)
-
-        # print(f"path len {path_len}")
-
-        # a = self.action(torch.Tensor(x)).detach().numpy()
-        # 1.1 get x, get y
-
-        # x = torch.from_numpy(
-        #     np.random(self.get_state_size())).requires_grad(True)
-        # y = self.action(torch.Tensor(x))
-        # # y.shape = [self.action_size]
-        # params = self.action.parameters()
-
-        # dydp_total = [prameter.size]
-        # for i in y: [3, 10]
-        #    didp = torch.autograd.grad(i, params)
-        #   dydp_total += weight * didp
-        # params -= dydp_total * stpsize
-
-        # loss = torch.sum(y * weight)
-
-        # 1.2 get dyd\theta
 
         # 2. update sample count, update time params
         self._total_sample_count += samples
@@ -137,7 +117,13 @@ class TorchAgent(RLAgent):
         print(
             f"beginning {self.beginning_sample_count}, total {self._total_sample_count}")
         self._update_exp_params()
-        # exit(0)
+
+        # 3. output and clear
+        output_name = datetime.datetime.now().strftime("%m-%d-%H:%M:%S")
+        output_name = f"{output_name}-{str(self.replay_buffer.get_avg_reward())[:5]}.pkl"
+        output_path = os.path.join(self.output_dir, output_name)
+        self.save_model(output_path)
+        self.replay_buffer.clear()
 
     def update(self, timestep):
         """update agent by a given timestep
@@ -231,21 +217,6 @@ class TorchAgent(RLAgent):
 
         self.path.goals.append(g)
         self.path.terminate = self.world.env.check_terminate(self.id)
-
-        # self.state_lst += self.path.states
-        # self.drda_lst += self.path.drdas
-        if self.enable_save_path == True:
-            if self.path_save_dir == "":
-                self.path_save_dir = "./logs/paths/"
-            if False == os.path.exists(self.path_save_dir):
-                os.makedirs(self.path_save_dir)
-
-            cur_time_str = (
-                str(datetime.datetime.now()).replace(
-                    " ", "_").replace(":", "-")
-            )
-            filename = os.path.join(self.path_save_dir, cur_time_str + ".json")
-            self.path.save(filename)
         return
 
     def end_episode(self):
@@ -262,19 +233,14 @@ class TorchAgent(RLAgent):
             if self._mode == self.Mode.TRAIN or self._mode == self.Mode.TRAIN_END:
                 if self.enable_training and self.path.pathlength() > 0:
                     self.replay_buffer.add(self.path)
-                    print(
-                        f"replay buffer size {self.replay_buffer.get_size() }")
+
                     if self.replay_buffer.get_size() > 200:
                         self._train()
-
-                        print(
-                            f"mean reward {self.replay_buffer.get_total_reward() / self.replay_buffer.get_size()}")
-                        self.replay_buffer.clear()
 
             elif self._mode == self.Mode.TEST:
                 self._update_test_return(self.path)
             else:
-                assert False, Logger.print(
+                assert False, print(
                     "Unsupported RL agent mode" + str(self._mode)
                 )
 

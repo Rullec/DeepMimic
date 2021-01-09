@@ -102,7 +102,6 @@ class RLWorldTorch(object):
                     curr_model_file = model_files[i]
                     if curr_model_file != 'none':
                         curr_agent.load_model(curr_model_file)
-                        curr_agent.save_model(curr_model_file)
 
             self.agents.append(curr_agent)
             Logger.print('')

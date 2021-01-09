@@ -39,7 +39,8 @@
 --agent_files data/0103/agents/agent_diffMBRL_test.txt
 --train_agents true
 
---output_path output/1111/biepdal_legs_walk
+--output_path output/0109
+--model_files output/0109/01-09-20:51:55-0.986.pkl
 
 #---------------diff world-------------
 --enable_test_reward_action_derivative false
