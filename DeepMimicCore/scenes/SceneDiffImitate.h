@@ -11,6 +11,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     cSceneDiffImitate();
     virtual ~cSceneDiffImitate();
+    virtual void ParseArgs(const std::shared_ptr<cArgParser> &parser);
     virtual void Init() override;
     tVectorXd CalcDRewardDAction();
     void Test();
@@ -36,6 +37,9 @@ protected:
     tVectorXd CalcDrDxcur();
     tVectorXd CalcDrDa(); // calc d(reward)/d(action)
     void TestDrDxcur();
-    void TestDrDa();      // calc d(reward)/d(action)
+    void TestDrDa(); // calc d(reward)/d(action)
     std::shared_ptr<cSimCharacterGen> GetDefaultGenChar();
+
+    bool
+        mEnableTestDRewardDAction; // enable testing the derivative d(reawrd)/d(action) when CalcReward
 };

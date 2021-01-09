@@ -153,6 +153,10 @@ class DeepMimicEnv(Env):
     def calc_reward(self, agent_id):
         return self._core.CalcReward(agent_id)
 
+    def calc_drda(self, agent_id):
+        assert agent_id == 0
+        return np.array(self._core.CalcDRewardDAction())
+
     def get_reward_min(self, agent_id):
         return self._core.GetRewardMin(agent_id)
 

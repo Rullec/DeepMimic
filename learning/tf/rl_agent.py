@@ -275,13 +275,9 @@ class RLAgent(ABC):
                 if self.enable_training and self.path.pathlength() > 0:
                     self._store_path(
                         self.path
-                    )  # rl agent里面有一个path的存储，每次在episode结束的时候都会存储起来
+                    )
             elif self._mode == self.Mode.TEST:
                 self._update_test_return(self.path)
-                # print("==================")
-                # print("test")
-                # print('test_count: {}, return: {}'.format(self.test_episode_count, self.test_return))
-                # print("==================")
             else:
                 assert False, Logger.print(
                     "Unsupported RL agent mode" + str(self._mode)

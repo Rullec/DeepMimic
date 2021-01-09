@@ -3,6 +3,7 @@
 	"EnablePhaseInput": true,
 	"RecordWorldRootPos": false,
 	"RecordWorldRootRot": true,
+	"EnableTestDerivative": false,
 
 	"RightJoints": [],
 	"LeftJoints": [],

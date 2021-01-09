@@ -1,9 +1,5 @@
 #include "MPIUtil.h"
-#ifdef __APPLE__
 #include <mpi.h>
-#else
-#include <mpi/mpi.h>
-#endif
 
 bool cMPIUtil::IsInited()
 {

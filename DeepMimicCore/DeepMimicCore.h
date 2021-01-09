@@ -86,7 +86,7 @@ public:
     virtual void SetSampleCount(int count);
 
     // Diff MBRL interfaces
-    virtual std::vector<std::vector<double>> CalcDRewardDAction() const;
+    virtual std::vector<double> CalcDRewardDAction() const;
 
 protected:
     unsigned long int mRandSeed;

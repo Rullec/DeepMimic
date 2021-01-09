@@ -17,7 +17,7 @@
     "mb_max_vel": 100,
     "mb_record_contact_force": true,
     "enable_test_gradient_dxnext_dctrlForce": false,
-    "enable_test_gradient_dxnext_dctrlForce_random_ctrl_force": true,
+    "enable_test_gradient_dxnext_dctrlForce_random_ctrl_force": false,
     "enable_perturb": false,
     "enable_pd_control": false,
     "enable_pause_when_max_vel": false,

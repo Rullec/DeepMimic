@@ -1,11 +1,20 @@
 #include "SceneDiffImitate.h"
+#include "sim/World/GenWorld.h"
 #include "util/LogUtil.h"
 
 cSceneDiffImitate::cSceneDiffImitate()
 {
-    MIMIC_INFO("cSceneDiffImitate created");
+    // MIMIC_INFO("cSceneDiffImitate created");
+    mEnableTestDRewardDAction = false;
 }
 cSceneDiffImitate::~cSceneDiffImitate() {}
+
+void cSceneDiffImitate::ParseArgs(const std::shared_ptr<cArgParser> &parser)
+{
+    cSceneImitate::ParseArgs(parser);
+    parser->ParseBoolCritic("enable_test_reward_action_derivative",
+                            mEnableTestDRewardDAction);
+}
 
 /**
  * \brief           Initialize this diff imitate scene
@@ -32,8 +41,14 @@ void cSceneDiffImitate::Init()
  *      *
  *      d u / da
 */
-#include "sim/World/GenWorld.h"
-tVectorXd cSceneDiffImitate::CalcDRewardDAction() { return CalcDrDa(); }
+tVectorXd cSceneDiffImitate::CalcDRewardDAction()
+{
+    if (mEnableTestDRewardDAction == true)
+    {
+        Test();
+    }
+    return CalcDrDa();
+}
 
 /**
  * \brief           Test the derivatives

@@ -1157,8 +1157,8 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
     reward = pose_w * pose_reward + vel_w * vel_reward +
              end_eff_w * end_eff_reward + root_w * root_reward +
              com_w * com_reward;
-    printf("pose %.5f, vel %.5f, end %.5f, root %.5f, com %.5f\n", pose_reward,
-           vel_reward, end_eff_reward, root_reward, com_reward);
+    // printf("pose %.5f, vel %.5f, end %.5f, root %.5f, com %.5f\n", pose_reward,
+    //        vel_reward, end_eff_reward, root_reward, com_reward);
     {
         double another_pose_rew = CalcPoseReward(sim_char, kin_char);
         double another_vel_rew = CalcVelReward(sim_char, kin_char);
@@ -1167,8 +1167,8 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
         BTGEN_ASSERT(std::fabs(another_pose_rew - pose_w * pose_reward) < 1e-6);
         BTGEN_ASSERT(std::fabs(another_vel_rew - vel_w * vel_reward) < 1e-6);
 
-        printf("another ee rew = %.5f, raw ee rew = %.5f\n",
-               another_end_effector_rew, end_eff_w * end_eff_reward);
+        // printf("another ee rew = %.5f, raw ee rew = %.5f\n",
+        //        another_end_effector_rew, end_eff_w * end_eff_reward);
         BTGEN_ASSERT(std::fabs(another_end_effector_rew -
                                end_eff_w * end_eff_reward) < 1e-6);
         // std::cout << "new pose rew = " << another_pose_rew << std::endl;

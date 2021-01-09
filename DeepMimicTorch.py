@@ -373,4 +373,8 @@ def main():
 
 if __name__ == '__main__':
     # 如果调用Deepmimic.py的话，就会进行绘制...
+    import torch
+    torch.manual_seed(0)
+    import numpy as np
+    np.random.seed(0)
     main()

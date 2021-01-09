@@ -178,7 +178,12 @@ void Update(double time_elapsed)
                 double r = gCore->CalcReward(id);
                 MIMIC_INFO("current reward {}", r);
                 if (global_action.size() != 0)
-                    gCore->CalcDRewardDAction();
+                {
+                    std::vector<double> drda = gCore->CalcDRewardDAction();
+                    std::cout << "[debug] drda = "
+                              << convert_to_vector_double(drda).transpose()
+                              << std::endl;
+                }
                 // exit(1);
                 // std::cout << "main get reward = " << r << std::endl;
                 // std::cout <<"state = ";
@@ -211,8 +216,6 @@ void Update(double time_elapsed)
                 MIMIC_INFO("main: set ref motion as action {}",
                            global_action.transpose());
                 // action[action.size() - 1] = 1.3;
-                std::cout << "set action = " << global_action.transpose()
-                          << std::endl;
                 gCore->SetAction(id, action);
             }
         }

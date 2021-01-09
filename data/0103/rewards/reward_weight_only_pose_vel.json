@@ -1,14 +1,14 @@
 {
     "reward_weight_terms": {
         "pose_w": 0.5,
-        "vel_w": 0.05,
+        "vel_w": 0.0,
         "end_eff_w": 0,
         "root_w": 0,
         "com_w": 0
     },
     "scale_terms": {
-        "pose_scale": 2,
-        "vel_scale": 0.1,
+        "pose_scale": 20,
+        "vel_scale": 0,
         "end_eff_scale": 0,
         "root_scale": 0,
         "com_scale": 0,
