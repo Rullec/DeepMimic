@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import datetime
-from learning.tf.path import Path
+from learning.torch.path_torch import PathTorch
 
 
 class ReplayBufferTorch(object):
@@ -13,8 +13,8 @@ class ReplayBufferTorch(object):
         self.buffer_size = buffer_size
         self.clear()
 
-    def add(self, new_path: Path):
-        assert type(new_path) == Path
+    def add(self, new_path: PathTorch):
+        assert type(new_path) == PathTorch
         self.state_lst += new_path.states[:-1]
         self.drda_lst += new_path.drdas
         self.reward_lst += new_path.rewards

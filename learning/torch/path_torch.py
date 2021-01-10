@@ -3,10 +3,8 @@ import json
 import numpy as np
 from env.env import Env
 
-# 这个类是干什么用的? 似乎是检测trajectory有效性的?
 
-
-class Path(object):
+class PathTorch(object):
     def __init__(self):
         self.clear()
         return
@@ -25,6 +23,7 @@ class Path(object):
         valid &= len(self.flags) == l
         valid &= len(self.return_) == l
         valid &= len(self.action_mean) == l
+        valid &= len(self.drdas) == l
         return valid
 
     def check_vals(self):
@@ -49,6 +48,7 @@ class Path(object):
         self.return_ = []
         self.terminate = Env.Terminate.Null
         self.action_mean = []
+        self.drdas = []
         return
 
     def get_pathlen(self):

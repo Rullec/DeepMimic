@@ -50,6 +50,10 @@ void cGenWorld::Reset()
     mContactManager.Reset();
     mPerturbManager.Clear();
     mbtGenWorld->Reset();
+    {
+        mContactManager.Reset();
+        mPerturbManager.Clear();
+    }
 }
 
 void cGenWorld::Update(double time_elapsed)

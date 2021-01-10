@@ -15,6 +15,7 @@ public:
     virtual void Init(cSimCharacterGen *gen_char, const tVectorXd &kp,
                       const tVectorXd &kd);
 
+    virtual void Reset();
     virtual void Clear();
     virtual void UpdateControlForce(double dt, tVectorXd &out_tau);
     virtual void SetPDTarget_q(const tVectorXd &q, const tVectorXd &qdot);

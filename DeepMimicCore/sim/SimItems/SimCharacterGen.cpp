@@ -9,46 +9,6 @@
 #include "util/JsonUtil.h"
 #include "util/LogUtil.h"
 #include <iostream>
-
-tVector ConvertAxisAngleVelToEulerAngleVel(const tVector &aa_vel)
-{
-    MIMIC_ASSERT(std::fabs(aa_vel[3]) < 1e-10);
-    // double dt = 1e-4;
-    // return cMathUtil::AxisAngleToEuler(aa_vel.normalized(),
-    //                                    aa_vel.norm() * dt) /
-    //        dt;
-    MIMIC_ERROR("here is a bug, please fix it\n");
-    {
-        // std::cout
-        // << "----------convert axis angle vel to euler angle vel---------\n";
-        double dt = 1e-2;
-        // std::cout << "input aa_vel = " << aa_vel.transpose() << std::endl;
-        // std::cout << "aa vel norm = " << aa_vel.norm() << std::endl;
-        tVector axis = aa_vel.normalized();
-        double theta = aa_vel.norm() * dt;
-        // std::cout << "axis = " << axis.transpose() << std::endl;
-        // std::cout << "theta = " << theta << std::endl;
-        tVector euler_vel = cMathUtil::AxisAngleToEuler(axis, theta) / dt;
-        // std::cout << "euler vel = " << euler_vel.transpose() << std::endl;
-
-        return euler_vel;
-    }
-}
-
-tVector ConvertEulerAngleVelToAxisAngleVel(const tVector &ea_vel)
-{
-    MIMIC_ASSERT(std::fabs(ea_vel[3]) < 1e-10);
-    // std::cout << "euler anble vel = " << ea_vel.transpose() << std::endl;
-    std::cout << "here is a bug, please check the note and correct it\n";
-    exit(1);
-    double dt = 1e-2;
-
-    tVector aa_vel =
-        cMathUtil::EulerangleToAxisAngle(ea_vel * dt, eRotationOrder::XYZ) / dt;
-    // std::cout << "aa vel = " << aa_vel.transpose() << std::endl;
-    return aa_vel;
-}
-
 cSimCharacterGen::cSimCharacterGen()
     : cSimCharacterBase(eSimCharacterType::Generalized)
 {
@@ -992,7 +952,7 @@ bool cSimCharacterGen::FixedBase() const
 }
 void cSimCharacterGen::RemoveFromWorld() {}
 
-void cSimCharacterGen::ClearJointTorques() {}
+void cSimCharacterGen::ClearJointTorques() { ClearForces(); }
 void cSimCharacterGen::UpdateJoints() {}
 void cSimCharacterGen::UpdateLinkPos() {}
 void cSimCharacterGen::UpdateLinkVel() {}
@@ -1044,6 +1004,7 @@ bool cSimCharacterGen::CheckFallContact() const
     {
         if (IsValidBodyPart(b) && EnableBodyPartFallContact(b))
         {
+
             const auto &curr_part = GetBodyPart(b);
             bool has_contact = curr_part->IsInContactGenGround();
             if (has_contact)
@@ -1097,16 +1058,16 @@ tVectorXd cSimCharacterGen::ConvertqToPose(const tVectorXd &q) const
             pose[pose_st + 2] = root_rot.y();
             pose[pose_st + 3] = root_rot.z();
             pose_st += 4, q_st += 3;
+            break;
         }
-        break;
         case JointType::FIXED_JOINT:
             break;
         case JointType::REVOLUTE_JOINT:
         {
             pose[pose_st] = q[q_st];
             q_st++, pose_st++;
+            break;
         }
-        break;
         case JointType::SPHERICAL_JOINT:
         {
             tQuaternion joint_rot = cMathUtil::EulerAnglesToQuaternion(
@@ -1116,6 +1077,7 @@ tVectorXd cSimCharacterGen::ConvertqToPose(const tVectorXd &q) const
             pose[pose_st + 2] = joint_rot.y();
             pose[pose_st + 3] = joint_rot.z();
             pose_st += 4, q_st += 3;
+            break;
         }
         case JointType::BIPEDAL_NONE_JOINT:
         {
@@ -1124,8 +1086,8 @@ tVectorXd cSimCharacterGen::ConvertqToPose(const tVectorXd &q) const
             pose.segment(pose_st, 3) = q.segment(q_st, 3);
             pose_st += 3;
             q_st += 3;
+            break;
         }
-        break;
         default:
             MIMIC_ASSERT(false);
             break;
@@ -1152,27 +1114,28 @@ tVectorXd cSimCharacterGen::ConvertqdotToPoseVel(const tVectorXd &qdot) const
             // for root
             pose_vel.segment(pose_st, 3) = qdot.segment(q_st, 3);
             pose_st += 3, q_st += 3;
-
-            pose_vel.segment(pose_st, 4) = ConvertEulerAngleVelToAxisAngleVel(
-                cMathUtil::Expand(qdot.segment(q_st, 3), 0));
+            tMatrixXd root_local_jkw = joint->GetLocalJkw();
+            // std::cout << "root local jkw = \n" << root_local_jkw << std::endl;
+            pose_vel.segment(pose_st, 3) =
+                root_local_jkw.block(0, 3, 3, 3) * qdot.segment(q_st, 3);
             pose_st += 4, q_st += 3;
+            break;
         }
-        break;
         case JointType::FIXED_JOINT:
             break;
         case JointType::REVOLUTE_JOINT:
         {
             pose_vel[pose_st] = qdot[q_st];
             q_st++, pose_st++;
+            break;
         }
-        break;
         case JointType::SPHERICAL_JOINT:
         {
-            pose_vel.segment(pose_st, 4) = ConvertEulerAngleVelToAxisAngleVel(
-                cMathUtil::Expand(qdot.segment(q_st, 3), 0));
+            pose_vel.segment(pose_st, 3) =
+                joint->GetLocalJkw() * qdot.segment(q_st, 3);
             pose_st += 4, q_st += 3;
+            break;
         }
-        break;
         case JointType::BIPEDAL_NONE_JOINT:
         {
             MIMIC_ASSERT(joint->GetNumOfFreedom() == 3);
@@ -1186,6 +1149,9 @@ tVectorXd cSimCharacterGen::ConvertqdotToPoseVel(const tVectorXd &qdot) const
             break;
         }
     }
+    MIMIC_ASSERT(q_st == qdot.size());
+    MIMIC_ASSERT(pose_st == pose_vel.size());
+
     return pose_vel;
 }
 
@@ -1222,8 +1188,8 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
             // w_x_y_z.transpose()
             //           << std::endl;
             pose_idx += 4, q_idx += 3;
+            break;
         }
-        break;
 
         case JointType::BIPEDAL_NONE_JOINT:
         {
@@ -1231,8 +1197,8 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
             q.segment(q_idx, 3) = pose.segment(pose_idx, 3);
             q_idx += 3;
             pose_idx += 3;
+            break;
         }
-        break;
         case JointType::FIXED_JOINT:
             break;
         case JointType::REVOLUTE_JOINT:
@@ -1244,8 +1210,8 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
             // std::endl; std::cout << "pose coef = " << pose[pose_idx - 1] <<
             // std::endl;
             q_idx++, pose_idx++;
+            break;
         }
-        break;
         case JointType::SPHERICAL_JOINT:
         {
             tVector w_x_y_z = pose.segment(pose_idx, 4);
@@ -1270,6 +1236,7 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
             // w_x_y_z.transpose()
             //           << std::endl;
             pose_idx += 4, q_idx += 3;
+            break;
         }
 
         default:
@@ -1277,8 +1244,8 @@ tVectorXd cSimCharacterGen::ConvertPoseToq(const tVectorXd &pose) const
             break;
         }
     }
-    // std::cout << "final q = " << q.transpose() << std::endl;
-    // std::cout << "------------convert end-----------\n";
+    MIMIC_ASSERT(q_idx == q.size());
+    MIMIC_ASSERT(pose_idx == pose.size());
     return q;
 }
 /**
@@ -1313,12 +1280,14 @@ cSimCharacterGen::ConvertPosevelToqdot(const tVectorXd &pose_vel) const
             qdot.segment(q_idx, 3) = pose_vel.segment(pose_idx, 3);
             pose_idx += 3, q_idx += 3;
             tVector vel = pose_vel.segment(pose_idx, 4);
-            vel[3] = 0;
+
             qdot.segment(q_idx, 3) =
-                ConvertAxisAngleVelToEulerAngleVel(vel).segment(0, 3);
+                joint->GetLocalJkw().block(0, 3, 3, 3).inverse() *
+                vel.segment(0, 3);
+
             pose_idx += 4, q_idx += 3;
+            break;
         }
-        break;
         case JointType::BIPEDAL_NONE_JOINT:
         {
             qdot.segment(q_idx, 3) = pose_vel.segment(pose_idx, 3);
@@ -1333,21 +1302,24 @@ cSimCharacterGen::ConvertPosevelToqdot(const tVectorXd &pose_vel) const
         {
             qdot[q_idx] = pose_vel[pose_idx];
             q_idx++, pose_idx++;
+            break;
         }
-        break;
         case JointType::SPHERICAL_JOINT:
         {
             tVector vel = pose_vel.segment(pose_idx, 4);
-            vel[3] = 0;
+
             qdot.segment(q_idx, 3) =
-                ConvertAxisAngleVelToEulerAngleVel(vel).segment(0, 3);
+                joint->GetLocalJkw().inverse() * vel.segment(0, 3);
             pose_idx += 4, q_idx += 3;
+            break;
         }
         default:
             MIMIC_ASSERT(false);
             break;
         }
     }
+    MIMIC_ASSERT(q_idx == qdot.size());
+    MIMIC_ASSERT(pose_idx == pose_vel.size());
     return qdot;
 }
 

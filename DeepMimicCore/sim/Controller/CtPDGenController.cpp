@@ -20,6 +20,7 @@ cCtPDGenController::cCtPDGenController()
     mGuidedTrajFile = "";
     mInternalFrameId = 0;
     mLoadInfo = nullptr;
+    mPDGenController = nullptr;
     // cFileUtil::ClearFile(pd_log);
 }
 cCtPDGenController::~cCtPDGenController()
@@ -60,11 +61,16 @@ void cCtPDGenController::SetGuidedControlInfo(bool enable,
 void cCtPDGenController::Reset()
 {
     cCtController::Reset();
+    if (mPDGenController)
+        mPDGenController->Reset();
+    // MIMIC_ERROR("ctrl reset");
     mInternalFrameId = 0;
 }
 void cCtPDGenController::Clear()
 {
     cCtController::Clear();
+    if (mPDGenController)
+        mPDGenController->Reset();
     mInternalFrameId = 0;
 }
 
@@ -342,8 +348,6 @@ void cCtPDGenController::UpdatePDCtrls(double time_step,
         else
             MIMIC_INFO("PD Target solve accurately");
     }
-    // std::cout << "update pd control tau = " << out_tau.transpose() <<
-    // std::endl; exit(0);
 }
 
 /**
@@ -354,6 +358,7 @@ void cCtPDGenController::ApplyAction(const Eigen::VectorXd &action)
 {
     // 1. check the length of action (spherical - axis angle), then normalize it
     MIMIC_ASSERT(GetActionSize() == action.size());
+    cDeepMimicCharController::ApplyAction(action);
 
     // 2. convert action to PD target (pose)
     mCurAction.noalias() = action;

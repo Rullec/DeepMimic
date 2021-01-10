@@ -31,6 +31,11 @@ void cPDCtrl::Clear()
     mChar = nullptr;
 }
 
+void cPDCtrl::Reset()
+{
+    mTarget_q.resize(0);
+    mTarget_qdot.resize(0);
+}
 /**
  * \brief               Get the Generalized coordinate PD target
  */
@@ -232,7 +237,7 @@ void cPDCtrl::PostProcessControlForce(tVectorXd &out_tau) const
         }
         st_pos += joint_dof;
     }
-    // std::cout << "[debug] target q = " << mTarget_q.transpose() << std::endl;
+    // std::cout << "[debug] out_tau = " << out_tau.transpose() << std::endl;
     MIMIC_ASSERT(out_tau.hasNaN() == false);
 }
 

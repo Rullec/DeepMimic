@@ -82,15 +82,13 @@ def update_world(world, time_elapsed):
 
         valid_episode = world.env.check_valid_episode()
 
-        if valid_episode:   # 速度没有爆炸
+        if valid_episode:
             end_episode = world.env.is_episode_end()
             if (end_episode):
-                # print("episode done")
                 world.end_episode()
                 world.reset()
                 break
-        else:   # 速度爆炸了
-            # 一旦出现无效episode，直接就world.reset了。
+        else:
             world.reset()
             break
     return

@@ -349,9 +349,9 @@ void cContactManager::UpdateContactInGenWorld()
         pt_buf.mIsSelfCollision = x->mIsSelfCollision;
         int link_id = link->GetContactHandle().mID;
         mContactEntries[link_id].mContactPts.push_back(pt_buf);
-        // MIMIC_DEBUG("add contact point for multibody link {}, contact force
-        // {}",
-        //             link->GetJointID(), x->mForce.transpose());
+        // MIMIC_DEBUG(
+        //     "add contact point for multibody link {}, contact force {} ",
+        //     link->GetJointID(), x->mForce.transpose());
         // std::cout << "" << link->GetJointID()
         //           << " force = " << x->mForce.transpose() << std::endl;
         // given collision id, find its cSimBodyLink or other stuff

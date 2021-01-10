@@ -562,7 +562,6 @@ class RLAgent(ABC):
 
     def _update_mode(self):
         pre_mode = self._mode
-        # print(f"begin to update mode, now mode {self._mode}")
         if self._mode == self.Mode.TRAIN:
             self._update_mode_train()
         elif self._mode == self.Mode.TRAIN_END:

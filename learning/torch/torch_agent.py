@@ -8,6 +8,7 @@ from env.action_space import ActionSpace
 from abc import ABC, abstractmethod
 from enum import Enum
 from learning.tf.rl_agent import RLAgent
+from learning.torch.path_torch import PathTorch
 from learning.torch.nets.net_builder import build_net
 import torch
 import util.mpi_util as MPIUtil
@@ -31,9 +32,9 @@ class TorchAgent(RLAgent):
         """
         super().__init__(world, id, json_data)
         self._build_graph(json_data)
-
         self.optimizer = optim.SGD(
-            self.action.parameters(), lr=3e-5)
+            self.action.parameters(), lr=1e-3)
+        self.path = PathTorch()
         self.replay_buffer = ReplayBufferTorch(self.replay_buffer_size)
         return
 
@@ -59,7 +60,6 @@ class TorchAgent(RLAgent):
 
     def _decide_action(self, s, g):
         a = self.action(torch.Tensor(s)).detach().numpy()
-        # print(f"[debug] decide new action {a}")
         return a
 
     def _get_output_path(self):
@@ -114,8 +114,8 @@ class TorchAgent(RLAgent):
         self._total_sample_count += samples
         self.world.env.set_sample_count(
             self._total_sample_count + self.beginning_sample_count)
-        print(
-            f"beginning {self.beginning_sample_count}, total {self._total_sample_count}")
+        # print(
+        #     f"beginning {self.beginning_sample_count}, total {self._total_sample_count}")
         self._update_exp_params()
 
         # 3. output and clear
@@ -124,6 +124,8 @@ class TorchAgent(RLAgent):
         output_path = os.path.join(self.output_dir, output_name)
         self.save_model(output_path)
         self.replay_buffer.clear()
+
+        self._mode = self.Mode.TRAIN_END
 
     def update(self, timestep):
         """update agent by a given timestep
@@ -136,12 +138,10 @@ class TorchAgent(RLAgent):
         action_space = self.get_action_space()
         return action_space == ActionSpace.Continuous
 
-    def _build_graph(self, json_data_path):
+    def _build_graph(self, json_data):
         """
             Given the agent file, build the network from torch
         """
-        with open(json_data_path) as f:
-            json_data = json.load(f)
         assert self.POLICY_NET_KEY in json_data
         assert self.POLICY_STEPSIZE_KEY in json_data
         assert self.POLICY_MOMENTUM_KEY in json_data
@@ -173,7 +173,8 @@ class TorchAgent(RLAgent):
         if not (self._is_first_step()):
             r = self._record_reward()
             drda = self._record_drda()
-            # print(f"[debug] drda = {drda}, reward {r}")
+            print(
+                f"[debug] action = {self.path.actions[-1]}, action mean = {np.mean(self.path.actions)},drda = {drda}, reward {r}")
             self.path.rewards.append(r)
             self.path.drdas.append(drda)
 
@@ -245,4 +246,39 @@ class TorchAgent(RLAgent):
                 )
 
             self._update_mode()
+        return
+
+    def _update_mode(self):
+        pre_mode = self._mode
+        if self._mode == self.Mode.TRAIN:
+            self._update_mode_train()
+        elif self._mode == self.Mode.TRAIN_END:
+            self._update_mode_train_end()
+        elif self._mode == self.Mode.TEST:
+            self._update_mode_test()
+        else:
+            assert False, f"Unsupported agent mode {str(self._mode)}"
+        if pre_mode != self._mode:
+            print(f"[mode] mode update from {pre_mode} to {self._mode}")
+
+    def _update_mode_train(self):
+        return
+
+    def _update_mode_train_end(self):
+        self._mode = self.Mode.TEST
+
+    def _update_mode_test(self):
+        # if we have trained for enough episodes
+        if self.test_episode_count * MPIUtil.get_num_procs() >= self.test_episodes:
+            self._mode = self.Mode.TRAIN
+
+            self.test_return /= self.test_episode_count
+            print(f"[test] test reward = {self.test_return}")
+            self.test_episode_count = 0
+            self.test_return = 0
+
+    def _update_test_return(self, path):
+        path_reward = np.sum(path.rewards) / len(path.rewards)
+        self.test_return += path_reward
+        self.test_episode_count += 1
         return

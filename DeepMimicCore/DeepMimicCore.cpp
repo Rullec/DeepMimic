@@ -553,14 +553,20 @@ std::vector<double> cDeepMimicCore::CalcDRewardDAction() const
     {
         auto draw_res =
             std::dynamic_pointer_cast<cDrawSceneDiffImitate>(mRLScene);
-        auto res =
-            std::dynamic_pointer_cast<cSceneDiffImitate>(draw_res->GetScene());
-        ConvertVector(res->CalcDRewardDAction(), deriv);
+        if (draw_res != nullptr)
+        {
+            auto res = std::dynamic_pointer_cast<cSceneDiffImitate>(
+                draw_res->GetScene());
+            ConvertVector(res->CalcDRewardDAction(), deriv);
+        }
     }
     else
     {
         auto res = std::dynamic_pointer_cast<cSceneDiffImitate>(mRLScene);
-        ConvertVector(res->CalcDRewardDAction(), deriv);
+        if (res != nullptr)
+        {
+            ConvertVector(res->CalcDRewardDAction(), deriv);
+        }
     }
     return deriv;
 }

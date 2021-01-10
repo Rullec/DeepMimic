@@ -193,7 +193,8 @@ void Update(double time_elapsed)
 
                 if (global_action.size() == 0)
                 {
-                    global_action = tVectorXd::Ones(gCore->GetActionSize(id));
+                    global_action =
+                        -1 * tVectorXd::Ones(gCore->GetActionSize(id));
                     // global_action <dRootRotErr_dpose0_total< 1, 0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1,
                     // 1,
                     //     0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1;

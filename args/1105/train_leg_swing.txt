@@ -3,6 +3,7 @@
 --time_lim_min 0.2
 --time_lim_max 0.2
 --time_lim_exp 0.2
+--enable_vel_explode_end true
 
 --time_end_lim_min 10
 --time_end_lim_max 10

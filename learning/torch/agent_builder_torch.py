@@ -17,7 +17,7 @@ def build_agent_torch(world, id, file):
 
         agent_type = json_data[AGENT_TYPE_KEY]
         if agent_type == "DiffMBRL":
-            agent = DiffMBRLAgent(world, id, file)
+            agent = DiffMBRLAgent(world, id, json_data)
         else:
             assert False, f"invalid agent type {agent_type}"
     return agent
