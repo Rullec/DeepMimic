@@ -36,6 +36,7 @@ class TorchAgent(RLAgent):
             self.action.parameters(), lr=1e-3)
         self.path = PathTorch()
         self.replay_buffer = ReplayBufferTorch(self.replay_buffer_size)
+        self._begin_time = time.time()
         return
 
     def save_model(self, out_path):
@@ -123,6 +124,11 @@ class TorchAgent(RLAgent):
         output_name = f"{output_name}-{str(self.replay_buffer.get_avg_reward())[:5]}.pkl"
         output_path = os.path.join(self.output_dir, output_name)
         self.save_model(output_path)
+
+        cost_time = time.time() - self._begin_time
+        avg_rew = self.replay_buffer.get_avg_reward()
+        print(
+            f"[log] total samples {self._total_sample_count} train time {cost_time} s, avg reward {avg_rew}")
         self.replay_buffer.clear()
 
         self._mode = self.Mode.TRAIN_END
@@ -174,7 +180,7 @@ class TorchAgent(RLAgent):
             r = self._record_reward()
             drda = self._record_drda()
             print(
-                f"[debug] action = {self.path.actions[-1]}, action mean = {np.mean(self.path.actions)},drda = {drda}, reward {r}")
+                f"[debug] action = {self.path.actions[-1]} action mean = {np.mean(self.path.actions)} drda = {drda} reward {r}")
             self.path.rewards.append(r)
             self.path.drdas.append(drda)
 

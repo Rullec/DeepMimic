@@ -40,7 +40,7 @@
 --train_agents false
 
 --output_path output/0110
---model_files output/0110/01-10-16:26:17-0.128.pkl
+--model_files output/0110/01-11-10:47:54-0.989.pkl
 
 #---------------diff world-------------
 --enable_test_reward_action_derivative false
