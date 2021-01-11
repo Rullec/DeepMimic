@@ -1,0 +1,8 @@
+--scene kin_char
+
+--logging_level trace
+--character_backend GENERALIZED
+--character_file data/0111/characters/skeleton_2d_3links.json
+--motion_file data/0111/motions/motion_3links_tilt.txt
+--use_revolute_axis_in_deepmimic_style false
+--output_traj_path ""

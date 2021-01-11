@@ -109,7 +109,7 @@ class TorchAgent(RLAgent):
         persudo_loss_sum.backward()
 
         self.optimizer.step()
-        self._set_lr(max(0.98 * self._get_lr(), 1e-7))
+        self._set_lr(max(1 * self._get_lr(), 1e-7))
 
         # 2. update sample count, update time params
         self._total_sample_count += samples
@@ -180,7 +180,7 @@ class TorchAgent(RLAgent):
             r = self._record_reward()
             drda = self._record_drda()
             print(
-                f"[debug] action = {self.path.actions[-1]} action mean = {np.mean(self.path.actions)} drda = {drda} reward {r}")
+                f"[debug] action = {self.path.actions[-1]} action mean = {np.mean(self.path.actions, axis = 0)} drda = {drda} reward {r}")
             self.path.rewards.append(r)
             self.path.drdas.append(drda)
 
@@ -241,8 +241,8 @@ class TorchAgent(RLAgent):
                 if self.enable_training and self.path.pathlength() > 0:
                     self.replay_buffer.add(self.path)
 
-                    if self.replay_buffer.get_size() > 200:
-                        self._train()
+                    # if self.replay_buffer.get_size() > 200:
+                    self._train()
 
             elif self._mode == self.Mode.TEST:
                 self._update_test_return(self.path)

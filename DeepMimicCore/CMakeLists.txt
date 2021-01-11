@@ -106,36 +106,41 @@ if(APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "-flat_namespace -undefined suppress")
 endif()
 # set up target library
-set_source_files_properties(DeepMimicCore.i PROPERTIES CPLUSPLUS ON)
+set_source_files_properties(DeepMimicCore.i PROPERTIES CPLUSPLUS ON SWING_MODULE_NAME DeepMimicCore)
 swig_add_library(DeepMimicCore TYPE SHARED LANGUAGE python OUTPUT_DIR ${CMAKE_SOURCE_DIR} OUTFILE_DIR ${CMAKE_SOURCE_DIR} SOURCES DeepMimicCore.i DeepMimicCore.cpp)
 swig_link_libraries(DeepMimicCore ${mylibs} ${libs} ${PYTHON_LIB})
 
 # set up target Main 
 add_executable(Main Main.cpp DeepMimicCore.cpp DeepMimicCore)
 target_link_libraries(Main ${mylibs} ${libs})
+add_executable(Main_nodraw Main_nodraw.cpp DeepMimicCore.cpp DeepMimicCore)
+target_link_libraries(Main_nodraw ${mylibs} ${libs})
 
 # move main to its parent folder
-if(EXISTS "../Main")
-    add_custom_command(TARGET Main
-        PRE_BUILD
-        COMMAND rm ../Main
-        )
-endif()
-add_custom_command(TARGET Main
-    POST_BUILD
-    COMMAND mv ./Main ../Main
-    )
+add_custom_command(
+    TARGET Main POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rename
+        ${CMAKE_CURRENT_BINARY_DIR}/Main        
+        ${CMAKE_SOURCE_DIR}/Main    
+)
+add_custom_command(
+    TARGET Main_nodraw POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rename
+        ${CMAKE_CURRENT_BINARY_DIR}/Main_nodraw
+        ${CMAKE_SOURCE_DIR}/Main_nodraw    
+)
 
-# move the .dylib in build folder to .so in the parent folder
 if(UNIX)
-    if(EXISTS "../_DeepMimicCore.so")
-        add_custom_command(TARGET Main
-            PRE_BUILD
-            COMMAND rm ../_DeepMimicCore.so
-            )
-    endif()
-    add_custom_command(TARGET Main
-        POST_BUILD
-        COMMAND mv ./_DeepMimicCore.* ../_DeepMimicCore.so
-        )
+    add_custom_command(
+        TARGET ${SWIG_MODULE_DeepMimicCore_REAL_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rename
+            ${CMAKE_CURRENT_BINARY_DIR}/_DeepMimicCore.so
+            ${CMAKE_SOURCE_DIR}/_DeepMimicCore.so
+    )
+    add_custom_command(
+        TARGET ${SWIG_MODULE_DeepMimicCore_REAL_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rename
+            ${CMAKE_CURRENT_BINARY_DIR}/DeepMimicCore.py
+            ${CMAKE_SOURCE_DIR}/DeepMimicCore.py
+    )
 endif()

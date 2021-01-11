@@ -43,6 +43,8 @@ data/intermediate/
 DeepMimicCore/DeepMimicCore.py
 DeepMimicCore/Main
 Main
+DeepMimicCore/Main_nodraw
+Main_nodraw
 *trajs/
 
 *.DS_Store

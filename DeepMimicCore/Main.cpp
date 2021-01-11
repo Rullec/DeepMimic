@@ -54,7 +54,6 @@ auto convert_to_vector_int = [](const std::vector<int> &vec) {
 };
 void SetupDeepMimicCore()
 {
-
     bool enable_draw = true;
     gCore = std::unique_ptr<cDeepMimicCore>(new cDeepMimicCore(enable_draw));
     gCore->ParseArgs(gArgs); // 参数解析ok
@@ -194,7 +193,9 @@ void Update(double time_elapsed)
                 if (global_action.size() == 0)
                 {
                     global_action =
-                        -1 * tVectorXd::Ones(gCore->GetActionSize(id));
+                        -0.1 * tVectorXd::Ones(gCore->GetActionSize(id));
+                    global_action[0] = 0.5;
+                    global_action[1] = -1.2;
                     // global_action <dRootRotErr_dpose0_total< 1, 0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1,
                     // 1,
                     //     0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1;
