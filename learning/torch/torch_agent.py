@@ -97,7 +97,7 @@ class TorchAgent:
             self.exp_params_end.load(json_data[self.EXP_PARAM_END_KEY])
 
         self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
-        
+
         return
 
     def _build_loss(self):
@@ -183,9 +183,9 @@ class TorchAgent:
         assert(w_torch.shape == y_torch.shape)
         pesudo_loss = y_torch * w_torch  # y: [batch, m], w:[batch, m]
         assert(pesudo_loss.shape == w_torch.shape)
-        persudo_loss_sum = -torch.sum(pesudo_loss)
+        persudo_loss_sum = -torch.mean(pesudo_loss)
         persudo_loss_sum.backward()
-        torch.nn.utils.clip_grad_value_(self.action.parameters(), 10)
+        torch.nn.utils.clip_grad_value_(self.action.parameters(), 3)
         # print(type(self.action.parameters()))
         # print(type(self.action.parameters().grad))
 
