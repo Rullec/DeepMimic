@@ -1159,6 +1159,11 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
              com_w * com_reward;
     // printf("pose %.5f, vel %.5f, end %.5f, root %.5f, com %.5f\n", pose_reward,
     //        vel_reward, end_eff_reward, root_reward, com_reward);
+    // printf("pose w %.5f, vel w %.5f, end w %.5f, root w %.5f, com w %.5f\n",
+    //        pose_w, vel_w, end_eff_w, root_w, com_w);
+    // printf("pose t %.5f, vel t %.5f, end t %.5f, root t %.5f, com t %.5f\n",
+    //        pose_w * pose_reward, vel_w * vel_reward, end_eff_w * end_eff_reward,
+    //        root_w * root_reward, com_w * com_reward);
     {
         double another_pose_rew = CalcPoseReward(sim_char, kin_char);
         double another_vel_rew = CalcVelReward(sim_char, kin_char);
@@ -1247,7 +1252,8 @@ double cSceneImitate::CalcVelReward(cSimCharacterGen &sim_char,
     int root_id = cKinTree::GetRoot(joint_mat);
     double root_rot_w = mJointWeights[root_id];
     vel_err += root_rot_w * cKinTree::CalcRootAngVelErr(joint_mat, vel0, vel1);
-
+    // printf("root ang vel err %.5f\n",
+    //        cKinTree::CalcRootAngVelErr(joint_mat, vel0, vel1));
     // 2. joint vel err
     for (int j = root_id + 1; j < cKinTree::GetNumJoints(joint_mat); ++j)
     {
@@ -1256,10 +1262,15 @@ double cSceneImitate::CalcVelReward(cSimCharacterGen &sim_char,
             joint_mat, j, vel0, vel1); // calculate the joint vel diff
 
         vel_err += mJointWeights[j] * curr_vel_err;
+        // printf("joint %d ang vel err %.5f\n", j, curr_vel_err);
     }
-
+    // std::cout << "qdot = " << sim_char.Getqdot().transpose() << std::endl;
+    // std::cout << "sim vel = " << vel0.transpose() << std::endl;
+    // std::cout << "kin vel = " << vel1.transpose() << std::endl;
     double vel_reward =
         exp(-RewParams.err_scale * RewParams.vel_scale * vel_err);
+    // printf("[debug] vel r %.3f, vel scale %.4f, vel err %.4f\n", vel_reward,
+    //        RewParams.vel_scale, vel_err);
     return vel_reward * RewParams.vel_w;
 }
 

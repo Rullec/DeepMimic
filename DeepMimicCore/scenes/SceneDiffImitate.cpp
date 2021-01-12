@@ -466,11 +466,12 @@ tVectorXd cSceneDiffImitate::CalcDVelRewardDvel0()
 double cSceneDiffImitate::CalcRewardImitate(cSimCharacterBase &sim_char,
                                             cKinCharacter &ref_char) const
 {
+    // return cSceneImitate::CalcRewardImitate(sim_char, ref_char);
     auto &gen_char = *dynamic_cast<cSimCharacterGen *>(&sim_char);
     double pose_rew = CalcPoseReward(gen_char, ref_char),
            vel_rew = CalcVelReward(gen_char, ref_char);
     // std::cout << "pose rew = " << pose_rew << std::endl;
-    // std::cout << "vel rew = " << pose_rew << std::endl;
+    // std::cout << "vel rew = " << vel_rew << std::endl;
     // cMathUtil::TestCalc_DQuaterion_DEulerAngles();
 
     // exit(0);

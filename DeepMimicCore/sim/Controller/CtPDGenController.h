@@ -47,7 +47,7 @@ public:
                            Eigen::VectorXd &out_scale) const override;
     tMatrixXd CalcDCtrlForceDAction(double dt);
 
-    virtual void ApplyAction(const Eigen::VectorXd &action);
+    virtual void ApplyAction(const Eigen::VectorXd &action) override;
 
 protected:
     cImpPDGenController *mPDGenController;

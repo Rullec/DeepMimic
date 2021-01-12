@@ -39,8 +39,7 @@
 --agent_files data/0103/agents/agent_diffMBRL_test.txt
 --train_agents false
 
---output_path output/0111
---model_files output/0111/01-11-15:36:18-0.994.pkl
+--output_path output/0111/3links
 
 #---------------diff world-------------
 --enable_test_reward_action_derivative false

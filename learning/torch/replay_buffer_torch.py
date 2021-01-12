@@ -25,6 +25,9 @@ class ReplayBufferTorch(object):
     def get_size(self):
         return len(self.state_lst)
 
+    def get_reward(self):
+        return self.reward_lst
+
     def get_drda(self):
         return self.drda_lst
 

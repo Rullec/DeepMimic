@@ -1071,10 +1071,10 @@ bool cSceneSimChar::HasFallen(const cSimCharacterBase &sim_char) const
     }
     fallen |= !in_aabb;
 
-    if (fallen)
-    {
-        MIMIC_WARN("char has falled");
-    }
+    // if (fallen)
+    // {
+    //     MIMIC_WARN("char has falled");
+    // }
     return fallen;
 }
 

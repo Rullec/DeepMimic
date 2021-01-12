@@ -94,11 +94,16 @@ class TorchAgent(RLAgent):
         samples = self.replay_buffer.get_size()
         x = np.array(self.replay_buffer.get_state())
         w = np.array(self.replay_buffer.get_drda())
-        # print(f"states {states}")
-        # print(f"states type {type(states)}")
-        # print(f"states {states.shape}")
-        print(
-            f"[train] states shape {x.shape}, drdas shape {w.shape}, lr {self._get_lr()}")
+
+        r = np.array(self.replay_buffer.get_reward())
+
+        # print(
+        #     f"[train] states shape {x.shape}, drdas shape {w.shape}, lr {self._get_lr()}")
+
+        # print(
+        #     f"[train] drda mean {np.mean(w, axis=0)}")
+        # print(
+        #     f"[train] drda std {np.std(w, axis=0)}")
 
         y_torch = self.action(torch.Tensor(x))
         w_torch = torch.Tensor(w)
@@ -107,9 +112,20 @@ class TorchAgent(RLAgent):
         assert(pesudo_loss.shape == w_torch.shape)
         persudo_loss_sum = -torch.sum(pesudo_loss)
         persudo_loss_sum.backward()
+        torch.nn.utils.clip_grad_value_(self.action.parameters(), 10)
+        # print(type(self.action.parameters()))
+        # print(type(self.action.parameters().grad))
 
+        res = [i.grad for i in self.action.parameters()]
+        max_res = max([np.max(np.array(i.detach())) for i in res])
+        min_res = min([np.min(np.array(i.detach())) for i in res])
+        # print(max_res)
+        # print(min_res)
+        print(f"max grad {max_res} min grad {min_res}")
+        # print(f"[debug] loss grad max {np.max(loss_grad)} min {np.min(loss_grad)}")
+        # exit(0)
         self.optimizer.step()
-        self._set_lr(max(1 * self._get_lr(), 1e-7))
+        self._set_lr(max(1 * self._get_lr(), 1e-3))
 
         # 2. update sample count, update time params
         self._total_sample_count += samples
@@ -129,9 +145,20 @@ class TorchAgent(RLAgent):
         avg_rew = self.replay_buffer.get_avg_reward()
         print(
             f"[log] total samples {self._total_sample_count} train time {cost_time} s, avg reward {avg_rew}")
+
+        with open("rew.log", 'a+') as f:
+            f.write(
+                f'''------avg_reward {avg_rew}-------
+drda mean { np.mean(w, axis =0)}
+action mean {np.mean(np.array(y_torch.detach()), axis=0)}
+drda {w}
+drda std {np.std(w, axis =0)}
+action std {np.std(np.array(y_torch.detach()), axis=0)}
+'''
+            )
         self.replay_buffer.clear()
 
-        self._mode = self.Mode.TRAIN_END
+        self._mode = self.Mode.TRAIN
 
     def update(self, timestep):
         """update agent by a given timestep
@@ -178,9 +205,13 @@ class TorchAgent(RLAgent):
         # 2. get the reward if it's not the first step
         if not (self._is_first_step()):
             r = self._record_reward()
+            # print(f"cur rew = {r}")
             drda = self._record_drda()
-            print(
-                f"[debug] action = {self.path.actions[-1]} action mean = {np.mean(self.path.actions, axis = 0)} drda = {drda} reward {r}")
+            # print(
+            #     f"[debug] action = {self.path.actions[-1]} action mean = {np.mean(self.path.actions, axis = 0)} drda = {drda} reward {r}")
+            np.set_printoptions(precision=3)
+            # print(
+            #     f"[debug] drda = {drda} reward {r}")
             self.path.rewards.append(r)
             self.path.drdas.append(drda)
 
