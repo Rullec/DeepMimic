@@ -1,0 +1,42 @@
+{
+   "AgentType": "PPO",
+   "ActorNet": "fc_2layers_128_64",
+   "ActorStepsize": 0.00001,
+   "ActorMomentum": 0.9,
+   "ActorWeightDecay": 0.0005,
+   "ActorInitOutputScale": 0.01,
+   "CriticNet": "fc_2layers_128_64",
+   "CriticStepsize": 0.01,
+   "CriticMomentum": 0.9,
+   "CriticWeightDecay": 0,
+   "UpdatePeriod": 1,
+   "ItersPerUpdate": 1,
+   "Discount": 0.95,
+   "BatchSize": 128,
+   "MiniBatchSize": 64,
+   "ReplayBufferSize": 1000,
+   "InitSamples": 1,
+   "NormalizerSamples": 100,
+   "OutputIters": 10,
+   "IntOutputIters": 10,
+   "TestEpisodes": 8,
+   "ExpAnnealSamples": 640,
+   "BeginningSampleCount": 0,
+   "ExpParamsBeg": {
+      "Rate": 1,
+      "InitActionRate": 1,
+      "Noise": 0.05,
+      "NoiseInternal": 0,
+      "Temp": 0.1
+   },
+   "ExpParamsEnd": {
+      "Rate": 0.2,
+      "InitActionRate": 0.01,
+      "Noise": 0.05,
+      "NoiseInternal": 0,
+      "Temp": 0.001
+   },
+   "EnableSavePath": false,
+   "EnableClearPath": false,
+   "PathSaveDir": ""
+}

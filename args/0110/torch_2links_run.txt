@@ -36,7 +36,7 @@
 #----------------trainning definition-----------------
 --reward_file data/0103/rewards/reward_weight_only_pose_vel.json
 
---agent_files data/0103/agents/agent_diffMBRL_test.txt
+--agent_files data/0103/agents/agent_diffMBRL.json
 --train_agents false
 
 --output_path output/0110

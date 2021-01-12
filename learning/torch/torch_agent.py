@@ -23,9 +23,12 @@ class TorchAgent:
     """
     NAME = "DiffMBRL"
     POLICY_NET_KEY = "PolicyNet"
-    POLICY_STEPSIZE_KEY = "PolicyStepsize"
-    POLICY_MOMENTUM_KEY = "PolicyMomentum"
-    POLICY_WEIGHT_LOSS_KEY = "PolicyWeightLoss"
+    LEARNINGRATE_KEY = "LearningRate"
+    LEARNINGRATE_DECAY_KEY = "LearningRateDecay"
+    REPLAY_BUFFER_SIZE_KEY = "ReplayBufferSize"
+    EXP_ANNEAL_SAMPLES_KEY = "ExpAnnealSamples"
+    EXP_PARAM_BEG_KEY = "ExpParamsBeg"
+    EXP_PARAM_END_KEY = "ExpParamsEnd"
 
     class Mode(Enum):
         TRAIN = 0
@@ -36,30 +39,70 @@ class TorchAgent:
         """
             Init method, create from json data
         """
-        replay_buffer_size = 400
-        lr = 1e-3
+        # 1. hyperparameters init value
+        self.replay_buffer_size = 400
+        self.lr = 1e-3
+        self.lr_decay = 1.0
+        self.exp_anneal_samples = 320000
+        self.test_episodes = int(0)
         self.exp_params_beg = ExpParams()
         self.exp_params_end = ExpParams()
         self.exp_params_curr = ExpParams()
-        self.exp_anneal_samples = 320000
-        self.test_episodes = int(0)
+
+        # 2. runtime vars init value
+        self.world = world
+        self.logger = Logger()
         self.test_return = 0
         self.test_episode_count = int(0)
         self._enable_training = True
-        self.world = world
         self.id = id
-        self.logger = Logger()
         self._mode = self.Mode.TRAIN
-
-        self._build_graph(json_data)
-        self.optimizer = optim.SGD(
-            self.action.parameters(), lr=lr)
-        self.path = PathTorch()
-        self.replay_buffer = ReplayBufferTorch(replay_buffer_size)
         self._begin_time = time.time()
         self._total_sample_count = 0
         self.output_dir = "output/0111/test"
+        self.path = PathTorch()
+        self.replay_buffer = ReplayBufferTorch(self.replay_buffer_size)
+
+        # 3. hyperparams from agent
+        self._load_params(json_data)
+
+        # 4. build agent graph
+        self._build_graph(json_data)
+
+        # 5. build loss
+        self._build_loss()
+
         return
+
+    def _load_params(self, json_data):
+        '''
+            Load the hyperparameters from agent config
+        '''
+        if self.LEARNINGRATE_KEY in json_data:
+            self.lr = json_data[self.LEARNINGRATE_KEY]
+
+        if self.LEARNINGRATE_DECAY_KEY in json_data:
+            self.lr_decay = json_data[self.LEARNINGRATE_DECAY_KEY]
+
+        if self.REPLAY_BUFFER_SIZE_KEY in json_data:
+            self.replay_buffer_size = json_data[self.REPLAY_BUFFER_SIZE_KEY]
+
+        if self.EXP_ANNEAL_SAMPLES_KEY in json_data:
+            self.exp_anneal_samples = json_data[self.EXP_ANNEAL_SAMPLES_KEY]
+
+        if self.EXP_PARAM_BEG_KEY in json_data:
+            self.exp_params_beg.load(json_data[self.EXP_PARAM_BEG_KEY])
+
+        if self.EXP_PARAM_END_KEY in json_data:
+            self.exp_params_end.load(json_data[self.EXP_PARAM_END_KEY])
+
+        self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
+        
+        return
+
+    def _build_loss(self):
+        self.optimizer = optim.SGD(
+            self.action.parameters(), lr=self.lr)
 
     def save_model(self, out_path):
         tar_dir = os.path.dirname(out_path)
@@ -174,17 +217,6 @@ class TorchAgent:
         avg_rew = self.replay_buffer.get_avg_reward()
         print(
             f"[log] total samples {self._total_sample_count} train time {cost_time} s, avg reward {avg_rew}")
-
-        with open("rew.log", 'a+') as f:
-            f.write(
-                f'''------avg_reward {avg_rew}-------
-drda mean { np.mean(w, axis =0)}
-action mean {np.mean(np.array(y_torch.detach()), axis=0)}
-drda {w}
-drda std {np.std(w, axis =0)}
-action std {np.std(np.array(y_torch.detach()), axis=0)}
-'''
-            )
         self.replay_buffer.clear()
 
         self._mode = self.Mode.TRAIN
@@ -217,9 +249,6 @@ action std {np.std(np.array(y_torch.detach()), axis=0)}
             Given the agent file, build the network from torch
         """
         assert self.POLICY_NET_KEY in json_data
-        assert self.POLICY_STEPSIZE_KEY in json_data
-        assert self.POLICY_MOMENTUM_KEY in json_data
-        assert self.POLICY_WEIGHT_LOSS_KEY in json_data
 
         self.action = build_net(json_data[self.POLICY_NET_KEY],
                                 self.get_state_size(), self.get_action_size())
