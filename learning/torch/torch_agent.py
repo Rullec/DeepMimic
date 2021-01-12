@@ -7,16 +7,17 @@ import datetime
 from env.action_space import ActionSpace
 from abc import ABC, abstractmethod
 from enum import Enum
-from learning.tf.rl_agent import RLAgent
 from learning.torch.path_torch import PathTorch
 from learning.torch.nets.net_builder import build_net
 import torch
 import util.mpi_util as MPIUtil
 import torch.optim as optim
 from learning.torch.replay_buffer_torch import ReplayBufferTorch
+from util.logger import Logger
+from learning.tf.exp_params import ExpParams
 
 
-class TorchAgent(RLAgent):
+class TorchAgent:
     """
         Torch Agent
     """
@@ -26,17 +27,38 @@ class TorchAgent(RLAgent):
     POLICY_MOMENTUM_KEY = "PolicyMomentum"
     POLICY_WEIGHT_LOSS_KEY = "PolicyWeightLoss"
 
+    class Mode(Enum):
+        TRAIN = 0
+        TEST = 1
+        TRAIN_END = 2
+
     def __init__(self, world, id, json_data):
         """
             Init method, create from json data
         """
-        super().__init__(world, id, json_data)
+        replay_buffer_size = 400
+        lr = 1e-3
+        self.exp_params_beg = ExpParams()
+        self.exp_params_end = ExpParams()
+        self.exp_params_curr = ExpParams()
+        self.exp_anneal_samples = 320000
+        self.test_episodes = int(0)
+        self.test_return = 0
+        self.test_episode_count = int(0)
+        self._enable_training = True
+        self.world = world
+        self.id = id
+        self.logger = Logger()
+        self._mode = self.Mode.TRAIN
+
         self._build_graph(json_data)
         self.optimizer = optim.SGD(
-            self.action.parameters(), lr=1e-3)
+            self.action.parameters(), lr=lr)
         self.path = PathTorch()
-        self.replay_buffer = ReplayBufferTorch(self.replay_buffer_size)
+        self.replay_buffer = ReplayBufferTorch(replay_buffer_size)
         self._begin_time = time.time()
+        self._total_sample_count = 0
+        self.output_dir = "output/0111/test"
         return
 
     def save_model(self, out_path):
@@ -84,6 +106,14 @@ class TorchAgent(RLAgent):
             if 'lr' in g:
                 g['lr'] = lr
 
+    def _update_exp_params(self):
+        lerp = float(self._total_sample_count) / self.exp_anneal_samples
+
+        lerp = np.clip(lerp, 0.0, 1.0)
+        self.exp_params_curr = self.exp_params_beg.lerp(
+            self.exp_params_end, lerp)
+        return
+
     def _train(self):
         """
             this function is called when the update_counters >= update_period
@@ -129,8 +159,7 @@ class TorchAgent(RLAgent):
 
         # 2. update sample count, update time params
         self._total_sample_count += samples
-        self.world.env.set_sample_count(
-            self._total_sample_count + self.beginning_sample_count)
+        self.world.env.set_sample_count(self._total_sample_count)
         # print(
         #     f"beginning {self.beginning_sample_count}, total {self._total_sample_count}")
         self._update_exp_params()
@@ -160,6 +189,9 @@ action std {np.std(np.array(y_torch.detach()), axis=0)}
 
         self._mode = self.Mode.TRAIN
 
+    def need_new_action(self):
+        return self.world.env.need_new_action(self.id)
+
     def update(self, timestep):
         """update agent by a given timestep
         """
@@ -167,9 +199,18 @@ action std {np.std(np.array(y_torch.detach()), axis=0)}
             self._update_new_action()
         return
 
+    def get_action_space(self):
+        return self.world.env.get_action_space(self.id)
+
     def _check_action_space(self):
         action_space = self.get_action_space()
         return action_space == ActionSpace.Continuous
+
+    def get_state_size(self):
+        return self.world.env.get_state_size(self.id)
+
+    def get_action_size(self):
+        return self.world.env.get_action_size(self.id)
 
     def _build_graph(self, json_data):
         """
@@ -190,6 +231,30 @@ action std {np.std(np.array(y_torch.detach()), axis=0)}
     def _get_intermediate_output_path(self):
         assert False
         return
+
+    def _record_state(self):
+        s = self.world.env.record_state(self.id)
+        return s
+
+    def _is_first_step(self):
+        return len(self.path.states) == 0
+
+    def _record_reward(self):
+        r = self.world.env.calc_reward(self.id)
+        return r
+
+    def _enable_draw(self):
+        return self.world.env.enable_draw
+
+    def log_reward(self, r):
+        self.world.env.log_val(self.id, r)
+
+    def _apply_action(self, a):
+        self.world.env.set_action(self.id, a)
+        return
+
+    def _record_flags(self):
+        return int(0)
 
     def _update_new_action(self):
         """
@@ -243,7 +308,6 @@ action std {np.std(np.array(y_torch.detach()), axis=0)}
             Note that a path != an episode. the latter one is broader
         """
         s = self._record_state()
-        g = self._record_goal()
         r = self._record_reward()
         drda = self._record_drda()
         self.path.rewards.append(r)
@@ -253,9 +317,23 @@ action std {np.std(np.array(y_torch.detach()), axis=0)}
 
         assert np.isfinite(s).all() == True and np.isfinite(r).all() == True
 
-        self.path.goals.append(g)
         self.path.terminate = self.world.env.check_terminate(self.id)
         return
+
+    def get_enable_training(self):
+        return self._enable_training
+
+    def reset(self):
+        self.path.clear()
+        return
+
+    def set_enable_training(self, enable):
+        self._enable_training = enable
+        if self._enable_training:
+            self.reset()
+        return
+
+    enable_training = property(get_enable_training, set_enable_training)
 
     def end_episode(self):
         """
