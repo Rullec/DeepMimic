@@ -346,7 +346,7 @@ void cContactManager::UpdateContactInGenWorld()
         cSimBodyLinkGen *link = static_cast<cSimBodyLinkGen *>(user_ptr);
         pt_buf.mForce = x->mForce;
         pt_buf.mPos = x->mWorldPos;
-        pt_buf.mIsSelfCollision = x->mIsSelfCollision;
+        pt_buf.mIsSelfCollision = x->mIsMBSelfCollision;
         int link_id = link->GetContactHandle().mID;
         mContactEntries[link_id].mContactPts.push_back(pt_buf);
         // MIMIC_DEBUG(

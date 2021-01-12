@@ -35,7 +35,7 @@
 
 --reward_file data/0103/rewards/reward_weight_only_pose_vel.json
 
---agent_files data/0111/agents/agent_diffMBRL_test.txt
+--agent_files data/0111/agents/agent_diffMBRL.json
 --train_agents true
 
 --output_path output/0111/biepdal

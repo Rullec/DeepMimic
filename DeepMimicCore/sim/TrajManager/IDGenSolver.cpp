@@ -157,7 +157,7 @@ void cIDSolver::RecordContactForcesGen(
             info.mForce = f->mForce;
             info.mId = dynamic_cast<btGenRobotCollider *>(f->mObj)->mLinkId;
             info.mPos = f->mWorldPos;
-            info.mIsSelfCollision = f->mIsSelfCollision;
+            info.mIsSelfCollision = f->mIsMBSelfCollision;
             mContactForces.push_back(info);
             // MIMIC_INFO("for link {} pos {} force {} is_self_collision {}",
             //            info.mId, info.mPos.transpose(),
