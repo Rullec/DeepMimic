@@ -3,7 +3,9 @@
    "PolicyNet": "fc_2layers_128_64",
    "LearningRate": 1e-3,
    "LearningRateDecay": 1,
-   "ReplayBufferSize": 400,
+   "ReplayBufferCapacity": 100,
+   "MaxSamples": 2e6,
+   "ExpAnnealSamples": 2e6,
    "ExpParamsBeg": {
       "Rate": 1,
       "InitActionRate": 1,

@@ -10,7 +10,7 @@ class ReplayBufferTorch(object):
     """
 
     def __init__(self, buffer_size):
-        self.buffer_size = buffer_size
+        self.capacity = buffer_size
         self.clear()
 
     def add(self, new_path: PathTorch):
@@ -22,7 +22,7 @@ class ReplayBufferTorch(object):
     def get_state(self):
         return self.state_lst
 
-    def get_size(self):
+    def get_cur_size(self):
         return len(self.state_lst)
 
     def get_reward(self):
@@ -32,7 +32,7 @@ class ReplayBufferTorch(object):
         return self.drda_lst
 
     def get_avg_reward(self):
-        return self.get_total_reward() / self.get_size()
+        return self.get_total_reward() / self.get_cur_size()
 
     def get_total_reward(self):
         return np.sum(self.reward_lst)

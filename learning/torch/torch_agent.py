@@ -25,7 +25,8 @@ class TorchAgent:
     POLICY_NET_KEY = "PolicyNet"
     LEARNINGRATE_KEY = "LearningRate"
     LEARNINGRATE_DECAY_KEY = "LearningRateDecay"
-    REPLAY_BUFFER_SIZE_KEY = "ReplayBufferSize"
+    REPLAY_BUFFER_CAPACITY_KEY = "ReplayBufferCapacity"
+    MAX_SAMPLES_KEY = "MaxSamples"
     EXP_ANNEAL_SAMPLES_KEY = "ExpAnnealSamples"
     EXP_PARAM_BEG_KEY = "ExpParamsBeg"
     EXP_PARAM_END_KEY = "ExpParamsEnd"
@@ -40,10 +41,11 @@ class TorchAgent:
             Init method, create from json data
         """
         # 1. hyperparameters init value
-        self.replay_buffer_size = 400
+        self.replay_buffer_capacity = 400
         self.lr = 1e-3
         self.lr_decay = 1.0
-        self.exp_anneal_samples = 320000
+        self.exp_anneal_samples = 5e5
+        self.max_samples = 5e5
         self.test_episodes = int(0)
         self.exp_params_beg = ExpParams()
         self.exp_params_end = ExpParams()
@@ -61,7 +63,7 @@ class TorchAgent:
         self._total_sample_count = 0
         self.output_dir = "output/0111/test"
         self.path = PathTorch()
-        self.replay_buffer = ReplayBufferTorch(self.replay_buffer_size)
+        self.replay_buffer = ReplayBufferTorch(self.replay_buffer_capacity)
 
         # 3. hyperparams from agent
         self._load_params(json_data)
@@ -78,23 +80,27 @@ class TorchAgent:
         '''
             Load the hyperparameters from agent config
         '''
-        if self.LEARNINGRATE_KEY in json_data:
-            self.lr = json_data[self.LEARNINGRATE_KEY]
+        assert self.LEARNINGRATE_KEY in json_data
+        self.lr = json_data[self.LEARNINGRATE_KEY]
 
-        if self.LEARNINGRATE_DECAY_KEY in json_data:
-            self.lr_decay = json_data[self.LEARNINGRATE_DECAY_KEY]
+        assert self.LEARNINGRATE_DECAY_KEY in json_data
+        self.lr_decay = json_data[self.LEARNINGRATE_DECAY_KEY]
 
-        if self.REPLAY_BUFFER_SIZE_KEY in json_data:
-            self.replay_buffer_size = json_data[self.REPLAY_BUFFER_SIZE_KEY]
+        assert self.REPLAY_BUFFER_CAPACITY_KEY in json_data
+        self.replay_buffer_capacity = json_data[self.REPLAY_BUFFER_CAPACITY_KEY]
+        self.replay_buffer.capacity = self.replay_buffer_capacity
 
-        if self.EXP_ANNEAL_SAMPLES_KEY in json_data:
-            self.exp_anneal_samples = json_data[self.EXP_ANNEAL_SAMPLES_KEY]
+        assert self.MAX_SAMPLES_KEY in json_data
+        self.max_samples = json_data[self.MAX_SAMPLES_KEY]
 
-        if self.EXP_PARAM_BEG_KEY in json_data:
-            self.exp_params_beg.load(json_data[self.EXP_PARAM_BEG_KEY])
+        assert self.EXP_ANNEAL_SAMPLES_KEY in json_data
+        self.exp_anneal_samples = json_data[self.EXP_ANNEAL_SAMPLES_KEY]
 
-        if self.EXP_PARAM_END_KEY in json_data:
-            self.exp_params_end.load(json_data[self.EXP_PARAM_END_KEY])
+        assert self.EXP_PARAM_BEG_KEY in json_data
+        self.exp_params_beg.load(json_data[self.EXP_PARAM_BEG_KEY])
+
+        assert self.EXP_PARAM_END_KEY in json_data
+        self.exp_params_end.load(json_data[self.EXP_PARAM_END_KEY])
 
         self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
 
@@ -164,7 +170,7 @@ class TorchAgent:
         """
         # 1. begin to train, grac = dr/da * da/d\theta
         # path_len = self.path.get_pathlen()
-        samples = self.replay_buffer.get_size()
+        samples = self.replay_buffer.get_cur_size()
         x = np.array(self.replay_buffer.get_state())
         w = np.array(self.replay_buffer.get_drda())
 
@@ -198,13 +204,13 @@ class TorchAgent:
         # print(f"[debug] loss grad max {np.max(loss_grad)} min {np.min(loss_grad)}")
         # exit(0)
         self.optimizer.step()
-        self._set_lr(max(1 * self._get_lr(), 1e-3))
+
+        self._set_lr(max(self.lr_decay * self._get_lr(), 1e-6))
 
         # 2. update sample count, update time params
         self._total_sample_count += samples
         self.world.env.set_sample_count(self._total_sample_count)
-        # print(
-        #     f"beginning {self.beginning_sample_count}, total {self._total_sample_count}")
+
         self._update_exp_params()
 
         # 3. output and clear
@@ -216,7 +222,10 @@ class TorchAgent:
         cost_time = time.time() - self._begin_time
         avg_rew = self.replay_buffer.get_avg_reward()
         print(
-            f"[log] total samples {self._total_sample_count} train time {cost_time} s, avg reward {avg_rew}")
+            f"[log] total samples {self._total_sample_count} train time {cost_time} s, avg reward {avg_rew}, lr {self._get_lr()}")
+        if self._total_sample_count > self.max_samples:
+            print(f"[log] total samples exceed max {self.max_samples}, exit")
+            exit(0)
         self.replay_buffer.clear()
 
         self._mode = self.Mode.TRAIN
@@ -374,13 +383,11 @@ class TorchAgent:
         """
         if self.path.pathlength() > 0:
             self._end_path()
-
             if self._mode == self.Mode.TRAIN or self._mode == self.Mode.TRAIN_END:
                 if self.enable_training and self.path.pathlength() > 0:
                     self.replay_buffer.add(self.path)
-
-                    # if self.replay_buffer.get_size() > 200:
-                    self._train()
+                    if self.replay_buffer.get_cur_size() > self.replay_buffer.capacity:
+                        self._train()
 
             elif self._mode == self.Mode.TEST:
                 self._update_test_return(self.path)
