@@ -1,0 +1,30 @@
+{
+	"UpdateRate": 30,
+	"EnablePhaseInput": true,
+	"EnableTestDerivative": true,
+	"RecordWorldRootPos": false,
+	"RecordWorldRootRot": true,
+
+	"RightJoints": [],
+	"LeftJoints": [],
+
+	"PDControllers": 
+	[
+		{
+			"ID": 0,
+			"Name": "root",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 1,
+			"Name": "RightLeg",
+			"Kp": 100,
+			"Kd": 10,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		}
+	]
+}

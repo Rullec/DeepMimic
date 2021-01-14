@@ -1,0 +1,48 @@
+--scene diff_imitate
+
+--time_lim_min 1
+--time_lim_max 1
+--time_lim_exp 1
+
+--time_end_lim_min 1
+--time_end_lim_max 1
+--time_end_lim_exp 1
+--anneal_samples 100000
+--use_revolute_axis_in_deepmimic_style false
+--enable_vel_explode_end true
+
+--num_update_substeps 10
+--num_sim_substeps 1
+--world_type generalized
+--world_scale 1
+--logging_level trace
+--pause_at_first false
+--terrain_file data/terrain/plane.txt
+--fall_contact_bodies 0 1 2 4 5
+
+#-------------------------skeleton------------------------
+--char_types lagragian
+--character_files data/0111/characters/skeleton_bipedal_legs.json
+--enable_joint_force_control true
+--enable_char_soft_contact false
+
+#----------------PD params and motion data----------------
+--char_ctrls ct_pd_gen
+--char_ctrl_files data/0111/controllers/ctrl_bipedal_legs.txt
+--motion_file data/0111/motions/motion_bipedal_stand.txt
+--sync_char_root_pos true
+--sync_char_root_rot false
+
+--reward_file data/0103/rewards/reward_weight_only_pose_vel.json
+
+--agent_files data/0112/agents/time1/agent_diffstd_lr_0.001_lr_decay_0.999_replay_size_300.json
+--train_agents true
+
+--output_path output/0111/biepdal
+
+#---------------------- Inverse Dyanmics config -------------------
+--enable_inverse_dynamic_solving false
+--inverse_dynamic_config_file args/1111/ID_bipedal.json
+
+#---------------diff world-------------
+--enable_test_reward_action_derivative false

@@ -1,0 +1,23 @@
+{
+   "AgentType": "DiffMBRL",
+   "PolicyNet": "fc_2layers_128_64",
+   "LearningRate": 1e-2,
+   "LearningRateDecay": 0.997,
+   "ReplayBufferCapacity": 500,
+   "MaxSamples": 2e6,
+   "ExpAnnealSamples": 2e6,
+   "ExpParamsBeg": {
+      "Rate": 1,
+      "InitActionRate": 1,
+      "Noise": 0.05,
+      "NoiseInternal": 0,
+      "Temp": 0.1
+   },
+   "ExpParamsEnd": {
+      "Rate": 0.2,
+      "InitActionRate": 0.01,
+      "Noise": 0.05,
+      "NoiseInternal": 0,
+      "Temp": 0.001
+   }
+}
