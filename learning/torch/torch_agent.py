@@ -186,7 +186,7 @@ class TorchAgent:
 
         y_torch = self.action(torch.Tensor(x))
         w_torch = torch.Tensor(w)
-        assert(w_torch.shape == y_torch.shape)
+        assert(w_torch.shape == y_torch.shape), f"w shape {w_torch.shape} y shape {y_torch.shape}"
         pesudo_loss = y_torch * w_torch  # y: [batch, m], w:[batch, m]
         assert(pesudo_loss.shape == w_torch.shape)
         persudo_loss_sum = -torch.mean(pesudo_loss)

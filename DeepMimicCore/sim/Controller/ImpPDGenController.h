@@ -25,6 +25,7 @@ public:
                                const tVectorXd &vel,
                                const tVectorXd &ctrl_force) const;
     tMatrixXd CalcDCtrlForceDTargetq(double dt);
+    tMatrixXd CalcDCtrlForceDx_Approx(double dt);
     void TestDCtrlForceDTargetq(double dt);
 
 protected:

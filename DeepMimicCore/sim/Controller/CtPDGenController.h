@@ -45,9 +45,13 @@ public:
     virtual void
     BuildActionOffsetScale(Eigen::VectorXd &out_offset,
                            Eigen::VectorXd &out_scale) const override;
+    tMatrixXd GetDCtrlForceDAction();
     tMatrixXd CalcDCtrlForceDAction(double dt);
+    tMatrixXd CalcDCtrlForceDx_Approx(double dt);
 
     virtual void ApplyAction(const Eigen::VectorXd &action) override;
+    void SetEnableCalcDeriv(bool);
+    bool GetEnableCalcDeriv() const;
 
 protected:
     cImpPDGenController *mPDGenController;
@@ -56,7 +60,9 @@ protected:
     tLoadInfo *mLoadInfo;
     bool mEnableGuidedAction;
     bool mEnableDerivativeTest;
+    bool mEnableCalcDeriv;
     std::string mGuidedTrajFile;
+    tMatrixXd mBufferDuDa, mBufferDuDx;
     int mInternalFrameId; // internal frame id counting
     virtual bool ParseParams(const Json::Value &json);
 
@@ -123,4 +129,5 @@ protected:
     void TestDCtrlForceDAction();
 
     tVectorXd ConvertActionToTargetq(const tVectorXd &action) const;
+    void TestDCtrlForceDx_Approx();
 };

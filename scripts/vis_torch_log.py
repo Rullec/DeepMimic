@@ -4,7 +4,7 @@ import os
 import argparse
 
 
-def handle_log_file(log_filename, output_png_filename):
+def handle_log_file(log_filename, output_png_filename, draw=False):
     assert os.path.exists(log_filename) == True
     with open(log_filename) as f:
         cont = f.readlines()
@@ -33,15 +33,16 @@ def handle_log_file(log_filename, output_png_filename):
     plt.ylim(0, 1)
     # plt.plot(samples_lst, avg_rew_lst)
     plt.plot([i for i in range(len(avg_rew_lst))], avg_rew_lst)
-    plt.title(f" reward")
+    plt.title(f"reward")
     plt.subplot(1, 2, 2)
     # plt.plot(samples_lst, lr_lst)
     plt.plot([i for i in range(len(lr_lst))], lr_lst)
     plt.title(f"lr")
-
-    plt.savefig(output_png_filename)
+    if draw is True:
+        plt.show()
+    else:
+        plt.savefig(output_png_filename)
     print(f"[log] {output_png_filename} succ")
-    # plt.show()
 
 
 def get_all_log_files(logdir):
@@ -60,19 +61,25 @@ def get_all_log_files(logdir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="vis_log_parser")
-    parser.add_argument("--log_dir", type=str)
-    parser.add_argument("--output_dir", type=str)
+    parser.add_argument("--log_file", type=str, default=None)
+    parser.add_argument("--log_dir", type=str, default=None)
+    parser.add_argument("--output_dir", type=str, default=None)
 
     arg = parser.parse_args()
-    log_dir = arg.log_dir
-    output_dir = arg.output_dir
-    assert log_dir is not None and os.path.exists(log_dir)
-    assert output_dir is not None and (os.path.exists(output_dir) is False)
+    if arg.log_file is not None:
+        # run in single file mode
+        handle_log_file(arg.log_file, arg.log_file, draw=True)
+    else:
+        log_dir = arg.log_dir
+        output_dir = arg.output_dir
+        assert log_dir is not None and os.path.exists(log_dir)
+        assert output_dir is not None and (os.path.exists(output_dir) is False)
 
-    os.makedirs(output_dir)
-    files = get_all_log_files(log_dir)
-    for file in files:
-        output = os.path.join(output_dir, f"{file[41:-13]}.png")
-        # print(output)
-        handle_log_file(file, output)
-    # file = "../logs/train_diff_legs_stdagent_diffstd_lr_0.0001_lr_decay_0.97_replay_size_100.json.txt.log"
+        os.makedirs(output_dir)
+        files = get_all_log_files(log_dir)
+        for file in files:
+            
+            output = os.path.join(output_dir, f"{os.path.split(file)[-1]}.png")
+            # print(output)
+            handle_log_file(file, output, draw=False)
+        # file = "../logs/train_diff_legs_stdagent_diffstd_lr_0.0001_lr_decay_0.97_replay_size_100.json.txt.log"

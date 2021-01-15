@@ -188,6 +188,7 @@ void Update(double time_elapsed)
                 // std::cout <<"state = ";
                 // for(auto x : s) std::cout << x <<" ";
                 // std::cout << std::endl;
+
                 ++gSampleCount;
 
                 if (global_action.size() == 0)
@@ -195,7 +196,7 @@ void Update(double time_elapsed)
                     global_action =
                         -0.1 * tVectorXd::Ones(gCore->GetActionSize(id));
                     global_action[0] = 0.5;
-                    global_action[1] = -1.2;
+                    // global_action[1] = -1.2;
                     // global_action <dRootRotErr_dpose0_total< 1, 0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1,
                     // 1,
                     //     0.1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.1;
@@ -223,6 +224,9 @@ void Update(double time_elapsed)
         }
         // std::cout << "main core update time = " << timestep << std::endl;
         gCore->Update(timestep);
+
+        // we can only get the drda after update
+        gCore->CalcDRewardDAction();
 
         if (gCore->IsRLScene())
         {

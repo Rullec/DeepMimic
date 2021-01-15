@@ -1,7 +1,8 @@
 --scene diff_imitate
+--diff_scene_mode multi_steps
 
---time_lim_min 5
---time_lim_max 5
+--time_lim_min 0.5
+--time_lim_max 0.5
 --time_lim_exp 0.2
 
 --time_end_lim_min 10
@@ -29,7 +30,8 @@
 #----------------PD params and motion data----------------
 --char_ctrls ct_pd_gen
 --char_ctrl_files data/0113/controllers/ctrl_2d_2links.txt
---motion_file data/0110/motions/motion_2links_tilt.txt
+# --motion_file data/0110/motions/motion_2links_tilt.txt
+--motion_file data/0103/motions/motion_2d_2links.txt
 --sync_char_root_pos true
 --sync_char_root_rot false
 
@@ -37,9 +39,9 @@
 --reward_file data/0103/rewards/reward_weight_only_pose_vel.json
 
 --agent_files data/0103/agents/agent_diffMBRL.json
---train_agents false
+--train_agents true
 
---output_path output/0110
+--output_path output/0113/2links_multisteps_test
 
 #---------------diff world-------------
 --enable_test_reward_action_derivative false

@@ -1,11 +1,17 @@
 #include "SceneDiffImitate.h"
+#include "sim/Controller/CtPDGenController.h"
 #include "sim/World/GenWorld.h"
 #include "util/LogUtil.h"
+const std::string
+    cSceneDiffImitate::gDerivModeStr[cSceneDiffImitate::NUM_DERIV_MODE] = {
+        "single_step", "multi_steps"};
 
 cSceneDiffImitate::cSceneDiffImitate()
 {
     // MIMIC_INFO("cSceneDiffImitate created");
     mEnableTestDRewardDAction = false;
+    mPBuffer.clear();
+    mQBuffer.clear();
 }
 cSceneDiffImitate::~cSceneDiffImitate() {}
 
@@ -14,6 +20,11 @@ void cSceneDiffImitate::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     cSceneImitate::ParseArgs(parser);
     parser->ParseBoolCritic("enable_test_reward_action_derivative",
                             mEnableTestDRewardDAction);
+
+    std::string diffmode_str;
+    parser->ParseStringCritic("diff_scene_mode", diffmode_str);
+    mDerivMode = cSceneDiffImitate::ParseDerivMode(diffmode_str);
+    MIMIC_INFO("diff scene mode {}", gDerivModeStr[mDerivMode]);
 }
 
 /**
@@ -29,17 +40,19 @@ void cSceneDiffImitate::Init()
         MIMIC_ASSERT(eSimCharacterType::Generalized ==
                      GetCharacter(i)->GetCharType());
     }
+
+    // set ctrl to calculate the derivatives
+    GetDefaultGenCtrl()->SetEnableCalcDeriv(true);
+    MIMIC_ASSERT(GetDefaultGenCtrl()->GetEnableCalcDeriv());
 }
 
 /**
  * \brief       Get D(Reward)/D(Action)
+ *  it is the ultimate gradient function
+ *  dr/da = 
+ *      dr/d x_{cur} * d (x_cur) / d_u * d u / da
  * 
- * dr/da = 
- *      dr/d x_{cur} 
- *      * 
- *      d (x_cur) / d_u
- *      *
- *      d u / da
+ *  This function will be calculated before the new action is applied
 */
 tVectorXd cSceneDiffImitate::CalcDRewardDAction()
 {
@@ -47,7 +60,21 @@ tVectorXd cSceneDiffImitate::CalcDRewardDAction()
     {
         Test();
     }
-    return CalcDrDa();
+
+    //
+
+    // d(r_t)/d(x_{t+1}^1) * d(x_{t+1}^1)/d(a)
+    tVectorXd DrDa = CalcDrDxcur().transpose() * CalcDxurDa();
+    {
+        // test
+        tVectorXd Drda_single =
+            CalcDrDxcur().transpose() * CalcDxurDa_SingleStep();
+        tVectorXd Drda_multi =
+            CalcDrDxcur().transpose() * CalcDxurDa_MultiStep();
+        std::cout << "[single] drda = " << Drda_single.transpose() << std::endl;
+        std::cout << "[multi] drda = " << Drda_multi.transpose() << std::endl;
+    }
+    return DrDa;
 }
 
 /**
@@ -83,7 +110,8 @@ void cSceneDiffImitate::Test()
     // 4. total test method
     {
         TestDrDxcur();
-        TestDrDa();
+        TestDRewardDAction();
+        TestP();
     }
 }
 
@@ -252,6 +280,8 @@ void cSceneDiffImitate::TestDrDxcur()
 
 /**
  * \brief       Get D(reward) / D x_cur
+ *      Calculate the derivative of current reward w.r.t current x
+ *      In the train cycle, it is d(r_t)/d(x_{t+1}^1)
 */
 tVectorXd cSceneDiffImitate::CalcDrDxcur()
 {
@@ -271,9 +301,38 @@ tVectorXd cSceneDiffImitate::CalcDrDxcur()
     return drdx;
 }
 
+/**
+ * \brief           Calcudlate d(x_cur)/d(action)
+ *      
+ *      d(x_{t+1}^1)/da
+*/
+tMatrixXd cSceneDiffImitate::CalcDxurDa()
+{
+    tMatrixXd deriv;
+    switch (mDerivMode)
+    {
+    case eDerivMode::DERIV_SINGLE_STEP:
+        deriv = CalcDxurDa_SingleStep();
+        break;
+    case eDerivMode::DERIV_MULTI_STEPS:
+        deriv = CalcDxurDa_MultiStep();
+        break;
+    default:
+        MIMIC_ASSERT(false);
+        break;
+    }
+    return deriv;
+}
+
 std::shared_ptr<cSimCharacterGen> cSceneDiffImitate::GetDefaultGenChar()
 {
     return std::dynamic_pointer_cast<cSimCharacterGen>(GetCharacter(0));
+}
+
+std::shared_ptr<cCtPDGenController> cSceneDiffImitate::GetDefaultGenCtrl()
+{
+    return std::dynamic_pointer_cast<cCtPDGenController>(
+        GetDefaultGenChar()->GetController());
 }
 /**
  * \brief           Calc D(pose_reward)/Dpose0
@@ -591,34 +650,12 @@ void cSceneDiffImitate::TestDVelRewardDqdot()
 
 /**
  * \brief           calc d(reward)/d(action)
- *  it is the ultimate gradient function
- *      drda = dr/dxcur * dxcur/dctrlforce * dctrlforce/da
 */
-#include "sim/Controller/CtPDGenController.h"
-tVectorXd cSceneDiffImitate::CalcDrDa()
+void cSceneDiffImitate::TestDRewardDAction()
 {
-    // tMatrixXd CalcDxurDctrlforce();
-    // tMatrixXd CalcDctrlforceDa();
-    // std::cout << "[debug] calc drda timestep = " << mTimestep << std::endl;
-    tVectorXd DrDx = CalcDrDxcur();
-    auto bt_gen_world =
-        std::dynamic_pointer_cast<cGenWorld>(mWorldBase)->GetInternalGenWorld();
-    tMatrixXd DxDCtrlForce = bt_gen_world->GetDxnextDCtrlForce();
-    auto gen_char = GetDefaultGenChar();
-    auto gen_ctrl = std::dynamic_pointer_cast<cCtPDGenController>(
-        gen_char->GetController());
-    tMatrixXd DctrlforceDaction = gen_ctrl->CalcDCtrlForceDAction(mTimestep);
-    tVectorXd DrDa = DrDx.transpose() * DxDCtrlForce * DctrlforceDaction;
-    // std::cout << "DrDa = " << DrDa.transpose() << std::endl;
-    return DrDa;
-}
-
-/**
- * \brief           calc d(reward)/d(action)
-*/
-void cSceneDiffImitate::TestDrDa()
-{
-    tVectorXd ideal_drda = CalcDrDa();
+    mEnableTestDRewardDAction = false;
+    tVectorXd ideal_drda = CalcDRewardDAction();
+    mEnableTestDRewardDAction = true;
 
     // 1. get the previous model result, get the old action
     auto bt_gen_world =
@@ -669,4 +706,253 @@ void cSceneDiffImitate::TestDrDa()
         std::cout << "[error] Test DrDa failed\n";
     else
         std::cout << "[log] Test DrDa succ\n";
+}
+
+/**
+ * \brief           given a string Parse the derivative mode
+*/
+cSceneDiffImitate::eDerivMode cSceneDiffImitate::ParseDerivMode(std::string str)
+{
+    for (int i = 0; i < cSceneDiffImitate::eDerivMode::NUM_DERIV_MODE; i++)
+    {
+        if (cSceneDiffImitate::gDerivModeStr[i] == str)
+            return static_cast<cSceneDiffImitate::eDerivMode>(i);
+    }
+    MIMIC_ERROR("invalid deriv mode str {}", str);
+    return cSceneDiffImitate::NUM_DERIV_MODE;
+}
+
+/**
+ * \brief           Calc DxurDa only use single step information
+ *      we assume: d(xur)/da = d(xur)/d(u_cur) * d(u_cur)/da
+ * 
+ *      it should be: 
+ *      d(x_{t+1}^1)/da = 
+ *          d(x_{t+1})/d(u_t) * d(u_t)/da
+ *                  
+*/
+tMatrixXd cSceneDiffImitate::CalcDxurDa_SingleStep() { return CalcQ(); }
+
+/**
+ * \brief           Calculate the d(x_cur)/da by multi substeps info
+ *  Basically, the formula is:
+ *          d(x_k)da  = d(x_k)/d(x_{k-1}) * d(x_{k-1})da + d(x_k)/d(u_{k-1}) * d(u_{k-1})/da
+ * 
+ *      let Dk = d(x_k)da, 
+ *          Pk = d(x_k)/d(x_{k-1}), 
+ *          D_{k-1} = d(x_{k-1})da, 
+ *          Q_k = d(x_k)/d(u_{k-1}) * d(u_{k-1})/da
+ * 
+ *      we have 
+ *          Dk = Pk * D_{k-1} + Qk
+ * For more details, please check the note "20210112 diffMBRL对多个substep求导"
+*/
+tVectorXd cSceneDiffImitate::CalcDxurDa_MultiStep()
+{
+    // printf("[debug] P buffer size %d, Q buffer size %d\n", mPBuffer.size(),
+    //        mQBuffer.size());
+    MIMIC_ASSERT(mPBuffer.size() == mQBuffer.size());
+    if (mPBuffer.size() != 20)
+    {
+        // if current P buffer is not 20, it must be zero.
+    }
+    int size = mPBuffer.size();
+
+    /*
+        Dk = Pk * Dk-1 + Qk
+        ...
+        D1 = P1 * D0 + Q1
+        D0 = Q0
+    */
+
+    tMatrixXd DxDa = mQBuffer[0];
+
+    for (int i = std::max(1, size - 3); i < size; i++)
+    {
+        DxDa = mPBuffer[i] * DxDa + mQBuffer[i];
+    }
+    std::cout << "[debug] calc dxda done, size = " << size << std::endl;
+    return DxDa;
+}
+
+/**
+ * \brief           Calculate the P Matrix at this moment
+ *      
+ *      the P Matrix is d(x_cur)/d(x_prev), approximately
+ * 
+ *      P = A * \frac{d u}{d x} 
+ *          + [dt*I; I] * \tilde{M}^{-1} * M * dqdot/dx
+ * 
+ *      A is the state transition matrix in semi-implicit scheme
+ *      A = dt * [dt*I; I] * \tilde{M}^{-1}
+ * 
+ *      \tilde{M} = (M + dt * C)
+*/
+tMatrixXd cSceneDiffImitate::CalcP()
+{
+    // 1. some prerequistes
+    MIMIC_ASSERT(mTimestep > 0);
+    auto gen_char = GetDefaultGenChar();
+    auto gen_ctrl = GetDefaultGenCtrl();
+    const tMatrixXd &M = gen_char->GetMassMatrix(),
+                    &C = gen_char->GetCoriolisMatrix();
+
+    int dof = gen_char->GetNumOfFreedom();
+    int state_size = 2 * dof;
+    tMatrixXd tilde_M_inv = (M + mTimestep * C).inverse();
+    tMatrixXd dtI_I = tMatrixXd::Zero(state_size, dof);
+    dtI_I.block(0, 0, dof, dof).setIdentity();
+    dtI_I.block(dof, 0, dof, dof).setIdentity();
+    dtI_I.block(0, 0, dof, dof) *= mTimestep;
+
+    // 2. form P part1: A * dudx
+    tMatrixXd P = mTimestep * dtI_I * tilde_M_inv *
+                  gen_ctrl->CalcDCtrlForceDx_Approx(mTimestep);
+
+    // 3. form P part2:
+    // [dt*I; I] * \tilde{M}^{-1} * M * dqdot/dx
+    tMatrixXd dqdot_dx = tMatrixXd::Zero(dof, state_size);
+    dqdot_dx.block(0, dof, dof, dof).setIdentity();
+    P += dtI_I * tilde_M_inv * M * dqdot_dx;
+
+    return P;
+}
+
+/**
+ * \brief           Calculate the Q vector at this moment
+ *      the Q vector is d(x_cur)/d(u_prev) * d(u_prev)/da, approximately
+*/
+tMatrixXd cSceneDiffImitate::CalcQ()
+{
+    auto bt_gen_world =
+        std::dynamic_pointer_cast<cGenWorld>(mWorldBase)->GetInternalGenWorld();
+
+    // d(x_{t+1}^1)/dut
+    tMatrixXd DxDCtrlForce = bt_gen_world->GetDxnextDCtrlForce();
+    auto gen_char = GetDefaultGenChar();
+    auto gen_ctrl = GetDefaultGenCtrl();
+
+    // it is in current timestep, wrong result
+    tMatrixXd DctrlforceDaction_old = gen_ctrl->GetDCtrlForceDAction();
+    return DxDCtrlForce * DctrlforceDaction_old;
+}
+
+void cSceneDiffImitate::Reset()
+{
+    std::cout << "[debug] reset\n";
+    cSceneImitate::Reset();
+    ClearPQBuffer();
+}
+
+void cSceneDiffImitate::ClearPQBuffer()
+{
+    mPBuffer.clear();
+    mQBuffer.clear();
+    // std::cout << "[debug] clear PQ buffer!\n";
+}
+
+/**
+ * \brief           update the current scene
+*/
+void cSceneDiffImitate::Update(double dt)
+{
+    mTimestep = dt;
+    // 0. if it's in the multistep mode, consider to calcualte the P and Q
+    {
+        // 0.1 calcualte P (confirmed, it's and it should be calculated in the old timestep, here)
+        mPBuffer.push_back(CalcP());
+    }
+
+    // 1. update the imitate scene
+    cSceneImitate::Update(dt);
+
+    // 0.2 calcualte Q, I think is should be caclulated after the update
+    mQBuffer.push_back(CalcQ());
+}
+
+/**
+ * \brief       Test the d(x_{t+1})/d(x_t) numerically
+ * 
+*/
+void cSceneDiffImitate::TestP()
+{
+    auto Getx = [](cSimCharacterGen *gen_char) -> tVectorXd {
+        int dof = gen_char->GetNumOfFreedom();
+        int state_size = dof * 2;
+        tVectorXd x = tVectorXd::Zero(state_size);
+        x.segment(0, dof) = gen_char->Getq();
+        x.segment(dof, dof) = gen_char->Getqdot();
+        return x;
+    };
+
+    // 0. push the current state
+    auto gen_char = GetDefaultGenChar();
+    gen_char->PushState("test_p");
+    // 1. get current P, then {get current x_{t+1} by simulation}
+    tMatrixXd P = CalcP();
+    printf("P size %d %d\n", P.rows(), P.cols());
+    gen_char->PushState("update");
+    Update(mTimestep);
+    tVectorXd xnext_old = Getx(gen_char.get());
+    gen_char->PopState("update");
+
+    // 2. set eps, set the state vector, add & minus eps on each element then {do forward simulation}, get new x_{t+1}
+    // then calc the nuermcally grad
+    double eps = 1e-5;
+    int dof = gen_char->GetNumOfFreedom(), state_size = 2 * dof;
+    tVectorXd q = gen_char->Getq(), qdot = gen_char->Getqdot();
+    for (int i = 0; i < state_size; i++)
+    {
+        // add eps
+        if (i < dof)
+        {
+            // q size
+            q[i] += eps;
+        }
+        else
+        {
+            // qdot size
+            qdot[i - dof] += eps;
+        }
+
+        gen_char->SetqAndqdot(q, qdot);
+        gen_char->PushState("update");
+        Update(mTimestep);
+        tVectorXd xnext_new = Getx(gen_char.get());
+        gen_char->PopState("update");
+
+        tVectorXd num_dxnext_dxold = (xnext_new - xnext_old) / eps;
+        tVectorXd approx_dxnext_dxold = P.col(i);
+        tVectorXd diff = approx_dxnext_dxold - num_dxnext_dxold;
+        printf("------------idx %d-------------\n", i);
+        std::cout << "approx_dxnext_dxold = " << approx_dxnext_dxold.transpose()
+                  << std::endl;
+        std::cout << "num_dxnext_dxold = " << num_dxnext_dxold.transpose()
+                  << std::endl;
+        std::cout << "diff = " << diff.transpose() << std::endl;
+        printf("diff percentage %.5f%%\n",
+               diff.norm() / num_dxnext_dxold.norm() * 100);
+        // minus eps
+        if (i < dof)
+        {
+            // q size
+            q[i] -= eps;
+        }
+        else
+        {
+            // qdot size
+            qdot[i - dof] -= eps;
+        }
+    }
+
+    // 3. pop the old state
+    gen_char->PopState("test_p");
+    // exit(0);
+}
+
+void cSceneDiffImitate::SetAction(int agent_id, const Eigen::VectorXd &action)
+{
+    // std::cout << "[debug] set aciton\n";
+    ClearPQBuffer();
+    cSceneImitate::SetAction(agent_id, action);
 }
