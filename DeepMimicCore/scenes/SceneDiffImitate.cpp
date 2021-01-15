@@ -12,6 +12,7 @@ cSceneDiffImitate::cSceneDiffImitate()
     mEnableTestDRewardDAction = false;
     mPBuffer.clear();
     mQBuffer.clear();
+    mDebugOutput = true;
 }
 cSceneDiffImitate::~cSceneDiffImitate() {}
 
@@ -65,15 +66,15 @@ tVectorXd cSceneDiffImitate::CalcDRewardDAction()
 
     // d(r_t)/d(x_{t+1}^1) * d(x_{t+1}^1)/d(a)
     tVectorXd DrDa = CalcDrDxcur().transpose() * CalcDxurDa();
-    {
-        // test
-        tVectorXd Drda_single =
-            CalcDrDxcur().transpose() * CalcDxurDa_SingleStep();
-        tVectorXd Drda_multi =
-            CalcDrDxcur().transpose() * CalcDxurDa_MultiStep();
-        std::cout << "[single] drda = " << Drda_single.transpose() << std::endl;
-        std::cout << "[multi] drda = " << Drda_multi.transpose() << std::endl;
-    }
+    // {
+    //     // test
+    //     tVectorXd Drda_single =
+    //         CalcDrDxcur().transpose() * CalcDxurDa_SingleStep();
+    //     tVectorXd Drda_multi =
+    //         CalcDrDxcur().transpose() * CalcDxurDa_MultiStep();
+    //     // std::cout << "[single] drda = " << Drda_single.transpose() << std::endl;
+    //     // std::cout << "[multi] drda = " << Drda_multi.transpose() << std::endl;
+    // }
     return DrDa;
 }
 
@@ -771,7 +772,7 @@ tVectorXd cSceneDiffImitate::CalcDxurDa_MultiStep()
     {
         DxDa = mPBuffer[i] * DxDa + mQBuffer[i];
     }
-    std::cout << "[debug] calc dxda done, size = " << size << std::endl;
+    // std::cout << "[debug] calc dxda done, size = " << size << std::endl;
     return DxDa;
 }
 
@@ -831,15 +832,24 @@ tMatrixXd cSceneDiffImitate::CalcQ()
     tMatrixXd DxDCtrlForce = bt_gen_world->GetDxnextDCtrlForce();
     auto gen_char = GetDefaultGenChar();
     auto gen_ctrl = GetDefaultGenCtrl();
-
+    if (mDebugOutput)
+        std::cout << "[debug] DxDCtrlForce = \n" << DxDCtrlForce << std::endl;
     // it is in current timestep, wrong result
     tMatrixXd DctrlforceDaction_old = gen_ctrl->GetDCtrlForceDAction();
+    if (mDebugOutput)
+    {
+
+        std::cout << "DctrlforceDaction = \n"
+                  << DctrlforceDaction_old << std::endl;
+
+        std::cout << "DxDaction = \n"
+                  << DxDCtrlForce * DctrlforceDaction_old << std::endl;
+    }
     return DxDCtrlForce * DctrlforceDaction_old;
 }
 
 void cSceneDiffImitate::Reset()
 {
-    std::cout << "[debug] reset\n";
     cSceneImitate::Reset();
     ClearPQBuffer();
 }
@@ -858,6 +868,7 @@ void cSceneDiffImitate::Update(double dt)
 {
     mTimestep = dt;
     // 0. if it's in the multistep mode, consider to calcualte the P and Q
+    if (mDerivMode == eDerivMode::DERIV_MULTI_STEPS)
     {
         // 0.1 calcualte P (confirmed, it's and it should be calculated in the old timestep, here)
         mPBuffer.push_back(CalcP());
@@ -867,7 +878,19 @@ void cSceneDiffImitate::Update(double dt)
     cSceneImitate::Update(dt);
 
     // 0.2 calcualte Q, I think is should be caclulated after the update
-    mQBuffer.push_back(CalcQ());
+    if (mDerivMode == eDerivMode::DERIV_MULTI_STEPS)
+        mQBuffer.push_back(CalcQ());
+
+    if (mDebugOutput)
+    {
+
+        tVectorXd drdx = CalcDrDxcur();
+        tMatrixXd dxda = CalcDxurDa_SingleStep();
+        std::cout << "[debug] cur drdx = " << CalcDrDxcur().transpose()
+                  << std::endl;
+        std::cout << "[debug] cur drda = " << drdx.transpose() * dxda
+                  << std::endl;
+    }
 }
 
 /**

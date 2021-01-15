@@ -68,4 +68,5 @@ protected:
     eDerivMode mDerivMode; // the mode for CalcDRewardDAction
     bool
         mEnableTestDRewardDAction; // enable testing the derivative d(reawrd)/d(action) when CalcReward
+    bool mDebugOutput;
 };

@@ -30,6 +30,7 @@ class TorchAgent:
     EXP_ANNEAL_SAMPLES_KEY = "ExpAnnealSamples"
     EXP_PARAM_BEG_KEY = "ExpParamsBeg"
     EXP_PARAM_END_KEY = "ExpParamsEnd"
+    WEIGHT_LOSS_KEY = "WeightLoss"
 
     class Mode(Enum):
         TRAIN = 0
@@ -46,6 +47,7 @@ class TorchAgent:
         self.lr_decay = 1.0
         self.exp_anneal_samples = 5e5
         self.max_samples = 5e5
+        self.weight_loss = 0.
         self.test_episodes = int(0)
         self.exp_params_beg = ExpParams()
         self.exp_params_end = ExpParams()
@@ -102,13 +104,16 @@ class TorchAgent:
         assert self.EXP_PARAM_END_KEY in json_data
         self.exp_params_end.load(json_data[self.EXP_PARAM_END_KEY])
 
+        assert self.WEIGHT_LOSS_KEY in json_data
+        self.weight_loss = json_data[self.WEIGHT_LOSS_KEY]
+
         self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
 
         return
 
     def _build_loss(self):
         self.optimizer = optim.SGD(
-            self.action.parameters(), lr=self.lr)
+            self.action.parameters(), lr=self.lr, weight_decay=self.weight_loss)
 
     def save_model(self, out_path):
         tar_dir = os.path.dirname(out_path)
@@ -179,18 +184,22 @@ class TorchAgent:
         # print(
         #     f"[train] states shape {x.shape}, drdas shape {w.shape}, lr {self._get_lr()}")
 
-        # print(
-        #     f"[train] drda mean {np.mean(w, axis=0)}")
+        actions = np.array(self.replay_buffer.get_action())
+        print(
+            f"[train] action mean {np.mean(actions, axis=0)}")
+        print(
+            f"[train] drda mean {np.mean(w, axis=0)}")
         # print(
         #     f"[train] drda std {np.std(w, axis=0)}")
 
         y_torch = self.action(torch.Tensor(x))
         w_torch = torch.Tensor(w)
-        assert(w_torch.shape == y_torch.shape), f"w shape {w_torch.shape} y shape {y_torch.shape}"
-        pesudo_loss = y_torch * w_torch  # y: [batch, m], w:[batch, m]
-        assert(pesudo_loss.shape == w_torch.shape)
-        persudo_loss_sum = -torch.mean(pesudo_loss)
-        persudo_loss_sum.backward()
+        assert(w_torch.shape ==
+               y_torch.shape), f"w shape {w_torch.shape} y shape {y_torch.shape}"
+        # y: [batch, m], w:[batch, m]
+        pesudo_loss = -torch.mean(y_torch * w_torch)
+        loss_sum = pesudo_loss
+        loss_sum.backward()
         torch.nn.utils.clip_grad_value_(self.action.parameters(), 3)
         # print(type(self.action.parameters()))
         # print(type(self.action.parameters().grad))
@@ -310,8 +319,8 @@ class TorchAgent:
             r = self._record_reward()
             # print(f"cur rew = {r}")
             drda = self._record_drda()
-            # print(
-            #     f"[debug] action = {self.path.actions[-1]} action mean = {np.mean(self.path.actions, axis = 0)} drda = {drda} reward {r}")
+            print(
+                f"[debug] action = {self.path.actions[-1]} drda = {drda} reward {r}")
             np.set_printoptions(precision=3)
             # print(
             #     f"[debug] drda = {drda} reward {r}")

@@ -385,7 +385,7 @@ void cCtPDGenController::ApplyAction(const Eigen::VectorXd &action)
         // TestDTargetqDAction();
         // TestDCtrlForceDTargetq();
         TestDCtrlForceDAction();
-        TestDCtrlForceDx_Approx();
+        // TestDCtrlForceDx_Approx();
     }
 }
 
