@@ -71,6 +71,11 @@ protected:
     tVectorXd CalcDEndEffectorErrDq(int id) const;
     void TestDEndEffectorErrDq(int id);
 
+    // 6. calc & test root reward deriv
+    tVectorXd CalcDRootRewardDq() const;
+    tVectorXd CalcDRootRewardDqdot() const;
+    void TestDRootRewardDqDqdot();
+    
     // test the exponential relationship
     double CalcDEndEffectorRewardDErr(double err);
     void TestEndEffectorRewardByGivenErr();

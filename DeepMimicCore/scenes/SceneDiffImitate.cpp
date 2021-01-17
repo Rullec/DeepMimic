@@ -46,22 +46,23 @@ void cSceneDiffImitate::Init()
     GetDefaultGenCtrl()->SetEnableCalcDeriv(true);
     MIMIC_ASSERT(GetDefaultGenCtrl()->GetEnableCalcDeriv());
 
-    // {
-    //     auto gen_char = GetDefaultGenChar();
-    //     tVectorXd q = gen_char->Getq();
-    //     q += tVectorXd::Ones(q.size()) * 1e-2;
-    //     gen_char->Setq(q);
+    {
+        auto gen_char = GetDefaultGenChar();
+        tVectorXd q = gen_char->Getq();
+        q += tVectorXd::Ones(q.size()) * 1e-2;
+        gen_char->Setq(q);
 
-    //     // TestEndEffectorRewardByGivenErr();
-    //     TestDEndEffectorRewardDq();
+        // TestEndEffectorRewardByGivenErr();
+        // TestDEndEffectorRewardDq();
+        TestDRootRewardDqDqdot();
 
-    //     // for (int i = 0; i < gen_char->GetNumOfLinks(); i++)
-    //     // {
-    //     //     // TestDJointPosRel0Dq(i);
-    //     //     TestDEndEffectorErrDq(i);
-    //     // }
-    // }
-    // exit(0);
+        // for (int i = 0; i < gen_char->GetNumOfLinks(); i++)
+        // {
+        //     // TestDJointPosRel0Dq(i);
+        //     TestDEndEffectorErrDq(i);
+        // }
+    }
+    exit(0);
 }
 
 /**
@@ -1412,4 +1413,21 @@ void cSceneDiffImitate::TestEndEffectorRewardByGivenErr()
               << std::endl;
     std::cout << "dadb = " << ana_deriv << std::endl;
     exit(0);
+}
+
+/**
+ * \brief               Calculate the deriv of root reward w.r.t q
+*/
+tVectorXd cSceneDiffImitate::CalcDRootRewardDq() const {}
+/**
+ * \brief               Calculate the deriv of root reward w.r.t qdot
+*/
+tVectorXd cSceneDiffImitate::CalcDRootRewardDqdot() const {}
+
+/**
+ * \brief               Test the deriv of root reward w.r.t q & qdot
+*/
+void cSceneDiffImitate::TestDRootRewardDqDqdot() 
+{
+    
 }
