@@ -34,7 +34,7 @@
 --sync_char_root_pos true
 --sync_char_root_rot false
 
---reward_file data/0115/rewards/reward_weight_only_pose_vel.json
+--reward_file data/0115/rewards/reward_weight_pose_vel_ee.json
 
 --agent_files data/0115/agents/agent_train.json
 --train_agents false

@@ -48,6 +48,15 @@ bool cSimCharacterGen::Init(const std::shared_ptr<cWorldBase> &world,
     BuildBodyLinks();
     BuildJoints();
     InitParamMatrix(mCharFilename);
+
+    // {
+    //     mq.setRandom();
+    //     Setq(mq);
+    //     TestDHeadingRotDqroot();
+    //     TestDOriginTransDq();
+    //     MIMIC_ERROR("test succ");
+    // }
+
     return true;
 }
 
@@ -1422,6 +1431,15 @@ void cSimCharacterGen::Setqdot(const tVectorXd &qdot)
     BuildVel(mVel);
 }
 
+/**
+ * \brief                   Set the gen coord of this character
+ * Note that the mPose are also changed simultaneously
+ */
+void cSimCharacterGen::Setq(const tVectorXd &q)
+{
+    cRobotModelDynamics::Setq(q);
+    BuildPose(mPose);
+}
 // ------------------------- SimCharacter
 void cSimCharacterGen::RotateRoot(const tQuaternion &rot)
 {
@@ -1454,15 +1472,210 @@ tMatrix cSimCharacterGen::BuildOriginTrans() const
     tMatrix trans_mat = cMathUtil::TranslateMat(-origin);
     tMatrix rot_mat = cMathUtil::RotMat(CalcHeadingRot());
     tMatrix res = rot_mat * trans_mat;
-    // std::cout
-    //     << "---------------build origin trans begin gen-----------------\n";
-    // std::cout << "trans = \n" << trans_mat << std::endl;
-    // std::cout << "rot = \n" << rot_mat << std::endl;
-    // std::cout << "res = \n" << rot_mat * trans_mat << std::endl;
-    // std::cout << "---------------build origin trans end gen-----------------\n";
     return res;
 }
 
+/**
+ * \brief           Calculate the derivative of d(origin_transform)/dq
+ * 
+ *      The origin_transform is built by `BuildOriginTrans`, 4x4 transformation matrix
+ *      For more details, please check the note "end effector reward对q的梯度"
+ * 
+ *      1. calculate dHeadingRot_dqroot
+ *      2. calcualte dT_trans_dqroot
+ *      3. calcualte other info and combine
+ * 
+ *      d(T_{ori})/dq = dR_{-h}/dq * T_{transl} + R_{-h} * d(T_{transl})/dq
+ * 
+ *      R_{-h} is the headng rot, d(R_{-h})/dq is the derivative of heading rot
+ *      
+*/
+void cSimCharacterGen::CalcDOriginTransDq(tEigenArr<tMatrix> &dTdq) const
+{
+    // 1. caclualte dHeadRotdqroot
+    tEigenArr<tMatrix> dHeadingRot_dqroot;
+    CalcDHeadingRotDqroot(dHeadingRot_dqroot);
+
+    tMatrixXd R_minush = cMathUtil::RotMat(CalcHeadingRot());
+
+    // 2. calculate d(T_trans)_dqroot (minus_Jv) and T_trans
+    tVector origin = GetRootPos();
+    origin[1] = 0;
+    tMatrix T_transl = cMathUtil::TranslateMat(-origin);
+    auto root_joint = dynamic_cast<Joint *>(GetRoot());
+    int root_dof = root_joint->GetNumOfFreedom();
+    tMatrixXd minus_Jv = -root_joint->GetJKv_reduced(); // 3 x n
+
+    // 3.2 remove the Y axis component translation in minus_Jv
+    minus_Jv.row(1).setZero();
+
+    // 3. combine and get the final result, note that do it for ONLY root freedom
+    dTdq.resize(num_of_freedom, tMatrix::Zero());
+    tMatrix dT_transl_dq = tMatrix::Zero();
+    for (int i = 0; i < root_dof; i++)
+    {
+        dT_transl_dq.block(0, 3, 3, 1) = minus_Jv.col(i);
+        dTdq[i].noalias() =
+            dHeadingRot_dqroot[i] * T_transl + R_minush * dT_transl_dq;
+    }
+}
+
+/**
+ * \brief           Test the function CalcDOriginTransDq numerically
+*/
+void cSimCharacterGen::TestDOriginTransDq()
+{
+    PushState("test_dorigintrans");
+    // 1. cal old origin trans, calc deriv
+    tMatrix old_origin_trans = BuildOriginTrans();
+    tEigenArr<tMatrix> dOriginTrans_dq;
+    CalcDOriginTransDq(dOriginTrans_dq);
+
+    // 2. cal numerically and compare
+    double eps = 1e-6;
+    // std::cout << "root pos = " << GetRootPos().transpose() << std::endl;
+    tVectorXd q = mq;
+    // std::cout << "old q = " << q.transpose() << std::endl;
+    for (int i = 0; i < num_of_freedom; i++)
+    {
+        q[i] += eps;
+        Setq(q);
+        // std::cout << "new q = " << q.transpose() << std::endl;
+        // std::cout << "idx " << i << "root pos = " << GetRootPos().transpose()
+        //           << std::endl;
+        tMatrix new_origin_trans = BuildOriginTrans();
+        tMatrix num_dOriginTrans_dqi =
+            (new_origin_trans - old_origin_trans) / eps;
+        tMatrix ana_dOriginTrans_dqi = dOriginTrans_dq[i];
+        tMatrix diff = ana_dOriginTrans_dqi - num_dOriginTrans_dqi;
+
+        if (diff.cwiseAbs().maxCoeff() > eps)
+        {
+            std::cout << "TestDOriginTransDq failed for idx " << i << std::endl;
+            std::cout << "ana = \n" << ana_dOriginTrans_dqi << std::endl;
+            std::cout << "num = \n" << num_dOriginTrans_dqi << std::endl;
+            std::cout << "new origin trans = \n"
+                      << old_origin_trans << std::endl;
+            std::cout << "old origin trans = \n"
+                      << new_origin_trans << std::endl;
+            std::cout << "diff = \n" << diff << std::endl;
+            MIMIC_ASSERT(false);
+        }
+        q[i] -= eps;
+    }
+    PopState("test_dorigintrans");
+    std::cout << "TestDOriginTransDq succ\n";
+}
+
+/**
+ * \brief           the derivative of heading rotmat w.r.t root freedom
+*/
+#include "BulletGenDynamics/btGenModel/ExpMapRotMat.h"
+static btGenExpMapRotation
+    gExpMapRot; // used to calculate d(heading)/dqroot, only restricted in this local scope
+void cSimCharacterGen::CalcDHeadingRotDqroot(tEigenArr<tMatrix> &dTdq) const
+{
+    double h = CalcHeading();
+
+    // 1. dR/d(-h)
+    tVector aa = tVector(0, -h, 0, 0);
+    gExpMapRot.SetAxis(aa);
+    tMatrix dR_dhminus = gExpMapRot.GetFirstDeriv(1); // 4x4 rot mat
+    /*
+        2. d(-h)/dq
+
+        2.1 get root dRdq (locally)
+    */
+    auto root_joint = dynamic_cast<Joint *>(GetRoot());
+    int root_dof = root_joint->GetNumOfFreedom();
+    tVectorXd dhdq = CalcDHeadingDqroot();
+    dTdq.resize(root_dof);
+
+    for (int i = 0; i < root_dof; i++)
+    {
+        dTdq[i].noalias() = -dR_dhminus * dhdq[i];
+    }
+}
+
+/**
+ * \brief           the derivative of heading rotmat w.r.t root freedom
+ *          heading rotmat = Rotmat(AA(0, -h, 0))
+ *          h = Rot_root()
+*/
+void cSimCharacterGen::TestDHeadingRotDqroot()
+{
+    PushState("test_dheading");
+    // 1. get current heading rot, get analytic grad
+    tMatrix heading_rot_old = cMathUtil::RotMat(CalcHeadingRot());
+    auto root_joint = dynamic_cast<Joint *>(GetRoot());
+    int root_dof = root_joint->GetNumOfFreedom();
+    tEigenArr<tMatrix> Dheadingrot_Dqroot(root_dof);
+    CalcDHeadingRotDqroot(Dheadingrot_Dqroot);
+    // std::cout << "old root rot = \n" << heading_rot_old << std::endl;
+    // 2. calculate the derivs numerically
+    double eps = 1e-4;
+    for (int i = 0; i < root_dof; i++)
+    {
+        mq[i] += eps;
+        Setq(mq);
+
+        // 2.1 get new heading rot
+        tMatrix heading_rot_new = cMathUtil::RotMat(CalcHeadingRot());
+        tMatrix DhDqr_numi = (heading_rot_new - heading_rot_old) / eps;
+        tMatrix DhDqr_anai = Dheadingrot_Dqroot[i];
+        tMatrix diff = DhDqr_anai - DhDqr_numi;
+        if (diff.cwiseAbs().maxCoeff() > eps)
+        {
+            std::cout << "test dheading rot d root failed for idx " << i
+                      << std::endl;
+            std::cout << "ana = \n" << DhDqr_anai << std::endl;
+            std::cout << "num = \n" << DhDqr_numi << std::endl;
+            std::cout << "diff = \n" << diff << std::endl;
+            MIMIC_ASSERT(false);
+        }
+
+        mq[i] -= eps;
+    }
+
+    PopState("test_dheading");
+    std::cout << "TestDHeadingRotDqroot succ\n";
+}
+
+/**
+ * \brief       calculate d(heading)/dqroot
+ *      assume the R is the rotation of root joint
+ *      heading = -arctan(R(2,0)/R(0,0))
+ * 
+ *      dhdq = -1/(1 + m^2) * 
+ *              (dR(2,0)dq * R(0,0) - R(2, 0) * dR(0, 0)dq)
+ *              /
+ *              (R(0,0)^2)
+*/
+tVectorXd cSimCharacterGen::CalcDHeadingDqroot() const
+{
+    auto root_joint = dynamic_cast<Joint *>(GetRoot());
+    MIMIC_ASSERT(root_joint != nullptr);
+    int root_dof = root_joint->GetNumOfFreedom();
+
+    tVectorXd dRdq_2_0 = tVectorXd::Zero(root_dof),
+              dRdq_0_0 = tVectorXd::Zero(root_dof);
+    tMatrix3d R_root = root_joint->GetWorldOrientation();
+    for (int i = 0; i < root_dof; i++)
+    {
+        dRdq_2_0[i] = root_joint->GetMTQ(i)(2, 0);
+        dRdq_0_0[i] = root_joint->GetMTQ(i)(0, 0);
+    };
+    double m = R_root(2, 0) / R_root(0, 0);
+    tVectorXd dh_dq = -1 / (1 + std::pow(m, 2)) *
+                      (dRdq_2_0 * R_root(0, 0) - R_root(2, 0) * dRdq_0_0) /
+                      (std::pow(R_root(0, 0), 2));
+    return dh_dq;
+}
+
+/**
+ * \brief       
+*/
+void cSimCharacterGen::TestDHeadingDqroot() {}
 /**
  * \brief               Judge whether this joint "joint_id" is an end-effector
  */

@@ -120,6 +120,9 @@ protected:
                                  const cKinCharacter &kin_char) const;
     virtual double CalcEndEffectorReward(cSimCharacterGen &sim_char,
                                          const cKinCharacter &kin_char) const;
+    virtual double CalcRootReward(cSimCharacterGen &sim_char,
+                                         const cKinCharacter &kin_char) const;
+    
     virtual void DiffLogOutput(const cSimCharacterBase &sim_char,
                                const cKinCharacter &ref_char) const;
     virtual void SetMotionAsAction();

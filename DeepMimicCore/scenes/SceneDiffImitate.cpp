@@ -12,7 +12,7 @@ cSceneDiffImitate::cSceneDiffImitate()
     mEnableTestDRewardDAction = false;
     mPBuffer.clear();
     mQBuffer.clear();
-    mDebugOutput = true;
+    mDebugOutput = false;
 }
 cSceneDiffImitate::~cSceneDiffImitate() {}
 
@@ -45,6 +45,23 @@ void cSceneDiffImitate::Init()
     // set ctrl to calculate the derivatives
     GetDefaultGenCtrl()->SetEnableCalcDeriv(true);
     MIMIC_ASSERT(GetDefaultGenCtrl()->GetEnableCalcDeriv());
+
+    // {
+    //     auto gen_char = GetDefaultGenChar();
+    //     tVectorXd q = gen_char->Getq();
+    //     q += tVectorXd::Ones(q.size()) * 1e-2;
+    //     gen_char->Setq(q);
+
+    //     // TestEndEffectorRewardByGivenErr();
+    //     TestDEndEffectorRewardDq();
+
+    //     // for (int i = 0; i < gen_char->GetNumOfLinks(); i++)
+    //     // {
+    //     //     // TestDJointPosRel0Dq(i);
+    //     //     TestDEndEffectorErrDq(i);
+    //     // }
+    // }
+    // exit(0);
 }
 
 /**
@@ -100,6 +117,10 @@ void cSceneDiffImitate::Test()
         TestDVelRewardDqdot();
     }
 
+    // 3. test the end effector reward
+    {
+        TestDEndEffectorRewardDq();
+    }
     // 3. test dposedq and dveldqdot
     {
         auto gen_char = GetDefaultGenChar();
@@ -112,7 +133,7 @@ void cSceneDiffImitate::Test()
     {
         TestDrDxcur();
         TestDRewardDAction();
-        TestP();
+        // TestP();
     }
 }
 
@@ -294,10 +315,13 @@ tVectorXd cSceneDiffImitate::CalcDrDxcur()
     // otherwise the deriv is zero
     if (HasFallen(*(gen_char.get())) == false)
     {
-        tVectorXd drdq = CalcDPoseRewardDq(), drdqdot = CalcDVelRewardDqdot();
-        MIMIC_ASSERT(drdq.size() == dof && drdqdot.size() == dof);
-        drdx.segment(0, dof) = drdq;
-        drdx.segment(dof, dof) = drdqdot;
+        tVectorXd dPoseRewarddq = CalcDPoseRewardDq(),
+                  dVelRewarddqdot = CalcDVelRewardDqdot(),
+                  dEndEffectordq = CalcDEndEffectorRewardDq();
+        MIMIC_ASSERT(dPoseRewarddq.size() == dof &&
+                     dVelRewarddqdot.size() == dof);
+        drdx.segment(0, dof) = dPoseRewarddq + dEndEffectordq;
+        drdx.segment(dof, dof) = dVelRewarddqdot;
     }
     return drdx;
 }
@@ -325,7 +349,7 @@ tMatrixXd cSceneDiffImitate::CalcDxurDa()
     return deriv;
 }
 
-std::shared_ptr<cSimCharacterGen> cSceneDiffImitate::GetDefaultGenChar()
+std::shared_ptr<cSimCharacterGen> cSceneDiffImitate::GetDefaultGenChar() const
 {
     return std::dynamic_pointer_cast<cSimCharacterGen>(GetCharacter(0));
 }
@@ -529,22 +553,23 @@ double cSceneDiffImitate::CalcRewardImitate(cSimCharacterBase &sim_char,
     // return cSceneImitate::CalcRewardImitate(sim_char, ref_char);
     auto &gen_char = *dynamic_cast<cSimCharacterGen *>(&sim_char);
     double pose_rew = CalcPoseReward(gen_char, ref_char),
-           vel_rew = CalcVelReward(gen_char, ref_char);
+           vel_rew = CalcVelReward(gen_char, ref_char),
+           ee_rew = CalcEndEffectorReward(gen_char, ref_char);
     // std::cout << "pose rew = " << pose_rew << std::endl;
     // std::cout << "vel rew = " << vel_rew << std::endl;
     // cMathUtil::TestCalc_DQuaterion_DEulerAngles();
 
     // exit(0);
-    double total_rew = pose_rew + vel_rew;
-    // printf("[debug] pose rew %.5f, vel rew %.5f, total rew %.5f\n", pose_rew,
-    //        vel_rew, total_rew);
+    double total_rew = pose_rew + vel_rew + ee_rew;
+    printf("[debug] pose rew %.5f, vel rew %.5f, ee_rew %.5f, total rew %.5f\n",
+           pose_rew, vel_rew, ee_rew, total_rew);
     return total_rew;
 }
 
 /**
  * \brief               Calculate d(pose_reward)/dq
 */
-tMatrixXd cSceneDiffImitate::CalcDPoseRewardDq()
+tVectorXd cSceneDiffImitate::CalcDPoseRewardDq()
 {
     tVectorXd drdq = CalcDPoseRewardDpose0();
     auto gen_char = GetDefaultGenChar();
@@ -978,4 +1003,413 @@ void cSceneDiffImitate::SetAction(int agent_id, const Eigen::VectorXd &action)
     // std::cout << "[debug] set aciton\n";
     ClearPQBuffer();
     cSceneImitate::SetAction(agent_id, action);
+}
+
+/**
+ * \brief           Calc the derivative of end effector reward w.r.t q
+ * 
+ *  let r_{ee} is the end effector reward
+ *      err_{ee} is the end effector error
+ *      s_{err} is the error scale
+ *      s_{ee} is the end effector scale
+ *      
+ *          
+ *  r_{ee} = w_ee * exp(-s_{err} * s_{ee} * err_{ee})
+ * 
+ *  err_{ee} = \sum_i 
+ *              \Vert p_{rel1}^i - p_{rel0}^i \Vert^2
+ * 
+ *  here the p_{rel1}^i is the refernece relative pos of link i w.r.t root,
+ *  and the p_{rel0}^i is the realy relative pos of link i w.r.t root
+ *      
+ *      p_{rel0}^i = T_{ori} * (pi - p0 - g)
+ * 
+ *  pi is the real pos of link i
+ *  p0 is the world pos of link 0 (root)
+ *  g is the ground height
+ * 
+ *  In summary, the gradient of this reward is composed by the following steps:
+ * 
+ *  d(r_{ee})/dq = d(r_{ee}) / d err_{ee}
+ *                 \* 
+ *                 d err_{ee} / d q
+ * 
+*/
+tVectorXd cSceneDiffImitate::CalcDEndEffectorRewardDq() const
+{
+    // 0. prepare
+
+    auto sim_char = GetDefaultGenChar();
+    int num_of_links = sim_char->GetNumOfLinks();
+    // 1. calculate d err_{ee}/dq
+    int num_of_ee = sim_char->CalcNumEndEffectors();
+    int num_of_freedom = sim_char->GetNumOfFreedom();
+    auto kin_char = GetKinChar();
+    const auto &joint_mat = sim_char->GetJointMat();
+
+    const Eigen::VectorXd &pose0 = sim_char->GetPose();
+    const Eigen::VectorXd &pose1 = kin_char->GetPose();
+    tMatrix origin_trans = sim_char->BuildOriginTrans();
+    tMatrix kin_origin_trans = kin_char->BuildOriginTrans();
+    tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
+    tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
+    tEigenArr<tMatrix> DOriginTransDq;
+    sim_char->CalcDOriginTransDq(DOriginTransDq);
+
+    tMatrixXd Jv_root = sim_char->GetRoot()->GetJKv();
+    double end_eff_err = 0;
+    tVectorXd derree_dq = tVectorXd::Zero(num_of_freedom);
+    for (int i = 0; i < num_of_links; i++)
+    {
+        if (true == sim_char->IsEndEffector(i))
+        {
+            /*
+                1.1 calcualte the d(err_{ee}^i)/dq
+                d(err_{ee}^i)/dq 
+                    = d(err_{ee}^i)/d(p_{rel0}^i) 
+                      \* 
+                      d(p_{rel0}^i)/dq
+            */
+
+            /*
+                1.1 calculate 
+                    d(err_{ee}^i)/d(p_{rel0}^i)
+                    =
+                    2 * (p_{rel0}^i - p_{rel1}^i)^T
+
+           */
+
+            tVector pos0 = sim_char->CalcJointPos(i);
+            tVector pos1 = cKinTree::CalcJointWorldPos(joint_mat, pose1, i);
+            double ground_h0 = mGround->SampleHeight(pos0);
+            double ground_h1 = kin_char->GetOriginPos()[1];
+            tVector pos_rel0 = pos0 - root_pos0;
+            tVector pos_rel1 = pos1 - root_pos1;
+            pos_rel0[1] = pos0[1] - ground_h0;
+            pos_rel1[1] = pos1[1] - ground_h1;
+            pos_rel0 = origin_trans * pos_rel0;
+            pos_rel1 = kin_origin_trans * pos_rel1;
+
+            tVectorXd derree_dprel0i = 2 * (pos_rel0 - pos_rel1).transpose();
+
+            /*
+                1.2 calcualte d(p_{rel0}^i)/dq
+                    =
+                    dT_ori/dq * p_{rel0}^i + T_ori * (dpidq - dp0/dq)
+            */
+            // tMatrixXd dprel0i_dq = tMatrixXd::Zero(4, num_of_freedom);
+            // tMatrixXd Jv_diff = tMatrixXd::Ones(4, num_of_freedom);
+            // Jv_diff.block(0, 0, 3, num_of_freedom).noalias() =
+            //     sim_char->GetJointById(i)->GetJKv() - Jv_root;
+            // tMatrixXd second_term = origin_trans * Jv_diff;
+            // for (int i = 0; i < num_of_freedom; i++)
+            // {
+            //     dprel0i_dq.col(i) = (DOriginTransDq[i] * pos_rel0);
+            // }
+            // dprel0i_dq += second_term;
+
+            // 1.3 calcualte d(err_{ee}^i)/d(q)
+            derree_dq += CalcDEndEffectorErrDq(i) / num_of_ee;
+            // 1.4 add err
+            double curr_end_err = (pos_rel1 - pos_rel0).squaredNorm();
+            end_eff_err += curr_end_err;
+        }
+    }
+
+    /*
+        2. calcualte the first part, d(r_{ee})/derr_{ee}
+            d(r_{ee})/derr_{ee}
+            = -w_ee * s_err * s_ee * exp(-s_err * s_ee * err_ee)
+    */
+    end_eff_err /= num_of_ee;
+    // std::cout << "total end eff err = " << end_eff_err << std::endl;
+
+    // std::cout << "derrdq = " << derree_dq.transpose() << std::endl;
+    double err_scale = RewParams.err_scale,
+           end_eff_scale = RewParams.end_eff_scale,
+           end_eff_w = RewParams.end_eff_w;
+    double dree_derree = -end_eff_w * err_scale * end_eff_scale *
+                         std::exp(-err_scale * end_eff_scale * end_eff_err);
+
+    tVectorXd dree_dq = dree_derree * derree_dq;
+    return dree_dq;
+}
+
+/**
+ * \brief           Test the deriv of ee reward
+*/
+void cSceneDiffImitate::TestDEndEffectorRewardDq()
+{
+    auto &gen_char = *(GetDefaultGenChar().get());
+    gen_char.PushState("test_ee");
+    auto &kin_char = *(GetKinChar().get());
+    double old_r = CalcEndEffectorReward(gen_char, kin_char);
+    tVectorXd drdq = CalcDEndEffectorRewardDq();
+    double eps = 1e-5;
+
+    tVectorXd q = gen_char.Getq();
+    // std::cout << "[debug] dend_effector_reward/dq = " << drdq.transpose()
+    //           << std::endl;
+    for (int i = 0; i < gen_char.GetNumOfFreedom(); i++)
+    {
+        q[i] += eps;
+
+        gen_char.Setq(q);
+        double new_r = CalcEndEffectorReward(gen_char, kin_char);
+        double num_drdqi = (new_r - old_r) / eps;
+        double ana_drdqi = drdq[i];
+        double diff = ana_drdqi - num_drdqi;
+        // printf("idx %d old r %.5f new r %.5f\n", i, old_r, new_r);
+        if (std::fabs(diff) > 10 * eps)
+        {
+            std::cout << "[error] TestDEndEffectorRewardDq failed for idx " << i
+                      << std::endl;
+            std::cout << "ana = " << ana_drdqi << std::endl;
+            std::cout << "num = " << num_drdqi << std::endl;
+            std::cout << "diff = " << diff << std::endl;
+            exit(0);
+        }
+
+        q[i] -= eps;
+    }
+    gen_char.PopState("test_ee");
+    std::cout << "[log] TestDEndEffectorRewardDq succ = " << drdq.transpose()
+              << std::endl;
+}
+
+/**
+ * \brief           Calculate the pos_{rel1}, the realtive position in MOCAP data
+*/
+tVector cSceneDiffImitate::CalcJointPosRel1(int id) const
+{
+    // auto gen_char = GetDefaultGenChar();
+    auto kin_char = GetKinChar();
+    const Eigen::VectorXd &pose1 = kin_char->GetPose();
+    auto gen_char = GetDefaultGenChar();
+    tMatrixXd joint_mat = gen_char->GetJointMat();
+    tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
+    tVector pos1 = cKinTree::CalcJointWorldPos(joint_mat, pose1, id);
+    double ground_h1 = kin_char->GetOriginPos()[1];
+    tVector pos_rel1 = pos1 - root_pos1;
+    pos_rel1[1] = pos1[1] - ground_h1;
+    tMatrix kin_origin_trans = kin_char->BuildOriginTrans();
+    pos_rel1 = kin_origin_trans * pos_rel1;
+    return pos_rel1;
+    // const auto &joint_mat = gen_char->GetJointMat();
+
+    // const Eigen::VectorXd &pose0 = gen_char->GetPose();
+    // tVector joint_pos = gen_char->CalcJointPos(id);
+    // tVector root_pos = cKinTree::GetRootPos(joint_mat, pose0);
+
+    // double ground_h0 = mGround->SampleHeight(joint_pos);
+    // joint_pos -= root_pos;
+    // joint_pos[1] -= ground_h0;
+    // joint_pos = gen_char->BuildOriginTrans() * joint_pos;
+    // return joint_pos;
+}
+
+/**
+ * \brief       pos_{rel0} for given joint "id" is:
+ *          the relative pos between joint id and root joint in XZ axis
+ *          + 
+ *          the relative height from ground to joint pos in Y axis
+ *          in sim world (true)
+*/
+tVector cSceneDiffImitate::CalcJointPosRel0(int id) const
+{
+    auto gen_char = GetDefaultGenChar();
+    tVector pos0 = gen_char->CalcJointPos(id);
+
+    tVector root_pos0 =
+        cKinTree::GetRootPos(gen_char->GetJointMat(), gen_char->GetPose());
+
+    tVector pos_rel0 = pos0 - root_pos0;
+    double ground_h0 = mGround->SampleHeight(pos0);
+
+    // here, we give the real height of this joint to pos_rel0
+    pos_rel0[1] = pos0[1] - ground_h0;
+    tMatrix origin_trans = gen_char->BuildOriginTrans();
+    pos_rel0 = origin_trans * pos_rel0;
+    return pos_rel0;
+}
+/**
+ * \brief           Calculate the derivative of joint pos_{rel0}  w.r.t q
+ *      the pos_{rel0} is the relative pos in XZ axis, but height in Y axis in sim world
+ *      the pos_{rel1} is the relative pos in XZ axis, but height in Y axis in MOCAP
+*/
+tMatrixXd cSceneDiffImitate::CalcDJointPosRel0Dq(int id) const
+{
+    auto gen_char = GetDefaultGenChar();
+    int dof = gen_char->GetNumOfFreedom();
+    tMatrix origin_trans = gen_char->BuildOriginTrans();
+    tMatrixXd jac_diff = tMatrixXd::Zero(4, dof);
+    jac_diff.block(0, 0, 3, dof) = gen_char->GetJointById(id)->GetJKv() -
+                                   gen_char->GetJointById(0)->GetJKv();
+    jac_diff.row(1) = gen_char->GetJointById(id)->GetJKv().row(1);
+
+    tMatrixXd part2 = origin_trans * jac_diff;
+    tVector joint_pos = gen_char->CalcJointPos(id);
+    tVector root_pos = gen_char->CalcJointPos(0);
+    tVector prel = joint_pos - root_pos;
+    double ground_height = mGround->SampleHeight(joint_pos);
+
+    // here we give the real height of joint pos to prel[1]
+    prel[1] = joint_pos[1] - ground_height;
+    tEigenArr<tMatrix> dorigin_trans_dq;
+    gen_char->CalcDOriginTransDq(dorigin_trans_dq);
+    tMatrixXd part1 = tMatrixXd::Zero(4, dof);
+    for (int i = 0; i < dof; i++)
+    {
+        part1.col(i) = dorigin_trans_dq[i] * prel;
+    }
+    return part1 + part2;
+}
+
+/**
+ * \brief           Test CalcDJointPosRel0Dq, 
+ * Note that, 
+ *      pos_rel0 is the relative position in sim world
+ *      pos_rel1 is the relative pos in MOCAP
+*/
+void cSceneDiffImitate::TestDJointPosRel0Dq(int id)
+{
+    auto gen_char = GetDefaultGenChar();
+    gen_char->PushState("test_djointpos");
+    tVector old_pos = CalcJointPosRel0(id);
+    tMatrixXd ana_deriv = CalcDJointPosRel0Dq(id);
+    // std::cout << "[debug] test joint " << id << " pos ana deriv = \n"
+    //           << ana_deriv << std::endl;
+    tVectorXd q = gen_char->Getq();
+    double eps = 1e-5;
+    for (int i = 0; i < gen_char->GetNumOfFreedom(); i++)
+    {
+        q[i] += eps;
+        gen_char->Setq(q);
+        tVector new_pos = CalcJointPosRel0(id);
+        tVector num_derivi = (new_pos - old_pos) / eps;
+        tVector ana_derivi = cMathUtil::Expand(ana_deriv.col(i), 0);
+        tVector diff = ana_derivi - num_derivi;
+
+        if (diff.norm() > eps)
+        {
+            std::cout << "[error] test_djointpos failed for joint " << id
+                      << " idx " << i << std::endl;
+            std::cout << "ana = " << ana_derivi.transpose() << std::endl;
+            std::cout << "num = " << num_derivi.transpose() << std::endl;
+            std::cout << "diff = " << diff.transpose() << std::endl;
+
+            exit(0);
+        }
+
+        q[i] -= eps;
+    }
+    gen_char->PopState("test_djointpos");
+    std::cout << "test_djointpos test succ for joint " << id << std::endl;
+}
+
+double cSceneDiffImitate::CalcEndEffectorErr(int id) const
+{
+    tVector pos_rel0 = CalcJointPosRel0(id); // sim relative pos
+    tVector pos_rel1 = CalcJointPosRel1(id); // mocap relative pos
+    double curr_end_err = (pos_rel1 - pos_rel0).squaredNorm();
+    return curr_end_err;
+}
+
+tVectorXd cSceneDiffImitate::CalcDEndEffectorErrDq(int id) const
+{
+    /*
+        err = |pos_rel1 - pos_rel0|^2
+
+        d(err)/dq = d(err)/d(pos_rel0) * d(pos_rel0)/dq
+
+                  = 2 * (pos_rel0 - pos_rel1).T * d(pos_rel1)/dq
+    */
+    tMatrixXd dpos_rel0_dq = CalcDJointPosRel0Dq(id);
+    tVector pos_rel0 = CalcJointPosRel0(id);
+    tVector pos_rel1 = CalcJointPosRel1(id);
+    // std::cout << "joint " << id << " pos_rel0 = " << pos_rel0.transpose()
+    //           << " pos_rel1 = " << pos_rel1.transpose()
+    //           << " diff = " << (pos_rel1 - pos_rel0).transpose() << std::endl;
+
+    // std::cout << "dpos_rel0_dq = \n" << dpos_rel0_dq << std::endl;
+    return 2 * (pos_rel0 - pos_rel1).transpose() * dpos_rel0_dq;
+}
+
+void cSceneDiffImitate::TestDEndEffectorErrDq(int id)
+{
+    // std::cout << "----------begin to test dEndEffectorErrDq for joint " << id
+    //           << " -------------\n";
+    auto gen_char = GetDefaultGenChar();
+    gen_char->PushState("test_derr_dq");
+
+    tVectorXd derrdq = CalcDEndEffectorErrDq(id);
+    double err_old = CalcEndEffectorErr(id);
+    int dof = gen_char->GetNumOfFreedom();
+    tVectorXd q = gen_char->Getq();
+    double eps = 1e-5;
+    // std::cout << "derrdq = " << derrdq.transpose() << std::endl;
+    for (int i = 0; i < dof; i++)
+    {
+        q[i] += eps;
+        gen_char->Setq(q);
+
+        double err_new = CalcEndEffectorErr(id);
+        double num_derrdqi = (err_new - err_old) / eps;
+        double ana_derrdqi = derrdq[i];
+
+        double diff = ana_derrdqi - num_derrdqi;
+
+        if (std::fabs(diff) > eps)
+        {
+            std::cout << "[error] test d err_ee dq idx " << i << " failed\n";
+            std::cout << "ana = " << ana_derrdqi << std::endl;
+            std::cout << "num = " << num_derrdqi << std::endl;
+            std::cout << "old = " << err_old << std::endl;
+            std::cout << "new = " << err_new << std::endl;
+            exit(0);
+        }
+        // else
+        // {
+        //     std::cout << "joint " << id << " dof " << i << " diff = " << diff
+        //               << std::endl;
+        // }
+        q[i] -= eps;
+    }
+    gen_char->PopState("test_derr_dq");
+    std::cout << "[log] TestDEndEffectorErrDq for joint " << id << " succ\n";
+}
+
+/**
+ * \brief
+*/
+double cSceneDiffImitate::CalcDEndEffectorRewardDErr(double err)
+{
+    return -RewParams.end_eff_w * RewParams.err_scale *
+           RewParams.end_eff_scale *
+           std::exp(-RewParams.err_scale * RewParams.end_eff_scale * err);
+}
+
+void cSceneDiffImitate::TestEndEffectorRewardByGivenErr()
+{
+    auto gen_char = GetDefaultGenChar();
+    int ee_id = gen_char->GetNumOfLinks() - 1;
+    double old_err = CalcEndEffectorErr(ee_id);
+    double ana_deriv = CalcDEndEffectorRewardDErr(old_err);
+    double old_rew =
+        RewParams.end_eff_w *
+        std::exp(-RewParams.err_scale * RewParams.end_eff_scale * old_err);
+
+    double eps = 1e-5;
+    double new_rew = RewParams.end_eff_w *
+                     std::exp(-RewParams.err_scale * RewParams.end_eff_scale *
+                              (old_err + eps));
+    double num_deriv = (new_rew - old_rew) / eps;
+    double diff = num_deriv - ana_deriv;
+    std::cout << "diff = " << diff << std::endl;
+    std::cout << "ana = " << ana_deriv << std::endl;
+    std::cout << "num = " << num_deriv << std::endl;
+    std::cout << "dbdc = " << CalcDEndEffectorErrDq(ee_id).transpose()
+              << std::endl;
+    std::cout << "dadb = " << ana_deriv << std::endl;
+    exit(0);
 }

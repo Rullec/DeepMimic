@@ -1169,13 +1169,15 @@ double cSceneImitate::CalcRewardImitateGen(cSimCharacterGen &sim_char,
         double another_vel_rew = CalcVelReward(sim_char, kin_char);
         double another_end_effector_rew =
             CalcEndEffectorReward(sim_char, kin_char);
+        double another_root_rew = CalcRootReward(sim_char, kin_char);
         BTGEN_ASSERT(std::fabs(another_pose_rew - pose_w * pose_reward) < 1e-6);
         BTGEN_ASSERT(std::fabs(another_vel_rew - vel_w * vel_reward) < 1e-6);
 
-        // printf("another ee rew = %.5f, raw ee rew = %.5f\n",
-        //        another_end_effector_rew, end_eff_w * end_eff_reward);
         BTGEN_ASSERT(std::fabs(another_end_effector_rew -
                                end_eff_w * end_eff_reward) < 1e-6);
+        printf("another root rew = %.5f, raw root rew = %.5f\n",
+               another_root_rew, root_w * root_reward);
+        BTGEN_ASSERT(std::fabs(another_root_rew - root_w * root_reward) < 1e-6);
         // std::cout << "new pose rew = " << another_pose_rew << std::endl;
         // std::cout << "old pose rew = " << pose_w * pose_reward << std::endl;
         // exit(0);
@@ -1362,4 +1364,60 @@ double cSceneImitate::CalcEndEffectorReward(cSimCharacterGen &sim_char,
         exp(-err_scale * end_eff_scale * end_eff_err); // end_effector位置误差^2
 
     return end_eff_reward;
+}
+
+/**
+ * \brief           Calcualte the root reward by given current char and the ref char
+ * 
+ *      the root reward can be roughly divided into 4 parts
+ *          - root pos
+ *          - root lin vel
+ *          - root orientation
+ *          - root ang vel
+ *      we will calcualte them sequentially
+*/
+double cSceneImitate::CalcRootReward(cSimCharacterGen &sim_char,
+                                     const cKinCharacter &kin_char) const
+{
+    const auto &joint_mat = sim_char.GetJointMat();
+
+    // sim_char: simulation character
+    // kin_char: the representation of motion data
+    const Eigen::VectorXd &pose0 = sim_char.GetPose();
+    const Eigen::VectorXd &pose1 = kin_char.GetPose();
+    const tVectorXd &vel0 = sim_char.GetVel();
+    const tVectorXd &vel1 = kin_char.GetVel();
+    tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
+    tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
+    tQuaternion root_rot0 = cKinTree::GetRootRot(joint_mat, pose0);
+    tQuaternion root_rot1 = cKinTree::GetRootRot(joint_mat, pose1);
+    tVector root_vel0 = cKinTree::GetRootVel(joint_mat, vel0);
+    tVector root_vel1 = cKinTree::GetRootVel(joint_mat, vel1);
+    tVector root_ang_vel0 = cKinTree::GetRootAngVel(joint_mat, vel0);
+    tVector root_ang_vel1 = cKinTree::GetRootAngVel(joint_mat, vel1);
+
+    double root_ground_h0 = mGround->SampleHeight(sim_char.GetRootPos());
+    double root_ground_h1 = kin_char.GetOriginPos()[1];
+    root_pos0[1] -= root_ground_h0;
+    root_pos1[1] -= root_ground_h1;
+    double root_pos_err = (root_pos0 - root_pos1).squaredNorm();
+    double root_rot_err = cMathUtil::QuatDiffTheta(root_rot0, root_rot1);
+    root_rot_err *= root_rot_err;
+
+    double root_vel_err = (root_vel1 - root_vel0).squaredNorm();
+    double root_ang_vel_err = (root_ang_vel1 - root_ang_vel0).squaredNorm();
+
+    // root位置误差, 旋转误差(0.1),
+    // 速度误差(1e-2)，角速度误差(1e-3)，合称为root_err
+    double root_err = RewParams.root_pos_w * root_pos_err +
+                      RewParams.root_rot_w * root_rot_err +
+                      RewParams.root_vel_w * root_vel_err +
+                      RewParams.root_angle_vel_w * root_ang_vel_err;
+
+    const double root_scale = RewParams.root_scale;
+    const double com_scale = RewParams.com_scale;
+    const double err_scale = RewParams.err_scale; // an uniform adjustment
+    double root_reward = exp(-err_scale * root_scale * root_err); // root
+    double root_w = RewParams.root_w;
+    return root_w * root_reward;
 }

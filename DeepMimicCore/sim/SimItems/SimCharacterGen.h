@@ -140,6 +140,14 @@ public:
     virtual void RotateRoot(const tQuaternion &rot) override;
     virtual double CalcHeading() const override;
     virtual tMatrix BuildOriginTrans() const override;
+    virtual void CalcDOriginTransDq(tEigenArr<tMatrix> &dTdq) const;
+    virtual void TestDOriginTransDq();
+    virtual void CalcDHeadingRotDqroot(tEigenArr<tMatrix> &dTdq) const;
+    virtual void TestDHeadingRotDqroot();
+
+    virtual tVectorXd CalcDHeadingDqroot() const;
+    virtual void TestDHeadingDqroot();
+
     virtual bool IsEndEffector(int joint_id) const override;
     virtual double CalcJointChainLength(int joint_id) const override;
     virtual int CalcNumEndEffectors() const override;
@@ -160,6 +168,8 @@ public:
     virtual void SetqAndqdot(const tVectorXd &q,
                              const tVectorXd &qdot) override;
     virtual void Setqdot(const tVectorXd &qdot) override;
+    virtual void Setq(const tVectorXd &q) override;
+
     virtual tMatrixXd CalcDqDpose(const tVectorXd &pose);
     virtual tMatrixXd CalcDposedq(const tVectorXd &q);
     virtual void TestCalcDposedq();

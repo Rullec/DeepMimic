@@ -1,7 +1,7 @@
 {
 	"UpdateRate": 30,
 	"EnablePhaseInput": true,
-	"EnableTestDerivative": true,
+	"EnableTestDerivative": false,
 	"RecordWorldRootPos": false,
 	"RecordWorldRootRot": true,
 

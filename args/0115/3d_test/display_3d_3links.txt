@@ -1,0 +1,9 @@
+--scene kin_char
+
+--logging_level trace
+--use_revolute_axis_in_deepmimic_style false
+--character_file data/0115/characters/skeleton_3d_3links.json
+--motion_file data/0115/motions/3d3links_stand.txt
+
+--enable_output_traj false
+--output_traj_path /tmp/tmp.save
