@@ -46,28 +46,28 @@ void cSceneDiffImitate::Init()
     GetDefaultGenCtrl()->SetEnableCalcDeriv(true);
     MIMIC_ASSERT(GetDefaultGenCtrl()->GetEnableCalcDeriv());
 
-    {
-        auto gen_char = GetDefaultGenChar();
-        tVectorXd x = gen_char->Getx();
-        x += tVectorXd::Ones(x.size()) * 1e-2;
-        gen_char->Setx(x);
+    // {
+    //     auto gen_char = GetDefaultGenChar();
+    //     tVectorXd x = gen_char->Getx();
+    //     x += tVectorXd::Ones(x.size()) * 1e-2;
+    //     gen_char->Setx(x);
 
-        TestDRootPosErrDx();
-        TestDRootRotErrDx();
-        TestDRootLinVelErrDx();
-        TestDRootAngVelErrDx();
-        TestDRootRewardDx();
-        // TestEndEffectorRewardByGivenErr();
-        // TestDEndEffectorRewardDq();
-        // TestDRootRewardDqDqdot();
+    //     TestDRootPosErrDx();
+    //     TestDRootRotErrDx();
+    //     TestDRootLinVelErrDx();
+    //     TestDRootAngVelErrDx();
+    //     TestDRootRewardDx();
+    //     // TestEndEffectorRewardByGivenErr();
+    //     // TestDEndEffectorRewardDq();
+    //     // TestDRootRewardDqDqdot();
 
-        // for (int i = 0; i < gen_char->GetNumOfLinks(); i++)
-        // {
-        //     // TestDJointPosRel0Dq(i);
-        //     TestDEndEffectorErrDq(i);
-        // }
-    }
-    exit(0);
+    //     // for (int i = 0; i < gen_char->GetNumOfLinks(); i++)
+    //     // {
+    //     //     // TestDJointPosRel0Dq(i);
+    //     //     TestDEndEffectorErrDq(i);
+    //     // }
+    // }
+    // exit(0);
 }
 
 /**
@@ -134,7 +134,15 @@ void cSceneDiffImitate::Test()
         gen_char->TestCalcDveldqdot();
     }
 
-    // 5. test controller (inside the controller)
+    // 4. test root reward
+    {
+        TestDRootPosErrDx();
+        TestDRootRotErrDx();
+        TestDRootLinVelErrDx();
+        TestDRootAngVelErrDx();
+        TestDRootRewardDx();
+    }
+
     // 4. total test method
     {
         TestDrDxcur();
@@ -324,10 +332,12 @@ tVectorXd cSceneDiffImitate::CalcDrDxcur()
         tVectorXd dPoseRewarddq = CalcDPoseRewardDq(),
                   dVelRewarddqdot = CalcDVelRewardDqdot(),
                   dEndEffectordq = CalcDEndEffectorRewardDq();
+        tVectorXd dRootRewdx = CalcDRootRewardDx();
         MIMIC_ASSERT(dPoseRewarddq.size() == dof &&
                      dVelRewarddqdot.size() == dof);
         drdx.segment(0, dof) = dPoseRewarddq + dEndEffectordq;
         drdx.segment(dof, dof) = dVelRewarddqdot;
+        drdx += dRootRewdx;
     }
     return drdx;
 }
@@ -560,15 +570,17 @@ double cSceneDiffImitate::CalcRewardImitate(cSimCharacterBase &sim_char,
     auto &gen_char = *dynamic_cast<cSimCharacterGen *>(&sim_char);
     double pose_rew = CalcPoseReward(gen_char, ref_char),
            vel_rew = CalcVelReward(gen_char, ref_char),
-           ee_rew = CalcEndEffectorReward(gen_char, ref_char);
+           ee_rew = CalcEndEffectorReward(gen_char, ref_char),
+           root_rew = CalcRootReward(gen_char, ref_char);
     // std::cout << "pose rew = " << pose_rew << std::endl;
     // std::cout << "vel rew = " << vel_rew << std::endl;
     // cMathUtil::TestCalc_DQuaterion_DEulerAngles();
 
     // exit(0);
-    double total_rew = pose_rew + vel_rew + ee_rew;
-    printf("[debug] pose rew %.5f, vel rew %.5f, ee_rew %.5f, total rew %.5f\n",
-           pose_rew, vel_rew, ee_rew, total_rew);
+    double total_rew = pose_rew + vel_rew + ee_rew + root_rew;
+    printf("[debug] pose rew %.5f, vel rew %.5f, ee_rew %.5f, root_rew %.5f, "
+           "total rew %.5f\n",
+           pose_rew, vel_rew, ee_rew, root_rew, total_rew);
     return total_rew;
 }
 
@@ -1431,7 +1443,6 @@ tVectorXd cSceneDiffImitate::CalcDRootRewardDx()
     double A =
         -RewParams.err_scale * RewParams.root_scale * RewParams.root_w *
         std::exp(-RewParams.err_scale * RewParams.root_scale * CalcRootErr());
-
     // other termis
     tVectorXd derrdx = RewParams.root_pos_w * CalcDRootPosErrDx() +
                        RewParams.root_rot_w * CalcDRootRotErrDx() +
@@ -1443,15 +1454,16 @@ tVectorXd cSceneDiffImitate::CalcDRootRewardDx()
 
 double cSceneDiffImitate::CalcRootErr() const
 {
-    return CalcRootPosErr() + CalcRootRotErr() + CalcRootLinVelErr() +
-           CalcRootAngVelErr();
+    return RewParams.root_pos_w * CalcRootPosErr() +
+           RewParams.root_rot_w * CalcRootRotErr() +
+           RewParams.root_vel_w * CalcRootLinVelErr() +
+           RewParams.root_angle_vel_w * CalcRootAngVelErr();
 }
 /**
  * \brief               Test the deriv of root reward w.r.t x = [q & qdot]
 */
 void cSceneDiffImitate::TestDRootRewardDx()
 {
-
     auto gen_char = GetDefaultGenChar();
     gen_char->PushState("test_drootrewdx");
     int dof = gen_char->GetNumOfFreedom();
@@ -1469,13 +1481,15 @@ void cSceneDiffImitate::TestDRootRewardDx()
         double num_di = (new_r - old_r) / eps;
         double ana_di = ana_deriv[i];
         double diff = ana_di - num_di;
-        if (std::fabs(diff) > eps)
+        if (std::fabs(diff) > 100 * eps)
         {
             std::cout << "[error] test d root rew dx failed for idx " << i
                       << std::endl;
             std::cout << "diff = " << diff << std::endl;
             std::cout << "ana = " << ana_di << std::endl;
             std::cout << "num = " << num_di << std::endl;
+            std::cout << "deriv = " << ana_deriv.transpose() << std::endl;
+
             exit(0);
         }
         x[i] -= eps;
@@ -1559,9 +1573,13 @@ void cSceneDiffImitate::TestDRootPosErrDx()
         double ana_di = drootposerr_dx[i];
         double diff = ana_di - num_di;
 
-        if (std::fabs(diff) > eps)
+        if (std::fabs(diff) > 10 * eps)
         {
+            std::cout << "num = " << num_di << std::endl;
+            std::cout << "ana = " << ana_di << std::endl;
+            std::cout << "diff = " << diff << std::endl;
             MIMIC_ERROR("test_root_pos_err failed for idx {}", i);
+            exit(0);
         }
         x[i] -= eps;
     }
@@ -1829,6 +1847,7 @@ void cSceneDiffImitate::TestDRootAngVelErrDx()
             std::cout << "ana = " << ana_di << std::endl;
             std::cout << "num = " << num_di << std::endl;
             std::cout << "diff = " << diff << std::endl;
+            std::cout << "d = " << drootAngVelerr_dx.transpose() << std::endl;
             exit(0);
         }
         x[i] -= eps;

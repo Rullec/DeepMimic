@@ -1,0 +1,23 @@
+{
+    "reward_weight_terms": {
+        "pose_w": 0.5,
+        "vel_w": 0.05,
+        "end_eff_w": 0.15,
+        "root_w": 0.2,
+        "com_w": 0
+    },
+    "scale_terms": {
+        "pose_scale": 2,
+        "vel_scale": 0.1,
+        "end_eff_scale": 40,
+        "root_scale": 5,
+        "com_scale": 0,
+        "err_scale": 1
+    },
+    "root_sub_terms": {
+        "root_pos_w": 1,
+        "root_rot_w": 0.1,
+        "root_vel_w": 0.01,
+        "root_angle_vel_w": 0.001
+    }
+}

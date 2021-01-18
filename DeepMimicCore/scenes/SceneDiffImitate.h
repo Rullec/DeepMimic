@@ -75,6 +75,7 @@ protected:
     double CalcRootErr() const;
     tVectorXd CalcDRootRewardDx();
     void TestDRootRewardDx();
+    // d(root_rew)/d(root_err)
     // 6.1 root pos
     double CalcRootPosErr() const;
     tVectorXd CalcDRootPosErrDx() const;
