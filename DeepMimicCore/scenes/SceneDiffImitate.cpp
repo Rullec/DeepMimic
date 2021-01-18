@@ -48,12 +48,18 @@ void cSceneDiffImitate::Init()
 
     // {
     //     auto gen_char = GetDefaultGenChar();
-    //     tVectorXd q = gen_char->Getq();
-    //     q += tVectorXd::Ones(q.size()) * 1e-2;
-    //     gen_char->Setq(q);
+    //     tVectorXd x = gen_char->Getx();
+    //     x += tVectorXd::Ones(x.size()) * 1e-2;
+    //     gen_char->Setx(x);
 
+    //     TestDRootPosErrDx();
+    //     TestDRootRotErrDx();
+    //     TestDRootLinVelErrDx();
+    //     TestDRootAngVelErrDx();
+    //     TestDRootRewardDx();
     //     // TestEndEffectorRewardByGivenErr();
-    //     TestDEndEffectorRewardDq();
+    //     // TestDEndEffectorRewardDq();
+    //     // TestDRootRewardDqDqdot();
 
     //     // for (int i = 0; i < gen_char->GetNumOfLinks(); i++)
     //     // {
@@ -128,7 +134,15 @@ void cSceneDiffImitate::Test()
         gen_char->TestCalcDveldqdot();
     }
 
-    // 5. test controller (inside the controller)
+    // 4. test root reward
+    {
+        TestDRootPosErrDx();
+        TestDRootRotErrDx();
+        TestDRootLinVelErrDx();
+        TestDRootAngVelErrDx();
+        TestDRootRewardDx();
+    }
+
     // 4. total test method
     {
         TestDrDxcur();
@@ -318,10 +332,12 @@ tVectorXd cSceneDiffImitate::CalcDrDxcur()
         tVectorXd dPoseRewarddq = CalcDPoseRewardDq(),
                   dVelRewarddqdot = CalcDVelRewardDqdot(),
                   dEndEffectordq = CalcDEndEffectorRewardDq();
+        tVectorXd dRootRewdx = CalcDRootRewardDx();
         MIMIC_ASSERT(dPoseRewarddq.size() == dof &&
                      dVelRewarddqdot.size() == dof);
         drdx.segment(0, dof) = dPoseRewarddq + dEndEffectordq;
         drdx.segment(dof, dof) = dVelRewarddqdot;
+        drdx += dRootRewdx;
     }
     return drdx;
 }
@@ -554,15 +570,17 @@ double cSceneDiffImitate::CalcRewardImitate(cSimCharacterBase &sim_char,
     auto &gen_char = *dynamic_cast<cSimCharacterGen *>(&sim_char);
     double pose_rew = CalcPoseReward(gen_char, ref_char),
            vel_rew = CalcVelReward(gen_char, ref_char),
-           ee_rew = CalcEndEffectorReward(gen_char, ref_char);
+           ee_rew = CalcEndEffectorReward(gen_char, ref_char),
+           root_rew = CalcRootReward(gen_char, ref_char);
     // std::cout << "pose rew = " << pose_rew << std::endl;
     // std::cout << "vel rew = " << vel_rew << std::endl;
     // cMathUtil::TestCalc_DQuaterion_DEulerAngles();
 
     // exit(0);
-    double total_rew = pose_rew + vel_rew + ee_rew;
-    printf("[debug] pose rew %.5f, vel rew %.5f, ee_rew %.5f, total rew %.5f\n",
-           pose_rew, vel_rew, ee_rew, total_rew);
+    double total_rew = pose_rew + vel_rew + ee_rew + root_rew;
+    printf("[debug] pose rew %.5f, vel rew %.5f, ee_rew %.5f, root_rew %.5f, "
+           "total rew %.5f\n",
+           pose_rew, vel_rew, ee_rew, root_rew, total_rew);
     return total_rew;
 }
 
@@ -1412,4 +1430,430 @@ void cSceneDiffImitate::TestEndEffectorRewardByGivenErr()
               << std::endl;
     std::cout << "dadb = " << ana_deriv << std::endl;
     exit(0);
+}
+
+/**
+ * \brief               Calculate the deriv of root reward w.r.t x = [q, qdot]
+ *  For more details, please check the note "root reward对q和qdot求导"
+*/
+#include "BulletGenDynamics/btGenModel/Joint.h"
+tVectorXd cSceneDiffImitate::CalcDRootRewardDx()
+{
+    // A is the prefix
+    double A =
+        -RewParams.err_scale * RewParams.root_scale * RewParams.root_w *
+        std::exp(-RewParams.err_scale * RewParams.root_scale * CalcRootErr());
+    // other termis
+    tVectorXd derrdx = RewParams.root_pos_w * CalcDRootPosErrDx() +
+                       RewParams.root_rot_w * CalcDRootRotErrDx() +
+                       RewParams.root_vel_w * CalcDRootLinVelErrDx() +
+                       RewParams.root_angle_vel_w * CalcDRootAngVelErrDx();
+
+    return A * derrdx;
+}
+
+double cSceneDiffImitate::CalcRootErr() const
+{
+    return RewParams.root_pos_w * CalcRootPosErr() +
+           RewParams.root_rot_w * CalcRootRotErr() +
+           RewParams.root_vel_w * CalcRootLinVelErr() +
+           RewParams.root_angle_vel_w * CalcRootAngVelErr();
+}
+/**
+ * \brief               Test the deriv of root reward w.r.t x = [q & qdot]
+*/
+void cSceneDiffImitate::TestDRootRewardDx()
+{
+    auto gen_char = GetDefaultGenChar();
+    gen_char->PushState("test_drootrewdx");
+    int dof = gen_char->GetNumOfFreedom();
+    int x_size = 2 * dof;
+    tVectorXd x = gen_char->Getx();
+    double old_r = CalcRootReward(*(gen_char.get()), *(GetKinChar().get()));
+    tVectorXd ana_deriv = CalcDRootRewardDx();
+    double eps = 1e-5;
+    for (int i = 0; i < x_size; i++)
+    {
+        x[i] += eps;
+        gen_char->Setx(x);
+
+        double new_r = CalcRootReward(*(gen_char.get()), *(GetKinChar().get()));
+        double num_di = (new_r - old_r) / eps;
+        double ana_di = ana_deriv[i];
+        double diff = ana_di - num_di;
+        if (std::fabs(diff) > 100 * eps)
+        {
+            std::cout << "[error] test d root rew dx failed for idx " << i
+                      << std::endl;
+            std::cout << "diff = " << diff << std::endl;
+            std::cout << "ana = " << ana_di << std::endl;
+            std::cout << "num = " << num_di << std::endl;
+            std::cout << "deriv = " << ana_deriv.transpose() << std::endl;
+
+            exit(0);
+        }
+        x[i] -= eps;
+    }
+    gen_char->PopState("test_drootrewdx");
+    std::cout << "[log] TestDRootRewardDx succ = " << x.transpose()
+              << std::endl;
+}
+
+// 6.1 root pos
+/**
+ * \brief           
+*/
+double cSceneDiffImitate::CalcRootPosErr() const
+{
+    auto sim_char = GetDefaultGenChar();
+    auto kin_char = GetKinChar();
+    const auto &joint_mat = sim_char->GetJointMat();
+
+    // sim_char: simulation character
+    // kin_char: the representation of motion data
+    const Eigen::VectorXd &pose0 = sim_char->GetPose();
+    const Eigen::VectorXd &pose1 = kin_char->GetPose();
+    tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
+    tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
+    double root_ground_h0 = mGround->SampleHeight(sim_char->GetRootPos());
+    double root_ground_h1 = kin_char->GetOriginPos()[1];
+    root_pos0[1] -= root_ground_h0;
+    root_pos1[1] -= root_ground_h1;
+    double root_pos_err = (root_pos0 - root_pos1).squaredNorm();
+    return root_pos_err;
+}
+/**
+ * \brief           calculate derivative d(root_pos_err)/dx
+*/
+tVectorXd cSceneDiffImitate::CalcDRootPosErrDx() const
+{
+    auto sim_char = GetDefaultGenChar();
+    auto kin_char = GetKinChar();
+    const auto &joint_mat = sim_char->GetJointMat();
+
+    // sim_char: simulation character
+    // kin_char: the representation of motion data
+    const Eigen::VectorXd &pose0 = sim_char->GetPose();
+    const Eigen::VectorXd &pose1 = kin_char->GetPose();
+    const tVectorXd &vel0 = sim_char->GetVel();
+    const tVectorXd &vel1 = kin_char->GetVel();
+    tVector root_pos0 = cKinTree::GetRootPos(joint_mat, pose0);
+    tVector root_pos1 = cKinTree::GetRootPos(joint_mat, pose1);
+    double root_ground_h0 = mGround->SampleHeight(sim_char->GetRootPos());
+    double root_ground_h1 = kin_char->GetOriginPos()[1];
+    root_pos0[1] -= root_ground_h0;
+    root_pos1[1] -= root_ground_h1;
+
+    auto root_joint = sim_char->GetJointById(0);
+    int dof = sim_char->GetNumOfFreedom();
+    tVectorXd dedx = tVectorXd::Zero(2 * dof);
+    dedx.segment(0, dof).noalias() =
+        2 * (root_pos0 - root_pos1).transpose().segment(0, 3) *
+        root_joint->GetJKv();
+    return dedx;
+}
+/**
+ * \brief           
+*/
+void cSceneDiffImitate::TestDRootPosErrDx()
+{
+    auto gen_char = GetDefaultGenChar();
+    gen_char->PushState("test_root_pos_err");
+    double old_err = CalcRootPosErr();
+    tVectorXd drootposerr_dx = CalcDRootPosErrDx();
+    tVectorXd x = gen_char->Getx();
+    int dof = gen_char->GetNumOfFreedom();
+    double eps = 1e-5;
+    for (int i = 0; i < 2 * dof; i++)
+    {
+        x[i] += eps;
+        gen_char->Setx(x);
+        double new_err = CalcRootPosErr();
+        double num_di = (new_err - old_err) / eps;
+        double ana_di = drootposerr_dx[i];
+        double diff = ana_di - num_di;
+
+        if (std::fabs(diff) > 10 * eps)
+        {
+            std::cout << "num = " << num_di << std::endl;
+            std::cout << "ana = " << ana_di << std::endl;
+            std::cout << "diff = " << diff << std::endl;
+            MIMIC_ERROR("test_root_pos_err failed for idx {}", i);
+            exit(0);
+        }
+        x[i] -= eps;
+    }
+
+    gen_char->PopState("test_root_pos_err");
+    std::cout << "[log] TestDRootPosErrDx succ = " << drootposerr_dx.transpose()
+              << std::endl;
+}
+// 6.2 root rot
+/**
+ * \brief           Calculate the root rotation error
+*/
+double cSceneDiffImitate::CalcRootRotErr() const
+{
+    auto sim_char = GetDefaultGenChar();
+    auto kin_char = GetKinChar();
+    const auto &joint_mat = sim_char->GetJointMat();
+
+    // sim_char: simulation character
+    // kin_char: the representation of motion data
+    const Eigen::VectorXd &pose0 = sim_char->GetPose();
+    const Eigen::VectorXd &pose1 = kin_char->GetPose();
+    tQuaternion root_rot0 = cKinTree::GetRootRot(joint_mat, pose0);
+    tQuaternion root_rot1 = cKinTree::GetRootRot(joint_mat, pose1);
+    double root_rot_err = cMathUtil::QuatDiffTheta(root_rot0, root_rot1);
+    root_rot_err *= root_rot_err;
+    return root_rot_err;
+}
+/**
+ * \brief           Calculate d(root_rot_err)/dx NUMERICALLY
+*/
+tVectorXd cSceneDiffImitate::CalcDRootRotErrDx()
+{
+    // this derivative should only relates to the gen coords root freedoms
+    auto gen_char = GetDefaultGenChar();
+    double old_err = CalcRootRotErr();
+    int dof = gen_char->GetNumOfFreedom();
+    tVectorXd dedx = tVectorXd::Zero(2 * dof);
+    int rot_freedom_st = -1, rot_freedom_ed = -1;
+    {
+        auto root_joint = gen_char->GetJointById(gen_char->GetRootID());
+        auto joint_type = root_joint->GetJointType();
+        switch (joint_type)
+        {
+        case JointType::NONE_JOINT:
+        {
+            rot_freedom_st = 3;
+            rot_freedom_ed = rot_freedom_st + 3;
+            break;
+        }
+        case JointType::BIPEDAL_NONE_JOINT:
+        {
+            rot_freedom_st = 2;
+            rot_freedom_ed = rot_freedom_st + 1;
+            break;
+        }
+        default:
+            MIMIC_ERROR("DRootRotErrDx unsupported {}", joint_type);
+            break;
+        }
+    }
+
+    double eps = 1e-8;
+    tVectorXd q = gen_char->Getq();
+    for (int id = rot_freedom_st; id < rot_freedom_ed; id++)
+    {
+        q[id] += eps;
+        gen_char->Setq(q);
+        double new_err = CalcRootRotErr();
+        dedx[id] = (new_err - old_err) / eps;
+        q[id] -= eps;
+    }
+    gen_char->Setq(q);
+    return dedx;
+}
+
+/**
+ * \brief           
+*/
+void cSceneDiffImitate::TestDRootRotErrDx()
+{
+    auto gen_char = GetDefaultGenChar();
+    gen_char->PushState("test_root_rot_err");
+    double old_err = CalcRootRotErr();
+    tVectorXd drootroterr_dx = CalcDRootRotErrDx();
+    tVectorXd x = gen_char->Getx();
+    int dof = gen_char->GetNumOfFreedom();
+    double eps = 1e-5;
+    for (int i = 0; i < 2 * dof; i++)
+    {
+        x[i] += eps;
+        gen_char->Setx(x);
+        double new_err = CalcRootRotErr();
+        double num_di = (new_err - old_err) / eps;
+        double ana_di = drootroterr_dx[i];
+        double diff = ana_di - num_di;
+
+        if (std::fabs(diff) > 10 * eps)
+        {
+            printf("[error] test_root_rot_err failed for idx %d\n", i);
+            std::cout << "ana = " << ana_di << std::endl;
+            std::cout << "num = " << num_di << std::endl;
+            std::cout << "diff = " << diff << std::endl;
+            exit(0);
+        }
+        x[i] -= eps;
+    }
+
+    gen_char->PopState("test_root_rot_err");
+    std::cout << "[log] TestDRootRotErrDx succ = " << drootroterr_dx.transpose()
+              << std::endl;
+}
+// 6.3 root lin vel
+/**
+ * \brief           Calculate root lin vel error
+*/
+double cSceneDiffImitate::CalcRootLinVelErr() const
+{
+    auto sim_char = GetDefaultGenChar();
+    auto kin_char = GetKinChar();
+    const auto &joint_mat = sim_char->GetJointMat();
+    const tVectorXd &vel0 = sim_char->GetVel();
+    const tVectorXd &vel1 = kin_char->GetVel();
+    tVector root_vel0 = cKinTree::GetRootVel(joint_mat, vel0);
+    tVector root_vel1 = cKinTree::GetRootVel(joint_mat, vel1);
+    double root_vel_err = (root_vel1 - root_vel0).squaredNorm();
+    return root_vel_err;
+}
+/**
+ * \brief           Calculate d(roto_linvel_err)/dx
+*/
+tVectorXd cSceneDiffImitate::CalcDRootLinVelErrDx() const
+{
+    auto sim_char = GetDefaultGenChar();
+    auto kin_char = GetKinChar();
+    const auto &joint_mat = sim_char->GetJointMat();
+    const tVectorXd &vel0 = sim_char->GetVel();
+    const tVectorXd &vel1 = kin_char->GetVel();
+    tVector root_vel0 = cKinTree::GetRootVel(joint_mat, vel0);
+    tVector root_vel1 = cKinTree::GetRootVel(joint_mat, vel1);
+    int dof = sim_char->GetNumOfFreedom();
+    tVectorXd dedx = tVectorXd::Zero(2 * dof);
+    dedx.segment(dof, dof).noalias() =
+        2 * (root_vel0 - root_vel1).transpose().segment(0, 3) *
+        sim_char->GetJointById(sim_char->GetRootID())->GetJKv();
+    return dedx;
+}
+/**
+ * \brief           
+*/
+void cSceneDiffImitate::TestDRootLinVelErrDx()
+{
+    auto gen_char = GetDefaultGenChar();
+    gen_char->PushState("test_root_linvel_err");
+    double old_err = CalcRootLinVelErr();
+    tVectorXd drootLinVelerr_dx = CalcDRootLinVelErrDx();
+    tVectorXd x = gen_char->Getx();
+    int dof = gen_char->GetNumOfFreedom();
+    double eps = 1e-5;
+    for (int i = 0; i < 2 * dof; i++)
+    {
+        x[i] += eps;
+        gen_char->Setx(x);
+        double new_err = CalcRootLinVelErr();
+        double num_di = (new_err - old_err) / eps;
+        double ana_di = drootLinVelerr_dx[i];
+        double diff = ana_di - num_di;
+
+        if (std::fabs(diff) > 10 * eps)
+        {
+            printf("[error] test_root_linvel_err failed for idx %d\n", i);
+            std::cout << "ana = " << ana_di << std::endl;
+            std::cout << "num = " << num_di << std::endl;
+            std::cout << "diff = " << diff << std::endl;
+            exit(0);
+        }
+        x[i] -= eps;
+    }
+
+    gen_char->PopState("test_root_linvel_err");
+    std::cout << "[log] TestDRootLinVelErrDx succ = "
+              << drootLinVelerr_dx.transpose() << std::endl;
+}
+// 6.4 root ang vel
+/**
+ * \brief           Calc root ang vel error
+*/
+double cSceneDiffImitate::CalcRootAngVelErr() const
+{
+    auto sim_char = GetDefaultGenChar();
+    auto kin_char = GetKinChar();
+    const auto &joint_mat = sim_char->GetJointMat();
+    const tVectorXd &vel0 = sim_char->GetVel();
+    const tVectorXd &vel1 = kin_char->GetVel();
+    tVector root_ang_vel0 = cKinTree::GetRootAngVel(joint_mat, vel0);
+    tVector root_ang_vel1 = cKinTree::GetRootAngVel(joint_mat, vel1);
+    double root_ang_vel_err = (root_ang_vel1 - root_ang_vel0).squaredNorm();
+    return root_ang_vel_err;
+}
+/**
+ * \brief           Calculate d(root_angvel_err)/dx
+ *      1. (root_angvel_err)/dq = prefix * dJwdq * qdot
+ *      2. (root_angvel_err)/dqdot = prefix * Jw
+*/
+tVectorXd cSceneDiffImitate::CalcDRootAngVelErrDx() const
+{
+    auto sim_char = GetDefaultGenChar();
+    MIMIC_ASSERT(sim_char->GetComputeSecondDerive() == true);
+    auto kin_char = GetKinChar();
+    const auto &joint_mat = sim_char->GetJointMat();
+    const tVectorXd &vel0 = sim_char->GetVel();
+    const tVectorXd &vel1 = kin_char->GetVel();
+    tVector root_ang_vel0 = cKinTree::GetRootAngVel(joint_mat, vel0);
+    tVector root_ang_vel1 = cKinTree::GetRootAngVel(joint_mat, vel1);
+
+    tVector3d prefix = 2 * (root_ang_vel0 - root_ang_vel1).segment(0, 3);
+    auto root_joint =
+        dynamic_cast<Joint *>(sim_char->GetJointById(sim_char->GetRootID()));
+    const tMatrixXd Jw = root_joint->GetJKw();
+    int dof = sim_char->GetNumOfFreedom();
+    tMatrixXd dJwdq_qdot = tMatrixXd::Zero(3, dof);
+    tVectorXd qdot = sim_char->Getqdot();
+
+    // calculate dJkwdq automatically
+    root_joint->ComputeDJkwdq();
+    for (int i = 0; i < root_joint->GetNumOfFreedom(); i++)
+    {
+        tMatrixXd dd = root_joint->GetdJKwdq_3xnversion(i);
+        // std::cout << "idx " << i << " size = " << dd.rows() << " " << dd.cols()
+        //           << std::endl;
+        dJwdq_qdot.col(i).noalias() =
+            dd * qdot.segment(0, root_joint->GetNumOfFreedom());
+    }
+
+    // part1 + part2
+    tVectorXd dedx = tVectorXd::Zero(2 * dof);
+    dedx.segment(0, dof) = prefix.transpose() * dJwdq_qdot;
+    dedx.segment(dof, dof) = prefix.transpose() * Jw;
+    return dedx;
+}
+/**
+ * \brief           
+*/
+void cSceneDiffImitate::TestDRootAngVelErrDx()
+{
+    auto gen_char = GetDefaultGenChar();
+    gen_char->PushState("test_root_angvel_err");
+    double old_err = CalcRootAngVelErr();
+    tVectorXd drootAngVelerr_dx = CalcDRootAngVelErrDx();
+    tVectorXd x = gen_char->Getx();
+    int dof = gen_char->GetNumOfFreedom();
+    double eps = 1e-5;
+    for (int i = 0; i < 2 * dof; i++)
+    {
+        x[i] += eps;
+        gen_char->Setx(x);
+        double new_err = CalcRootAngVelErr();
+        double num_di = (new_err - old_err) / eps;
+        double ana_di = drootAngVelerr_dx[i];
+        double diff = ana_di - num_di;
+
+        if (std::fabs(diff) > 10 * eps)
+        {
+            printf("[error] test_root_angvel_err failed for idx %d\n", i);
+            std::cout << "ana = " << ana_di << std::endl;
+            std::cout << "num = " << num_di << std::endl;
+            std::cout << "diff = " << diff << std::endl;
+            std::cout << "d = " << drootAngVelerr_dx.transpose() << std::endl;
+            exit(0);
+        }
+        x[i] -= eps;
+    }
+
+    gen_char->PopState("test_root_angvel_err");
+    std::cout << "[log] TestDRootAngVelErrDx succ = "
+              << drootAngVelerr_dx.transpose() << std::endl;
 }

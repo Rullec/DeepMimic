@@ -71,6 +71,28 @@ protected:
     tVectorXd CalcDEndEffectorErrDq(int id) const;
     void TestDEndEffectorErrDq(int id);
 
+    // 6. calc & test root reward deriv
+    double CalcRootErr() const;
+    tVectorXd CalcDRootRewardDx();
+    void TestDRootRewardDx();
+    // d(root_rew)/d(root_err)
+    // 6.1 root pos
+    double CalcRootPosErr() const;
+    tVectorXd CalcDRootPosErrDx() const;
+    void TestDRootPosErrDx();
+    // 6.2 root rot
+    double CalcRootRotErr() const;
+    tVectorXd CalcDRootRotErrDx();
+    void TestDRootRotErrDx();
+    // 6.3 root lin vel
+    double CalcRootLinVelErr() const;
+    tVectorXd CalcDRootLinVelErrDx() const;
+    void TestDRootLinVelErrDx();
+    // 6.4 root ang vel
+    double CalcRootAngVelErr() const;
+    tVectorXd CalcDRootAngVelErrDx() const;
+    void TestDRootAngVelErrDx();
+
     // test the exponential relationship
     double CalcDEndEffectorRewardDErr(double err);
     void TestEndEffectorRewardByGivenErr();
