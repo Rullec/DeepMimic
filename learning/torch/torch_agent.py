@@ -168,61 +168,98 @@ class TorchAgent:
             self.exp_params_end, lerp)
         return
 
+    def _get_self_grad(self):
+        # 1. prepare
+        states = np.array(self.replay_buffer.get_state())
+        drdas = np.array(self.replay_buffer.get_drda())
+
+        actions_torch = self.action(torch.Tensor(states))
+        drdas_torch = torch.Tensor(drdas)
+
+        # 2. get result
+        action_size = self.get_action_size()
+        num_param_group = len(
+            list(self.action.parameters()))
+        param_sizes = [i.shape for i in self.action.parameters()]
+
+        drdtheta_total = []
+        drdtheta_lst = [[] for i in range(num_param_group)]
+        for n_step_idx in range(states.shape[0]):
+            drda_step = torch.unsqueeze(drdas_torch[n_step_idx], 0)
+            # print(f"drda shape {drda_step.shape}")
+            dadtheta_lst = [[] for i in range(num_param_group)]
+            for a_idx in range(action_size):
+                # the gradient of this scale w.r.t to the group of parameters
+                tmp_grad = torch.autograd.grad(
+                    actions_torch[n_step_idx, a_idx], self.action.parameters(), retain_graph=True)
+                assert len(tmp_grad) == num_param_group
+                for _id, i in enumerate(tmp_grad):
+                    assert i.shape == param_sizes[_id]
+                    dadtheta_lst[_id].append(tmp_grad[_id])
+
+                # assert tmp_grad.shape[0] == param_size, f"{tmp_grad.shape} != {param_size}"
+
+            for _id, ele in enumerate(dadtheta_lst):
+                dadtheta_id = torch.stack(dadtheta_lst[_id])
+
+                if len(dadtheta_id.shape) == 3:
+                    drdtheta = torch.einsum(
+                        'ab,bcd->acd', drda_step, dadtheta_id)
+                else:
+                    drdtheta = torch.einsum(
+                        'ab,bc->ac', drda_step, dadtheta_id)
+                drdtheta_lst[_id].append(drdtheta)
+        drdtheta_lst = [-torch.mean(torch.squeeze(
+            torch.stack(i)), axis=0) for i in drdtheta_lst]
+
+        return drdtheta_lst
+
+    def _grad_clip(self, lim=3):
+        torch.nn.utils.clip_grad_value_(self.action.parameters(), lim)
+
+        res = [i.grad for i in self.action.parameters()]
+        max_res = max([np.max(np.array(i.detach())) for i in res])
+        min_res = min([np.min(np.array(i.detach())) for i in res])
+        print(f"max grad {max_res} min grad {min_res}")
+
     def _train(self):
         """
             this function is called when the update_counters >= update_period
             train the current agent
         """
-        # 1. begin to train, grac = dr/da * da/d\theta
-        # path_len = self.path.get_pathlen()
-        samples = self.replay_buffer.get_cur_size()
-        x = np.array(self.replay_buffer.get_state())
-        w = np.array(self.replay_buffer.get_drda())
+        # 1. construct the loss and backward
+        self.optimizer.zero_grad()
 
-        r = np.array(self.replay_buffer.get_reward())
+        self.use_self_grad = True
+        if self.use_self_grad == True:
+            self_grads = self._get_self_grad()
+            for _idx, param in enumerate(self.action.parameters()):
+                param.grad = self_grads[_idx]
+            print("use self grad")
+        else:
+            states = np.array(self.replay_buffer.get_state())
+            drdas = np.array(self.replay_buffer.get_drda())
 
-        # print(
-        #     f"[train] states shape {x.shape}, drdas shape {w.shape}, lr {self._get_lr()}")
+            # 1. get self grads
+            # 2. get old grads (for each group)
+            actions_torch = self.action(torch.Tensor(states))
+            drdas_torch = torch.Tensor(drdas)
+            loss_sum = -torch.mean(drdas_torch *
+                                   actions_torch) * self.get_action_size()
+            print("use loss grad")
+            loss_sum.backward()
 
-        actions = np.array(self.replay_buffer.get_action())
-        print(
-            f"[train] action mean {np.mean(actions, axis=0)}")
-        print(
-            f"[train] drda mean {np.mean(w, axis=0)}")
-        # print(
-        #     f"[train] drda std {np.std(w, axis=0)}")
+        self._grad_clip()
 
-        y_torch = self.action(torch.Tensor(x))
-        w_torch = torch.Tensor(w)
-        assert(w_torch.shape ==
-               y_torch.shape), f"w shape {w_torch.shape} y shape {y_torch.shape}"
-        # y: [batch, m], w:[batch, m]
-        pesudo_loss = -torch.mean(y_torch * w_torch)
-        loss_sum = pesudo_loss
-        loss_sum.backward()
-        torch.nn.utils.clip_grad_value_(self.action.parameters(), 3)
-        # print(type(self.action.parameters()))
-        # print(type(self.action.parameters().grad))
-
-        res = [i.grad for i in self.action.parameters()]
-        max_res = max([np.max(np.array(i.detach())) for i in res])
-        min_res = min([np.min(np.array(i.detach())) for i in res])
-        # print(max_res)
-        # print(min_res)
-        print(f"max grad {max_res} min grad {min_res}")
-        # print(f"[debug] loss grad max {np.max(loss_grad)} min {np.min(loss_grad)}")
-        # exit(0)
+        # 3. do forward update, update the lr, sample_counts,
         self.optimizer.step()
 
         self._set_lr(max(self.lr_decay * self._get_lr(), 1e-6))
-
-        # 2. update sample count, update time params
-        self._total_sample_count += samples
+        self._total_sample_count += self.replay_buffer.get_cur_size()
         self.world.env.set_sample_count(self._total_sample_count)
-
         self._update_exp_params()
 
-        # 3. output and clear
+        # 4. output and clear
         output_name = datetime.datetime.now().strftime("%m-%d-%H:%M:%S")
         output_name = f"{output_name}-{str(self.replay_buffer.get_avg_reward())[:5]}.pkl"
         output_path = os.path.join(self.output_dir, output_name)
@@ -305,7 +342,7 @@ class TorchAgent:
 
     def _update_new_action(self):
         """
-            1. inference a new action 
+            1. inference a new action
             2. apply the new action to C++ core
             3. calc & record the state, action, reward, and some derivatives for diff Ctrl
         """

@@ -40,7 +40,6 @@
 --train_agents true
 
 --output_path output/0115/3links_root
-# --model_files output/0115/2d_oneleg_short3/01-15-19:40:40-0.995.pkl
 
 #---------------------- Inverse Dyanmics config -------------------
 --enable_inverse_dynamic_solving false

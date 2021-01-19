@@ -4,7 +4,7 @@
    "LearningRate": 1e-2,
    "WeightLoss": 1e-3,
    "LearningRateDecay": 1,
-   "ReplayBufferCapacity": 100,
+   "ReplayBufferCapacity": 10,
    "MaxSamples": 2e6,
    "ExpAnnealSamples": 2e6,
    "ExpParamsBeg": {
