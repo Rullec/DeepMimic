@@ -35,6 +35,7 @@ class TorchAgent:
     ENABLE_UPDATE_NORMALIZERS_KEY = "EnableUpdateNormalizers"
     INIT_NORMALIZER_SAMPLES = "InitNormalizerSamples"
     NORMALIZER_ALPHA_KEY = "NormalizerAlpha"
+    ACTIVATION_KEY = "Activation"
     ACTION_NORMALIZER_KEY = "ActionNormalizer"
     STATE_NORMALIZER_KEY = "StateNormalizer"
 
@@ -55,6 +56,7 @@ class TorchAgent:
         self.max_samples = 5e5
         self.weight_loss = 0.
         self.normalizer_alpha = 1
+        self.activation = "leaky_relu"
         self.test_episodes = int(0)
         self.exp_params_beg = ExpParams()
         self.exp_params_end = ExpParams()
@@ -125,6 +127,9 @@ class TorchAgent:
 
         assert self.NORMALIZER_ALPHA_KEY in json_data
         self.normalizer_alpha = json_data[self.NORMALIZER_ALPHA_KEY]
+
+        assert self.ACTIVATION_KEY in json_data
+        self.activation = json_data[self.ACTIVATION_KEY]
 
         self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
 
@@ -398,7 +403,7 @@ class TorchAgent:
         assert self.POLICY_NET_KEY in json_data
 
         self.action = build_net(json_data[self.POLICY_NET_KEY],
-                                self.get_state_size(), self.get_action_size())
+                                self.get_state_size(), self.get_action_size(), self.activation)
         self.state_normalizer = NormalizerTorch(
             "state_normalizer", self.get_state_size(), self.world.env.build_state_norm_groups(self.id), self.normalizer_alpha)
         self.action_normalizer = NormalizerTorch(
