@@ -34,7 +34,7 @@ class TorchAgent:
     WEIGHT_LOSS_KEY = "WeightLoss"
     ENABLE_UPDATE_NORMALIZERS_KEY = "EnableUpdateNormalizers"
     INIT_NORMALIZER_SAMPLES = "InitNormalizerSamples"
-
+    NORMALIZER_ALPHA_KEY = "NormalizerAlpha"
     ACTION_NORMALIZER_KEY = "ActionNormalizer"
     STATE_NORMALIZER_KEY = "StateNormalizer"
 
@@ -54,6 +54,7 @@ class TorchAgent:
         self.exp_anneal_samples = 5e5
         self.max_samples = 5e5
         self.weight_loss = 0.
+        self.normalizer_alpha = 1
         self.test_episodes = int(0)
         self.exp_params_beg = ExpParams()
         self.exp_params_end = ExpParams()
@@ -122,6 +123,9 @@ class TorchAgent:
         assert self.INIT_NORMALIZER_SAMPLES in json_data
         self.init_normalizer_samples = json_data[self.INIT_NORMALIZER_SAMPLES]
 
+        assert self.NORMALIZER_ALPHA_KEY in json_data
+        self.normalizer_alpha = json_data[self.NORMALIZER_ALPHA_KEY]
+
         self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
 
         return
@@ -132,6 +136,8 @@ class TorchAgent:
     def _build_loss(self):
         self.optimizer = optim.SGD(
             self._get_parameters(), lr=self.lr, weight_decay=self.weight_loss)
+        # self.optimizer = optim.Adam(
+        #     self._get_parameters(), lr=self.lr, weight_decay=self.weight_loss)
 
     def save_model(self, out_path):
         tar_dir = os.path.dirname(out_path)
@@ -155,6 +161,7 @@ class TorchAgent:
         else:
             self.state_normalizer = load_state_dict[self.STATE_NORMALIZER_KEY]
             self.action_normalizer = load_state_dict[self.ACTION_NORMALIZER_KEY]
+            self.enable_update_normalizer = self.state_normalizer.sample_count < self.init_normalizer_samples
             load_state_dict.pop(self.STATE_NORMALIZER_KEY)
             load_state_dict.pop(self.ACTION_NORMALIZER_KEY)
             print(
@@ -299,7 +306,7 @@ class TorchAgent:
 
         # 4. output and clear
         output_name = datetime.datetime.now().strftime("%m-%d-%H:%M:%S")
-        output_name = f"{output_name}-{str(self.replay_buffer.get_avg_reward())[:5]}.pkl"
+        output_name = f"{output_name}-{str(self.replay_buffer.get_avg_reward())[:6]}.pkl"
         output_path = os.path.join(self.output_dir, output_name)
         self.save_model(output_path)
 
@@ -311,12 +318,11 @@ class TorchAgent:
             print(f"[log] total samples exceed max {self.max_samples}, exit")
             exit(0)
 
-        # self._print_statistics()
+        self._print_statistics()
 
         if self.enable_update_normalizer:
             self._update_normalizers()
 
-            self.enable_update_normalizer = self._total_sample_count < self.init_normalizer_samples
         else:
             print("[update] normalizers kept!")
             print(f"Normalizer state mean = {self.state_normalizer.mean}")
@@ -332,15 +338,16 @@ class TorchAgent:
         # 1. get current states and actions
         states = np.array(self.replay_buffer.get_state())
         actions = np.array(self.replay_buffer.get_action())
+        samples = self.replay_buffer.get_cur_size()
 
         # 2. caclulate the mean and std for them?
         state_mean = np.mean(states, axis=0)
         state_std = np.std(states, axis=0)
-        self.state_normalizer.update(state_mean, state_std)
+        self.state_normalizer.update(state_mean, state_std, samples)
 
         action_mean = np.mean(actions, axis=0)
         action_std = np.std(actions, axis=0)
-        self.action_normalizer.update(action_mean, action_std)
+        self.action_normalizer.update(action_mean, action_std, samples)
 
     def _print_statistics(self):
         # output the data dist
@@ -393,9 +400,9 @@ class TorchAgent:
         self.action = build_net(json_data[self.POLICY_NET_KEY],
                                 self.get_state_size(), self.get_action_size())
         self.state_normalizer = NormalizerTorch(
-            "state_normalizer", self.get_state_size())
+            "state_normalizer", self.get_state_size(), self.world.env.build_state_norm_groups(self.id), self.normalizer_alpha)
         self.action_normalizer = NormalizerTorch(
-            "action_normalizer", self.get_action_size())
+            "action_normalizer", self.get_action_size(), alpha=self.normalizer_alpha)
 
     def _get_output_path(self):
         assert False
@@ -443,10 +450,10 @@ class TorchAgent:
         # 2. get the reward if it's not the first step
         if not (self._is_first_step()):
             r = self._record_reward()
-            # print(f"cur rew = {r}")
             drda = self._record_drda()
-            # print(
-            #     f"[debug] action = {self.path.actions[-1]} drda = {drda} reward {r}")
+            # if self.enable_training == False and self._mode == self.Mode.TRAIN:
+            print(
+                f"[debug] action = {self.path.actions[-1]} drda = {drda} reward {r}")
             np.set_printoptions(precision=3)
             # print(
             #     f"[debug] drda = {drda} reward {r}")
@@ -486,7 +493,10 @@ class TorchAgent:
         self.path.rewards.append(r)
         self.path.states.append(s)
         self.path.drdas.append(drda)
-        # print(f"[debug] torch path end, drdas {self.path.drdas}")
+
+        if self.enable_training == False:
+            print(f"[test] path avg rew {np.mean( self.path.rewards)}")
+            print(f"[test] path avg drda {np.mean( self.path.drdas, axis =0)}")
 
         assert np.isfinite(s).all() == True and np.isfinite(r).all() == True
 
@@ -516,6 +526,7 @@ class TorchAgent:
             this function first end the path. if this path is valid, we begin to train
 
         """
+
         if self.path.pathlength() > 0:
             self._end_path()
             if self._mode == self.Mode.TRAIN or self._mode == self.Mode.TRAIN_END:
@@ -565,6 +576,7 @@ class TorchAgent:
 
     def _update_test_return(self, path):
         path_reward = np.sum(path.rewards) / len(path.rewards)
+
         self.test_return += path_reward
         self.test_episode_count += 1
         return

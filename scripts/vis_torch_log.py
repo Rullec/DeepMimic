@@ -4,6 +4,7 @@ import os
 import argparse
 
 
+
 def handle_log_file(log_filename, output_png_filename, draw=False):
     assert os.path.exists(log_filename) == True
     with open(log_filename) as f:
@@ -30,7 +31,7 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
     plt.clf()
     plt.suptitle(output_png_filename)
     plt.subplot(1, 2, 1)
-    plt.ylim(0, 1)
+    # plt.ylim(0, 1)
     # plt.plot(samples_lst, avg_rew_lst)
     plt.plot([i for i in range(len(avg_rew_lst))], avg_rew_lst)
     plt.title(f"reward")
@@ -78,7 +79,7 @@ if __name__ == "__main__":
         os.makedirs(output_dir)
         files = get_all_log_files(log_dir)
         for file in files:
-            
+
             output = os.path.join(output_dir, f"{os.path.split(file)[-1]}.png")
             # print(output)
             handle_log_file(file, output, draw=False)

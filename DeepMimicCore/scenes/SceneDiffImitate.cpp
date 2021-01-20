@@ -4,7 +4,7 @@
 #include "util/LogUtil.h"
 const std::string
     cSceneDiffImitate::gDerivModeStr[cSceneDiffImitate::NUM_DERIV_MODE] = {
-        "single_step", "multi_steps"};
+        "single_step", "single_step_sum", "multi_steps"};
 
 cSceneDiffImitate::cSceneDiffImitate()
 {
@@ -12,6 +12,7 @@ cSceneDiffImitate::cSceneDiffImitate()
     mEnableTestDRewardDAction = false;
     mPBuffer.clear();
     mQBuffer.clear();
+    mDrdaSingleBuffer.clear();
     mDebugOutput = false;
 }
 cSceneDiffImitate::~cSceneDiffImitate() {}
@@ -88,7 +89,26 @@ tVectorXd cSceneDiffImitate::CalcDRewardDAction()
     //
 
     // d(r_t)/d(x_{t+1}^1) * d(x_{t+1}^1)/d(a)
-    tVectorXd DrDa = CalcDrDxcur().transpose() * CalcDxurDa();
+    tVectorXd DrDa;
+    if (mDerivMode == eDerivMode::DERIV_SINGLE_STEP)
+    {
+
+        DrDa = CalcDrDxcur().transpose() * CalcDxurDa();
+    }
+    else if (mDerivMode == eDerivMode::DERIV_SINGLE_STEP_SUM)
+    {
+        // std::cout << "[warn] calcdrda in sum mode, the buffer will be cleared "
+        //              "after this\n";
+        DrDa = tVectorXd::Zero(GetActionSize(0));
+        for (auto &x : mDrdaSingleBuffer)
+            DrDa += x;
+        // std::cout << "sum drda = " << DrDa.transpose() << std::endl;
+        mDrdaSingleBuffer.clear();
+    }
+    else
+    {
+        MIMIC_ERROR("unsupported mode {}", mDerivMode);
+    }
     // {
     //     // test
     //     tVectorXd Drda_single =
@@ -353,6 +373,9 @@ tMatrixXd cSceneDiffImitate::CalcDxurDa()
     switch (mDerivMode)
     {
     case eDerivMode::DERIV_SINGLE_STEP:
+        deriv = CalcDxurDa_SingleStep();
+        break;
+    case eDerivMode::DERIV_SINGLE_STEP_SUM:
         deriv = CalcDxurDa_SingleStep();
         break;
     case eDerivMode::DERIV_MULTI_STEPS:
@@ -895,6 +918,7 @@ void cSceneDiffImitate::Reset()
 {
     cSceneImitate::Reset();
     ClearPQBuffer();
+    mDrdaSingleBuffer.clear();
 }
 
 void cSceneDiffImitate::ClearPQBuffer()
@@ -924,6 +948,11 @@ void cSceneDiffImitate::Update(double dt)
     if (mDerivMode == eDerivMode::DERIV_MULTI_STEPS)
         mQBuffer.push_back(CalcQ());
 
+    if (mDerivMode == eDerivMode::DERIV_SINGLE_STEP_SUM)
+    {
+        mDrdaSingleBuffer.push_back(CalcDrDxcur().transpose() * CalcDxurDa());
+    }
+    // std::cout << "drda = " << CalcDRewardDAction().transpose() << std::endl;
     if (mDebugOutput)
     {
 

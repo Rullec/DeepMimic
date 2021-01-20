@@ -12,6 +12,7 @@ public:
     enum eDerivMode // the mode for calculate drda
     {
         DERIV_SINGLE_STEP, // only use the nearest frame data to calcualte drda
+        DERIV_SINGLE_STEP_SUM, // sum all drda from previous action given
         DERIV_MULTI_STEPS, // use the past, history data to calc drda (approximately)
         NUM_DERIV_MODE,
     };
@@ -101,7 +102,7 @@ protected:
         mPBuffer; // buffer for storing P matrix, used in multistep mode
     tEigenArr<tMatrixXd>
         mQBuffer; // buffer for storing Q vector, used in multistep mode
-
+    tEigenArr<tVectorXd> mDrdaSingleBuffer; // buffer for single step drda
     std::shared_ptr<cSimCharacterGen> GetDefaultGenChar() const;
     std::shared_ptr<cCtPDGenController> GetDefaultGenCtrl();
 
