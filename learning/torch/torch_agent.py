@@ -38,6 +38,7 @@ class TorchAgent:
     ACTIVATION_KEY = "Activation"
     ACTION_NORMALIZER_KEY = "ActionNormalizer"
     STATE_NORMALIZER_KEY = "StateNormalizer"
+    DROPOUT_KEY = "Dropout"
 
     class Mode(Enum):
         TRAIN = 0
@@ -55,8 +56,6 @@ class TorchAgent:
         self.exp_anneal_samples = 5e5
         self.max_samples = 5e5
         self.weight_loss = 0.
-        self.normalizer_alpha = 1
-        self.activation = "leaky_relu"
         self.test_episodes = int(0)
         self.exp_params_beg = ExpParams()
         self.exp_params_end = ExpParams()
@@ -64,7 +63,7 @@ class TorchAgent:
         self.enable_update_normalizer = True
         # only when total samples is lower than "init_normalizer_samples" will the normalizers being updated
         self.init_normalizer_samples = 0
-
+        self._train_iters = 0
         # 2. runtime vars init value
         self.world = world
         self.logger = Logger()
@@ -128,9 +127,6 @@ class TorchAgent:
         assert self.NORMALIZER_ALPHA_KEY in json_data
         self.normalizer_alpha = json_data[self.NORMALIZER_ALPHA_KEY]
 
-        assert self.ACTIVATION_KEY in json_data
-        self.activation = json_data[self.ACTIVATION_KEY]
-
         self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
 
         return
@@ -138,11 +134,14 @@ class TorchAgent:
     def _get_parameters(self):
         return self.action.parameters()
 
+    def _update_optimizer(self):
+        self.optimizer = optim.Adam(
+            self._get_parameters(), lr=self.lr, weight_decay=self.weight_loss)
+
     def _build_loss(self):
+        # self._get_parameters()
         self.optimizer = optim.SGD(
             self._get_parameters(), lr=self.lr, weight_decay=self.weight_loss)
-        # self.optimizer = optim.Adam(
-        #     self._get_parameters(), lr=self.lr, weight_decay=self.weight_loss)
 
     def save_model(self, out_path):
         tar_dir = os.path.dirname(out_path)
@@ -157,10 +156,36 @@ class TorchAgent:
 
         return
 
+    def load_old_model(self, state_dict):
+        new_old_map = [
+            ("layers.0", "input"),
+            ("layers.1", "fc1"),
+            ("layers.2", "fc2"),
+        ]
+
+        type_name = ["weight", "bias"]
+        # print("old")
+        for new_key, old_key in new_old_map:
+            for type_key in type_name:
+                new_total_key = f"{new_key}.{type_key}"
+                old_total_key = f"{old_key}.{type_key}"
+                assert old_total_key in state_dict
+                value = state_dict[old_total_key]
+                state_dict.pop(old_total_key)
+                state_dict[new_total_key] = value
+
+        # assert False
+        return state_dict
+
     def load_model(self, in_path):
         if os.path.exists(in_path) == False:
             return
         load_state_dict = torch.load(in_path)
+
+        # old version model
+        if "layers.0.weight" not in load_state_dict:
+            load_state_dict = self.load_old_model(load_state_dict)
+
         if (self.STATE_NORMALIZER_KEY in load_state_dict) == False or (self.ACTION_NORMALIZER_KEY in load_state_dict) == False:
             print(f"[warn] no noramlizers found in given model {in_path}")
         else:
@@ -177,17 +202,23 @@ class TorchAgent:
         print(f"a std {self.action_normalizer.std}")
         print(f"s mean {self.state_normalizer.mean}")
         print(f"s std {self.state_normalizer.std}")
-        # exit(0)
+        # self.draw_param_hist()
         return
 
     def _decide_action(self, s, g):
-        a = self._infer_action(torch.Tensor(s)).detach().numpy()
+        a = self._infer_action(torch.Tensor(s), train=False).detach().numpy()
         # print(f"[decide] a = {a}")
         return a
 
-    def _infer_action(self, s):
+    def _infer_action(self, s, train):
         assert type(s) is torch.Tensor
-        return self.action_normalizer.unnormalize(self.action(self.state_normalizer.normalize(s)))
+        if train is False:
+            self.action.eval()
+        else:
+            self.action.train()
+
+        return self.action_normalizer.unnormalize(
+            self.action(self.state_normalizer.normalize(s)))
 
     def _get_output_path(self):
         assert False
@@ -223,7 +254,7 @@ class TorchAgent:
         states = np.array(self.replay_buffer.get_state())
         drdas = np.array(self.replay_buffer.get_drda())
 
-        actions_torch = self._infer_action(torch.Tensor(states))
+        actions_torch = self._infer_action(torch.Tensor(states), train=True)
         drdas_torch = torch.Tensor(drdas)
 
         # 2. get result
@@ -292,7 +323,8 @@ class TorchAgent:
 
             # 1. get self grads
             # 2. get old grads (for each group)
-            actions_torch = self._infer_action(torch.Tensor(states))
+            actions_torch = self._infer_action(
+                torch.Tensor(states), train=True)
             drdas_torch = torch.Tensor(drdas)
             loss_sum = -torch.mean(drdas_torch *
                                    actions_torch) * self.get_action_size()
@@ -334,9 +366,14 @@ class TorchAgent:
             print(f"Normalizer state std = {self.state_normalizer.std}")
             print(f"Normalizer action mean = {self.action_normalizer.mean}")
             print(f"Normalizer action std = {self.action_normalizer.std}")
+
+        if self._train_iters == 200:
+            self._update_optimizer()
+
         self.replay_buffer.clear()
 
         self._mode = self.Mode.TRAIN
+        self._train_iters += 1
 
     def _update_normalizers(self):
         # update the normalizer
@@ -396,14 +433,38 @@ class TorchAgent:
     def get_action_size(self):
         return self.world.env.get_action_size(self.id)
 
+    def draw_param_hist(self):
+        import matplotlib.pyplot as plt
+        for _id, name in enumerate(self.action.state_dict()):
+            # res = torch.histc().detach()
+            plt.cla()
+            param = np.array(self.action.state_dict()[name].detach())
+            min_res = np.min(param)
+            max_res = np.max(param)
+            print(f"{name} min {min_res} max {max_res}")
+            param = param.reshape(-1)
+            plt.hist(param, bins=10)
+            plt.title(f"{_id} {name}")
+            filename = f"{_id} {name}.png"
+
+            # plt.show()
+            plt.savefig(filename)
+            print(f"[log] save {filename}")
+
     def _build_graph(self, json_data):
         """
             Given the agent file, build the network from torch
         """
         assert self.POLICY_NET_KEY in json_data
-
-        self.action = build_net(json_data[self.POLICY_NET_KEY],
-                                self.get_state_size(), self.get_action_size(), self.activation)
+        nets = json_data[self.POLICY_NET_KEY]
+        assert self.ACTIVATION_KEY in json_data
+        activation = json_data[self.ACTIVATION_KEY]
+        assert self.DROPOUT_KEY in json_data
+        dropout = json_data[self.DROPOUT_KEY]
+        # print(f"dropout {dropout}")
+        # exit(0)
+        self.action = build_net(nets,
+                                self.get_state_size(), self.get_action_size(), activation=activation, dropout=dropout)
         self.state_normalizer = NormalizerTorch(
             "state_normalizer", self.get_state_size(), self.world.env.build_state_norm_groups(self.id), self.normalizer_alpha)
         self.action_normalizer = NormalizerTorch(
@@ -456,10 +517,12 @@ class TorchAgent:
         if not (self._is_first_step()):
             r = self._record_reward()
             drda = self._record_drda()
+            np.set_printoptions(suppress=False)
             # if self.enable_training == False and self._mode == self.Mode.TRAIN:
             print(
                 f"[debug] action = {self.path.actions[-1]} drda = {drda} reward {r}")
-            np.set_printoptions(precision=3)
+            np.set_printoptions(suppress=True)
+            np.set_printoptions(precision=5)
             # print(
             #     f"[debug] drda = {drda} reward {r}")
             self.path.rewards.append(r)

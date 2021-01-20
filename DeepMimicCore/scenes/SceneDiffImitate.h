@@ -14,6 +14,7 @@ public:
         DERIV_SINGLE_STEP, // only use the nearest frame data to calcualte drda
         DERIV_SINGLE_STEP_SUM, // sum all drda from previous action given
         DERIV_MULTI_STEPS, // use the past, history data to calc drda (approximately)
+        DERIV_MULTI_STEPS_FULL, // calculate the more accurate derivative
         NUM_DERIV_MODE,
     };
     static const std::string gDerivModeStr[NUM_DERIV_MODE];
@@ -58,8 +59,8 @@ protected:
     // 4. multistep buffer methods
     void TestP();
     tMatrixXd CalcP();
-    tMatrixXd CalcQ();    // we do not need to test Q
-    void ClearPQBuffer(); // clear P buffer and Q buffer
+    tMatrixXd CalcQ();  // we do not need to test Q
+    void ClearBuffer(); // clear P buffer and Q buffer
 
     // 5. calc & test end effector reward deriv
     tVectorXd CalcDEndEffectorRewardDq() const;
@@ -110,4 +111,22 @@ protected:
     bool
         mEnableTestDRewardDAction; // enable testing the derivative d(reawrd)/d(action) when CalcReward
     bool mDebugOutput;
+    int mNumDiffStepSum; // the number of summing drdas used in "single_step_sum" mode
+
+    struct
+        tDerivMultiStepAccInfo // info structure used in multi step accurate derivation
+    {
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+        tDerivMultiStepAccInfo();
+        // all these vars are ALL partial derivatives
+        tMatrixXd DuDxcur, DuDa; // from SPD
+        tMatrixXd DxnextDu;      //
+        tMatrixXd DxnextDQc, DQcDu;
+        tMatrixXd DxnextDQG_DQGDxcur;
+        tMatrixXd DxnextDxcur;
+
+        tMatrixXd DxnextDa_total; // total derivative
+    };
+    tEigenArr<tDerivMultiStepAccInfo> mMultiStepAccBuffer;
+    void CalcDxDa_multistepacc();
 };

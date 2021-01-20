@@ -1,5 +1,5 @@
 {
-	"UpdateRate": 30,
+	"QueryRate": 30,
 	"EnablePhaseInput": true,
 	"EnableTestDerivative": false,
 	"RecordWorldRootPos": false,

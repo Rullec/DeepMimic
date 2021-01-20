@@ -169,8 +169,6 @@ public:
                              const tVectorXd &qdot) override;
     virtual void Setqdot(const tVectorXd &qdot) override;
     virtual void Setq(const tVectorXd &q) override;
-    tVectorXd Getx() const;
-    void Setx(const tVectorXd &x);
     virtual tMatrixXd CalcDqDpose(const tVectorXd &pose);
     virtual tMatrixXd CalcDposedq(const tVectorXd &q);
     virtual void TestCalcDposedq();

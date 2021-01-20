@@ -1,7 +1,7 @@
 {
    "AgentType": "DiffMBRL",
    "PolicyNet": "fc_2layers_64_16",
-   "LearningRate": 1e-2,
+   "LearningRate": 7e-3,
    "WeightLoss": 1e-2,
    "LearningRateDecay": 1,
    "ReplayBufferCapacity": 200,

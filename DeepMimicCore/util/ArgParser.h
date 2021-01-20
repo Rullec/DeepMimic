@@ -24,8 +24,10 @@ public:
     virtual bool ParseStrings(const std::string &key,
                               std::vector<std::string> &out) const;
     virtual bool ParseInt(const std::string &key, int &out) const;
+    virtual bool ParseIntCritic(const std::string &key, int &out) const;
     virtual bool ParseInts(const std::string &key, std::vector<int> &out) const;
     virtual bool ParseDouble(const std::string &key, double &out) const;
+    virtual bool ParseDoubleCritic(const std::string &key, double &out) const;
     virtual bool ParseDoubles(const std::string &key,
                               std::vector<double> &out) const;
     virtual bool ParseBool(const std::string &key, bool &out) const;

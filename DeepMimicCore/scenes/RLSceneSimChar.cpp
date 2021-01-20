@@ -18,16 +18,16 @@ void cRLSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     cRLScene::ParseArgs(parser);
     cSceneSimChar::ParseArgs(parser);
 
-    parser->ParseBool("enable_fall_end", mEnableFallEnd);
-    parser->ParseInt("anneal_samples", mAnnealSamples);
-    parser->ParseDouble("anneal_pow", mAnnealPow);
+    parser->ParseBoolCritic("enable_fall_end", mEnableFallEnd);
+    parser->ParseIntCritic("anneal_samples", mAnnealSamples);
+    parser->ParseDoubleCritic("anneal_pow", mAnnealPow);
     parser->ParseBoolCritic("enable_vel_explode_end", mEnableVelExpEnd);
     MIMIC_INFO("set anneal pow {}", mAnnealPow);
 
     mTimerParamsEnd = mTimerParams;
-    mArgParser->ParseDouble("time_end_lim_min", mTimerParamsEnd.mTimeMin);
-    mArgParser->ParseDouble("time_end_lim_max", mTimerParamsEnd.mTimeMax);
-    mArgParser->ParseDouble("time_end_lim_exp", mTimerParamsEnd.mTimeExp);
+    mArgParser->ParseDoubleCritic("time_end_lim_min", mTimerParamsEnd.mTimeMin);
+    mArgParser->ParseDoubleCritic("time_end_lim_max", mTimerParamsEnd.mTimeMax);
+    mArgParser->ParseDoubleCritic("time_end_lim_exp", mTimerParamsEnd.mTimeExp);
 }
 
 void cRLSceneSimChar::Init()

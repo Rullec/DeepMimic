@@ -30,10 +30,9 @@ void cArgParser::LoadArgs(const std::vector<std::string> &arg_strs)
     for (size_t i = 0; i < arg_strs.size(); ++i)
     {
         const std::string &str = arg_strs[i];
-        if (!IsComment(
-                str)) // 不是注释
-                      // (这也意味着注释只有一个效果，注释值的话后面还是1会算着)
-                      // 这样的逻辑其实不符合#后面啥都没有的原则
+        if (!IsComment(str)) // 不是注释
+            // (这也意味着注释只有一个效果，注释值的话后面还是1会算着)
+            // 这样的逻辑其实不符合#后面啥都没有的原则
         {
             // 这个判断很有意思:
             // 如果str的开头是"keystart"的-，这个概念也应该抽象
@@ -241,6 +240,24 @@ bool cArgParser::ParseBool(const std::string &key, bool &out) const
         return true;
     }
     return false;
+}
+
+bool cArgParser::ParseIntCritic(const std::string &key, int &out) const
+{
+    if (ParseInt(key, out) == false)
+    {
+        MIMIC_ERROR("parse key {} failed", key);
+    }
+    return true;
+}
+
+bool cArgParser::ParseDoubleCritic(const std::string &key, double &out) const
+{
+    if (ParseDouble(key, out) == false)
+    {
+        MIMIC_ERROR("parse key {} failed", key);
+    }
+    return true;
 }
 
 bool cArgParser::ParseBoolCritic(const std::string &key, bool &out) const

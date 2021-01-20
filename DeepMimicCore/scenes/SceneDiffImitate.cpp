@@ -4,7 +4,8 @@
 #include "util/LogUtil.h"
 const std::string
     cSceneDiffImitate::gDerivModeStr[cSceneDiffImitate::NUM_DERIV_MODE] = {
-        "single_step", "single_step_sum", "multi_steps"};
+        "single_step", "single_step_sum", "multi_steps",
+        "multi_steps_accurate"};
 
 cSceneDiffImitate::cSceneDiffImitate()
 {
@@ -27,6 +28,11 @@ void cSceneDiffImitate::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     parser->ParseStringCritic("diff_scene_mode", diffmode_str);
     mDerivMode = cSceneDiffImitate::ParseDerivMode(diffmode_str);
     MIMIC_INFO("diff scene mode {}", gDerivModeStr[mDerivMode]);
+
+    if (mDerivMode == eDerivMode::DERIV_SINGLE_STEP_SUM)
+    {
+        parser->ParseIntCritic("num_sum_step", mNumDiffStepSum);
+    }
 }
 
 /**
@@ -47,6 +53,8 @@ void cSceneDiffImitate::Init()
     GetDefaultGenCtrl()->SetEnableCalcDeriv(true);
     MIMIC_ASSERT(GetDefaultGenCtrl()->GetEnableCalcDeriv());
 
+    // enable the third derivative
+    GetDefaultGenChar()->SetComputeThirdDerive(true);
     // {
     //     auto gen_char = GetDefaultGenChar();
     //     tVectorXd x = gen_char->Getx();
@@ -100,10 +108,47 @@ tVectorXd cSceneDiffImitate::CalcDRewardDAction()
         // std::cout << "[warn] calcdrda in sum mode, the buffer will be cleared "
         //              "after this\n";
         DrDa = tVectorXd::Zero(GetActionSize(0));
-        for (auto &x : mDrdaSingleBuffer)
-            DrDa += x;
+        int num_buffer = mDrdaSingleBuffer.size();
+        if (num_buffer == 0)
+        {
+            MIMIC_ERROR("num buffer is zero");
+            return DrDa;
+        }
+        int termi = std::max(int(num_buffer - mNumDiffStepSum), 0);
+
+        for (int i = num_buffer - 1; i >= termi; i--)
+        {
+            DrDa += mDrdaSingleBuffer[i];
+        }
         // std::cout << "sum drda = " << DrDa.transpose() << std::endl;
         mDrdaSingleBuffer.clear();
+    }
+    else if (mDerivMode == eDerivMode::DERIV_MULTI_STEPS_FULL)
+    {
+        // must do at least a step simulation after reset/set action
+
+        {
+            tMatrixXd DxDa = tMatrixXd::Zero(
+                GetDefaultGenChar()->GetNumOfFreedom() * 2, GetActionSize(0));
+            if (mMultiStepAccBuffer.size() != 0)
+            {
+                DxDa = mMultiStepAccBuffer[mMultiStepAccBuffer.size() - 1]
+                           .DxnextDa_total;
+            }
+            else
+            {
+                std::cout << "[warn] first step after reset / new action, dxda "
+                             "is zero\n";
+            }
+
+            tVectorXd res = CalcDrDxcur().transpose() * DxDa;
+            // std::cout
+            //     << "[debug] ----------DERIV_MULTI_STEPS_FULL-----------\n";
+            // std::cout << "dxda = \n" << DxDa << std::endl;
+            // std::cout << "drdx = \n" << CalcDrDxcur().transpose() << std::endl;
+            // std::cout << "drda = \n" << res.transpose() << std::endl;
+            return res;
+        }
     }
     else
     {
@@ -118,6 +163,7 @@ tVectorXd cSceneDiffImitate::CalcDRewardDAction()
     //     // std::cout << "[single] drda = " << Drda_single.transpose() << std::endl;
     //     // std::cout << "[multi] drda = " << Drda_multi.transpose() << std::endl;
     // }
+    // std::cout << "[cpp] drda = " << DrDa.transpose() << std::endl;
     return DrDa;
 }
 
@@ -384,6 +430,12 @@ tMatrixXd cSceneDiffImitate::CalcDxurDa()
     default:
         MIMIC_ASSERT(false);
         break;
+    }
+    if (deriv.size() == 0)
+    {
+        std::cout << "[warn] CalcDxcurDa is set to zero\n";
+        deriv = tMatrixXd::Zero(GetDefaultGenChar()->GetNumOfFreedom() * 2,
+                                GetActionSize(0));
     }
     return deriv;
 }
@@ -873,8 +925,8 @@ tMatrixXd cSceneDiffImitate::CalcP()
     dtI_I.block(0, 0, dof, dof) *= mTimestep;
 
     // 2. form P part1: A * dudx
-    tMatrixXd P = mTimestep * dtI_I * tilde_M_inv *
-                  gen_ctrl->CalcDCtrlForceDx_Approx(mTimestep);
+    tMatrixXd P =
+        mTimestep * dtI_I * tilde_M_inv * gen_ctrl->GetDCtrlForceDxcur();
 
     // 3. form P part2:
     // [dt*I; I] * \tilde{M}^{-1} * M * dqdot/dx
@@ -895,7 +947,15 @@ tMatrixXd cSceneDiffImitate::CalcQ()
         std::dynamic_pointer_cast<cGenWorld>(mWorldBase)->GetInternalGenWorld();
 
     // d(x_{t+1}^1)/dut
-    tMatrixXd DxDCtrlForce = bt_gen_world->GetDxnextDCtrlForce();
+
+    // tMatrixXd DxDCtrlForce = bt_gen_world->GetDxnextDCtrlForce();
+    tMatrixXd DxDCtrlForce = bt_gen_world->GetDxnextDQc_u();
+    if (bt_gen_world->GetDQcDu().size() != 0)
+    {
+        DxDCtrlForce +=
+            bt_gen_world->GetDxnextDQc_u() * bt_gen_world->GetDQcDu();
+    }
+
     auto gen_char = GetDefaultGenChar();
     auto gen_ctrl = GetDefaultGenCtrl();
     if (mDebugOutput)
@@ -917,14 +977,15 @@ tMatrixXd cSceneDiffImitate::CalcQ()
 void cSceneDiffImitate::Reset()
 {
     cSceneImitate::Reset();
-    ClearPQBuffer();
-    mDrdaSingleBuffer.clear();
+    ClearBuffer();
 }
 
-void cSceneDiffImitate::ClearPQBuffer()
+void cSceneDiffImitate::ClearBuffer()
 {
     mPBuffer.clear();
     mQBuffer.clear();
+    mDrdaSingleBuffer.clear();
+    mMultiStepAccBuffer.clear();
     // std::cout << "[debug] clear PQ buffer!\n";
 }
 
@@ -934,24 +995,30 @@ void cSceneDiffImitate::ClearPQBuffer()
 void cSceneDiffImitate::Update(double dt)
 {
     mTimestep = dt;
-    // 0. if it's in the multistep mode, consider to calcualte the P and Q
-    if (mDerivMode == eDerivMode::DERIV_MULTI_STEPS)
-    {
-        // 0.1 calcualte P (confirmed, it's and it should be calculated in the old timestep, here)
-        mPBuffer.push_back(CalcP());
-    }
 
     // 1. update the imitate scene
     cSceneImitate::Update(dt);
 
+    // 0. if it's in the multistep mode, consider to calcualte the P and Q
+    // 0.1 calcualte P (confirmed, it's and it should be calculated in the old timestep, here)
     // 0.2 calcualte Q, I think is should be caclulated after the update
     if (mDerivMode == eDerivMode::DERIV_MULTI_STEPS)
+    {
+        mPBuffer.push_back(CalcP());
         mQBuffer.push_back(CalcQ());
+    }
 
     if (mDerivMode == eDerivMode::DERIV_SINGLE_STEP_SUM)
     {
         mDrdaSingleBuffer.push_back(CalcDrDxcur().transpose() * CalcDxurDa());
     }
+
+    // record some derivative info after the update
+    if (mDerivMode == eDerivMode::DERIV_MULTI_STEPS_FULL)
+    {
+        CalcDxDa_multistepacc();
+    }
+
     // std::cout << "drda = " << CalcDRewardDAction().transpose() << std::endl;
     if (mDebugOutput)
     {
@@ -1048,7 +1115,7 @@ void cSceneDiffImitate::TestP()
 void cSceneDiffImitate::SetAction(int agent_id, const Eigen::VectorXd &action)
 {
     // std::cout << "[debug] set aciton\n";
-    ClearPQBuffer();
+    ClearBuffer();
     cSceneImitate::SetAction(agent_id, action);
 }
 
@@ -1885,4 +1952,76 @@ void cSceneDiffImitate::TestDRootAngVelErrDx()
     gen_char->PopState("test_root_angvel_err");
     std::cout << "[log] TestDRootAngVelErrDx succ = "
               << drootAngVelerr_dx.transpose() << std::endl;
+}
+
+cSceneDiffImitate::tDerivMultiStepAccInfo::tDerivMultiStepAccInfo()
+{
+    DuDxcur.resize(0, 0);
+    DuDa.resize(0, 0);     // from SPD
+    DxnextDu.resize(0, 0); //
+    DxnextDQc.resize(0, 0);
+    DQcDu.resize(0, 0);
+    DxnextDQG_DQGDxcur.resize(0, 0);
+
+    DxnextDa_total.resize(0, 0); // total derivative
+}
+
+/**
+ * \brief               Calculate the dxda in multistep_accrutate mode
+ * 
+ * 
+*/
+void cSceneDiffImitate::CalcDxDa_multistepacc()
+{
+    MIMIC_ASSERT(mMultiStepAccBuffer.size() <= 20);
+    // 1. record the info from the internal world
+    auto bt_gen_world =
+        std::dynamic_pointer_cast<cGenWorld>(mWorldBase)->GetInternalGenWorld();
+    auto gen_ctrl = GetDefaultGenCtrl();
+    auto gen_char = GetDefaultGenChar();
+    int dof = gen_char->GetNumOfFreedom();
+    int state_size = 2 * dof;
+    tDerivMultiStepAccInfo info;
+    {
+        // 1. from SPD
+        info.DuDxcur = gen_ctrl->GetDCtrlForceDxcur();
+        info.DuDa = gen_ctrl->GetDCtrlForceDAction();
+
+        // 2. from gen world
+        info.DxnextDu = bt_gen_world->GetDxnextDQc_u();
+        info.DxnextDQc = bt_gen_world->GetDxnextDQc_u();
+        info.DQcDu = bt_gen_world->GetDQcDu();
+        info.DxnextDQG_DQGDxcur = bt_gen_world->GetDxnextDQGDQGDxcur();
+        info.DxnextDxcur = bt_gen_world->GetDxnextDxcur();
+    }
+
+    // get the previous dxda
+    tMatrixXd DxcurDa = tMatrixXd::Zero(state_size, gen_ctrl->GetActionSize());
+    if (mMultiStepAccBuffer.size() != 0)
+        DxcurDa =
+            mMultiStepAccBuffer[mMultiStepAccBuffer.size() - 1].DxnextDa_total;
+
+    /* 2. calculate the current DxnextDa_total
+        Let D_spd = (D(ut)/D(xcur) * D(xcur)/D(at) + D(ut)/D(at))
+        
+        D(xnext)/D(at)
+        =   D(xnext)/D(ut) * D_spd
+            +
+            D(xnext)/D(Qc) * [ D(Qc)/D(ut) * D_spd + ... (ignored)]
+            +
+            [D(xnext)/D(QG) * D(QG)/(Dxcur) + D(xnext)/D(xcur)] * D(xcur)/D(at)
+    */
+    // printf("[debug] DxnextDQc shape %d %d\n", info.DxnextDQc.rows(),
+    //        info.DxnextDQc.cols());
+    // printf("[debug] DQcDu shape %d %d\n", info.DQcDu.rows(), info.DQcDu.cols());
+    // printf("[debug] DxcurDa shape %d %d\n", DxcurDa.rows(), DxcurDa.cols());
+    tMatrixXd Dspd = info.DuDxcur * DxcurDa + info.DuDa;
+
+    info.DxnextDa_total = info.DxnextDu * Dspd;
+    info.DxnextDa_total += info.DxnextDQc * info.DQcDu * Dspd;
+    info.DxnextDa_total +=
+        (info.DxnextDQG_DQGDxcur + info.DxnextDxcur) * DxcurDa;
+    mMultiStepAccBuffer.push_back(info);
+    // std::cout << "[debug] CalcDxDa_multistepacc succ, size = "
+    //           << mMultiStepAccBuffer.size() << std::endl;
 }

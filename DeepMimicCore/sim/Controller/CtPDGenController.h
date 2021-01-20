@@ -45,9 +45,8 @@ public:
     virtual void
     BuildActionOffsetScale(Eigen::VectorXd &out_offset,
                            Eigen::VectorXd &out_scale) const override;
-    tMatrixXd GetDCtrlForceDAction();
-    tMatrixXd CalcDCtrlForceDAction(double dt);
-    tMatrixXd CalcDCtrlForceDx_Approx(double dt);
+    tMatrixXd GetDCtrlForceDAction() const;
+    tMatrixXd GetDCtrlForceDxcur() const;
 
     virtual void ApplyAction(const Eigen::VectorXd &action) override;
     void SetEnableCalcDeriv(bool);
@@ -65,7 +64,7 @@ protected:
     tMatrixXd mBufferDuDa, mBufferDuDx;
     int mInternalFrameId; // internal frame id counting
     virtual bool ParseParams(const Json::Value &json);
-
+    virtual void ClearBuffer();
     virtual void UpdateBuildTau(double time_step, Eigen::VectorXd &out_tau);
     virtual void UpdateBuildTauPD(double time_step, Eigen::VectorXd &out_tau);
     virtual void UpdateBuildTauGuided(double time_step,
@@ -130,4 +129,7 @@ protected:
 
     tVectorXd ConvertActionToTargetq(const tVectorXd &action) const;
     void TestDCtrlForceDx_Approx();
+    tMatrixXd CalcDCtrlForceDAction(double dt);
+    tMatrixXd CalcDCtrlForceDx(double dt);
+    // tMatrixXd CalcDCtrlForceDx_Approx(double dt);
 };

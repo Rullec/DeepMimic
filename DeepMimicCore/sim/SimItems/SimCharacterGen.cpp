@@ -1449,26 +1449,6 @@ void cSimCharacterGen::RotateRoot(const tQuaternion &rot)
 }
 
 /**
- * \brief       get the state vector x = [q, qdot]
-*/
-tVectorXd cSimCharacterGen::Getx() const
-{
-    tVectorXd x = tVectorXd::Zero(num_of_freedom * 2);
-    x.segment(0, num_of_freedom) = Getq();
-    x.segment(num_of_freedom, num_of_freedom) = Getqdot();
-    return x;
-}
-
-/**
- * \brief       set the state vector x = [q, qdot]
-*/
-void cSimCharacterGen::Setx(const tVectorXd &x)
-{
-    MIMIC_ASSERT(x.size() == 2 * num_of_freedom);
-    SetqAndqdot(x.segment(0, num_of_freedom),
-                x.segment(num_of_freedom, num_of_freedom));
-}
-/**
  * \brief
  */
 double cSimCharacterGen::CalcHeading() const

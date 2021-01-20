@@ -1,14 +1,17 @@
 --scene diff_imitate
 --diff_scene_mode single_step_sum
+--num_sum_step 1
 
---time_lim_min 1.0
---time_lim_max 1.0
+--timer_type uniform
+--time_lim_min 0.2
+--time_lim_max 0.2
 --time_lim_exp 1
 
---time_end_lim_min 1.0
---time_end_lim_max 1.0
+--time_end_lim_min 0.2
+--time_end_lim_max 0.2
 --time_end_lim_exp 1
 --anneal_samples 100000
+--anneal_pow 1
 --use_revolute_axis_in_deepmimic_style false
 --enable_vel_explode_end true
 
@@ -20,6 +23,7 @@
 --pause_at_first false
 --terrain_file data/terrain/plane.txt
 --fall_contact_bodies 0 1
+--enable_fall_end true
 
 #-------------------------skeleton------------------------
 --char_types lagragian
@@ -36,11 +40,10 @@
 
 --reward_file data/0115/rewards/reward_weight_no_com.json
 
---agent_files data/0120/agents/agent_test_motion.json
---train_agents false
+--agent_files data/0120/agents/test_steps/agent_1.json
+--train_agents true
 
---output_path output/0120/
---model_files output/0120/01-20-22:01:12-0.9962.pkl
+--output_path output/0120/step1/
 
 #---------------------- Inverse Dyanmics config -------------------
 --enable_inverse_dynamic_solving false

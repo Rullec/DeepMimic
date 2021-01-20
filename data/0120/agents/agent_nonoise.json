@@ -1,8 +1,8 @@
 {
    "AgentType": "DiffMBRL",
    "PolicyNet": "fc_2layers_64_16",
-   "LearningRate": 1e-2,
-   "WeightLoss": 1e-2,
+   "LearningRate": 1e-1,
+   "WeightLoss": 1e-3,
    "LearningRateDecay": 1,
    "ReplayBufferCapacity": 200,
    "MaxSamples": 2e6,
@@ -10,7 +10,7 @@
    "Activation": "relu",
    "Dropout": 0.0,
    "InitNormalizerSamples": 100000,
-   "NormalizerAlpha": 1,
+   "NormalizerAlpha": 0.995,
    "ExpAnnealSamples": 2e6,
    "ExpParamsBeg": {
       "Rate": 1,
