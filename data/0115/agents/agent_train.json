@@ -1,11 +1,13 @@
 {
    "AgentType": "DiffMBRL",
    "PolicyNet": "fc_2layers_128_64",
-   "LearningRate": 1e-2,
+   "LearningRate": 1,
    "WeightLoss": 1e-3,
    "LearningRateDecay": 1,
-   "ReplayBufferCapacity": 10,
+   "ReplayBufferCapacity": 100,
    "MaxSamples": 2e6,
+   "EnableUpdateNormalizers": true,
+   "InitNormalizerSamples": 300000,
    "ExpAnnealSamples": 2e6,
    "ExpParamsBeg": {
       "Rate": 1,

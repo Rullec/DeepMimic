@@ -15,6 +15,7 @@ import torch.optim as optim
 from learning.torch.replay_buffer_torch import ReplayBufferTorch
 from util.logger import Logger
 from learning.tf.exp_params import ExpParams
+from learning.torch.torch_normalizer import NormalizerTorch
 
 
 class TorchAgent:
@@ -31,6 +32,11 @@ class TorchAgent:
     EXP_PARAM_BEG_KEY = "ExpParamsBeg"
     EXP_PARAM_END_KEY = "ExpParamsEnd"
     WEIGHT_LOSS_KEY = "WeightLoss"
+    ENABLE_UPDATE_NORMALIZERS_KEY = "EnableUpdateNormalizers"
+    INIT_NORMALIZER_SAMPLES = "InitNormalizerSamples"
+
+    ACTION_NORMALIZER_KEY = "ActionNormalizer"
+    STATE_NORMALIZER_KEY = "StateNormalizer"
 
     class Mode(Enum):
         TRAIN = 0
@@ -52,6 +58,9 @@ class TorchAgent:
         self.exp_params_beg = ExpParams()
         self.exp_params_end = ExpParams()
         self.exp_params_curr = ExpParams()
+        self.enable_update_normalizer = True
+        # only when total samples is lower than "init_normalizer_samples" will the normalizers being updated
+        self.init_normalizer_samples = 0
 
         # 2. runtime vars init value
         self.world = world
@@ -107,37 +116,66 @@ class TorchAgent:
         assert self.WEIGHT_LOSS_KEY in json_data
         self.weight_loss = json_data[self.WEIGHT_LOSS_KEY]
 
+        assert self.ENABLE_UPDATE_NORMALIZERS_KEY in json_data
+        self.enable_update_normalizer = json_data[self.ENABLE_UPDATE_NORMALIZERS_KEY]
+
+        assert self.INIT_NORMALIZER_SAMPLES in json_data
+        self.init_normalizer_samples = json_data[self.INIT_NORMALIZER_SAMPLES]
+
         self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
 
         return
 
+    def _get_parameters(self):
+        return self.action.parameters()
+
     def _build_loss(self):
         self.optimizer = optim.SGD(
-            self.action.parameters(), lr=self.lr, weight_decay=self.weight_loss)
+            self._get_parameters(), lr=self.lr, weight_decay=self.weight_loss)
 
     def save_model(self, out_path):
         tar_dir = os.path.dirname(out_path)
         if False == os.path.exists(tar_dir):
             os.makedirs(tar_dir)
-        torch.save(self.action.state_dict(), out_path)
+        save_state_dict = self.action.state_dict()
+        save_state_dict[self.STATE_NORMALIZER_KEY] = self.state_normalizer
+        save_state_dict[self.ACTION_NORMALIZER_KEY] = self.action_normalizer
+        torch.save(save_state_dict, out_path)
 
-        print(
-            f"[log] torch save model to {out_path}, param {np.sum([np.linalg.norm(i.detach()) for i in self.action.parameters()])}")
+        print(f"[log] torch save model to {out_path}")
 
         return
 
     def load_model(self, in_path):
         if os.path.exists(in_path) == False:
             return
-        self.action.load_state_dict(torch.load(in_path))
-        print(
-            f"[log] torch load model from {in_path}, param {np.sum([np.linalg.norm(i.detach()) for i in self.action.parameters()])}")
+        load_state_dict = torch.load(in_path)
+        if (self.STATE_NORMALIZER_KEY in load_state_dict) == False or (self.ACTION_NORMALIZER_KEY in load_state_dict) == False:
+            print(f"[warn] no noramlizers found in given model {in_path}")
+        else:
+            self.state_normalizer = load_state_dict[self.STATE_NORMALIZER_KEY]
+            self.action_normalizer = load_state_dict[self.ACTION_NORMALIZER_KEY]
+            load_state_dict.pop(self.STATE_NORMALIZER_KEY)
+            load_state_dict.pop(self.ACTION_NORMALIZER_KEY)
+            print(
+                f"[debug] load state & action normalizer succ from {in_path}")
+        self.action.load_state_dict(load_state_dict)
+        print(f"[log] torch load model from {in_path}")
+        print(f"a mean {self.action_normalizer.mean}")
+        print(f"a std {self.action_normalizer.std}")
+        print(f"s mean {self.state_normalizer.mean}")
+        print(f"s std {self.state_normalizer.std}")
         # exit(0)
         return
 
     def _decide_action(self, s, g):
-        a = self.action(torch.Tensor(s)).detach().numpy()
+        a = self._infer_action(torch.Tensor(s)).detach().numpy()
+        # print(f"[decide] a = {a}")
         return a
+
+    def _infer_action(self, s):
+        assert type(s) is torch.Tensor
+        return self.action_normalizer.unnormalize(self.action(self.state_normalizer.normalize(s)))
 
     def _get_output_path(self):
         assert False
@@ -173,14 +211,14 @@ class TorchAgent:
         states = np.array(self.replay_buffer.get_state())
         drdas = np.array(self.replay_buffer.get_drda())
 
-        actions_torch = self.action(torch.Tensor(states))
+        actions_torch = self._infer_action(torch.Tensor(states))
         drdas_torch = torch.Tensor(drdas)
 
         # 2. get result
         action_size = self.get_action_size()
         num_param_group = len(
-            list(self.action.parameters()))
-        param_sizes = [i.shape for i in self.action.parameters()]
+            list(self._get_parameters()))
+        param_sizes = [i.shape for i in self._get_parameters()]
 
         drdtheta_total = []
         drdtheta_lst = [[] for i in range(num_param_group)]
@@ -191,7 +229,7 @@ class TorchAgent:
             for a_idx in range(action_size):
                 # the gradient of this scale w.r.t to the group of parameters
                 tmp_grad = torch.autograd.grad(
-                    actions_torch[n_step_idx, a_idx], self.action.parameters(), retain_graph=True)
+                    actions_torch[n_step_idx, a_idx], self._get_parameters(), retain_graph=True)
                 assert len(tmp_grad) == num_param_group
                 for _id, i in enumerate(tmp_grad):
                     assert i.shape == param_sizes[_id]
@@ -215,9 +253,9 @@ class TorchAgent:
         return drdtheta_lst
 
     def _grad_clip(self, lim=3):
-        torch.nn.utils.clip_grad_value_(self.action.parameters(), lim)
+        torch.nn.utils.clip_grad_value_(self._get_parameters(), lim)
 
-        res = [i.grad for i in self.action.parameters()]
+        res = [i.grad for i in self._get_parameters()]
         max_res = max([np.max(np.array(i.detach())) for i in res])
         min_res = min([np.min(np.array(i.detach())) for i in res])
         print(f"max grad {max_res} min grad {min_res}")
@@ -233,7 +271,7 @@ class TorchAgent:
         self.use_self_grad = True
         if self.use_self_grad == True:
             self_grads = self._get_self_grad()
-            for _idx, param in enumerate(self.action.parameters()):
+            for _idx, param in enumerate(self._get_parameters()):
                 param.grad = self_grads[_idx]
             print("use self grad")
         else:
@@ -242,7 +280,7 @@ class TorchAgent:
 
             # 1. get self grads
             # 2. get old grads (for each group)
-            actions_torch = self.action(torch.Tensor(states))
+            actions_torch = self._infer_action(torch.Tensor(states))
             drdas_torch = torch.Tensor(drdas)
             loss_sum = -torch.mean(drdas_torch *
                                    actions_torch) * self.get_action_size()
@@ -272,9 +310,56 @@ class TorchAgent:
         if self._total_sample_count > self.max_samples:
             print(f"[log] total samples exceed max {self.max_samples}, exit")
             exit(0)
+
+        # self._print_statistics()
+
+        if self.enable_update_normalizer:
+            self._update_normalizers()
+
+            self.enable_update_normalizer = self._total_sample_count < self.init_normalizer_samples
+        else:
+            print("[update] normalizers kept!")
+            print(f"Normalizer state mean = {self.state_normalizer.mean}")
+            print(f"Normalizer state std = {self.state_normalizer.std}")
+            print(f"Normalizer action mean = {self.action_normalizer.mean}")
+            print(f"Normalizer action std = {self.action_normalizer.std}")
         self.replay_buffer.clear()
 
         self._mode = self.Mode.TRAIN
+
+    def _update_normalizers(self):
+        # update the normalizer
+        # 1. get current states and actions
+        states = np.array(self.replay_buffer.get_state())
+        actions = np.array(self.replay_buffer.get_action())
+
+        # 2. caclulate the mean and std for them?
+        state_mean = np.mean(states, axis=0)
+        state_std = np.std(states, axis=0)
+        self.state_normalizer.update(state_mean, state_std)
+
+        action_mean = np.mean(actions, axis=0)
+        action_std = np.std(actions, axis=0)
+        self.action_normalizer.update(action_mean, action_std)
+
+    def _print_statistics(self):
+        # output the data dist
+        np.set_printoptions(suppress=True)
+        states = np.array(self.replay_buffer.get_state())
+        s_mean = np.mean(states, axis=0)
+        s_std = np.std(states, axis=0)
+        print(f"[stat] state mean {s_mean}")
+        print(f"[stat] state std {s_std}")
+        actions = np.array(self.replay_buffer.get_action())
+        a_mean = np.mean(actions, axis=0)
+        a_std = np.std(actions, axis=0)
+        print(f"[stat] action mean {a_mean}")
+        print(f"[stat] action std {a_std}")
+        drdas = np.array(self.replay_buffer.get_drda())
+        drda_mean = np.mean(drdas, axis=0)
+        drda_std = np.std(drdas, axis=0)
+        print(f"[stat] drda mean {drda_mean}")
+        print(f"[stat] drda std {drda_std}")
 
     def need_new_action(self):
         return self.world.env.need_new_action(self.id)
@@ -307,6 +392,10 @@ class TorchAgent:
 
         self.action = build_net(json_data[self.POLICY_NET_KEY],
                                 self.get_state_size(), self.get_action_size())
+        self.state_normalizer = NormalizerTorch(
+            "state_normalizer", self.get_state_size())
+        self.action_normalizer = NormalizerTorch(
+            "action_normalizer", self.get_action_size())
 
     def _get_output_path(self):
         assert False
@@ -356,8 +445,8 @@ class TorchAgent:
             r = self._record_reward()
             # print(f"cur rew = {r}")
             drda = self._record_drda()
-            print(
-                f"[debug] action = {self.path.actions[-1]} drda = {drda} reward {r}")
+            # print(
+            #     f"[debug] action = {self.path.actions[-1]} drda = {drda} reward {r}")
             np.set_printoptions(precision=3)
             # print(
             #     f"[debug] drda = {drda} reward {r}")
