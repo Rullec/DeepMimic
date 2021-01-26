@@ -39,6 +39,7 @@ class TorchAgent:
     ACTION_NORMALIZER_KEY = "ActionNormalizer"
     STATE_NORMALIZER_KEY = "StateNormalizer"
     DROPOUT_KEY = "Dropout"
+    ENABLE_ACTION_KEY = "EnableActionNoise"
 
     class Mode(Enum):
         TRAIN = 0
@@ -56,6 +57,7 @@ class TorchAgent:
         self.exp_anneal_samples = 5e5
         self.max_samples = 5e5
         self.weight_loss = 0.
+        self.enable_action_noise = False
         self.test_episodes = int(0)
         self.exp_params_beg = ExpParams()
         self.exp_params_end = ExpParams()
@@ -127,6 +129,8 @@ class TorchAgent:
         assert self.NORMALIZER_ALPHA_KEY in json_data
         self.normalizer_alpha = json_data[self.NORMALIZER_ALPHA_KEY]
 
+        assert self.ENABLE_ACTION_KEY in json_data
+        self.enable_action_noise = json_data[self.ENABLE_ACTION_KEY]
         self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
 
         return
@@ -206,17 +210,37 @@ class TorchAgent:
         # self.draw_param_hist()
         return
 
+    def _enable_stoch_policy(self):
+        # in training mode and
+        # in test mode, no noise
+        # in training mode but disable training, no noise
+        return self.enable_training and (self._mode == self.Mode.TRAIN or self._mode == self.Mode.TRAIN_END) and self.enable_action_noise
+
     def _decide_action(self, s, g):
-        a = self._infer_action(torch.Tensor(s), train=False).detach().numpy()
-        # print(f"[decide] a = {a}")
+        a = self._infer_action(torch.Tensor(s)).detach().numpy()
+
+        if self._enable_stoch_policy() is True:
+            print(f"[debug] decide action, enable stoch polciy, raw a = {a}")
+            import util.math_util as MathUtil
+            whether_add_noise = MathUtil.flip_coin(self.exp_params_curr.rate)
+            amptitude_noise = self.exp_params_curr.noise
+            noise = amptitude_noise * whether_add_noise * \
+                torch.randn(a.shape) * self.action_normalizer.std
+            a = a + noise.detach().numpy()
+            print(f"[debug] add action noise {noise} final action {a}")
+        else:
+            if self.enable_training == False:
+                print("[debug] not training: disable stoch policy")
+            else:
+                print("[debug] training: disable stoch policy, no noise")
         return a
 
-    def _infer_action(self, s, train):
+    def _infer_action(self, s):
         assert type(s) is torch.Tensor
-        if train is False:
-            self.action.eval()
-        else:
-            self.action.train()
+        # if train is False:
+        #     self.action.eval()
+        # else:
+        #     self.action.train()
 
         return self.action_normalizer.unnormalize(
             self.action(self.state_normalizer.normalize(s)))
@@ -248,6 +272,9 @@ class TorchAgent:
         lerp = np.clip(lerp, 0.0, 1.0)
         self.exp_params_curr = self.exp_params_beg.lerp(
             self.exp_params_end, lerp)
+
+        print(
+            f"[debug] action noise amptitude {self.exp_params_curr.noise} rate {self.exp_params_curr.rate}")
         return
 
     def _get_self_grad(self):
@@ -255,7 +282,7 @@ class TorchAgent:
         states = np.array(self.replay_buffer.get_state())
         drdas = np.array(self.replay_buffer.get_drda())
 
-        actions_torch = self._infer_action(torch.Tensor(states), train=True)
+        actions_torch = self._infer_action(torch.Tensor(states))
         drdas_torch = torch.Tensor(drdas)
 
         # 2. get result
@@ -291,8 +318,9 @@ class TorchAgent:
                     drdtheta = torch.einsum(
                         'ab,bc->ac', drda_step, dadtheta_id)
                 drdtheta_lst[_id].append(drdtheta)
-        drdtheta_lst = [-torch.mean(torch.squeeze(
-            torch.stack(i)), axis=0) for i in drdtheta_lst]
+
+        drdtheta_lst = [torch.reshape(-torch.mean(torch.squeeze(
+            torch.stack(i)), axis=0), param_sizes[_idx]).detach() for _idx, i in enumerate(drdtheta_lst)]
 
         return drdtheta_lst
 
@@ -304,6 +332,11 @@ class TorchAgent:
         min_res = min([np.min(np.array(i.detach())) for i in res])
         print(f"max grad {max_res} min grad {min_res}")
 
+    def _apply_self_grad(self):
+        self_grads = self._get_self_grad()
+        for _idx, param in enumerate(self._get_parameters()):
+            param.grad = self_grads[_idx]
+
     def _train(self):
         """
             this function is called when the update_counters >= update_period
@@ -312,25 +345,17 @@ class TorchAgent:
         # 1. construct the loss and backward
         self.optimizer.zero_grad()
 
-        self.use_self_grad = True
-        if self.use_self_grad == True:
-            self_grads = self._get_self_grad()
-            for _idx, param in enumerate(self._get_parameters()):
-                param.grad = self_grads[_idx]
-            print("use self grad")
-        else:
-            states = np.array(self.replay_buffer.get_state())
-            drdas = np.array(self.replay_buffer.get_drda())
+        # 2. construct the loss and the gradient
+        # self._apply_self_grad()
+        states = np.array(self.replay_buffer.get_state())
+        drdas = np.array(self.replay_buffer.get_drda())
 
-            # 1. get self grads
-            # 2. get old grads (for each group)
-            actions_torch = self._infer_action(
-                torch.Tensor(states), train=True)
-            drdas_torch = torch.Tensor(drdas)
-            loss_sum = -torch.mean(drdas_torch *
-                                   actions_torch) * self.get_action_size()
-            print("use loss grad")
-            loss_sum.backward()
+        actions_torch = self._infer_action(
+            torch.Tensor(states))
+        drdas_torch = torch.Tensor(drdas)
+        loss_sum = -torch.mean(drdas_torch *
+                               actions_torch) * self.get_action_size()
+        loss_sum.backward()
 
         self._grad_clip()
 

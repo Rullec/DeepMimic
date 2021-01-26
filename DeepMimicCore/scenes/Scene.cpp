@@ -27,9 +27,9 @@ void cScene::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     std::string timer_type_str = "";
     mArgParser->ParseStringCritic("timer_type", timer_type_str);
     mTimerParams.mType = cTimer::ParseTypeStr(timer_type_str);
-    mArgParser->ParseDoubleCritic("time_lim_min", mTimerParams.mTimeMin);
-    mArgParser->ParseDoubleCritic("time_lim_max", mTimerParams.mTimeMax);
-    mArgParser->ParseDoubleCritic("time_lim_exp", mTimerParams.mTimeExp);
+    mArgParser->ParseDouble("time_lim_min", mTimerParams.mTimeMin);
+    mArgParser->ParseDouble("time_lim_max", mTimerParams.mTimeMax);
+    mArgParser->ParseDouble("time_lim_exp", mTimerParams.mTimeExp);
     mArgParser->ParseBoolCritic("use_revolute_axis_in_deepmimic_style",
                                 gUseRevoluteAxisInDeepMimicStyle);
 }

@@ -13,6 +13,8 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
     avg_rew_lst = []
     lr_lst = []
     time_lst = []
+    action_noise_amp_lst = []
+    action_noise_rate_lst = []
     for line in cont:
         if line.find("total samples") != -1:
             splited = line.split()
@@ -39,20 +41,40 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
                 print(f"{e}, continue")
                 continue
             time_lst.append(time)
+
+        if line.find("[debug] action noise ") != -1:
+            splited = line.split()
+            try:
+                amp = float(splited[4])
+                rate = float(splited[6])
+                # print(time)
+            except Exception as e:
+                print(f"{e}, continue")
+                continue
+            action_noise_amp_lst.append(amp)
+            action_noise_rate_lst.append(rate)
+    plt.cla()
     plt.clf()
     plt.suptitle(output_png_filename)
-    plt.subplot(1, 3, 1)
+    plt.subplot(2, 2, 1)
     # plt.ylim(0, 1)
     # plt.plot(samples_lst, avg_rew_lst)
     plt.plot([i for i in range(len(avg_rew_lst))], avg_rew_lst)
     plt.title(f"reward")
-    plt.subplot(1, 3, 2)
+    plt.subplot(2, 2, 2)
     # plt.plot(samples_lst, lr_lst)
     plt.plot([i for i in range(len(lr_lst))], lr_lst)
     plt.title(f"lr")
-    plt.subplot(1, 3, 3)
-    plt.plot( time_lst)
+    plt.subplot(2, 2, 3)
+    plt.plot(time_lst)
     plt.title(f"timer")
+
+    plt.subplot(2, 2, 4)
+    plt.plot(action_noise_amp_lst)
+    plt.plot(action_noise_rate_lst)
+    plt.legend(["amp", "rate"])
+    plt.title(f"noise rate & amp")
+    
     if draw is True:
         plt.show()
     else:
@@ -64,7 +86,6 @@ def get_all_log_files(logdir):
     assert logdir is not None
     lst = []
     for i in os.listdir(logdir):
-        print(i)
         if i.find(".log") != -1:
             lst.append(os.path.join(logdir, i))
 

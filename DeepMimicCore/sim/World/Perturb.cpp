@@ -63,8 +63,8 @@ void tPerturb::Update(double time_step)
 void tPerturb::ApplyForce()
 {
     assert(mType == ePerturbForce);
-    std::cout << "[perturb] AddForce " << mPerturb.transpose()
-              << std::endl;
+    // std::cout << "[perturb] AddForce " << mPerturb.transpose()
+    //           << std::endl;
     mObj->ApplyForce(mPerturb, mLocalPos);
 }
 
