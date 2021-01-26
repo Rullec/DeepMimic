@@ -13,6 +13,7 @@ public:
     {
         DERIV_SINGLE_STEP, // only use the nearest frame data to calcualte drda
         DERIV_SINGLE_STEP_SUM, // sum all drda from previous action given
+        DERIV_SINGLE_STEP_SIMPLIFIED, // simplified (no d(Qc)/du) single step derivation
         DERIV_MULTI_STEPS, // use the past, history data to calc drda (approximately)
         DERIV_MULTI_STEPS_FULL, // calculate the more accurate derivative
         NUM_DERIV_MODE,
@@ -52,6 +53,7 @@ protected:
     tVectorXd CalcDrDxcur();
     tMatrixXd CalcDxurDa(); // calc d(xcur)/d(action)
     tMatrixXd CalcDxurDa_SingleStep();
+    tMatrixXd CalcDxurDa_SingleStep_simplified();
     tVectorXd CalcDxurDa_MultiStep();
     void TestDrDxcur();
     void TestDRewardDAction(); // calc d(reward)/d(action)
@@ -110,6 +112,7 @@ protected:
     eDerivMode mDerivMode; // the mode for CalcDRewardDAction
     bool
         mEnableTestDRewardDAction; // enable testing the derivative d(reawrd)/d(action) when CalcReward
+    double mDiffFactor; // the factor on drda
     bool mDebugOutput;
     int mNumDiffStepSum; // the number of summing drdas used in "single_step_sum" mode
 

@@ -10,9 +10,9 @@ class ExpParams(object):
         rate_key, init_action_rate_key, noise_key, noise_internal_key, temp_key
         这些都是什么?
     '''
-    RATE_KEY = 'Rate'
+    RATE_KEY = 'Rate'       # train noise flip coin (Bernolli distribution)
     INIT_ACTION_RATE_KEY = 'InitActionRate'
-    NOISE_KEY = 'Noise'
+    NOISE_KEY = 'Noise'     # noise amplitude
     NOISE_INTERNAL_KEY = 'NoiseInternal'
     TEMP_KEY = 'Temp'
 

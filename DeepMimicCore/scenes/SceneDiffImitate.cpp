@@ -4,8 +4,8 @@
 #include "util/LogUtil.h"
 const std::string
     cSceneDiffImitate::gDerivModeStr[cSceneDiffImitate::NUM_DERIV_MODE] = {
-        "single_step", "single_step_sum", "multi_steps",
-        "multi_steps_accurate"};
+        "single_step", "single_step_sum", "single_step_simplified",
+        "multi_steps", "multi_steps_accurate"};
 
 cSceneDiffImitate::cSceneDiffImitate()
 {
@@ -23,7 +23,7 @@ void cSceneDiffImitate::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     cSceneImitate::ParseArgs(parser);
     parser->ParseBoolCritic("enable_test_reward_action_derivative",
                             mEnableTestDRewardDAction);
-
+    parser->ParseDoubleCritic("diff_factor", mDiffFactor);
     std::string diffmode_str;
     parser->ParseStringCritic("diff_scene_mode", diffmode_str);
     mDerivMode = cSceneDiffImitate::ParseDerivMode(diffmode_str);
@@ -54,7 +54,7 @@ void cSceneDiffImitate::Init()
     MIMIC_ASSERT(GetDefaultGenCtrl()->GetEnableCalcDeriv());
 
     // enable the third derivative
-    GetDefaultGenChar()->SetComputeThirdDerive(true);
+    GetDefaultGenChar()->SetComputeThirdDerive(false);
     // {
     //     auto gen_char = GetDefaultGenChar();
     //     tVectorXd x = gen_char->Getx();
@@ -150,10 +150,15 @@ tVectorXd cSceneDiffImitate::CalcDRewardDAction()
             return res;
         }
     }
+    else if (mDerivMode == eDerivMode::DERIV_SINGLE_STEP_SIMPLIFIED)
+    {
+        DrDa = CalcDrDxcur().transpose() * CalcDxurDa();
+    }
     else
     {
         MIMIC_ERROR("unsupported mode {}", mDerivMode);
     }
+    DrDa *= mDiffFactor;
     // {
     //     // test
     //     tVectorXd Drda_single =
@@ -426,6 +431,9 @@ tMatrixXd cSceneDiffImitate::CalcDxurDa()
         break;
     case eDerivMode::DERIV_MULTI_STEPS:
         deriv = CalcDxurDa_MultiStep();
+        break;
+    case eDerivMode::DERIV_SINGLE_STEP_SIMPLIFIED:
+        deriv = CalcDxurDa_SingleStep_simplified();
         break;
     default:
         MIMIC_ASSERT(false);
@@ -853,6 +861,19 @@ cSceneDiffImitate::eDerivMode cSceneDiffImitate::ParseDerivMode(std::string str)
 tMatrixXd cSceneDiffImitate::CalcDxurDa_SingleStep() { return CalcQ(); }
 
 /**
+ * \brief           Calculate the d(xcur)/da only one path:
+ * 
+ *      d(xnext)/du * du/da
+*/
+tMatrixXd cSceneDiffImitate::CalcDxurDa_SingleStep_simplified()
+{
+    auto bt_gen_world =
+        std::dynamic_pointer_cast<cGenWorld>(mWorldBase)->GetInternalGenWorld();
+    auto gen_char = GetDefaultGenChar();
+    auto gen_ctrl = GetDefaultGenCtrl();
+    return bt_gen_world->GetDxnextDQc_u() * gen_ctrl->GetDCtrlForceDAction();
+}
+/**
  * \brief           Calculate the d(x_cur)/da by multi substeps info
  *  Basically, the formula is:
  *          d(x_k)da  = d(x_k)/d(x_{k-1}) * d(x_{k-1})da + d(x_k)/d(u_{k-1}) * d(u_{k-1})/da
@@ -1013,6 +1034,10 @@ void cSceneDiffImitate::Update(double dt)
         mDrdaSingleBuffer.push_back(CalcDrDxcur().transpose() * CalcDxurDa());
     }
 
+    if (mDerivMode == eDerivMode::DERIV_SINGLE_STEP_SIMPLIFIED)
+    {
+        mDrdaSingleBuffer.push_back(CalcDrDxcur().transpose() * CalcDxurDa());
+    }
     // record some derivative info after the update
     if (mDerivMode == eDerivMode::DERIV_MULTI_STEPS_FULL)
     {

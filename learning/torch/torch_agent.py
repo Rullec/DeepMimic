@@ -137,6 +137,7 @@ class TorchAgent:
     def _update_optimizer(self):
         self.optimizer = optim.Adam(
             self._get_parameters(), lr=self.lr, weight_decay=self.weight_loss)
+        print("-------update optimizer to adam-------")
 
     def _build_loss(self):
         # self._get_parameters()
@@ -367,8 +368,8 @@ class TorchAgent:
             print(f"Normalizer action mean = {self.action_normalizer.mean}")
             print(f"Normalizer action std = {self.action_normalizer.std}")
 
-        if self._train_iters == 200:
-            self._update_optimizer()
+        # if self._train_iters == 200:
+        #     self._update_optimizer()
 
         self.replay_buffer.clear()
 
@@ -536,7 +537,7 @@ class TorchAgent:
 
         a = self._decide_action(s, None)
         assert len(np.shape(a)) == 1, f"a shape {np.shape(a)}"
-
+        print(f"[new action] {a}")
         flags = self._record_flags()
         assert np.isfinite(
             a).all() == True, f"some action is Nan!, a = {str(a)}"

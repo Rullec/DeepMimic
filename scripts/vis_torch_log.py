@@ -4,7 +4,6 @@ import os
 import argparse
 
 
-
 def handle_log_file(log_filename, output_png_filename, draw=False):
     assert os.path.exists(log_filename) == True
     with open(log_filename) as f:
@@ -13,6 +12,7 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
     samples_lst = []
     avg_rew_lst = []
     lr_lst = []
+    time_lst = []
     for line in cont:
         if line.find("total samples") != -1:
             splited = line.split()
@@ -28,17 +28,31 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
                 lr_lst.append(lr)
             except Exception as e:
                 print(f"{e}, continue")
+                continue
+        if line.find("timer") != -1:
+            splited = line.split()
+
+            try:
+                time = float(splited[10][:-1])
+                # print(time)
+            except Exception as e:
+                print(f"{e}, continue")
+                continue
+            time_lst.append(time)
     plt.clf()
     plt.suptitle(output_png_filename)
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 1)
     # plt.ylim(0, 1)
     # plt.plot(samples_lst, avg_rew_lst)
     plt.plot([i for i in range(len(avg_rew_lst))], avg_rew_lst)
     plt.title(f"reward")
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
     # plt.plot(samples_lst, lr_lst)
     plt.plot([i for i in range(len(lr_lst))], lr_lst)
     plt.title(f"lr")
+    plt.subplot(1, 3, 3)
+    plt.plot( time_lst)
+    plt.title(f"timer")
     if draw is True:
         plt.show()
     else:
