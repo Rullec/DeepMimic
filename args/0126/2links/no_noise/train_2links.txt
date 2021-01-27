@@ -41,10 +41,10 @@
 
 --reward_file data/0115/rewards/reward_weight_no_com.json
 
---agent_files data/0126/agents/agent_train_noise.json
+--agent_files data/0126/agents/agent_2links_nonoise.json
 --train_agents true
 
---output_path output/0126/2links_havenoise
+--output_path output/0126/2links_nonoise
 
 #---------------------- Inverse Dyanmics config -------------------
 --enable_inverse_dynamic_solving false

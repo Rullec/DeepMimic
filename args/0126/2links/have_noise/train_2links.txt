@@ -3,8 +3,8 @@
 --diff_factor 10
 
 --timer_type uniform
---time_lim_min 5
---time_lim_max 5
+--time_lim_min 1
+--time_lim_max 1
 --time_lim_exp 1
 
 --time_end_lim_min 1
@@ -41,15 +41,14 @@
 
 --reward_file data/0115/rewards/reward_weight_no_com.json
 
---agent_files data/0126/agents/agent_train_noise.json
---train_agents false
+--agent_files data/0126/agents/agent_2links_noise.json
+--train_agents true
 
 --output_path output/0126/2links_havenoise
-# --model_files output/0126/2links_havenoise/
 
 #---------------------- Inverse Dyanmics config -------------------
 --enable_inverse_dynamic_solving false
 --inverse_dynamic_config_file args/1111/ID_bipedal.json
 
-#---------------diff world test-------------
+#---------------diff world-------------
 --enable_test_reward_action_derivative false
