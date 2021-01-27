@@ -71,6 +71,10 @@ void cDeepMimicCore::Reset()
 
 double cDeepMimicCore::GetTime() const { return mScene->GetTime(); }
 
+double cDeepMimicCore::GetMaxTime() const
+{
+    return mScene->GetMaxTime();
+}
 std::string cDeepMimicCore::GetName() const { return mScene->GetName(); }
 
 bool cDeepMimicCore::EnableDraw() const { return cDrawUtil::EnableDraw(); }

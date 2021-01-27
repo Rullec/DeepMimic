@@ -69,6 +69,8 @@ bool cScene::IsDone() const { return false; }
 
 double cScene::GetTime() const { return mTimer.GetTime(); }
 
+double cScene::GetMaxTime() const { return mTimer.GetMaxTime(); }
+
 bool cScene::HasRandSeed() const { return mHasRandSeed; }
 
 void cScene::SetRandSeed(unsigned long seed)

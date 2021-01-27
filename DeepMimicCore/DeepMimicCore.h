@@ -19,6 +19,7 @@ public:
     virtual void Reset();
 
     virtual double GetTime() const;
+    virtual double GetMaxTime() const;
     virtual std::string GetName() const;
     virtual bool EnableDraw() const;
 

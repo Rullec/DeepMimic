@@ -30,6 +30,7 @@ public:
     virtual void Shutdown();
     virtual bool IsDone() const;
     virtual double GetTime() const;
+    virtual double GetMaxTime() const;
     virtual cTimer &GetTimer();
     virtual bool HasRandSeed() const;
     virtual void SetRandSeed(unsigned long seed);
