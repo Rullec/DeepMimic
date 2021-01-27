@@ -7,7 +7,7 @@
    "ReplayBufferCapacity": 100,
    "EnableActionNoise": true,
    "MaxSamples": 1e6,
-   "EnableUpdateNormalizers": true,
+   "EnableUpdateNormalizers": false,
    "Activation": "relu",
    "Dropout": 0.0,
    "TestGap": 10,
