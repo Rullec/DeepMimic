@@ -35,6 +35,7 @@ public:
                            const Eigen::VectorXd &action) override;
 
 protected:
+    virtual void ResetCharacters() override final;
     // 1. calc pose reward deriv methods
     void TestDRootRotErrDpose0();
     void TestDJointPoseErrDpose0();
@@ -106,7 +107,7 @@ protected:
     tEigenArr<tMatrixXd>
         mQBuffer; // buffer for storing Q vector, used in multistep mode
     tEigenArr<tVectorXd> mDrdaSingleBuffer; // buffer for single step drda
-    std::shared_ptr<cSimCharacterGen> GetDefaultGenChar() const;
+
     std::shared_ptr<cCtPDGenController> GetDefaultGenCtrl();
 
     eDerivMode mDerivMode; // the mode for CalcDRewardDAction
@@ -132,4 +133,9 @@ protected:
     };
     tEigenArr<tDerivMultiStepAccInfo> mMultiStepAccBuffer;
     void CalcDxDa_multistepacc();
+
+    bool
+        mEnableRandomInitNearMOCAP; // used in "ResetCharacters", add a random value on the sim char's state
+    void ApplyRandomInitNearMOCAP();
+    virtual bool BuildCharacters() override;
 };

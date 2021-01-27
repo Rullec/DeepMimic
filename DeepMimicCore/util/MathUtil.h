@@ -75,6 +75,8 @@ public:
     static double RandDouble();
     static double RandDouble(double min, double max);
     static double RandDoubleNorm(double mean, double stdev);
+    static tVectorXd RandDoubleNorm(const tVectorXd &mean,
+                                    const tVectorXd &std);
     static double RandDoubleExp(double lambda);
     static double RandDoubleSeed(double seed);
     static int RandInt();

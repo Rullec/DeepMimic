@@ -187,6 +187,7 @@ bool cSceneImitate::EnabledRandRotReset() const
     return enable;
 }
 
+
 cSceneImitate::eTerminate cSceneImitate::CheckTerminate(int agent_id) const
 {
     // 这里也有一个检查终结...看起来更有可行性。
@@ -350,6 +351,8 @@ void cSceneImitate::ResetCharacters()
     cRLSceneSimChar::ResetCharacters();
 
     ResetKinChar();
+
+    // set the init pose from MOCAP to sim char
     if (EnableSyncChar())
     {
         SyncCharacters();

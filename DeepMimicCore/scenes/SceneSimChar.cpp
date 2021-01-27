@@ -157,6 +157,10 @@ void cSceneSimChar::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     mArgParser->ParseString("guided_traj_file", mGuidedTrajFile);
 }
 
+std::shared_ptr<cSimCharacterGen> cSceneSimChar::GetDefaultGenChar() const
+{
+    return std::dynamic_pointer_cast<cSimCharacterGen>(GetCharacter(0));
+}
 void cSceneSimChar::Init()
 {
     cScene::Init();
@@ -170,8 +174,6 @@ void cSceneSimChar::Init()
     BuildGround();
     BuildCharacters();
 
-    auto cur_char = GetCharacter();
-    auto multibody = dynamic_cast<cSimCharacterGen *>(cur_char.get());
     // Init the position of our character, accoridng to the ref motion
     InitCharacterPos();
     ResolveCharGroundIntersect();
@@ -724,14 +726,16 @@ void cSceneSimChar::BuildTrajManager()
     //
 }
 
+/**
+ * \brief           It won't change the pose and vel of out_char, because the ground is flatten.
+*/
 void cSceneSimChar::SetCharRandPlacement(
     const std::shared_ptr<cSimCharacterBase> &out_char)
 {
     tVector rand_pos = tVector::Zero();
     tQuaternion rand_rot = tQuaternion::Identity();
+
     CalcCharRandPlacement(out_char, rand_pos, rand_rot);
-    // MIMIC_DEBUG("SetCharRandPlacement, root pos {}, root rot {}",
-    //             rand_pos.transpose(), rand_rot.coeffs().transpose());
     out_char->SetRootTransform(rand_pos, rand_rot);
 }
 

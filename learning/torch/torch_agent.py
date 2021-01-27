@@ -648,7 +648,7 @@ class TorchAgent:
                     # if self.replay_buffer.get_cur_size() > self.replay_buffer.capacity:
 
                     # when the paths is up to 10
-                    if self.replay_buffer.get_num_paths() > 7:
+                    if self.replay_buffer.get_num_paths() > 20:
                         self._train()
 
             elif self._mode == self.Mode.TEST:

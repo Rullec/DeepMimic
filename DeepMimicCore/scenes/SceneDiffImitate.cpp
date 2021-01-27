@@ -15,7 +15,9 @@ cSceneDiffImitate::cSceneDiffImitate()
     mQBuffer.clear();
     mDrdaSingleBuffer.clear();
     mDebugOutput = false;
+    mEnableRandomInitNearMOCAP = false;
 }
+
 cSceneDiffImitate::~cSceneDiffImitate() {}
 
 void cSceneDiffImitate::ParseArgs(const std::shared_ptr<cArgParser> &parser)
@@ -29,6 +31,8 @@ void cSceneDiffImitate::ParseArgs(const std::shared_ptr<cArgParser> &parser)
     mDerivMode = cSceneDiffImitate::ParseDerivMode(diffmode_str);
     MIMIC_INFO("diff scene mode {}", gDerivModeStr[mDerivMode]);
 
+    parser->ParseBoolCritic("enable_random_init_near_mocap",
+                            mEnableRandomInitNearMOCAP);
     if (mDerivMode == eDerivMode::DERIV_SINGLE_STEP_SUM)
     {
         parser->ParseIntCritic("num_sum_step", mNumDiffStepSum);
@@ -56,8 +60,6 @@ void cSceneDiffImitate::Init()
     // enable the third derivative
     GetDefaultGenChar()->SetComputeThirdDerive(false);
     // {
-    //     auto gen_char = GetDefaultGenChar();
-    //     tVectorXd x = gen_char->Getx();
     //     x += tVectorXd::Ones(x.size()) * 1e-2;
     //     gen_char->Setx(x);
 
@@ -446,11 +448,6 @@ tMatrixXd cSceneDiffImitate::CalcDxurDa()
                                 GetActionSize(0));
     }
     return deriv;
-}
-
-std::shared_ptr<cSimCharacterGen> cSceneDiffImitate::GetDefaultGenChar() const
-{
-    return std::dynamic_pointer_cast<cSimCharacterGen>(GetCharacter(0));
 }
 
 std::shared_ptr<cCtPDGenController> cSceneDiffImitate::GetDefaultGenCtrl()
@@ -1142,6 +1139,49 @@ void cSceneDiffImitate::SetAction(int agent_id, const Eigen::VectorXd &action)
     // std::cout << "[debug] set aciton\n";
     ClearBuffer();
     cSceneImitate::SetAction(agent_id, action);
+}
+
+/**
+ * \brief               Reset kin chars & sim chars, sync the sim char from the MOCAP. 
+*/
+void cSceneDiffImitate::ResetCharacters()
+{
+    cSceneImitate::ResetCharacters();
+
+    // shake the init pose along with the MOCAP data for better training
+    // improve robust
+    if (mEnableRandomInitNearMOCAP)
+    {
+        if (this->mMode == cRLScene::eMode::eModeTrain)
+            ApplyRandomInitNearMOCAP();
+        else
+        {
+            std::cout
+                << "[warn] current mode is test, no init perturb is applied\n";
+        }
+    }
+    std::cout << "[debug] mEnableRandomInitNearMOCAP = "
+              << (mEnableRandomInitNearMOCAP ? "true" : "false") << std::endl;
+    // exit(0);
+}
+
+bool cSceneDiffImitate::BuildCharacters()
+{
+    bool succ = cSceneImitate::BuildCharacters();
+    if (mEnableRandomInitNearMOCAP)
+    {
+        if (this->mMode == cRLScene::eMode::eModeTrain)
+            ApplyRandomInitNearMOCAP();
+        else
+        {
+            std::cout
+                << "[warn] current mode is test, no init perturb is applied\n";
+        }
+    }
+    std::cout << "[debug] mEnableRandomInitNearMOCAP = "
+              << (mEnableRandomInitNearMOCAP ? "true" : "false") << std::endl;
+    // exit(0);
+    return succ;
 }
 
 /**
@@ -2049,4 +2089,58 @@ void cSceneDiffImitate::CalcDxDa_multistepacc()
     mMultiStepAccBuffer.push_back(info);
     // std::cout << "[debug] CalcDxDa_multistepacc succ, size = "
     //           << mMultiStepAccBuffer.size() << std::endl;
+}
+
+/**
+ * \brief           add an noise on the character's pose and velI
+*/
+void cSceneDiffImitate::ApplyRandomInitNearMOCAP()
+{
+    auto gen_char = GetDefaultGenChar();
+    int dof = gen_char->GetNumOfFreedom();
+    tVectorXd mean = tVectorXd::Zero(2 * dof), std = tVectorXd::Ones(2 * dof);
+
+    int st = 0;
+    double revolute_std = 3e-2, translation_std = 3e-3;
+
+    for (int i = 0; i < gen_char->GetNumOfJoint(); i++)
+    {
+        auto joint = gen_char->GetJointById(i);
+        int joint_dof = joint->GetNumOfFreedom();
+        switch (joint->GetJointType())
+        {
+        case JointType::REVOLUTE_JOINT:
+        {
+            // revolute q
+            std.segment(st, joint_dof)
+                .fill(revolute_std); // std = 0.1, the range \approx +-0.2
+            break;
+        }
+        case JointType::BIPEDAL_NONE_JOINT:
+        {
+            // y, z, x_rot
+            std[st] = translation_std;
+            std[st + 1] = translation_std;
+            std[st + 2] = revolute_std;
+            break;
+        }
+        default:
+            MIMIC_ERROR("unsupported {}",
+                        gen_char->GetJointById(i)->GetJointType());
+            break;
+        };
+        // std qdot = std q * 10
+        std.segment(dof + st, joint_dof) = std.segment(st, joint_dof) * 10;
+        st += joint_dof;
+    }
+    std::cout << "[debug] int state perturb std = " << std.transpose()
+              << std::endl;
+    MIMIC_ASSERT(st == dof);
+    tVectorXd eps = cMathUtil::RandDoubleNorm(mean, std);
+    std::cout << "[debug] before random init x = "
+              << gen_char->Getx().transpose() << std::endl;
+    std::cout << "[debug] random eps = " << eps.transpose() << std::endl;
+    gen_char->Setx(gen_char->Getx() + eps);
+    std::cout << "[debug] after random init x = "
+              << gen_char->Getx().transpose() << std::endl;
 }

@@ -1,1 +1,0 @@
-/home/xudong/Projects/DeepMimic/args/0126/oneleg/no_noise/display_oneleg_no_noise.txt

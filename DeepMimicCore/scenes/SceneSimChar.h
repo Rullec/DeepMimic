@@ -12,6 +12,7 @@
 
 class cIDSolver;
 class cTrajRecorder;
+class cSimCharacterGen;
 class cSceneSimChar : virtual public cScene
 {
 public:
@@ -205,4 +206,5 @@ protected:
                                  double life_time);
 
     virtual void ResetRandPertrub();
+    std::shared_ptr<cSimCharacterGen> GetDefaultGenChar() const;
 };

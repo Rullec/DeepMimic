@@ -57,6 +57,15 @@ double cMathUtil::RandDoubleNorm(double mean, double stdev)
     return gRand.RandDoubleNorm(mean, stdev);
 }
 
+tVectorXd cMathUtil::RandDoubleNorm(const tVectorXd &mean, const tVectorXd &std)
+{
+    MIMIC_ASSERT(mean.size() == std.size());
+    tVectorXd res = tVectorXd::Zero(mean.size());
+    for (int i = 0; i < mean.size(); i++)
+        res[i] = gRand.RandDoubleNorm(mean[i], std[i]);
+    return res;
+}
+
 double cMathUtil::RandDoubleExp(double lambda)
 {
     return gRand.RandDoubleExp(lambda);
