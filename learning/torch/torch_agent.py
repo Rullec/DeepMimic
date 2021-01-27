@@ -42,6 +42,7 @@ class TorchAgent:
     ENABLE_ACTION_KEY = "EnableActionNoise"
     TEST_GAP_KEY = "TestGap"
     TEST_EPISODE_KEY = "TestEpisode"
+    REPLAY_BUFFER_MAX_PATH_KEY = "ReplayBufferMaxPath"
 
     class Mode(Enum):
         TRAIN = 0
@@ -59,6 +60,7 @@ class TorchAgent:
         self.exp_anneal_samples = 5e5
         self.max_samples = 5e5
         self.weight_loss = 0.
+        self.replay_buffer_max_path = 40
         self.enable_action_noise = False
         self.test_episodes = int(0)
         self.test_gap = int(0)
@@ -140,6 +142,9 @@ class TorchAgent:
 
         assert self.TEST_EPISODE_KEY in json_data
         self.test_episodes = json_data[self.TEST_EPISODE_KEY]
+
+        assert self.REPLAY_BUFFER_MAX_PATH_KEY in json_data
+        self.replay_buffer_max_path = json_data[self.REPLAY_BUFFER_MAX_PATH_KEY]
 
         self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
         return
@@ -644,11 +649,8 @@ class TorchAgent:
                 if self.enable_training and self.path.pathlength() > 0:
                     self.replay_buffer.add(self.path)
 
-                    # when the replay buffer is full
-                    # if self.replay_buffer.get_cur_size() > self.replay_buffer.capacity:
-
-                    # when the paths is up to 10
-                    if self.replay_buffer.get_num_paths() > 20:
+                    # when the replay buffer is full / up to max path num
+                    if (self.replay_buffer.get_num_paths() > self.replay_buffer_max_path) or (self.replay_buffer.get_cur_size() > self.replay_buffer.capacity):
                         self._train()
 
             elif self._mode == self.Mode.TEST:

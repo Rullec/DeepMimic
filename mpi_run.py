@@ -4,14 +4,6 @@ from util.arg_parser import ArgParser
 from util.logger import Logger
 from multiprocessing import cpu_count
 
-'''
-这个函数就是最终训练agent的函数
-
-疑问:
-1. worker数量对应的是什么概念?
-
-'''
-
 
 def main():
     # Command line argument

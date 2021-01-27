@@ -46,7 +46,7 @@
 --train_agents false
 
 --output_path output/0126/no_noise/
---model_files output/0126/no_noise/01-27-14:11:47-0.9979.pkl
+--model_files output/0126/no_noise/01-27-22:59:58-0.9279.pkl
 
 #---------------------- Inverse Dyanmics config -------------------
 --enable_inverse_dynamic_solving false
