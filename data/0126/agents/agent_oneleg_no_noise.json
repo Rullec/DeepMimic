@@ -10,6 +10,8 @@
    "EnableUpdateNormalizers": true,
    "Activation": "relu",
    "Dropout": 0.0,
+   "TestGap": 10,
+   "TestEpisode": 8,
    "InitNormalizerSamples": 100000,
    "NormalizerAlpha": 0.995,
    "ExpAnnealSamples": 1e5,

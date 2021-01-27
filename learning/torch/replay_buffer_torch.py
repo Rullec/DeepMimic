@@ -19,6 +19,10 @@ class ReplayBufferTorch(object):
         self.drda_lst += new_path.drdas
         self.reward_lst += new_path.rewards
         self.action_lst += new_path.actions
+        self.path_num += 1
+
+    def get_num_paths(self):
+        return self.path_num
 
     def get_action(self):
         return self.action_lst
@@ -46,3 +50,4 @@ class ReplayBufferTorch(object):
         self.drda_lst = []
         self.reward_lst = []
         self.action_lst = []
+        self.path_num = 0

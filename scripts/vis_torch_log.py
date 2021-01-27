@@ -15,6 +15,7 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
     time_lst = []
     action_noise_amp_lst = []
     action_noise_rate_lst = []
+    test_return_lst = []
     for line in cont:
         if line.find("total samples") != -1:
             splited = line.split()
@@ -53,28 +54,39 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
                 continue
             action_noise_amp_lst.append(amp)
             action_noise_rate_lst.append(rate)
+        if line.find("[test] test return =") != -1:
+            try:
+                test_return = float(line.split()[-1])
+            except Exception as e:
+                print(f"{e}, continue")
+                continue
+            test_return_lst.append(test_return)
     plt.cla()
     plt.clf()
     plt.suptitle(output_png_filename)
-    plt.subplot(2, 2, 1)
+    plt.subplot(2, 3, 1)
     # plt.ylim(0, 1)
     # plt.plot(samples_lst, avg_rew_lst)
     plt.plot([i for i in range(len(avg_rew_lst))], avg_rew_lst)
     plt.title(f"reward")
-    plt.subplot(2, 2, 2)
+    plt.subplot(2, 3, 2)
     # plt.plot(samples_lst, lr_lst)
     plt.plot([i for i in range(len(lr_lst))], lr_lst)
     plt.title(f"lr")
-    plt.subplot(2, 2, 3)
+    plt.subplot(2, 3, 3)
     plt.plot(time_lst)
     plt.title(f"timer")
 
-    plt.subplot(2, 2, 4)
+    plt.subplot(2, 3, 4)
     plt.plot(action_noise_amp_lst)
     plt.plot(action_noise_rate_lst)
     plt.legend(["amp", "rate"])
     plt.title(f"noise rate & amp")
-    
+
+    plt.subplot(2, 3, 5)
+    plt.plot(test_return_lst)
+    plt.title("test_return")
+
     if draw is True:
         plt.show()
     else:
@@ -94,6 +106,7 @@ def get_all_log_files(logdir):
     else:
         return lst
 
+import shutil
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="vis_log_parser")
@@ -109,7 +122,10 @@ if __name__ == "__main__":
         log_dir = arg.log_dir
         output_dir = arg.output_dir
         assert log_dir is not None and os.path.exists(log_dir)
-        assert output_dir is not None and (os.path.exists(output_dir) is False)
+
+        assert output_dir is not None
+        if os.path.exists(output_dir) is True:
+            shutil.rmtree(output_dir)
 
         os.makedirs(output_dir)
         files = get_all_log_files(log_dir)

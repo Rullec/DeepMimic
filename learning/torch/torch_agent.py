@@ -40,6 +40,8 @@ class TorchAgent:
     STATE_NORMALIZER_KEY = "StateNormalizer"
     DROPOUT_KEY = "Dropout"
     ENABLE_ACTION_KEY = "EnableActionNoise"
+    TEST_GAP_KEY = "TestGap"
+    TEST_EPISODE_KEY = "TestEpisode"
 
     class Mode(Enum):
         TRAIN = 0
@@ -59,6 +61,7 @@ class TorchAgent:
         self.weight_loss = 0.
         self.enable_action_noise = False
         self.test_episodes = int(0)
+        self.test_gap = int(0)
         self.exp_params_beg = ExpParams()
         self.exp_params_end = ExpParams()
         self.exp_params_curr = ExpParams()
@@ -131,8 +134,14 @@ class TorchAgent:
 
         assert self.ENABLE_ACTION_KEY in json_data
         self.enable_action_noise = json_data[self.ENABLE_ACTION_KEY]
-        self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
 
+        assert self.TEST_GAP_KEY in json_data
+        self.test_gap = json_data[self.TEST_GAP_KEY]
+
+        assert self.TEST_EPISODE_KEY in json_data
+        self.test_episodes = json_data[self.TEST_EPISODE_KEY]
+
+        self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
         return
 
     def _get_parameters(self):
@@ -232,7 +241,7 @@ class TorchAgent:
             if self.enable_training == False:
                 print("[debug] not training: disable stoch policy")
             else:
-                print("[debug] training: disable stoch policy, no noise")
+                print("[debug] enable training: disable stoch policy, no noise")
         return a
 
     def _infer_action(self, s):
@@ -400,6 +409,13 @@ class TorchAgent:
 
         self._mode = self.Mode.TRAIN
         self._train_iters += 1
+
+        # if current train iters is the same as
+        print(
+            f"[debug] train iters {self._train_iters} test gap {self.test_gap}")
+        if (self._train_iters % self.test_gap) == 0:
+            print(f"[debug] change mode from train to train end")
+            self._mode = self.Mode.TRAIN_END
 
     def _update_normalizers(self):
         # update the normalizer
@@ -589,6 +605,7 @@ class TorchAgent:
         self.path.drdas.append(drda)
 
         if self.enable_training == False:
+            print(f"[test] path return {np.sum( self.path.rewards)}")
             print(f"[test] path avg rew {np.mean( self.path.rewards)}")
             print(f"[test] path avg drda {np.mean( self.path.drdas, axis =0)}")
 
@@ -626,7 +643,12 @@ class TorchAgent:
             if self._mode == self.Mode.TRAIN or self._mode == self.Mode.TRAIN_END:
                 if self.enable_training and self.path.pathlength() > 0:
                     self.replay_buffer.add(self.path)
-                    if self.replay_buffer.get_cur_size() > self.replay_buffer.capacity:
+
+                    # when the replay buffer is full
+                    # if self.replay_buffer.get_cur_size() > self.replay_buffer.capacity:
+
+                    # when the paths is up to 10
+                    if self.replay_buffer.get_num_paths() > 7:
                         self._train()
 
             elif self._mode == self.Mode.TEST:
@@ -656,21 +678,30 @@ class TorchAgent:
         return
 
     def _update_mode_train_end(self):
+        print("[debug] convert mode from train end to test")
         self._mode = self.Mode.TEST
+        self.test_return = 0.0
+        self.test_episode_count = 0
+        self.world.env.set_mode(self._mode)
 
     def _update_mode_test(self):
         # if we have trained for enough episodes
         if self.test_episode_count * MPIUtil.get_num_procs() >= self.test_episodes:
-            self._mode = self.Mode.TRAIN
+            print("[debug] convert mode from test to train")
+            if self.enable_training:
+                # print(
+                #     f"current test episode {self.test_episode_count} * proc_num {MPIUtil.get_num_procs()} >= {self.test_episodes}, convert to train mode")
+                self._mode = self.Mode.TRAIN
+                self.world.env.set_mode(self._mode)
 
             self.test_return /= self.test_episode_count
-            print(f"[test] test reward = {self.test_return}")
+            print(f"[test] test return = {self.test_return}")
             self.test_episode_count = 0
             self.test_return = 0
 
     def _update_test_return(self, path):
-        path_reward = np.sum(path.rewards) / len(path.rewards)
+        path_return = np.sum(path.rewards)
 
-        self.test_return += path_reward
+        self.test_return += path_return
         self.test_episode_count += 1
         return
