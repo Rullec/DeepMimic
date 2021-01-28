@@ -1,0 +1,27 @@
+{
+    "AgentType": "DiffMBRL",
+    "PolicyNet": "fc_2layers_64_16",
+    "LearningRate": 1,
+    "WeightLoss": 1e-3,
+    "LearningRateDecay": 1,
+    "ReplayBufferCapacity": 1000,
+    "ReplayBufferMaxPath": 40,
+    "EnableActionNoise": false,
+    "MaxSamples": 1e6,
+    "EnableUpdateNormalizers": true,
+    "Activation": "relu",
+    "Dropout": 0.0,
+    "TestGap": 5,
+    "TestEpisode": 4,
+    "InitNormalizerSamples": 100000,
+    "NormalizerAlpha": 0.995,
+    "ExpAnnealSamples": 1e5,
+    "ExpParamsBeg": {
+       "Rate": 1,
+       "Noise": 0.2
+    },
+    "ExpParamsEnd": {
+       "Rate": 0.2,
+       "Noise": 0.05
+    }
+ }

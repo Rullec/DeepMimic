@@ -1,0 +1,16 @@
+--scene kin_char
+--timer_type uniform
+--time_lim_min 1 
+--time_lim_max 1 
+--time_lim_exp 1
+--time_lim_end_min 2
+--time_lim_end_max 2
+--time_lim_end_exp 2
+
+--logging_level trace
+--use_revolute_axis_in_deepmimic_style false
+--character_file data/0111/characters/skeleton_bipedal_legs.json
+--motion_file data/0125/motions/motion_bipedal_squart.txt
+
+--enable_output_traj false
+--output_traj_path /tmp/tmp.save
