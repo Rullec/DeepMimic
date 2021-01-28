@@ -59,26 +59,6 @@ void cSceneDiffImitate::Init()
 
     // enable the third derivative
     GetDefaultGenChar()->SetComputeThirdDerive(false);
-    // {
-    //     x += tVectorXd::Ones(x.size()) * 1e-2;
-    //     gen_char->Setx(x);
-
-    //     TestDRootPosErrDx();
-    //     TestDRootRotErrDx();
-    //     TestDRootLinVelErrDx();
-    //     TestDRootAngVelErrDx();
-    //     TestDRootRewardDx();
-    //     // TestEndEffectorRewardByGivenErr();
-    //     // TestDEndEffectorRewardDq();
-    //     // TestDRootRewardDqDqdot();
-
-    //     // for (int i = 0; i < gen_char->GetNumOfLinks(); i++)
-    //     // {
-    //     //     // TestDJointPosRel0Dq(i);
-    //     //     TestDEndEffectorErrDq(i);
-    //     // }
-    // }
-    // exit(0);
 }
 
 /**

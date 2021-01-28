@@ -8,7 +8,7 @@ const double gLinkWidth = 0.025f;
 const tVector gLineColor = tVector(0, 0, 0, 1);
 const tVector gFilLColor = tVector(0.6f, 0.65f, 0.675f, 1);
 
-cDrawSceneImitate::cDrawSceneImitate() { mDrawKinChar = false; }
+cDrawSceneImitate::cDrawSceneImitate() { mDrawKinChar = true; }
 
 cDrawSceneImitate::~cDrawSceneImitate() {}
 
@@ -40,26 +40,26 @@ void cDrawSceneImitate::Keyboard(unsigned char key, double device_x,
     cDrawSceneSimChar::Keyboard(key, device_x, device_y);
 
     switch (key)
-        {
-        case 'k':
-            DrawKinChar(!mDrawKinChar);
-            break;
-        default:
-            break;
-        }
+    {
+    case 'k':
+        DrawKinChar(!mDrawKinChar);
+        break;
+    default:
+        break;
+    }
 }
 
 void cDrawSceneImitate::DrawKinChar(bool enable)
 {
     mDrawKinChar = enable;
     if (mDrawKinChar)
-        {
-            printf("Enabled draw kinematic character\n");
-        }
+    {
+        printf("Enabled draw kinematic character\n");
+    }
     else
-        {
-            printf("Disabled draw kinematic character\n");
-        }
+    {
+        printf("Disabled draw kinematic character\n");
+    }
 }
 
 std::string cDrawSceneImitate::GetName() const
@@ -81,9 +81,9 @@ void cDrawSceneImitate::BuildScene(
 void cDrawSceneImitate::DrawCharacters() const
 {
     if (mDrawKinChar)
-        {
-            DrawKinCharacters();
-        }
+    {
+        DrawKinCharacters();
+    }
     cDrawSceneSimChar::DrawCharacters();
 }
 
