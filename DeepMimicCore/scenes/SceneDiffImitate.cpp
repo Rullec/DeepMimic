@@ -59,6 +59,44 @@ void cSceneDiffImitate::Init()
 
     // enable the third derivative
     GetDefaultGenChar()->SetComputeThirdDerive(false);
+
+    // {
+    //     // 1. set first q, record the ee trans1
+    //     auto gen_char = GetDefaultGenChar();
+    //     int dof = gen_char->GetNumOfFreedom();
+    //     int num_of_links = gen_char->GetNumOfLinks();
+    //     tVectorXd q1 = tVectorXd::Zero(dof), q2 = tVectorXd::Zero(dof);
+    //     q1 << 0.65, 0.0, -0.3, 0.6, -0.4;
+    //     q2 << 0.69, -0.04, -0.15, 0.25, -0.2; // what we want to move
+    //     gen_char->PushState("ID");
+    //     gen_char->Setq(q1);
+    //     tMatrix ee_trans1 =
+    //         gen_char->GetJointById(num_of_links - 1)->GetGlobalTransform();
+    //     // [ 1.0, ],
+    //     //
+    //     /* 2. set second q, record root trans2 and ee trans2
+    //         ee trans1 = diff * ee trans2
+    //         root trans2 = diff * root trans2
+    //     */
+    //     gen_char->Setq(q2);
+    //     tMatrix root_trans2 = gen_char->GetJointById(0)->GetGlobalTransform(),
+    //             ee_trans2 = gen_char->GetJointById(num_of_links - 1)
+    //                             ->GetGlobalTransform();
+    //     tMatrix diff = ee_trans1 * ee_trans2.inverse();
+    //     root_trans2 = diff * root_trans2;
+
+    //     std::cout << "diff = \n" << diff << std::endl;
+    //     std::cout << "new root trans = \n" << root_trans2 << std::endl;
+    //     std::cout << "new root pos = \n"
+    //               << root_trans2.col(3).transpose() << std::endl;
+    //     std::cout << "new root rot = \n"
+    //               << cMathUtil::RotMatToEuler(root_trans2, eRotationOrder::XYZ)
+    //                      .transpose()
+    //               << std::endl;
+
+    //     gen_char->PopState("ID");
+    //     exit(0);
+    // }
 }
 
 /**

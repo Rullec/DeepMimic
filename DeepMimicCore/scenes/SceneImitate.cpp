@@ -171,7 +171,7 @@ double cSceneImitate::CalcReward(int agent_id) const
     return r;
 }
 
-const std::shared_ptr<cKinCharacter> &cSceneImitate::GetKinChar() const
+std::shared_ptr<cKinCharacter> cSceneImitate::GetKinChar() const
 {
     return mKinChar;
 }
@@ -186,7 +186,6 @@ bool cSceneImitate::EnabledRandRotReset() const
     bool enable = mEnableRandRotReset;
     return enable;
 }
-
 
 cSceneImitate::eTerminate cSceneImitate::CheckTerminate(int agent_id) const
 {

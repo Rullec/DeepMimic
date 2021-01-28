@@ -41,7 +41,7 @@ public:
     virtual void ParseArgs(const std::shared_ptr<cArgParser> &parser);
     virtual void Init();
 
-    virtual const std::shared_ptr<cKinCharacter> &GetKinChar() const;
+    virtual std::shared_ptr<cKinCharacter> GetKinChar() const;
     virtual void EnableRandRotReset(bool enable);
     virtual bool EnabledRandRotReset() const;
 
@@ -131,5 +131,4 @@ protected:
                                                   const tVectorXd &vel,
                                                   tVector &com_world,
                                                   tVector &com_vel_world) const;
-    
 };

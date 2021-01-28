@@ -26,10 +26,6 @@ protected:
     // virtual cRLScene *GetRLScene() const;
 
     virtual void BuildScene(std::shared_ptr<cSceneSimChar> &out_scene) const;
-    // virtual void DrawCharacters() const;
-    // virtual void DrawKinCharacters() const;
-    // virtual void
-    // DrawKinCharacter(const std::shared_ptr<cKinCharacter> &kin_char) const;
-
-    // virtual const std::shared_ptr<cKinCharacter> &GetKinChar() const;
+    virtual void DrawKinCharacter(
+        std::shared_ptr<cKinCharacter> &kin_char) const override final;
 };

@@ -89,16 +89,16 @@ void cDrawSceneImitate::DrawCharacters() const
 
 void cDrawSceneImitate::DrawKinCharacters() const
 {
-    const auto &kin_char = GetKinChar();
+    auto kin_char = GetKinChar();
     DrawKinCharacter(kin_char);
 }
 void cDrawSceneImitate::DrawKinCharacter(
-    const std::shared_ptr<cKinCharacter> &kin_char) const
+    std::shared_ptr<cKinCharacter> &kin_char) const
 {
     cDrawCharacter::Draw(*kin_char, gLinkWidth, gFilLColor, gLineColor);
 }
 
-const std::shared_ptr<cKinCharacter> &cDrawSceneImitate::GetKinChar() const
+std::shared_ptr<cKinCharacter> cDrawSceneImitate::GetKinChar() const
 {
     const cSceneImitate *scene =
         dynamic_cast<const cSceneImitate *>(mScene.get());
