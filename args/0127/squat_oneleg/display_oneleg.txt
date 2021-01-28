@@ -1,0 +1,16 @@
+--scene kin_char
+--timer_type uniform
+--time_lim_min 1 
+--time_lim_max 1 
+--time_lim_exp 1
+--time_lim_end_min 2
+--time_lim_end_max 2
+--time_lim_end_exp 2
+
+--logging_level trace
+--use_revolute_axis_in_deepmimic_style false
+--character_file data/0115/characters/skeleton_2d_oneleg_short3.json
+--motion_file data/0127/motions/oneleg_squat_motion.txt
+
+--enable_output_traj false
+--output_traj_path /tmp/tmp.save

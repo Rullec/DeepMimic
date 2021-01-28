@@ -38,6 +38,9 @@ class DeepMimicEnv(Env):
     def get_time(self):
         return self._core.GetTime()
 
+    def get_maxtime(self):
+        return self._core.GetMaxTime()
+
     def get_name(self):
         return self._core.GetName()
 

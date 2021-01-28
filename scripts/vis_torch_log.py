@@ -32,11 +32,11 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
             except Exception as e:
                 print(f"{e}, continue")
                 continue
-        if line.find("timer") != -1:
+        if line.find("max time") != -1:
             splited = line.split()
 
             try:
-                time = float(splited[10][:-1])
+                time = float(splited[-1])
                 # print(time)
             except Exception as e:
                 print(f"{e}, continue")
@@ -61,33 +61,40 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
                 print(f"{e}, continue")
                 continue
             test_return_lst.append(test_return)
+
+    # if draw == True:
+    #     plt.ion()
     plt.cla()
     plt.clf()
     plt.suptitle(output_png_filename)
-    plt.subplot(2, 3, 1)
+    plt.subplot(2, 2, 1)
     # plt.ylim(0, 1)
     # plt.plot(samples_lst, avg_rew_lst)
     plt.plot([i for i in range(len(avg_rew_lst))], avg_rew_lst)
     plt.title(f"reward")
-    plt.subplot(2, 3, 2)
+    plt.subplot(2, 2, 2)
     # plt.plot(samples_lst, lr_lst)
     plt.plot([i for i in range(len(lr_lst))], lr_lst)
     plt.title(f"lr")
-    plt.subplot(2, 3, 3)
+    plt.subplot(2, 2, 3)
+    
     plt.plot(time_lst)
     plt.title(f"timer")
+    plt.ylim([0, max(time_lst) + 0.5])
 
-    plt.subplot(2, 3, 4)
-    plt.plot(action_noise_amp_lst)
-    plt.plot(action_noise_rate_lst)
-    plt.legend(["amp", "rate"])
-    plt.title(f"noise rate & amp")
+    # plt.subplot(2, 2, 4)
+    # plt.plot(action_noise_amp_lst)
+    # plt.plot(action_noise_rate_lst)
+    # plt.legend(["amp", "rate"])
+    # plt.title(f"noise rate & amp")
 
-    plt.subplot(2, 3, 5)
+    plt.subplot(2, 2, 4)
     plt.plot(test_return_lst)
     plt.title("test_return")
 
     if draw is True:
+        # plt.pause(0.4)
+        # pass
         plt.show()
     else:
         plt.savefig(output_png_filename)
@@ -106,6 +113,7 @@ def get_all_log_files(logdir):
     else:
         return lst
 
+
 import shutil
 
 if __name__ == "__main__":
@@ -117,7 +125,11 @@ if __name__ == "__main__":
     arg = parser.parse_args()
     if arg.log_file is not None:
         # run in single file mode
+        # while True:
         handle_log_file(arg.log_file, arg.log_file, draw=True)
+            # handle_log_file(file, output, draw=False)
+            # import time
+            # time.sleep(0.5)
     else:
         log_dir = arg.log_dir
         output_dir = arg.output_dir

@@ -389,8 +389,9 @@ class TorchAgent:
 
         cost_time = time.time() - self._begin_time
         avg_rew = self.replay_buffer.get_avg_reward()
+
         print(
-            f"[log] total samples {self._total_sample_count} train time {cost_time} s, avg reward {avg_rew}, lr {self._get_lr()}")
+            f"[log] total samples {self._total_sample_count} train time {cost_time} s, avg reward {avg_rew}, lr {self._get_lr()} max time {self.world.env.get_maxtime()}")
         if self._total_sample_count > self.max_samples:
             print(f"[log] total samples exceed max {self.max_samples}, exit")
             exit(0)
