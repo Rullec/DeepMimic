@@ -1,2 +1,3 @@
-(python -u DeepMimicTorch_Optimizer.py --arg_file ./args/0126/train_no_noise.txt 1>no_noise.log 2>&1 &)
-(python -u DeepMimicTorch_Optimizer.py --arg_file ./args/0126/train_have_noise.txt 1>have_noise.log 2>&1 &)
+mpiexec -n 1  python -u DeepMimicTorch_Optimizer.py --arg_file ./args/0127/squat_oneleg/run.txt
+# mpiexec -n 8 python -u DeepMimicTorch_Optimizer.py --arg_file ./args/0127/squat_oneleg/run.txt
+

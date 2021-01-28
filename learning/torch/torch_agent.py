@@ -84,6 +84,9 @@ class TorchAgent:
         self.output_dir = "output/0111/test"
         self.path = PathTorch()
         self.replay_buffer = ReplayBufferTorch(self.replay_buffer_capacity)
+        self.proc_rank = MPIUtil.get_proc_rank()
+        self.is_root_proc = MPIUtil.is_root_proc()
+        self.num_of_procs = MPIUtil.get_num_procs()
 
         # 3. hyperparams from agent
         self._load_params(json_data)
@@ -148,6 +151,63 @@ class TorchAgent:
 
         self.exp_params_curr = copy.deepcopy(self.exp_params_beg)
         return
+
+    def _set_flatten_parameters(self, flatten_params):
+        """
+            given an flatten network parameter, load it to the policy model
+        """
+        assert type(flatten_params) is torch.Tensor
+        st = 0
+        old_state_dict = self.action.state_dict()
+        # 1. for each parameter
+        for name, param in self.action.named_parameters():
+
+            # 1.1 first get the parameter size
+            num_of_params = 1
+            for i in param.shape:
+                num_of_params *= i
+
+            # 1.2 form this parameter's shape
+            new_val = torch.reshape(torch.Tensor(
+                flatten_params[st: st + num_of_params]), param.shape)
+
+            # 1.3 set the dict
+            old_state_dict[name] = new_val
+            st += num_of_params
+
+        # 2. load this state dict
+        self.action.load_state_dict(old_state_dict)
+        assert st == len(flatten_params)
+
+    def _set_flatten_grads(self, grads):
+        """
+            Given an flatten gradient vecotr "grads", set this gradient to the policy model
+        """
+        st = 0
+        for param in self._get_parameters():
+            # get size
+            size = 1
+            for i in param.shape:
+                size *= i
+
+            # set
+            param.grad = torch.reshape(torch.Tensor(
+                grads[st: st + size]), param.shape).detach()
+
+            st += size
+        assert len(grads) == st
+
+    def _get_flatten_grads(self):
+        """
+            Extract the flatten gradient of the model
+        """
+        return np.concatenate([i.grad.detach().flatten() for i in self._get_parameters()])
+
+    def _get_flatten_parameters(self):
+        """
+            Extract the flatten params of the model
+        """
+        return np.concatenate([i.detach().numpy().flatten() for i in self._get_parameters()])
 
     def _get_parameters(self):
         return self.action.parameters()
@@ -359,8 +419,8 @@ class TorchAgent:
         # 1. construct the loss and backward
         self.optimizer.zero_grad()
 
-        # 2. construct the loss and the gradient
-        # self._apply_self_grad()
+        # 2. construct the loss and the gradient, calculate the gradient on its own sampled data
+
         states = np.array(self.replay_buffer.get_state())
         drdas = np.array(self.replay_buffer.get_drda())
 
@@ -370,33 +430,51 @@ class TorchAgent:
         loss_sum = -torch.mean(drdas_torch *
                                actions_torch) * self.get_action_size()
         loss_sum.backward()
+        # 2.1 my self grad calcualted done, notice it is mean
+        # 2.2 reduce all samples and all gradient, update each model
+        myself_samples = states.shape[0]
+        total_samples = int(MPIUtil.reduce_sum(myself_samples))
+        myself_grad = self._get_flatten_grads() * myself_samples
+        myself_grad = MPIUtil.reduce_sum(myself_grad)
+        myself_grad /= total_samples
 
+        self._set_flatten_grads(myself_grad)
+
+        # 2.3 set flatten grads back
         self._grad_clip()
 
         # 3. do forward update, update the lr, sample_counts,
         self.optimizer.step()
 
+        # print("[warn] we check the network syncing, which is costly")
+        # assert self._check_network_synced()
+
         self._set_lr(max(self.lr_decay * self._get_lr(), 1e-6))
-        self._total_sample_count += self.replay_buffer.get_cur_size()
+        self._total_sample_count += total_samples
         self.world.env.set_sample_count(self._total_sample_count)
         self._update_exp_params()
 
-        # 4. output and clear
-        output_name = datetime.datetime.now().strftime("%m-%d-%H:%M:%S")
-        output_name = f"{output_name}-{str(self.replay_buffer.get_avg_reward())[:6]}.pkl"
-        output_path = os.path.join(self.output_dir, output_name)
-        self.save_model(output_path)
+        # 4. output and clear if it's root proc
+        total_rew = MPIUtil.reduce_sum(
+            self.replay_buffer.get_avg_reward() * myself_samples)
+        avg_rew = total_rew / total_samples
 
-        cost_time = time.time() - self._begin_time
-        avg_rew = self.replay_buffer.get_avg_reward()
+        if MPIUtil.is_root_proc():
+            output_name = datetime.datetime.now().strftime("%m-%d-%H:%M:%S")
+            output_name = f"{output_name}-{str(avg_rew)[:6]}.pkl"
+            output_path = os.path.join(self.output_dir, output_name)
+            self.save_model(output_path)
 
-        print(
-            f"[log] total samples {self._total_sample_count} train time {cost_time} s, avg reward {avg_rew}, lr {self._get_lr()} max time {self.world.env.get_maxtime()}")
-        if self._total_sample_count > self.max_samples:
-            print(f"[log] total samples exceed max {self.max_samples}, exit")
-            exit(0)
+            cost_time = time.time() - self._begin_time
 
-        self._print_statistics()
+            print(
+                f"[log] total samples {self._total_sample_count} train time {cost_time} s, avg reward {avg_rew}, lr {self._get_lr()} max time {self.world.env.get_maxtime()}")
+            if self._total_sample_count > self.max_samples:
+                print(
+                    f"[log] total samples exceed max {self.max_samples}, exit")
+                exit(0)
+
+            self._print_statistics()
 
         if self.enable_update_normalizer:
             self._update_normalizers()
@@ -417,10 +495,9 @@ class TorchAgent:
         self._train_iters += 1
 
         # if current train iters is the same as
-        print(
-            f"[debug] train iters {self._train_iters} test gap {self.test_gap}")
         if (self._train_iters % self.test_gap) == 0:
-            print(f"[debug] change mode from train to train end")
+            if self.is_root_proc:
+                print(f"[debug] change mode from train to train end")
             self._mode = self.Mode.TRAIN_END
 
     def _update_normalizers(self):
@@ -499,6 +576,29 @@ class TorchAgent:
             plt.savefig(filename)
             print(f"[log] save {filename}")
 
+    def _check_network_synced(self):
+        """
+            Check whether the weight of network has been synchronized
+        """
+        local_weight = self._get_flatten_parameters()
+        res = MPIUtil.reduce_avg(local_weight)
+        synced = (res == local_weight).all()
+
+        return synced
+
+    def _sync_network(self):
+        """
+            Sync all network weight by root net
+        """
+        local_weight = self._get_flatten_parameters()
+
+        if MPIUtil.is_root_proc():
+            MPIUtil.bcast(local_weight)
+        else:
+            new_weight = np.empty_like(local_weight)
+            MPIUtil.bcast(new_weight)
+            self._set_flatten_parameters(torch.Tensor(new_weight))
+
     def _build_graph(self, json_data):
         """
             Given the agent file, build the network from torch
@@ -517,6 +617,8 @@ class TorchAgent:
             "state_normalizer", self.get_state_size(), self.world.env.build_state_norm_groups(self.id), self.normalizer_alpha)
         self.action_normalizer = NormalizerTorch(
             "action_normalizer", self.get_action_size(), alpha=self.normalizer_alpha)
+
+        self._sync_network()
 
     def _get_output_path(self):
         assert False
@@ -635,6 +737,16 @@ class TorchAgent:
 
     enable_training = property(get_enable_training, set_enable_training)
 
+    def _need_train(self):
+        """
+            Judge whether do we need to train
+        """
+        replay_buffer_path_num = MPIUtil.reduce_sum(
+            self.replay_buffer.get_num_paths())
+        replay_buffer_samples_num = MPIUtil.reduce_sum(
+            self.replay_buffer.get_cur_size())
+        return (replay_buffer_path_num > self.replay_buffer_max_path) or (replay_buffer_samples_num > self.replay_buffer.capacity)
+
     def end_episode(self):
         """
             the rl_world_torch will call this function when current episode ends
@@ -651,7 +763,8 @@ class TorchAgent:
                     self.replay_buffer.add(self.path)
 
                     # when the replay buffer is full / up to max path num
-                    if (self.replay_buffer.get_num_paths() > self.replay_buffer_max_path) or (self.replay_buffer.get_cur_size() > self.replay_buffer.capacity):
+                    # get total replay buffer size, get total replay num of paths
+                    if self._need_train():
                         self._train()
 
             elif self._mode == self.Mode.TEST:
@@ -688,17 +801,20 @@ class TorchAgent:
         self.world.env.set_mode(self._mode)
 
     def _update_mode_test(self):
-        # if we have trained for enough episodes
-        if self.test_episode_count * MPIUtil.get_num_procs() >= self.test_episodes:
+        # get total test number
+        test_total_count = MPIUtil.reduce_sum(self.test_episode_count)
+
+        # if these tests are enough, we begin to count the test_return overall
+        if test_total_count >= self.test_episodes:
             print("[debug] convert mode from test to train")
             if self.enable_training:
-                # print(
-                #     f"current test episode {self.test_episode_count} * proc_num {MPIUtil.get_num_procs()} >= {self.test_episodes}, convert to train mode")
                 self._mode = self.Mode.TRAIN
                 self.world.env.set_mode(self._mode)
+            self.test_return = MPIUtil.reduce_sum(self.test_return)
+            self.test_return /= test_total_count
 
-            self.test_return /= self.test_episode_count
-            print(f"[test] test return = {self.test_return}")
+            if MPIUtil.is_root_proc():
+                print(f"[test] test return = {self.test_return}")
             self.test_episode_count = 0
             self.test_return = 0
 

@@ -46,7 +46,10 @@ def main():
 
 if __name__ == '__main__':
     import torch
-    torch.manual_seed(0)
+    import util.mpi_util as MPIUtil
     import numpy as np
-    np.random.seed(0)
+    torch.manual_seed(MPIUtil.get_proc_rank())
+    np.random.seed(MPIUtil.get_proc_rank())
+    # torch.manual_seed(0)
+    # np.random.seed(0)
     main()

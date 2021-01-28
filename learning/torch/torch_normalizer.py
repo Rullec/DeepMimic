@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import util.mpi_util as MPIUtil
 
 
 class NormalizerTorch():
@@ -44,7 +45,19 @@ class NormalizerTorch():
     # def get_sample_count(self):
     #     return self.sample_count
 
+    def _calc_sync_mean_std(self, self_mean, self_std, self_sample):
+        """
+            synchronize the mean & std
+        """
+        total_sample = MPIUtil.reduce_sum(self_sample)
+        mean = MPIUtil.reduce_sum(self_sample * self_mean) / total_sample
+        std = np.sqrt(MPIUtil.reduce_sum(
+            np.square(self_std) * self_sample) / total_sample)
+        return mean, std, total_sample
+
     def update(self, mean, std, new_count):
+        mean, std, new_count = self._calc_sync_mean_std(mean, std, new_count)
+
         if type(mean) is np.ndarray or type(std) is np.ndarray:
             mean = torch.Tensor(mean)
             std = torch.Tensor(std)
