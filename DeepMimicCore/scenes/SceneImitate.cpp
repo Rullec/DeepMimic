@@ -1228,6 +1228,9 @@ double cSceneImitate::CalcPoseReward(cSimCharacterGen &sim_char,
                 cKinTree::CalcRootRotErr(joint_mat, pose0,
                                          pose1); // pow(diff_rot_rot_theta, 2)
     int num_joints = sim_char.GetNumJoints();
+    printf("[pose] root joint weight %.5f err %.f, contri %.5f\n", root_rot_w,
+           cKinTree::CalcRootRotErr(joint_mat, pose0, pose1),
+           root_rot_w * cKinTree::CalcRootRotErr(joint_mat, pose0, pose1));
     for (int j = root_id + 1; j < num_joints; ++j)
     {
         // ROOT is not included in this part of code.
@@ -1237,10 +1240,23 @@ double cSceneImitate::CalcPoseReward(cSimCharacterGen &sim_char,
 
         // add joint angle diff and joint vel diff to pose_err and vel_err
         pose_err += w * curr_pose_err;
+        printf("[pose] joint %d weight %.5f err %.f, contri %.5f\n", j, w,
+               curr_pose_err, w * curr_pose_err);
+        if (curr_pose_err > 10)
+        {
+            std::cout << "[error] for joint " << j << std::endl;
+            std::cout << "pose0 = " << pose0.transpose() << std::endl;
+            std::cout << "pose1 = " << pose1.transpose() << std::endl;
+            tVectorXd diff;
+            cKinTree::CalcJointPoseDiff(joint_mat, j, pose0, pose1, diff);
+            std::cout << "diff = " << diff.transpose() << std::endl;
+            exit(0);
+        }
     }
     double pose_reward =
         RewParams.pose_w *
         exp(-RewParams.err_scale * RewParams.pose_scale * pose_err);
+    printf("[debug] pose rew %.5f, pose err %.5f\n", pose_reward, pose_err);
     return pose_reward;
 }
 

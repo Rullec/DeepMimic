@@ -558,6 +558,9 @@ int cCtPDGenController::GetJointActionSize(int id) const
     case cKinTree::eJointType::eJointTypeSpherical:
         size = 4;
         break;
+    case cKinTree::eJointType::eJointTypeFixed:
+        size = 0;
+        break;
     default:
         MIMIC_ERROR("unsupported type {}", type);
         break;

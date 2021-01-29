@@ -27,7 +27,7 @@ void cDrawSceneDiffImitate::DrawKinCharacter(
     switch (cKinTree::GetJointType(joint_mat, root_id))
     {
     case cKinTree::eJointTypeBipedalNone:
-        new_pose[1] += 0.2;
+        new_pose[1] += 0.3;
         break;
 
     default:

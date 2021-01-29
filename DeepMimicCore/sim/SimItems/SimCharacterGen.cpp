@@ -1898,6 +1898,8 @@ tMatrixXd cSimCharacterGen::CalcDqDpose(const tVectorXd &pose)
             dPosedq.block(pose_idx, q_idx, pose_size, q_size).setIdentity();
             break;
         }
+        case JointType::FIXED_JOINT:
+            break;
         default:
             MIMIC_ERROR("unsupported joint type {}", joint->GetJointType());
             break;
@@ -1979,6 +1981,10 @@ tMatrixXd cSimCharacterGen::CalcDveldqdot(const tVectorXd &qdot_cur)
         case JointType::REVOLUTE_JOINT:
         {
             dvel_dqdot(vel_idx, qdot_idx) = 1;
+            break;
+        }
+        case JointType::FIXED_JOINT:
+        {
             break;
         }
         default:

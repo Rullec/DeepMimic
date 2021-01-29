@@ -382,6 +382,11 @@ public:
     static std::string BuildJointMatJson(const Eigen::MatrixXd &joint_mat);
     static std::string BuildJointJson(int id, const tJointDesc &joint_desc);
 
+    static void CalcJointPoseDiff(const Eigen::MatrixXd &joint_mat,
+                                  int joint_id, const Eigen::VectorXd &pose0,
+                                  const Eigen::VectorXd &pose1,
+                                  Eigen::VectorXd &out_diff);
+
 protected:
     static bool ParseJoint(const Json::Value &root, tJointDesc &out_joint_desc,
                            std::string &out_joint_name);
@@ -424,10 +429,6 @@ protected:
     static void BuildDefaultVelFixed(Eigen::VectorXd &out_pose);
     static void BuildDefaultVelSpherical(Eigen::VectorXd &out_pose);
 
-    static void CalcJointPoseDiff(const Eigen::MatrixXd &joint_mat,
-                                  int joint_id, const Eigen::VectorXd &pose0,
-                                  const Eigen::VectorXd &pose1,
-                                  Eigen::VectorXd &out_diff);
     static void CalcJointVelDiff(const Eigen::MatrixXd &joint_mat, int joint_id,
                                  const Eigen::VectorXd &vel0,
                                  const Eigen::VectorXd &vel1,

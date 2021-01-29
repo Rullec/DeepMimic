@@ -118,7 +118,7 @@ void cPDCtrl::UpdateControlForce(double dt, tVectorXd &out_tau)
     PostProcessControlForce(out_tau);
 
     // out_tau.setZero();
-    // MIMIC_INFO("out tau = {}", out_tau.transpose());
+    // std::cout << "[debug] out tau = " << out_tau.transpose() << std::endl;
     // MIMIC_INFO("q = {}", q.transpose());
     // exit(1);
 }
