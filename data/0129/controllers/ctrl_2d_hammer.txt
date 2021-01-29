@@ -1,0 +1,47 @@
+{
+	"QueryRate": 30,
+	"EnablePhaseInput": true,
+	"EnableTestDerivative": false,
+	"RecordWorldRootPos": false,
+	"RecordWorldRootRot": true,
+
+	"RightJoints": [],
+	"LeftJoints": [],
+
+	"PDControllers": 
+	[		
+		{
+			"ID": 0,
+			"Name": "root",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 1,
+			"Name": "LeftLeg",
+			"Kp": 100,
+			"Kd": 10,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		},
+		{
+			"ID": 2,
+			"Name": "LeftFoot",
+			"Kp": 50,
+			"Kd": 5,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		}
+		,
+		{
+			"ID": 3,
+			"Name": "LeftFootTongue",
+			"Kp": 0,
+			"Kd": 0,
+			"TargetTheta0": 0,
+			"UseWorldCoord": 0
+		}
+	]
+}

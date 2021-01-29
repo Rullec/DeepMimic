@@ -1,0 +1,8 @@
+--scene kin_char
+--timer_type uniform
+
+--logging_level trace
+--use_revolute_axis_in_deepmimic_style false
+--character_file data/0129/characters/skeleton_2d_hammer.json
+--motion_file data/0129/motions/2d_hammer_swing.txt
+--output_traj_path ""

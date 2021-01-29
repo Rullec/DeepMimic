@@ -294,19 +294,21 @@ class TorchAgent:
         a = self._infer_action(torch.Tensor(s)).detach().numpy()
 
         if self._enable_stoch_policy() is True:
-            print(f"[debug] decide action, enable stoch polciy, raw a = {a}")
+            # print(f"[debug] decide action, enable stoch polciy, raw a = {a}")
             import util.math_util as MathUtil
             whether_add_noise = MathUtil.flip_coin(self.exp_params_curr.rate)
             amptitude_noise = self.exp_params_curr.noise
             noise = amptitude_noise * whether_add_noise * \
                 torch.randn(a.shape) * self.action_normalizer.std
             a = a + noise.detach().numpy()
-            print(f"[debug] add action noise {noise} final action {a}")
+            # print(f"[debug] add action noise {noise} final action {a}")
         else:
-            if self.enable_training == False:
-                print("[debug] not training: disable stoch policy")
-            else:
-                print("[debug] enable training: disable stoch policy, no noise")
+            pass
+            # if self.enable_training == False:
+            #     print("[debug] not training: disable stoch policy")
+            # else:
+            #     print("[debug] enable training: disable stoch policy, no noise")
+        print(f"[debug] decide a = {a}")
         return a
 
     def _infer_action(self, s):
@@ -404,7 +406,8 @@ class TorchAgent:
         res = [i.grad for i in self._get_parameters()]
         max_res = max([np.max(np.array(i.detach())) for i in res])
         min_res = min([np.min(np.array(i.detach())) for i in res])
-        print(f"max grad {max_res} min grad {min_res}")
+        if MPIUtil.is_root_proc():
+            print(f"max grad {max_res} min grad {min_res}")
 
     def _apply_self_grad(self):
         self_grads = self._get_self_grad()
@@ -686,7 +689,7 @@ class TorchAgent:
 
         a = self._decide_action(s, None)
         assert len(np.shape(a)) == 1, f"a shape {np.shape(a)}"
-        print(f"[new action] {a}")
+        # print(f"[new action] {a}")
         flags = self._record_flags()
         assert np.isfinite(
             a).all() == True, f"some action is Nan!, a = {str(a)}"

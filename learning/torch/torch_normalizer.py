@@ -79,6 +79,7 @@ class NormalizerTorch():
                 assert False, f"unsupported norm group {self.group_ids[i]}"
         self.sample_count = total_count
         # fit the group
-        np.set_printoptions(suppress=True)
-        print(f"[update] {self.name} mean = {self.mean}")
-        print(f"[update] {self.name} std = {self.std}")
+        if MPIUtil.is_root_proc():
+            np.set_printoptions(suppress=True)
+            print(f"[update] {self.name} mean = {self.mean}")
+            print(f"[update] {self.name} std = {self.std}")

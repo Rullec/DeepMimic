@@ -30,7 +30,7 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
                 avg_rew_lst.append(r)
                 lr_lst.append(lr)
             except Exception as e:
-                print(f"{e}, continue")
+                # print(f"{e}, continue")
                 continue
         if line.find("max time") != -1:
             splited = line.split()
@@ -39,7 +39,7 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
                 time = float(splited[-1])
                 # print(time)
             except Exception as e:
-                print(f"{e}, continue")
+                # print(f"{e}, continue")
                 continue
             time_lst.append(time)
 
@@ -50,7 +50,7 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
                 rate = float(splited[6])
                 # print(time)
             except Exception as e:
-                print(f"{e}, continue")
+                # print(f"{e}, continue")
                 continue
             action_noise_amp_lst.append(amp)
             action_noise_rate_lst.append(rate)
@@ -58,7 +58,7 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
             try:
                 test_return = float(line.split()[-1])
             except Exception as e:
-                print(f"{e}, continue")
+                # print(f"{e}, continue")
                 continue
             test_return_lst.append(test_return)
 
@@ -70,14 +70,15 @@ def handle_log_file(log_filename, output_png_filename, draw=False):
     plt.subplot(2, 2, 1)
     # plt.ylim(0, 1)
     # plt.plot(samples_lst, avg_rew_lst)
-    plt.plot([i for i in range(len(avg_rew_lst))], avg_rew_lst)
+    plt.plot(avg_rew_lst)
     plt.title(f"reward")
+    plt.ylim(min(min(avg_rew_lst), 0.5), 1)
     plt.subplot(2, 2, 2)
     # plt.plot(samples_lst, lr_lst)
     plt.plot([i for i in range(len(lr_lst))], lr_lst)
     plt.title(f"lr")
     plt.subplot(2, 2, 3)
-    
+
     plt.plot(time_lst)
     plt.title(f"timer")
     plt.ylim([0, max(time_lst) + 0.5])
@@ -127,9 +128,9 @@ if __name__ == "__main__":
         # run in single file mode
         # while True:
         handle_log_file(arg.log_file, arg.log_file, draw=True)
-            # handle_log_file(file, output, draw=False)
-            # import time
-            # time.sleep(0.5)
+        # handle_log_file(file, output, draw=False)
+        # import time
+        # time.sleep(0.5)
     else:
         log_dir = arg.log_dir
         output_dir = arg.output_dir
