@@ -44,6 +44,9 @@ void cSceneDiffImitate::ParseArgs(const std::shared_ptr<cArgParser> &parser)
 */
 void cSceneDiffImitate::Init()
 {
+    // cKinTree::TestRevolutePoseErr();
+    // cKinTree::TestRevoluteDPoseErrDpose0();
+    // exit(0);
     cSceneImitate::Init();
 
     // check that all characters are gen type
@@ -173,6 +176,7 @@ tVectorXd cSceneDiffImitate::CalcDRewardDAction()
     else if (mDerivMode == eDerivMode::DERIV_SINGLE_STEP_SIMPLIFIED)
     {
         DrDa = CalcDrDxcur().transpose() * CalcDxurDa();
+        std::cout << "drdx = " << CalcDrDxcur().transpose() << std::endl;
     }
     else
     {
@@ -496,6 +500,7 @@ tVectorXd cSceneDiffImitate::CalcDPoseRewardDpose0()
     for (int j_id = 0; j_id < cKinTree::GetNumJoints(joint_mat); j_id++)
     {
         double weight = mJointWeights[j_id];
+
         if (cKinTree::IsRoot(joint_mat, j_id))
         {
             total_err +=
@@ -886,6 +891,8 @@ tMatrixXd cSceneDiffImitate::CalcDxurDa_SingleStep_simplified()
         std::dynamic_pointer_cast<cGenWorld>(mWorldBase)->GetInternalGenWorld();
     auto gen_char = GetDefaultGenChar();
     auto gen_ctrl = GetDefaultGenCtrl();
+    // std::ofstream fout("dxdu.txt", std::ios::app);
+    // fout << "dxdu = \n" << bt_gen_world->GetDxnextDQc_u() << std::endl;
     return bt_gen_world->GetDxnextDQc_u() * gen_ctrl->GetDCtrlForceDAction();
 }
 /**

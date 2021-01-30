@@ -386,6 +386,14 @@ public:
                                   int joint_id, const Eigen::VectorXd &pose0,
                                   const Eigen::VectorXd &pose1,
                                   Eigen::VectorXd &out_diff);
+    static double CalcRevoluteJointPoseErr(double theta0, double theta1);
+    static double CalcRevoluteJointPoseDiff(double theta0, double theta1);
+    static double CalcRevoluteJointDPoseDiffDpose0(double theta0,
+                                                   double theta1);
+    static double CalcRevoluteJointDPoseErrDpose0(double theta0, double theta1);
+    static void TestRevolutePoseErr();
+    static void TestRevoluteDPoseErrDpose0();
+    static void TestRevoluteDPoseErrDpose0(double theta0, double theta1);
 
 protected:
     static bool ParseJoint(const Json::Value &root, tJointDesc &out_joint_desc,

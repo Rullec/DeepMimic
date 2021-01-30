@@ -4,8 +4,8 @@
 --diff_factor 10
 
 --timer_type uniform
---time_lim_min 1
---time_lim_max 1
+--time_lim_min 10
+--time_lim_max 10
 --time_lim_exp 1
 
 --time_end_lim_min 40
@@ -46,7 +46,7 @@
 --train_agents false
 
 --output_path output/0129/hammer/
---model_files output/0129/hammer/01-29-16:22:17-0.7530.pkl
+--model_files output/0129/hammer/01-30-14:40:50-0.9962.pkl
 
 #---------------------- Inverse Dyanmics config -------------------
 --enable_inverse_dynamic_solving false

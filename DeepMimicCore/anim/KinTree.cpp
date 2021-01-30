@@ -1856,6 +1856,12 @@ double cKinTree::CalcRootAngVelErr(const Eigen::MatrixXd &joint_mat,
     return diff.squaredNorm();
 }
 
+/**
+ * \brief           Calculate the pose diff for specified joint "joint_id"
+ * 
+ *      
+ *      note that, for revolute joints, the sign of diff value is uncertainable...
+*/
 void cKinTree::CalcJointPoseDiff(const Eigen::MatrixXd &joint_mat, int joint_id,
                                  const Eigen::VectorXd &pose0,
                                  const Eigen::VectorXd &pose1,
@@ -1864,7 +1870,7 @@ void cKinTree::CalcJointPoseDiff(const Eigen::MatrixXd &joint_mat, int joint_id,
     int param_offset = GetParamOffset(joint_mat, joint_id);
     int param_size = GetParamSize(joint_mat, joint_id);
     bool is_root = cKinTree::IsRoot(joint_mat, joint_id);
-
+    out_diff = tVectorXd::Zero(param_size);
     if (is_root)
     {
         tVector root_pos_diff = CalcRootPosDiff(joint_mat, pose0, pose1);
@@ -1889,6 +1895,24 @@ void cKinTree::CalcJointPoseDiff(const Eigen::MatrixXd &joint_mat, int joint_id,
             out_diff = cMathUtil::QuatToVec(q_diff);
             break;
         }
+        case eJointTypeRevolute:
+        {
+            /*
+                for revolute joint's diff, the diff is definied as 
+                diff = pose0 - pose1
+            */
+            double theta0 = pose0[param_offset], theta1 = pose1[param_offset];
+
+            out_diff[0] = cKinTree::CalcRevoluteJointPoseDiff(theta0, theta1);
+            if (std::fabs(out_diff[0]) >= (M_PI + 1e-10))
+            {
+                std::cout << "out diff = " << out_diff << std::endl;
+                std::cout << (std::fabs(out_diff[0]) > (M_PI + 1e-10))
+                          << std::endl;
+            }
+            MIMIC_ASSERT(std::fabs(out_diff[0]) < (M_PI + 1e-10));
+            break;
+        }
         default:
             out_diff = pose1.segment(param_offset, param_size) -
                        pose0.segment(param_offset, param_size);
@@ -1897,6 +1921,127 @@ void cKinTree::CalcJointPoseDiff(const Eigen::MatrixXd &joint_mat, int joint_id,
     }
 }
 
+double cKinTree::CalcRevoluteJointPoseErr(double theta0, double theta1)
+{
+    return std::pow(CalcRevoluteJointPoseDiff(theta0, theta1), 2);
+}
+double cKinTree::CalcRevoluteJointPoseDiff(double theta0, double theta1)
+{
+    theta0 = cMathUtil::NormalizeAngle(theta0);
+    theta1 = cMathUtil::NormalizeAngle(theta1);
+
+    double diff = theta0 - theta1;
+    // printf("[raw] theta0 %.5f, theta1 %.5f\n", theta0, theta1);
+    // if the distance between theta0 & 1 < M_PI
+    if (std::fabs(diff) < M_PI)
+    {
+        // pass
+    }
+    else
+    {
+        if (theta0 < theta1)
+        {
+            diff = 2 * M_PI + theta0 - theta1;
+        }
+        else
+        {
+            diff = 2 * M_PI + theta1 - theta0;
+        }
+    }
+    // if (std::fabs(diff) > M_PI - 1e-10)
+    // {
+    //     std::cout << "theta0 = " << theta0 << " theta1 = " << theta1
+    //               << std::endl;
+    //     std::cout << "diff = " << diff << std::endl;
+    //     exit(0);
+    // }
+    return diff;
+}
+
+double cKinTree::CalcRevoluteJointDPoseDiffDpose0(double theta0, double theta1)
+{
+
+    theta0 = cMathUtil::NormalizeAngle(theta0);
+    theta1 = cMathUtil::NormalizeAngle(theta1);
+
+    double diff = theta0 - theta1;
+    double deriv = 0;
+    // printf("[raw] theta0 %.5f, theta1 %.5f\n", theta0, theta1);
+    // if the distance between theta0 & 1 < M_PI
+    if (std::fabs(diff) < M_PI)
+    {
+        // pass
+        deriv = 1;
+    }
+    else
+    {
+        if (theta0 < theta1)
+        {
+            diff = 2 * M_PI + theta0 - theta1;
+            deriv = 1;
+        }
+        else
+        {
+            diff = 2 * M_PI + theta1 - theta0;
+            deriv = -1;
+        }
+    }
+    return deriv;
+}
+double cKinTree::CalcRevoluteJointDPoseErrDpose0(double theta0, double theta1)
+{
+    return 2 * CalcRevoluteJointPoseDiff(theta0, theta1) *
+           CalcRevoluteJointDPoseDiffDpose0(theta0, theta1);
+}
+void cKinTree::TestRevolutePoseErr()
+{
+    double min = -M_PI - 1, max = M_PI + 1;
+    double gap = 0.1;
+    for (double theta0 = min; theta0 < max; theta0 += gap)
+    {
+        for (double theta1 = min; theta1 < max; theta1 += gap)
+        {
+            MIMIC_ASSERT(CalcRevoluteJointPoseErr(theta0, theta1) <=
+                         std::pow(M_PI, 2));
+        }
+        std::cout << "[test] revolute joint PoseErr succ for t0 = " << theta0
+                  << std::endl;
+    }
+    exit(0);
+    // double theta0 = -0.07519, theta1 = 3.15000;
+    // std::cout << CalcRevoluteJointPoseErr(theta0, theta1) << std::endl;
+    // exit(0);
+}
+void cKinTree::TestRevoluteDPoseErrDpose0()
+{
+    double min = -5, max = 5;
+    double gap = 0.1;
+    for (double theta0 = min; theta0 < max; theta0 += gap)
+    {
+        for (double theta1 = min; theta1 < max; theta1 += gap)
+        {
+            TestRevoluteDPoseErrDpose0(theta0, theta1);
+        }
+        std::cout << "[test] revolute joint dPoseErr dpose0 succ for t0 = "
+                  << theta0 << std::endl;
+    }
+}
+void cKinTree::TestRevoluteDPoseErrDpose0(double theta0, double theta1)
+{
+    double ideal_deriv = CalcRevoluteJointDPoseErrDpose0(theta0, theta1);
+    double old_err = CalcRevoluteJointPoseErr(theta0, theta1);
+    double eps = 1e-5;
+    double new_err = CalcRevoluteJointPoseErr(theta0 + eps, theta1);
+    double num_deriv = (new_err - old_err) / eps;
+    double diff = ideal_deriv - num_deriv;
+    if (std::fabs(diff) > 10 * eps)
+    {
+        std::cout << "[error] TestRevoluteDPoseErrDpose0 failed\n";
+        printf("t0 %.6f, t1 %.6f ideal %.6f, num %.6f\n", theta0, theta1,
+               ideal_deriv, num_deriv);
+        exit(0);
+    }
+}
 void cKinTree::CalcJointVelDiff(const Eigen::MatrixXd &joint_mat, int joint_id,
                                 const Eigen::VectorXd &vel0,
                                 const Eigen::VectorXd &vel1,

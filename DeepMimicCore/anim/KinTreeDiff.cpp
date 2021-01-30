@@ -128,6 +128,17 @@ tVectorXd cKinTree::CalcDPoseErrDPose0(const Eigen::MatrixXd &joint_mat,
             dErrdPose0 = derr_dt * dt_dw * dw_dq0;
             break;
         }
+        case eJointType::eJointTypeRevolute:
+        {
+            /*
+                pose_err = Diff(pose0, pose1)^2
+                d(pose_err)/dpose0 = 2 * Diff(pose0, pose1) 
+                                    /* D(Diff(pose0, pose1))/dpose0
+            */
+            dErrdPose0[0] = cKinTree::CalcRevoluteJointDPoseErrDpose0(
+                pose0[offset], pose1[offset]);
+            break;
+        }
         default:
 
         {
