@@ -88,8 +88,8 @@ struct tSaveInfo
     void SaveTrajV1(Json::Value &root);
     void SaveTrajV2(Json::Value &root);
     void SaveTrajV3(Json::Value &root);
-    void SaveTrajV2FromMotion(int num_of_links, const cMotion *motion,
-                              const std::string path);
+    void SaveTrajV2FromMotion(const tMatrixXd &joint_mat, int num_of_links,
+                              const cMotion *motion, const std::string path);
 
 protected:
     void SaveCommonInfo(Json::Value &value, int frame_id) const;

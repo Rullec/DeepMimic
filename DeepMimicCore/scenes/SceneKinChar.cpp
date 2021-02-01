@@ -111,6 +111,7 @@ void cSceneKinChar::ExportMotionToTraj() const
     const cMotion &motion = mChar->GetMotion();
     MIMIC_INFO("frame num {}", motion.GetNumFrames());
     tSaveInfo saveinfo;
-    saveinfo.SaveTrajV2FromMotion(GetCharacter()->GetNumJoints(), &motion,
+    saveinfo.SaveTrajV2FromMotion(GetCharacter()->GetJointMat(),
+                                  GetCharacter()->GetNumJoints(), &motion,
                                   this->mOuputTrajPath);
 }

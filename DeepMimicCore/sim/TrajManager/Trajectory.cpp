@@ -1039,7 +1039,8 @@ tSummaryTable::tSummaryTable()
     // mLogger = cLogUtil::CreateLogger("tSummaryTable");
 }
 
-void tSaveInfo::SaveTrajV2FromMotion(int num_of_links, const cMotion *motion,
+void tSaveInfo::SaveTrajV2FromMotion(const tMatrixXd &joint_mat,
+                                     int num_of_links, const cMotion *motion,
                                      const std::string path)
 {
 
@@ -1067,7 +1068,9 @@ void tSaveInfo::SaveTrajV2FromMotion(int num_of_links, const cMotion *motion,
         mContactForces[i].clear();
         mRewards[i] = 0;
         mRefTime[i] = motion->GetFrameTime(i);
-        mTruthAction[i] = tVectorXd::Zero(mCharPoses[i].size() - 7);
+        mTruthAction[i] = tVectorXd::Zero(
+            mCharPoses[i].size() -
+            cKinTree::GetParamSize(joint_mat, cKinTree::GetRoot(joint_mat)));
         mTruthJointForces[i].resize(num_of_links - 1);
         for (auto &x : mTruthJointForces[i])
             x.setZero();
