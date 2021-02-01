@@ -19,9 +19,12 @@ class Joint(object):
         REVOLUTE = 1
         SPHERICAL = 2
         FIXED = 3
+        BIPEDAL_NONE = 4
 
-    JOINT_TYPE_STR = ["none", "revolute", "spherical", "fixed"]
-    JOINT_DOF = [7, 1, 4, 0]
+    JOINT_TYPE_STR = ["none", "revolute", "spherical", "fixed", "bipedal_none"]
+    JOINT_FREEDOM_SIZE = [6, 1, 4, 0, 3]
+    JOINT_ACTION_SIZE = [7, 1, 4, 0, 3]
+    JOINT_MOTION_SIZE = [7, 1, 4, 0, 3]
 
     @staticmethod
     def decide_joint_type(joint_type_str):
@@ -32,36 +35,26 @@ class Joint(object):
 
         assert False, f"joint type str {joint_type_str} invalid"
 
-    @staticmethod
-    def decide_joint_dof(joint_type: JointType) -> int:
-        assert isinstance(joint_type, Joint.JointType)
-        return Joint.JOINT_DOF[int(joint_type)]
-
     def __init__(self, joint_id_, joint_name, joint_type_str):
         assert isinstance(joint_id_, int)
-        self.joint_id = joint_id_
-        self.joint_name = joint_name
-        self.joint_type = Joint.decide_joint_type(joint_type_str)
-        self.joint_dof = Joint.decide_joint_dof(self.joint_type)
+        self.id = joint_id_
+        self.name = joint_name
+        self.type = Joint.decide_joint_type(joint_type_str)
+        self.freedom_offset = -1
+        self.action_offset = -1
+        self.motion_offset = -1
 
-    def get_joint_type(self):
-        return self.joint_type
+    def get_joint_num_of_freedom(self):
+        return self.JOINT_FREEDOM_SIZE[self.type]
 
-    def get_joint_name(self):
-        return self.joint_name
+    def get_joint_motion_dof(self):
+        '''
+            get the parameter size of this joint in motion representation
+        '''
+        return self.JOINT_MOTION_SIZE[self.type]
 
-    def get_joint_dof(self):
-        return self.joint_dof
-
-    def get_joint_id(self):
-        return self.joint_id
-
-    def set_offset(self, offset):
-        self.offset = offset
-
-    def get_offset(self):
-        return self.offset
-
+    def get_joint_action_dof(self):
+        return self.JOINT_ACTION_SIZE[self.type]
 
 def find_joint_by_name(joint_name, joint_lst):
     assert all(

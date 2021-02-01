@@ -1,6 +1,8 @@
 --scene kin_char
 
+--timer_type uniform
 --logging_level trace
 --character_file data/0908/characters/skeleton_legs.json
-# --motion_file data/0908/motions/stand_motion_legs.txt
 --motion_file data/0908/motions/walk_motion_legs.txt
+--use_revolute_axis_in_deepmimic_style false
+--output_traj_path false

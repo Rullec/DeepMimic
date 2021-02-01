@@ -176,7 +176,7 @@ tVectorXd cSceneDiffImitate::CalcDRewardDAction()
     else if (mDerivMode == eDerivMode::DERIV_SINGLE_STEP_SIMPLIFIED)
     {
         DrDa = CalcDrDxcur().transpose() * CalcDxurDa();
-        std::cout << "drdx = " << CalcDrDxcur().transpose() << std::endl;
+        // std::cout << "drdx = " << CalcDrDxcur().transpose() << std::endl;
     }
     else
     {
@@ -681,9 +681,9 @@ double cSceneDiffImitate::CalcRewardImitate(cSimCharacterBase &sim_char,
 
     // exit(0);
     double total_rew = pose_rew + vel_rew + ee_rew + root_rew;
-    printf("[debug] pose rew %.5f, vel rew %.5f, ee_rew %.5f, root_rew %.5f, "
-           "total rew %.5f\n",
-           pose_rew, vel_rew, ee_rew, root_rew, total_rew);
+    // printf("[debug] pose rew %.5f, vel rew %.5f, ee_rew %.5f, root_rew %.5f, "
+    //        "total rew %.5f\n",
+    //        pose_rew, vel_rew, ee_rew, root_rew, total_rew);
     return total_rew;
 }
 
