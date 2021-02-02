@@ -1036,13 +1036,34 @@ void cSceneDiffImitate::ClearBuffer()
 /**
  * \brief           update the current scene
 */
+// extern bool gUseBulletGroundDebug_step;
+// extern bool gUseBulletGroundDebug_inside_solver;
+
 void cSceneDiffImitate::Update(double dt)
 {
     mTimestep = dt;
 
+    // set pose now
+    {
+        // std::cout << "[warn] SceneDiffImitate set q and qdot!\n";
+        // tVectorXd q(9), qdot(9);
+        // q << 0.69185768673441094823, 0.094089556619936801085,
+        //     0.068091519225157298711, 0.25349074092649104273,
+        //     0.52064051289439505776, 0.32187999652112669891,
+        //     -0.56490277532196520038, 0.27456689644528808891,
+        //     0.1134431973835109686;
+        // qdot << -0.2347248380715994398, 0.64008871881027040729,
+        //     3.3746458088767532502, -2.9110966014328325535,
+        //     -0.069232034368124972801, -2.7427307637544657837,
+        //     -5.9681395086225030866, 6.3786686696351768688,
+        //     -4.0887850639320522106;
+        // GetDefaultGenChar()->SetqAndqdot(q, qdot);
+        // gUseBulletGroundDebug_step = false;
+        // gUseBulletGroundDebug_inside_solver = true;
+    }
     // 1. update the imitate scene
     cSceneImitate::Update(dt);
-
+    // std::cout << "[debug] update done\n";
     // 0. if it's in the multistep mode, consider to calcualte the P and Q
     // 0.1 calcualte P (confirmed, it's and it should be calculated in the old timestep, here)
     // 0.2 calcualte Q, I think is should be caclulated after the update

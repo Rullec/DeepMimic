@@ -308,7 +308,7 @@ class TorchAgent:
             #     print("[debug] not training: disable stoch policy")
             # else:
             #     print("[debug] enable training: disable stoch policy, no noise")
-        print(f"[debug] decide a = {a}")
+        # print(f"[debug] decide a = {a}")
         return a
 
     def _infer_action(self, s):
@@ -672,8 +672,8 @@ class TorchAgent:
             drda = self._record_drda()
             np.set_printoptions(suppress=False)
             # if self.enable_training == False and self._mode == self.Mode.TRAIN:
-            print(
-                f"[debug] action = {self.path.actions[-1]} drda = {drda} reward {r}")
+            # print(
+            #     f"[debug] action = {self.path.actions[-1]} drda = {drda} reward {r}")
             np.set_printoptions(suppress=True)
             np.set_printoptions(precision=5)
             # print(
