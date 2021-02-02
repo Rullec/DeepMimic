@@ -12,5 +12,5 @@
 --character_file data/0111/characters/skeleton_bipedal_legs.json
 --motion_file data/0201/motions/2d_legs_walk.json
 
---enable_output_traj false
---output_traj_path /tmp/tmp.save
+--enable_output_traj true
+--output_traj_path walk.json

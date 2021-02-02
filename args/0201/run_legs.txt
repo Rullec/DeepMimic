@@ -46,7 +46,7 @@
 --train_agents false
 
 --output_path output/0201/walk/
---model_files output/0201/walk/02-01-17:44:43-0.9626.pkl
+--model_files output/0201/walk/02-01-18:04:25-0.8565.pkl
 
 #---------------------- Inverse Dyanmics config -------------------
 --enable_inverse_dynamic_solving false
